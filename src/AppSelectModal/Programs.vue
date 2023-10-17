@@ -130,24 +130,17 @@ export default {
             this.loading = true;
             invoke('get_installed_apps')
                 .then((apps) => {
-                    console.log(apps)
                     apps = apps.app_list.filter((str) => str !== ""); // Remove empty entries
                     apps = apps.map((str) => ({ DisplayName: str }));
-                    console.log(apps)
                     apps = _.orderBy(
                         apps,
                         [(app) => app.DisplayName.toLowerCase()],
                         ["asc"]
                     );
-                    console.log(apps)
                     // apps = apps.concat(this.getExtraApps());
                     apps.forEach((app, index) => (app.id = index + 1));
-                    console.log(apps)
                     this.appList = apps;
                     this.fullAppList = apps;
-                    console.log({
-                        appList: this.appList,
-                    });
                     this.loading = false;
                 })
                 .catch(() => {
