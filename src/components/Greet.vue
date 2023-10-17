@@ -1,7 +1,7 @@
 
 
 <template>
-      <h1 className="text-3xl font-bold underline text-blue-400">
+      <h1 className=" btn btn-accent">
       Hello world!
     </h1>
 </template>
