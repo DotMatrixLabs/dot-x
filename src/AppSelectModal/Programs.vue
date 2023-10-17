@@ -41,7 +41,9 @@
 import _ from "lodash";
 // import LoadingSpinner from "../assets/loadingSpinner.vue";
 
+import { invoke } from "@tauri-apps/api/tauri";
 
+// Be sure to set `build.withGlobalTauri` in `tauri.conf.json` to true
 
 export default {
 
@@ -124,28 +126,30 @@ export default {
             return extraAppsArray;
         },
 
-        getAllApps() {
+        async getAllApps() {
             this.loading = true;
-            getAllInstalledSoftwareSync()
-                .then((apps) => {
-                    apps = apps.filter((app) => app.DisplayName !== undefined);
-                    apps = _.orderBy(
-                        apps,
-                        [(app) => app.DisplayName.toLowerCase()],
-                        ["asc"]
-                    );
-                    apps = apps.concat(this.getExtraApps());
-                    apps.forEach((app, index) => (app.id = index + 1));
-                    this.appList = apps;
-                    this.fullAppList = apps;
-                    console.log({
-                        appList: this.appList,
-                    });
-                    this.loading = false;
-                })
-                .catch(() => {
-                    this.loading = false;
-                });
+            const apps = await invoke('get_installed_apps')
+            console.log(apps)
+            // getAllInstalledSoftwareSync()
+            //     .then((apps) => {
+            //         apps = apps.filter((app) => app.DisplayName !== undefined);
+            //         apps = _.orderBy(
+            //             apps,
+            //             [(app) => app.DisplayName.toLowerCase()],
+            //             ["asc"]
+            //         );
+            //         apps = apps.concat(this.getExtraApps());
+            //         apps.forEach((app, index) => (app.id = index + 1));
+            //         this.appList = apps;
+            //         this.fullAppList = apps;
+            //         console.log({
+            //             appList: this.appList,
+            //         });
+            //         this.loading = false;
+            //     })
+            //     .catch(() => {
+            //         this.loading = false;
+            //     });
         },
 
         selectSliderApp(app) {
