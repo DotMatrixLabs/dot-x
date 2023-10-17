@@ -11,43 +11,7 @@
         <ActionModal :modalOpen="actionModalOpen" :modalSettings="modalSettings" @closeModal="actionModalOpen = false"
           @outputData="appAdded" />
         <div class="col-span-2 pb-6 pt-2">
-          <div v-if="tabs[0].isActive">
-            <Programs />
-          </div>
-          <div v-if="tabs[1].isActive" class="flex flex-col space-y-3">
-            <!-- General -->
-            <div class="flex space-x-2">
-              <span>Theme: </span>
-              <select @change="setTheme" v-model="currentTheme"
-                class="grow select select-bordered select-sm w-2/3 capitalize focus:border-none">
-                <option v-for="(theme, index) in themes" :value="theme" :key="index">
-                  {{ theme }}
-                </option>
-              </select>
-            </div>
-
-            <!-- input and output manager start -->
-            <div class="flex space-x-2">
-              <label for="audio-device-select">Audio Device:</label>
-              <select id="audio-device-select" v-model="selectedDeviceId" @change="selectAudioDevice(selectedDeviceId)"
-                class="grow select select-bordered select-sm w-2/3 capitalize focus:border-none">
-                <option v-for="device in audioDevices" :key="device.deviceId" :value="device.deviceId">
-                  {{ device.label }}
-                </option>
-              </select>
-            </div>
-
-            <div class="flex space-x-2">
-              <label for="output-device-select">Output Device:</label>
-              <select id="output-device-select" v-model="outputDeviceId" @change="setOutputDevice(outputDeviceId)"
-                class="grow select select-bordered select-sm w-2/3 capitalize focus:border-none">
-                <option v-for="device in audioDevices" :key="device.deviceId" :value="device.deviceId">
-                  {{ device.label }}
-                </option>
-              </select>
-            </div>
-            <!-- input and output manager end -->
-          </div>
+          <component :key="tabs[0].isActive ? 'Programs' : 'SystemDevicesSelector'" :is="tabs[0].isActive ? 'Programs' : 'SystemDevicesSelector'" />
         </div>
       </div>
 
@@ -67,11 +31,13 @@ import _ from "lodash";
 // import LoadingSpinner from "../assets/loadingSpinner.vue";
 
 import Programs from "./Programs.vue"
+import SystemDevicesSelector from "./SystemDevicesSelector.vue"
 
 // import { useMicrophoneStore } from "../store/microphoneStore";
 
 
 const toast = useToast();
+
 
 // const boardManager = new BoardManager();
 // const store = new StorageHandler();
@@ -79,7 +45,7 @@ const toast = useToast();
 export default {
   components: {
     Programs,
-
+    SystemDevicesSelector
   },
 
   name: "SettingsModal",
@@ -92,15 +58,7 @@ export default {
 
   data() {
     return {
-      tabs: [
-        {
-          name: "Programs",
-          isActive: true,
-        },
-        {
-          name: "System Utilities",
-        },
-      ],
+      tabs: [ { name: "Programs", isActive: true }, { name: "System Utilities" } ], 
     };
   },
 

@@ -39,9 +39,6 @@ fn get_installed_apps() -> Result<CustomResponse, Error>{
     for app in apps {
         // metadata accessor fns, these are only evaluated when used
         let name = app.name().to_string();
-        let version = app.version();
-        let publisher = app.publisher();
-        println!("{name} v{version} by {publisher}");
         app_list.push(name);
     }
 
