@@ -128,28 +128,31 @@ export default {
 
         async getAllApps() {
             this.loading = true;
-            const apps = await invoke('get_installed_apps')
-            console.log(apps)
-            // getAllInstalledSoftwareSync()
-            //     .then((apps) => {
-            //         apps = apps.filter((app) => app.DisplayName !== undefined);
-            //         apps = _.orderBy(
-            //             apps,
-            //             [(app) => app.DisplayName.toLowerCase()],
-            //             ["asc"]
-            //         );
-            //         apps = apps.concat(this.getExtraApps());
-            //         apps.forEach((app, index) => (app.id = index + 1));
-            //         this.appList = apps;
-            //         this.fullAppList = apps;
-            //         console.log({
-            //             appList: this.appList,
-            //         });
-            //         this.loading = false;
-            //     })
-            //     .catch(() => {
-            //         this.loading = false;
-            //     });
+            invoke('get_installed_apps')
+                .then((apps) => {
+                    console.log(apps)
+                    apps = apps.app_list.filter((str) => str !== ""); // Remove empty entries
+                    apps = apps.map((str) => ({ DisplayName: str }));
+                    console.log(apps)
+                    apps = _.orderBy(
+                        apps,
+                        [(app) => app.DisplayName.toLowerCase()],
+                        ["asc"]
+                    );
+                    console.log(apps)
+                    // apps = apps.concat(this.getExtraApps());
+                    apps.forEach((app, index) => (app.id = index + 1));
+                    console.log(apps)
+                    this.appList = apps;
+                    this.fullAppList = apps;
+                    console.log({
+                        appList: this.appList,
+                    });
+                    this.loading = false;
+                })
+                .catch(() => {
+                    this.loading = false;
+                });
         },
 
         selectSliderApp(app) {
