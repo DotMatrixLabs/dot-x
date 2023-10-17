@@ -35,15 +35,12 @@
 </template>
 
 <script>
-// import getAllInstalledSoftwareSync from "../../js/win32.js";
 // import ActionModal from "../components/ActionModal.vue";
 // import { mapActions, mapState } from "pinia";
 import _ from "lodash";
 // import LoadingSpinner from "../assets/loadingSpinner.vue";
 
 import { invoke } from "@tauri-apps/api/tauri";
-
-// Be sure to set `build.withGlobalTauri` in `tauri.conf.json` to true
 
 export default {
 
