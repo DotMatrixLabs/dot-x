@@ -53,7 +53,7 @@ export default {
 
   mounted() {
     SystemVolumeController.getAllSessionNames();
-    SystemVolumeController.setVolume('firefox',0.6);
+    SystemVolumeController.setChannelVolume('1', 0.5)
     // boardManager.initBoard(store.get('config.comPort').path)
   },
 
