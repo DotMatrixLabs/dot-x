@@ -24,12 +24,12 @@ export default {
     },
     methods: {
         async getTheme() {
-            this.currentTheme = await TauriStore.get("config.theme") || "dark";
+            this.currentTheme = await TauriStore.get("theme") || "dark";
             document.documentElement.setAttribute("data-theme", this.currentTheme);
             return this.currentTheme;
         },
         async setTheme(event) {
-            await TauriStore.set("config.theme", event.target.value);
+            await TauriStore.set("theme", event.target.value);
             await TauriStore.save();
             document.documentElement.setAttribute("data-theme", event.target.value);
         },

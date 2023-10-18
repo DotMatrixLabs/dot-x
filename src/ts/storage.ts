@@ -4,7 +4,7 @@ class TauriStore {
   private store: Store;
 
   constructor() {
-    this.store = new Store("settings.txt");
+    this.store = new Store("settings.json");
   }
 
   async set(key: string, value: any) {
