@@ -2,6 +2,10 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 
+use windows_volume_control::AudioController;
+use windows_volume_control::CoinitMode;
+
+
 // create the error type that represents all errors possible in our program
 #[derive(Debug, thiserror::Error)]
 enum Error {
@@ -30,11 +34,16 @@ struct CustomResponse {
   app_list: Vec<String>,
 }
 
+#[derive(serde::Serialize)]
+struct ControllerResponse {
+  response: Vec<String>,
+}
 
 #[tauri::command]
 fn get_installed_apps() -> Result<CustomResponse, Error>{
     let apps = installed::list().expect("list apps");
     let mut app_list  = Vec::new();
+    println!("Installed apps: {:?}", app_list);
     for app in apps {
         // metadata accessor fns, these are only evaluated when used
         let name = app.name().to_string();
@@ -47,14 +56,7 @@ fn get_installed_apps() -> Result<CustomResponse, Error>{
     Ok(app_list_response)
 }
 
-#[derive(serde::Serialize)]
-struct ControllerResponse {
-  response: Vec<String>,
-}
 
-
-use windows_volume_control::AudioController;
-use windows_volume_control::CoinitMode;
 
 #[tauri::command]
 fn get_all_session_names() -> Result<Vec<String>, Error> {
@@ -74,9 +76,7 @@ fn get_all_session_names() -> Result<Vec<String>, Error> {
 
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![greet])
-        .invoke_handler(tauri::generate_handler![get_installed_apps])
-        .invoke_handler(tauri::generate_handler![get_all_session_names])
+        .invoke_handler(tauri::generate_handler![get_installed_apps, get_all_session_names])
         .plugin(tauri_plugin_store::Builder::default().build())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
