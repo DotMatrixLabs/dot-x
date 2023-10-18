@@ -1,13 +1,16 @@
 <template>
     <!-- Apps -->
-    <div class="flex flex-row m-auto mb-2">
+    <div class="flex flex-row m-auto mb-2 justify-center items-center">
         <ActionModal :modalOpen="actionModalOpen" :modalSettings="modalSettings" @closeModal="actionModalOpen = false"
           @outputData="appAdded" />
         <!-- Search not ready yet, disabling for now -->
-        <span class="shrink-0 px-1 text-xs text-gray-300">
-            Search for apps:
-        </span>
-        <input v-model="appSearch" type="text"
+        <div class="h-full">
+            <label class="label cursor-pointer">
+                <span class="text-xs mx-2">Active Apps</span> 
+                <input type="checkbox" v-model="onlyShowActiveApps" class="checkbox checkbox-primary checkbox-xs" />
+            </label>
+        </div>
+        <input v-model="appSearch" type="text" placeholder="Search apps"
             class="input input-bordered input-xs w-2/3 max-w-xs mx-2 capitalize truncate" />
         <button @click="actionModalOpen = true" class="btn btn-xs">
             Add app
@@ -20,7 +23,7 @@
             </div>
         </div>
         <div v-if="filterApps">
-            <RecycleScroller class="w-full px-4" :items="filterApps" :item-size="32" key-field="id" :prerender="0"
+            <RecycleScroller class="w-full px-4" :items="onlyShowActiveApps ? activeApps : filterApps" :item-size="32" key-field="id" :prerender="0"
                 v-slot="{ item }">
                 <button class="hover:bg-base-100 rounded-lg w-full flex flex-row justify-between"
                     @click="selectSliderApp(item)">
@@ -43,6 +46,7 @@ import _ from "lodash";
 import LoadingSpinner from "../assets/loadingSpinner.vue";
 
 import ExtraApps from "../ts/extraApps.ts";
+import SystemVolumeController from "../ts/volumeControl.ts";
 
 import { invoke } from "@tauri-apps/api/tauri";
 
@@ -88,6 +92,8 @@ export default {
             },
             loading: false,
             selectedApp: null,
+            activeApps: [],
+            onlyShowActiveApps: false,
         }
     },
 
@@ -127,11 +133,22 @@ export default {
             return extraAppsArray;
         },
 
+        async getActiveApps() {
+            let activeApps = await SystemVolumeController.getAllSessionNames();
+            activeApps = activeApps.filter((str) => str !== ""); // Remove empty entries
+            activeApps = activeApps.filter((str) => str !== "master"); // Remove empty entries
+            activeApps = _.uniqBy(activeApps, item => item.toLowerCase());// Remove duplicates
+            activeApps = activeApps.map((str) => ({ DisplayName: str, id: str, appType: 'active' }));  
+            console.log(activeApps)
+            this.activeApps = activeApps;
+        },
+
         async getAllApps() {
             this.loading = true;
             const extraApps = await this.getExtraApps();
             invoke('get_installed_apps')
                 .then((apps) => {
+                    console.log(apps)
                     apps = apps.app_list.filter((str) => str !== ""); // Remove empty entries
                     apps = apps.map((str) => ({ DisplayName: str }));
                     apps = _.orderBy(
@@ -160,6 +177,7 @@ export default {
 
     mounted() {
         this.getAllApps();
+        this.getActiveApps();
     },
 
 

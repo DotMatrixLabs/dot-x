@@ -7,7 +7,7 @@ class SystemVolumeController {
 
     async getAllSessionNames(): Promise<void> {
         const result = await invoke('get_all_session_names');
-        console.log(result);
+        return result;
     }
 
     static async setVolume(volume: number): Promise<void> {
