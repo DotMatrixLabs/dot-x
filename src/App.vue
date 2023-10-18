@@ -13,6 +13,7 @@ import SettingsModal from "./SettingsModal/SettingsModal.vue";
 import AppsModal from "./AppSelectModal/AppsModal.vue";
 import SliderOverview from "./SliderOverview.vue";
 import { useToast } from "vue-toastification";
+import TauriStore from "./ts/storage.ts";
 
 const toast = useToast();
 
@@ -31,11 +32,11 @@ export default {
   },
 
   methods: {
-    // getTheme() {
-    //   this.currentTheme = store.get("config.theme") || "dark";
-    //   document.documentElement.setAttribute("data-theme", this.currentTheme);
-    //   return this.currentTheme;
-    // },
+    async getTheme() {
+      this.currentTheme = await TauriStore.get("config.theme") || "dark";
+      document.documentElement.setAttribute("data-theme", this.currentTheme);
+      return this.currentTheme;
+    },
 
     settingsToggled() {
       this.settingsModalOpen = !this.settingsModalOpen;
@@ -64,7 +65,7 @@ export default {
 
   mounted() {
 
-    // this.getTheme();
+    this.getTheme();
 
   },
 };

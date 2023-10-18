@@ -11,26 +11,26 @@
 </template>
 
 <script>
-// import StorageHandler from "../../js/storage.mjs";
 
-// const store = new StorageHandler();
+import TauriStore from "../ts/storage.ts";
 
 export default {
     name: "General",
     data() {
         return {
-            themes: ["light", "dark", "synthwave"],
+            themes: ["light", "dark"],
             currentTheme: "",
         }
     },
     methods: {
-        getTheme() {
-            this.currentTheme = store.get("config.theme") || "dark";
+        async getTheme() {
+            this.currentTheme = await TauriStore.get("config.theme") || "dark";
             document.documentElement.setAttribute("data-theme", this.currentTheme);
             return this.currentTheme;
         },
-        setTheme(event) {
-            store.set("config.theme", event.target.value);
+        async setTheme(event) {
+            await TauriStore.set("config.theme", event.target.value);
+            await TauriStore.save();
             document.documentElement.setAttribute("data-theme", event.target.value);
         },
     },

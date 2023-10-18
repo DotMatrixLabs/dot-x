@@ -180,7 +180,7 @@
     "@nodelib/fs.scandir" "2.1.5"
     fastq "^1.6.0"
 
-"@tauri-apps/api@^1.5.0":
+"@tauri-apps/api@1.5.0", "@tauri-apps/api@^1.5.0":
   version "1.5.0"
   resolved "https://registry.yarnpkg.com/@tauri-apps/api/-/api-1.5.0.tgz#46a0f9b6edd4bfc39be32afc4ad242e0b8cca3ea"
   integrity sha512-yQY9wpVNuiYhLLuyDlu1nBpqJELT1fGp7OctN4rW9I2W1T2p7A3tqPxsEzQprEwneQRBAlPM9vC8NsnMbct+pg==
@@ -1017,6 +1017,12 @@ tailwindcss@^3.1, tailwindcss@^3.3.3:
     postcss-selector-parser "^6.0.11"
     resolve "^1.22.2"
     sucrase "^3.32.0"
+
+"tauri-plugin-store-api@https://github.com/tauri-apps/tauri-plugin-store#v1":
+  version "0.0.0"
+  resolved "https://github.com/tauri-apps/tauri-plugin-store#1a741b721ed1eae0de0d811ecfe86fc6ad54fb73"
+  dependencies:
+    "@tauri-apps/api" "1.5.0"
 
 thenify-all@^1.0.0:
   version "1.6.0"
