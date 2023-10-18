@@ -35,13 +35,11 @@ struct CustomResponse {
 fn get_installed_apps() -> Result<CustomResponse, Error>{
     let apps = installed::list().expect("list apps");
     let mut app_list  = Vec::new();
-
     for app in apps {
         // metadata accessor fns, these are only evaluated when used
         let name = app.name().to_string();
         app_list.push(name);
     }
-
     // Create the Response struct
     let app_list_response = CustomResponse {
         app_list: app_list,
@@ -49,10 +47,36 @@ fn get_installed_apps() -> Result<CustomResponse, Error>{
     Ok(app_list_response)
 }
 
+#[derive(serde::Serialize)]
+struct ControllerResponse {
+  response: Vec<String>,
+}
+
+
+use windows_volume_control::AudioController;
+use windows_volume_control::CoinitMode;
+
+#[tauri::command]
+fn get_all_session_names() -> Result<Vec<String>, Error> {
+    unsafe {
+        let mut controller = AudioController::init(Some(CoinitMode::ApartmentThreaded));
+        controller.GetSessions();
+        controller.GetDefaultAudioEnpointVolumeControl();
+        controller.GetAllProcessSessions();
+
+        // Collect all session names
+        let all_session_names = controller.get_all_session_names();
+
+        Ok(all_session_names)
+    }
+}
+
+
 fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![greet])
         .invoke_handler(tauri::generate_handler![get_installed_apps])
+        .invoke_handler(tauri::generate_handler![get_all_session_names])
         .plugin(tauri_plugin_store::Builder::default().build())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
