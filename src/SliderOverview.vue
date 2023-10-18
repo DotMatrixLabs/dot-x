@@ -20,7 +20,7 @@
 <script>
 import Slider from "./components/Slider.vue";
 import _ from "lodash";
-
+import SystemVolumeController from "./ts/volumeControl.ts";
 
 export default {
   components: { Slider },
@@ -52,6 +52,7 @@ export default {
   },
 
   mounted() {
+    SystemVolumeController.getAllSessionNames();
     // boardManager.initBoard(store.get('config.comPort').path)
   },
 
