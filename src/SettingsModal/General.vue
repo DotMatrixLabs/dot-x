@@ -12,7 +12,7 @@
 
 <script>
 
-import TauriStore from "../ts/storage.ts";
+import ConfigStore from "../ts/config.ts";
 
 export default {
     name: "General",
@@ -29,8 +29,8 @@ export default {
             return this.currentTheme;
         },
         async setTheme(event) {
-            await TauriStore.set("theme", event.target.value);
-            await TauriStore.save();
+            await ConfigStore.set("theme", event.target.value);
+            await ConfigStore.save();
             document.documentElement.setAttribute("data-theme", event.target.value);
         },
     },

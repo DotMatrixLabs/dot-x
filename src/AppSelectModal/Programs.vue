@@ -1,6 +1,8 @@
 <template>
     <!-- Apps -->
     <div class="flex flex-row m-auto mb-2">
+        <ActionModal :modalOpen="actionModalOpen" :modalSettings="modalSettings" @closeModal="actionModalOpen = false"
+          @outputData="appAdded" />
         <!-- Search not ready yet, disabling for now -->
         <span class="shrink-0 px-1 text-xs text-gray-300">
             Search for apps:
@@ -35,17 +37,19 @@
 </template>
 
 <script>
-// import ActionModal from "../components/ActionModal.vue";
+import ActionModal from "../components/ActionModal.vue";
 // import { mapActions, mapState } from "pinia";
 import _ from "lodash";
 import LoadingSpinner from "../assets/loadingSpinner.vue";
+
+import ExtraApps from "../ts/extraApps.ts";
 
 import { invoke } from "@tauri-apps/api/tauri";
 
 export default {
 
     components: {
-        // ActionModal,
+        ActionModal,
         LoadingSpinner
     },
 
@@ -100,8 +104,8 @@ export default {
     },
 
     methods: {
-        appAdded(appsObject) {
-            store.addExtraApp(appsObject.displayName, appsObject.filePath);
+        async appAdded(appsObject) {
+            await ExtraApps.addExtraApp(appsObject.displayName, appsObject.filePath);
             this.getAllApps();
         },
 
@@ -109,8 +113,8 @@ export default {
             console.log("name: ", name);
         },
 
-        getExtraApps() {
-            const extraApps = store.get("extraApps");
+        async getExtraApps() {
+            const extraApps = await ExtraApps.getExtraApps();
             const extraAppsArray = [];
             if (!_.isEmpty(extraApps)) {
                 Object.keys(extraApps).forEach((app) => {
@@ -125,6 +129,7 @@ export default {
 
         async getAllApps() {
             this.loading = true;
+            const extraApps = await this.getExtraApps();
             invoke('get_installed_apps')
                 .then((apps) => {
                     apps = apps.app_list.filter((str) => str !== ""); // Remove empty entries
@@ -134,7 +139,7 @@ export default {
                         [(app) => app.DisplayName.toLowerCase()],
                         ["asc"]
                     );
-                    // apps = apps.concat(this.getExtraApps());
+                    apps = apps.concat(extraApps);
                     apps.forEach((app, index) => (app.id = index + 1));
                     this.appList = apps;
                     this.fullAppList = apps;
