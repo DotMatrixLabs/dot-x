@@ -23,11 +23,9 @@ class SelectedApps {
         await this.store.save();
     }
 
-    async removeApp(sliderID: number, appName: string) {
-        await this.store.set(key, value);
-    }
-    async get(key: string): Promise<any> {
-        return await this.store.get(key);
+    async getApps(sliderID: number): Promise<any> {
+        const sliderIDString = sliderID.toString();
+        return await this.store.get(sliderIDString);
     }
 
     async save() {

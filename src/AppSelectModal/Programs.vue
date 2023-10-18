@@ -6,8 +6,8 @@
         <!-- Search not ready yet, disabling for now -->
         <div class="h-full">
             <label class="label cursor-pointer">
-                <span class="text-xs mx-2">Active Apps</span> 
-                <input type="checkbox" v-model="onlyShowActiveApps" class="checkbox checkbox-primary checkbox-xs" />
+                <span class="text-xs mx-2">All Apps</span> 
+                <input type="checkbox" v-model="showAllApps" class="checkbox checkbox-primary checkbox-xs" />
             </label>
         </div>
         <input v-model="appSearch" type="text" placeholder="Search apps"
@@ -23,14 +23,14 @@
             </div>
         </div>
         <div v-if="filterApps">
-            <RecycleScroller class="w-full px-4" :items="onlyShowActiveApps ? activeApps : filterApps" :item-size="32" key-field="id" :prerender="0"
+            <RecycleScroller class="w-full px-4" :items="showAllApps ? filterApps : activeApps" :item-size="32" key-field="id" :prerender="0"
                 v-slot="{ item }">
                 <button class="hover:bg-base-100 rounded-lg w-full flex flex-row justify-between"
                     @click="selectSliderApp(item)">
                     <input type="checkbox" :checked="selectedApps.includes(item.DisplayName)" class="checkbox checkbox-primary checkbox-xs m-auto" />
 
-                    <div class="truncate cursor-pointer px-2 py-0.5 text-blue w-full text-left mx-2">
-                        {{ item.DisplayName }}
+                    <div class="truncate capitalize cursor-pointer px-2 py-0.5 text-blue w-full text-left mx-2">
+                        {{ item.DisplayName.toLowerCase() }}
                     </div>
                     <button v-if="item.appType === 'custom'" class="mt-1" @click="removeClicked(item.DisplayName)">
                         <i class="fas fa-xmark m-auto w-4 h-4 p-1 rounded-full hover:bg-gray-500 hover:bg-opacity-30"></i>
@@ -99,7 +99,7 @@ export default {
             loading: false,
             selectedApps: ["Spotify"],
             activeApps: [],
-            onlyShowActiveApps: false,
+            showAllApps: false,
         }
     },
 
@@ -174,7 +174,14 @@ export default {
         },
 
         selectSliderApp(app) {
-            SelectedApps.toggleApp('1', app.DisplayName)
+            SelectedApps.toggleApp('1', app.DisplayName).then(() => {
+                this.getSelectedApps();
+            }); 
+        },
+
+        async getSelectedApps() {
+            this.selectedApps = await SelectedApps.getApps('1');
+            console.log(this.selectedApps);
         },
     },
 
