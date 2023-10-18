@@ -43,7 +43,6 @@ struct ControllerResponse {
 fn get_installed_apps() -> Result<CustomResponse, Error>{
     let apps = installed::list().expect("list apps");
     let mut app_list  = Vec::new();
-    println!("Installed apps: {:?}", app_list);
     for app in apps {
         // metadata accessor fns, these are only evaluated when used
         let name = app.name().to_string();
