@@ -13,7 +13,7 @@ import SettingsModal from "./SettingsModal/SettingsModal.vue";
 import AppsModal from "./AppSelectModal/AppsModal.vue";
 import SliderOverview from "./SliderOverview.vue";
 import { useToast } from "vue-toastification";
-import TauriStore from "./ts/storage.ts";
+import ConfigStore from "./ts/config.ts";
 
 const toast = useToast();
 
@@ -33,7 +33,7 @@ export default {
 
   methods: {
     async getTheme() {
-      this.currentTheme = await TauriStore.get("theme") || "dark";
+      this.currentTheme = await ConfigStore.get("theme") || "dark";
       document.documentElement.setAttribute("data-theme", this.currentTheme);
       return this.currentTheme;
     },

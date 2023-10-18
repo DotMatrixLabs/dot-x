@@ -8,8 +8,6 @@
             <a @click="selectTab(tab)" class="w-full text-center" :class="{ active: tab.isActive }">{{ tab.name }}</a>
           </li>
         </ul>
-        <ActionModal :modalOpen="actionModalOpen" :modalSettings="modalSettings" @closeModal="actionModalOpen = false"
-          @outputData="appAdded" />
         <div class="col-span-2 pb-6 pt-2">
           <component :key="tabs[0].isActive ? 'Programs' : 'SystemDevicesSelector'" :is="tabs[0].isActive ? 'Programs' : 'SystemDevicesSelector'" />
         </div>
