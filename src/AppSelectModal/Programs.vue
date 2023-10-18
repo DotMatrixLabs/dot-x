@@ -27,7 +27,9 @@
                 v-slot="{ item }">
                 <button class="hover:bg-base-100 rounded-lg w-full flex flex-row justify-between"
                     @click="selectSliderApp(item)">
-                    <div class="truncate cursor-pointer px-2 py-0.5 text-blue">
+                    <input type="checkbox" :checked="selectedApps.includes(item.DisplayName)" class="checkbox checkbox-primary checkbox-xs m-auto" />
+
+                    <div class="truncate cursor-pointer px-2 py-0.5 text-blue w-full text-left mx-2">
                         {{ item.DisplayName }}
                     </div>
                     <button v-if="item.appType === 'custom'" class="mt-1" @click="removeClicked(item.DisplayName)">
@@ -47,6 +49,11 @@ import LoadingSpinner from "../assets/loadingSpinner.vue";
 
 import ExtraApps from "../ts/extraApps.ts";
 import SystemVolumeController from "../ts/volumeControl.ts";
+import SelectedApps from "../ts/appsToControl.ts";
+import { useToast } from "vue-toastification";
+
+
+const toast = useToast();
 
 import { invoke } from "@tauri-apps/api/tauri";
 
@@ -60,7 +67,6 @@ export default {
 
     data() {
         return {
-
             appSearch: "",
             currentComPort: null,
             comPortInterval: null,
@@ -91,7 +97,7 @@ export default {
                 confirmButton: "Add",
             },
             loading: false,
-            selectedApp: null,
+            selectedApps: ["Spotify"],
             activeApps: [],
             onlyShowActiveApps: false,
         }
@@ -168,9 +174,7 @@ export default {
         },
 
         selectSliderApp(app) {
-            console.log({ emitted: app });
-            this.$emit("appSelected", app);
-            this.$emit("close");
+            SelectedApps.toggleApp('1', app.DisplayName)
         },
     },
 
