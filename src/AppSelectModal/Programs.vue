@@ -38,7 +38,7 @@
 // import ActionModal from "../components/ActionModal.vue";
 // import { mapActions, mapState } from "pinia";
 import _ from "lodash";
-// import LoadingSpinner from "../assets/loadingSpinner.vue";
+import LoadingSpinner from "../assets/loadingSpinner.vue";
 
 import { invoke } from "@tauri-apps/api/tauri";
 
@@ -46,7 +46,7 @@ export default {
 
     components: {
         // ActionModal,
-        // LoadingSpinner
+        LoadingSpinner
     },
 
 
