@@ -28,7 +28,7 @@ class ExtraApps {
 
         const keyName = _.camelCase(name);
 
-        await this.store.set(`extraApps.${keyName}`, extraApp);
+        await this.store.set(keyName, extraApp);
 
         await this.save();
     }
@@ -36,7 +36,7 @@ class ExtraApps {
     async removeExtraApp(name: string) {
         const keyName = _.camelCase(name);
 
-        await this.store.remove(`extraApps.${keyName}`);
+        await this.store.remove(keyName);
 
         await this.save();
     }
