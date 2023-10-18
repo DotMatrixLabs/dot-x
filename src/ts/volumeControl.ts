@@ -10,8 +10,8 @@ class SystemVolumeController {
         return result;
     }
 
-    static async setVolume(volume: number): Promise<void> {
-        await invoke('set_volume', { volume });
+    async setVolume(name: string, volume: number): Promise<void> {
+        await invoke('set_application_volume', { name, volume });
     }
 
     static async mute(): Promise<void> {
