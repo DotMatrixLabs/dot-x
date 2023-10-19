@@ -72,6 +72,7 @@ export default {
 
   updated() {
     this.$refs?.programs?.refreshData();
+    this.$refs?.SystemUtilitiesSelector?.getActiveDevices();
   },
 
   // created() {
