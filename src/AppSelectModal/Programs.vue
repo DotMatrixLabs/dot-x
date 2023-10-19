@@ -27,7 +27,7 @@
                 v-slot="{ item }">
                 <button class="hover:bg-base-100 rounded-lg w-full flex flex-row justify-between"
                     @click="selectSliderApp(item)">
-                    <input type="checkbox" :checked="selectedApps.includes(item.DisplayName)" class="checkbox checkbox-primary checkbox-xs m-auto" />
+                    <input type="checkbox" :checked="selectedApps?.includes(item.DisplayName)" class="checkbox checkbox-primary checkbox-xs m-auto" />
 
                     <div class="truncate capitalize cursor-pointer px-2 py-0.5 text-blue w-full text-left mx-2">
                         {{ item.DisplayName.toLowerCase() }}
@@ -64,6 +64,13 @@ export default {
         LoadingSpinner
     },
 
+    props: {
+        currentSliderID: {
+            type: Number,
+            default: null,
+        },
+    },
+
 
     data() {
         return {
@@ -97,7 +104,7 @@ export default {
                 confirmButton: "Add",
             },
             loading: false,
-            selectedApps: ["Spotify"],
+            selectedApps: [""],
             activeApps: [],
             showAllApps: false,
         }
@@ -174,21 +181,26 @@ export default {
         },
 
         selectSliderApp(app) {
-            SelectedApps.toggleApp('1', app.DisplayName).then(() => {
+            SelectedApps.toggleApp(this.currentSliderID.toString(), app.DisplayName).then(() => {
                 this.getSelectedApps();
             }); 
         },
 
         async getSelectedApps() {
-            this.selectedApps = await SelectedApps.getApps('1');
+            this.selectedApps = await SelectedApps.getApps(this.currentSliderID?.toString());
             console.log(this.selectedApps);
+        },
+
+        refreshData() {
+            this.getAllApps();
+            this.getActiveApps();
+            this.getSelectedApps();
         },
     },
 
 
     mounted() {
-        this.getAllApps();
-        this.getActiveApps();
+        this.refreshData();
     },
 
 

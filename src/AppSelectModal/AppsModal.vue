@@ -9,7 +9,7 @@
           </li>
         </ul>
         <div class="col-span-2 pb-6 pt-2">
-          <component :key="tabs[0].isActive ? 'Programs' : 'SystemDevicesSelector'" :is="tabs[0].isActive ? 'Programs' : 'SystemDevicesSelector'" />
+          <component :ref="tabs[0].isActive ? 'programs' : 'systemDevicesSelector'" :currentSliderID="currentSliderID" :key="tabs[0].isActive ? 'Programs' : 'SystemDevicesSelector'" :is="tabs[0].isActive ? 'Programs' : 'SystemDevicesSelector'" />
         </div>
       </div>
 
@@ -52,6 +52,7 @@ export default {
 
   props: {
     modalOpen: Boolean,
+    currentSliderID: Number,
   },
 
   data() {
@@ -67,6 +68,10 @@ export default {
       });
     },
 
+  },
+
+  updated() {
+    this.$refs?.programs?.refreshData();
   },
 
   // created() {

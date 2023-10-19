@@ -1,9 +1,9 @@
 <template>
   <div class="h-screen w-screen flex flex-col pt-12 bg-base-200">
     <SettingsModal :modal-open="settingsModalOpen" @close="settingsToggled" />
-    <AppsModal :modal-open="appsModalOpen" @close="appsToggled" @app-selected="setActiveApp" />
+    <AppsModal :currentSliderID="currentSliderID" :modal-open="appsModalOpen" @close="appsToggled(null)" />
     <TopBar @settings-toggled="settingsToggled" @connect-to-board="connect" :connection-status="connectionStatus" />
-    <SliderOverview :active-app="activeApp" :pot-values="potValues" @app-click="appsToggled" />
+    <SliderOverview  :pot-values="potValues" @app-click="appsToggled" />
   </div>
 </template>
 
@@ -27,7 +27,7 @@ export default {
       appsModalOpen: false,
       connectionStatus: "not connected",
       potValues: null,
-      activeApp: null,
+      currentSliderID: null,
     };
   },
 
@@ -41,7 +41,8 @@ export default {
     settingsToggled() {
       this.settingsModalOpen = !this.settingsModalOpen;
     },
-    appsToggled() {
+    appsToggled(id) {
+      this.currentSliderID = id;
       this.appsModalOpen = !this.appsModalOpen;
     },
     // connect() {

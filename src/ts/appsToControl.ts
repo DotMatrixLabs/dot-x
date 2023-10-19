@@ -24,7 +24,8 @@ class SelectedApps {
     }
 
     async getApps(sliderID: number): Promise<any> {
-        const sliderIDString = sliderID.toString();
+        const sliderIDString = sliderID?.toString();
+        if(!sliderIDString) return;
         return await this.store.get(sliderIDString);
     }
 
