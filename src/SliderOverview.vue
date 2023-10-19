@@ -4,10 +4,10 @@
       <template v-for="slider in sliders" :key="slider.id">
         <div class="flex flex-col justify-center">
           <Slider :slider-val="slider.value" class="h-full w-full" />
-          <img class="w-12 mt-12 rounded-full shadow" @click="$emit('app-click')" v-if="activeAppIconPath"
-            :src="`${activeAppIconPath}`" alt="" />
+          <!-- <img class="w-12 mt-12 rounded-full shadow" @click="$emit('app-click')" v-if="activeAppIconPath"
+            :src="`${activeAppIconPath}`" alt="" /> -->
 
-          <button v-else @click="$emit('app-click')"
+          <button @click="$emit('app-click', slider.id)"
             class="m-auto rounded-full w-12 h-12 bg-gray-400 bg-opacity-50 ring-opacity-50 mt-12 btn">
             <span><i class="fas fa-add fa-xl"></i></span>
           </button>
