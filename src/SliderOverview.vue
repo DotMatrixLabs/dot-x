@@ -8,7 +8,7 @@
             :src="`${activeAppIconPath}`" alt="" /> -->
 
           <button @click="$emit('app-click', slider.id)"
-            class="m-auto rounded-full w-24 h-12 bg-gray-400 bg-opacity-50 ring-opacity-50 mt-12 btn">
+            class="m-auto rounded-full w-24 h-12 bg-gray-400 bg-opacity-50 ring-opacity-50 mt-12 btn mx-1">
             <span v-if="sliderChannelName(slider.id)" class="text-white text-xxs text-center truncate">{{ sliderChannelName(slider.id) }}</span>
             <span v-else><i class="fas fa-add fa-xl"></i></span>
           </button>
