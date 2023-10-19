@@ -23,7 +23,7 @@
             </div>
         </div>
         <div v-if="filterApps">
-            <RecycleScroller class="w-full px-4" :items="showAllApps ? filterApps : activeApps" :item-size="32" key-field="id" :prerender="0"
+            <RecycleScroller class="w-full px-4" :items="filterApps" :item-size="32" key-field="id" :prerender="0"
                 v-slot="{ item }">
                 <button class="hover:bg-base-100 rounded-lg w-full flex flex-row justify-between"
                     @click="selectSliderApp(item)">
@@ -113,10 +113,11 @@ export default {
 
     computed: {
         filterApps() {
-            if (_.isEmpty(this.appList)) {
-                return this.appList;
+            let appList = this.showAllApps ? this.appList : this.activeApps;
+            if (_.isEmpty(appList)) {
+                return appList;
             }
-            return this.appList.filter((app) =>
+            return appList.filter((app) =>
                 app.DisplayName.toLowerCase().includes(this.appSearch.toLowerCase())
             );
         },
