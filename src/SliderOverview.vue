@@ -8,8 +8,9 @@
             :src="`${activeAppIconPath}`" alt="" /> -->
 
           <button @click="$emit('app-click', slider.id)"
-            class="m-auto rounded-full w-12 h-12 bg-gray-400 bg-opacity-50 ring-opacity-50 mt-12 btn">
-            <span><i class="fas fa-add fa-xl"></i></span>
+            class="m-auto rounded-full w-24 h-12 bg-gray-400 bg-opacity-50 ring-opacity-50 mt-12 btn">
+            <span v-if="sliderChannelName(slider.id)" class="text-white text-xxs text-center truncate">{{ sliderChannelName(slider.id) }}</span>
+            <span v-else><i class="fas fa-add fa-xl"></i></span>
           </button>
         </div>
       </template>
@@ -21,6 +22,7 @@
 import Slider from "./components/Slider.vue";
 import _ from "lodash";
 import SystemVolumeController from "./ts/volumeControl.ts";
+import SelectedApps from "./ts/appsToControl.ts";
 
 export default {
   components: { Slider },
@@ -46,14 +48,31 @@ export default {
   },
 
   methods: {
-    addAppClick(slider) {
-      console.log(slider);
+
+    sliderChannelName(sliderID){
+      const apps = this.sliders[sliderID]?.apps;
+      if(!apps) return;
+      if(apps.length > 1) return `${apps[0]}+${apps.length - 1}`;
+      else return apps[0];
+      console.log(apps)
     },
+
+    async getSelectedApps() {
+      this.sliders.forEach(async (slider) => {
+        const selectedApps = await SelectedApps.getApps(slider.id);
+        console.log( selectedApps );
+        if(!selectedApps) return;
+        this.sliders[slider.id].apps = selectedApps;
+      });
+    },
+
+
   },
 
   mounted() {
     SystemVolumeController.getAllSessionNames();
     SystemVolumeController.setChannelVolume('1', 0.5)
+    this.getSelectedApps();
     // boardManager.initBoard(store.get('config.comPort').path)
   },
 
@@ -61,4 +80,10 @@ export default {
 };
 </script>
 
-<style scoped></style>
+<style scoped>
+
+.text-xxs {
+  font-size: 0.6rem;
+}
+
+</style>
