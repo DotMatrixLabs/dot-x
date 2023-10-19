@@ -3,7 +3,7 @@
     <SettingsModal :modal-open="settingsModalOpen" @close="settingsToggled" />
     <AppsModal :currentSliderID="currentSliderID" :modal-open="appsModalOpen" @close="appsToggled(null)" />
     <TopBar @settings-toggled="settingsToggled" @connect-to-board="connect" :connection-status="connectionStatus" />
-    <SliderOverview  :pot-values="potValues" @app-click="appsToggled" />
+    <SliderOverview ref="sliderOverview" :pot-values="potValues" @app-click="appsToggled" />
   </div>
 </template>
 
@@ -44,6 +44,7 @@ export default {
     appsToggled(id) {
       this.currentSliderID = id;
       this.appsModalOpen = !this.appsModalOpen;
+      this.$refs.sliderOverview.getSelectedApps();
     },
     // connect() {
     //   const port = store.get("config.comPort");
