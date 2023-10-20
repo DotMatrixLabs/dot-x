@@ -1,16 +1,26 @@
 <template>
-    <div>
-        <div class="flex flex-row">
+    <div class="flex flex-col justify-between items-center">
+        <!-- Device Selection -->
+        <div class="flex flex-row w-full">
             <span class="shrink-0 pt-1">Device: </span>
             <select @change="comPortSelected" v-model="currentComPort"
-                class="select select-bordered select-sm w-2/3 max-w-xs mx-2 capitalize truncate">
-                <option v-for="(comPort, index) in comPorts" :value="comPort" :key="index">
+                class="select select-bordered select-sm w-full mx-2 capitalize truncate">
+                <option class="w-full" v-for="(comPort, index) in comPorts" :value="comPort" :key="index">
                     {{ `${comPort.path} - ${comPort.manufacturer}` }}
                 </option>
             </select>
             <button @click="detectBoard" title="Autodiscover" class="btn btn-circle btn-sm">
                 <i class="fa-solid fa-magnifying-glass"></i>
             </button>
+        </div>
+        <!-- Device Info -->
+        <div class="flex flex-col w-full items-center mt-6">
+            <span class="shrink-0 pt-1 font-bold">Device Info: </span>
+            <div class="divider mt-0"></div>
+            <div :key="deviceInfo" v-for="deviceInfo in deviceInfoPoints" class=" flex flex-row w-2/3 justify-between">
+                <span class="text-gray-500">{{deviceInfo.name}}:</span>
+                <span class="font-semibold">{{deviceInfo.value}}</span>
+            </div>
         </div>
     </div>
 </template>
@@ -32,7 +42,12 @@ export default {
             comPorts: [],
             currentComPort: null,
             comPortInterval: null,
-        }
+            deviceInfoPoints: [
+                { name: "Model", value: "Decker 1.0" },
+                { name: "Firmware", value: "1.0.0" },
+                { name: "Serial Number", value: "123456789" },
+                { name: "COM Port", value: "COM 2" }
+        ]}
     },
     methods: {
         // detectBoard() {
