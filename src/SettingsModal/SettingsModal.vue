@@ -1,6 +1,6 @@
 <template>
   <div :class="modalOpen ? 'modal-open' : ''" class="modal h-full w-full">
-    <div class="modal-box w-full max-w-xl h-2/3">
+    <div class="modal-box w-full max-w-xl h-2/3 overflow-hidden">
       <h1 class="font-bold text-lg text-center">Settings</h1>
       <div class="flex flex-row pt-3">
         <div class="text-left p-4">
@@ -12,7 +12,7 @@
             </li>
           </ul>
         </div>
-        <div class="col-span-2 p-6">
+        <div class="col-span-2 w-full p-6">
           <component :is="activeTab" :key="activeTab" />
         </div>
       </div>
@@ -26,7 +26,7 @@
 <script>
 import About from "./About.vue";
 import General from "./General.vue";
-import Connectivity from "./Connectivity.vue";
+import Device from "./Device.vue";
 
 
 export default {
@@ -37,7 +37,7 @@ export default {
   components: {
     About,
     General,
-    Connectivity
+    Device
   },
 
   props: {
@@ -46,8 +46,8 @@ export default {
 
   data() {
     return {
-      tabs: ['Connectivity', 'General', 'About'],
-      activeTab: "Connectivity"
+      tabs: ['Device', 'General', 'About'],
+      activeTab: "Device"
     };
   },
 

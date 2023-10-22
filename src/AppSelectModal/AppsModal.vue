@@ -9,7 +9,7 @@
           </li>
         </ul>
         <div class="col-span-2 pb-6 pt-2">
-          <component :key="tabs[0].isActive ? 'Programs' : 'SystemDevicesSelector'" :is="tabs[0].isActive ? 'Programs' : 'SystemDevicesSelector'" />
+          <component :ref="tabs[0].isActive ? 'programs' : 'SystemUtilitiesSelector'" :currentSliderID="currentSliderID" :key="tabs[0].isActive ? 'Programs' : 'SystemUtilitiesSelector'" :is="tabs[0].isActive ? 'Programs' : 'SystemUtilitiesSelector'" />
         </div>
       </div>
 
@@ -29,7 +29,7 @@ import _ from "lodash";
 // import LoadingSpinner from "../assets/loadingSpinner.vue";
 
 import Programs from "./Programs.vue"
-import SystemDevicesSelector from "./SystemDevicesSelector.vue"
+import SystemUtilitiesSelector from "./SystemUtilitiesSelector.vue"
 
 // import { useMicrophoneStore } from "../store/microphoneStore";
 
@@ -43,7 +43,7 @@ const toast = useToast();
 export default {
   components: {
     Programs,
-    SystemDevicesSelector
+    SystemUtilitiesSelector
   },
 
   name: "SettingsModal",
@@ -52,6 +52,7 @@ export default {
 
   props: {
     modalOpen: Boolean,
+    currentSliderID: Number,
   },
 
   data() {
@@ -67,6 +68,11 @@ export default {
       });
     },
 
+  },
+
+  updated() {
+    this.$refs?.programs?.refreshData();
+    this.$refs?.SystemUtilitiesSelector?.getActiveDevices();
   },
 
   // created() {

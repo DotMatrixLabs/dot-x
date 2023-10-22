@@ -6,14 +6,24 @@ use windows_volume_control::AudioController;
 use windows_volume_control::CoinitMode;
 
 mod decker;
+use std::fmt;
 
 // create the error type that represents all errors possible in our program
 #[derive(Debug, thiserror::Error)]
 enum Error {
   #[error(transparent)]
-  Io(#[from] std::io::Error)
+  Io(#[from] std::io::Error),
+  SessionNotFound,
 }
 
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Error::Io(inner) => write!(f, "IO Error: {}", inner),
+            Error::SessionNotFound => write!(f, "Session not found"),
+        }
+    }
+}
 // we must manually implement serde::Serialize
 impl serde::Serialize for Error {
   fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -25,11 +35,6 @@ impl serde::Serialize for Error {
 }
 
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
-#[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
-}
-
 #[derive(serde::Serialize)]
 struct CustomResponse {
   app_list: Vec<String>,
@@ -73,14 +78,38 @@ fn get_all_session_names() -> Result<Vec<String>, Error> {
     }
 }
 
+#[tauri::command]
+fn set_application_volume(name: &str, volume: f32) -> Result<(), Error> {
+    unsafe {
+        let mut controller = AudioController::init(Some(CoinitMode::ApartmentThreaded));
+        controller.GetSessions();
+        controller.GetDefaultAudioEnpointVolumeControl();
+        controller.GetAllProcessSessions();
+
+        // Get the current session by name
+        let current_session = controller.get_session_by_name(name.to_string());
+
+        // Check if the session was found
+        if let Some(session) = current_session {
+            // Set the volume for the current session
+            println!("Setting volume for session: {}", name);
+            println!("{}", session.getVolume().to_string());
+            session.setVolume(volume);
+        } else {
+            // Handle the case where the session was not found (e.g., return an error)
+            return Err(Error::SessionNotFound);
+        }
+    }
+
+    Ok(())
+}
+
+
 
 fn main() {
-  // decker::list_ports();
-  // decker::initialize_decker();
-  tauri::Builder::default()
-  .invoke_handler(tauri::generate_handler![get_installed_apps, get_all_session_names])
-  .plugin(tauri_plugin_store::Builder::default().build())
-  .run(tauri::generate_context!())
-  .expect("error while running tauri application");
-
+    tauri::Builder::default()
+        .invoke_handler(tauri::generate_handler![get_installed_apps, get_all_session_names, set_application_volume])
+        .plugin(tauri_plugin_store::Builder::default().build())
+        .run(tauri::generate_context!())
+        .expect("error while running tauri application");
 }
