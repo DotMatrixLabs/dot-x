@@ -1,6 +1,6 @@
 <template>
-    <div>
-        System Devices Selector
+    <div class="flex flex-col">
+        <div></div>
     </div>
 </template>
 

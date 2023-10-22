@@ -6,8 +6,8 @@
         <!-- Search not ready yet, disabling for now -->
         <div class="h-full">
             <label class="label cursor-pointer">
-                <span class="text-xs mx-2">Active Apps</span> 
-                <input type="checkbox" v-model="onlyShowActiveApps" class="checkbox checkbox-primary checkbox-xs" />
+                <span class="text-xs mx-2">All Apps</span> 
+                <input type="checkbox" v-model="showAllApps" class="checkbox checkbox-primary checkbox-xs" />
             </label>
         </div>
         <input v-model="appSearch" type="text" placeholder="Search apps"
@@ -23,12 +23,14 @@
             </div>
         </div>
         <div v-if="filterApps">
-            <RecycleScroller class="w-full px-4" :items="onlyShowActiveApps ? activeApps : filterApps" :item-size="32" key-field="id" :prerender="0"
+            <RecycleScroller class="w-full px-4" :items="filterApps" :item-size="32" key-field="id" :prerender="0"
                 v-slot="{ item }">
                 <button class="hover:bg-base-100 rounded-lg w-full flex flex-row justify-between"
                     @click="selectSliderApp(item)">
-                    <div class="truncate cursor-pointer px-2 py-0.5 text-blue">
-                        {{ item.DisplayName }}
+                    <input type="checkbox" :checked="selectedApps?.includes(item.DisplayName)" class="checkbox checkbox-primary checkbox-xs m-auto" />
+
+                    <div class="truncate capitalize cursor-pointer px-2 py-0.5 text-blue w-full text-left mx-2">
+                        {{ item.DisplayName.toLowerCase() }}
                     </div>
                     <button v-if="item.appType === 'custom'" class="mt-1" @click="removeClicked(item.DisplayName)">
                         <i class="fas fa-xmark m-auto w-4 h-4 p-1 rounded-full hover:bg-gray-500 hover:bg-opacity-30"></i>
@@ -47,6 +49,11 @@ import LoadingSpinner from "../assets/loadingSpinner.vue";
 
 import ExtraApps from "../ts/extraApps.ts";
 import SystemVolumeController from "../ts/volumeControl.ts";
+import SelectedApps from "../ts/appsToControl.ts";
+import { useToast } from "vue-toastification";
+
+
+const toast = useToast();
 
 import { invoke } from "@tauri-apps/api/tauri";
 
@@ -57,10 +64,16 @@ export default {
         LoadingSpinner
     },
 
+    props: {
+        currentSliderID: {
+            type: Number,
+            default: null,
+        },
+    },
+
 
     data() {
         return {
-
             appSearch: "",
             currentComPort: null,
             comPortInterval: null,
@@ -91,19 +104,20 @@ export default {
                 confirmButton: "Add",
             },
             loading: false,
-            selectedApp: null,
+            selectedApps: [""],
             activeApps: [],
-            onlyShowActiveApps: false,
+            showAllApps: false,
         }
     },
 
 
     computed: {
         filterApps() {
-            if (_.isEmpty(this.appList)) {
-                return this.appList;
+            let appList = this.showAllApps ? this.appList : this.activeApps;
+            if (_.isEmpty(appList)) {
+                return appList;
             }
-            return this.appList.filter((app) =>
+            return appList.filter((app) =>
                 app.DisplayName.toLowerCase().includes(this.appSearch.toLowerCase())
             );
         },
@@ -168,16 +182,26 @@ export default {
         },
 
         selectSliderApp(app) {
-            console.log({ emitted: app });
-            this.$emit("appSelected", app);
-            this.$emit("close");
+            SelectedApps.toggleApp(this.currentSliderID.toString(), app.DisplayName).then(() => {
+                this.getSelectedApps();
+            }); 
+        },
+
+        async getSelectedApps() {
+            this.selectedApps = await SelectedApps.getApps(this.currentSliderID?.toString());
+            console.log(this.selectedApps);
+        },
+
+        refreshData() {
+            this.getAllApps();
+            this.getActiveApps();
+            this.getSelectedApps();
         },
     },
 
 
     mounted() {
-        this.getAllApps();
-        this.getActiveApps();
+        this.refreshData();
     },
 
 
