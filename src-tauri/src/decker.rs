@@ -2,6 +2,9 @@ use firmata_rs::*;
 use serialport::*;
 use std::{thread::{self, sleep}, time::Duration};
 
+//TODO: https://tauri.app/v1/guides/features/events/
+// To subscribe to slider changes in frontend and emit changes from backend when values from sliders update.
+
 
 pub fn list_ports() {
     let ports = serialport::available_ports().expect("No ports found!");
