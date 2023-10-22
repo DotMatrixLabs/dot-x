@@ -5,6 +5,7 @@
 use windows_volume_control::AudioController;
 use windows_volume_control::CoinitMode;
 
+mod decker;
 
 // create the error type that represents all errors possible in our program
 #[derive(Debug, thiserror::Error)]
@@ -74,9 +75,12 @@ fn get_all_session_names() -> Result<Vec<String>, Error> {
 
 
 fn main() {
-    tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![get_installed_apps, get_all_session_names])
-        .plugin(tauri_plugin_store::Builder::default().build())
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+  // decker::list_ports();
+  // decker::initialize_decker();
+  tauri::Builder::default()
+  .invoke_handler(tauri::generate_handler![get_installed_apps, get_all_session_names])
+  .plugin(tauri_plugin_store::Builder::default().build())
+  .run(tauri::generate_context!())
+  .expect("error while running tauri application");
+
 }
