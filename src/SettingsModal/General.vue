@@ -1,12 +1,22 @@
 <template>
-    <div class="w-full">
-        <span>Theme: </span>
-        <select @change="setTheme" v-model="currentTheme"
-            class="select select-bordered select-sm w-2/3 capitalize focus:border-none">
-            <option v-for="(theme, index) in themes" :value="theme" :key="index">
-                {{ theme }}
-            </option>
-        </select>
+    <div class="flex flex-col justify-between items-center w-full">
+        <div class="flex flex-row w-full justify-between px-2">
+            <span class="shrink-0 pt-1">Theme: </span>
+            <select @change="setTheme" v-model="currentTheme"
+                class="select select-bordered select-sm w-2/3 mx-2 capitalize truncate">
+                <option class="w-full" v-for="(theme, index) in themes" :value="theme" :key="index">
+                    {{ theme }}
+                </option>
+            </select>
+        </div>
+        <div class="flex flex-row w-full justify-between px-2 mt-4">
+            <span class="my-auto">Run in background: </span>
+            <input type="checkbox" class="toggle toggle-primary mr-2" checked />
+        </div>
+        <div class="flex flex-row w-full justify-between px-2 mt-4">
+            <span class="my-auto">Run on startup: </span>
+            <input type="checkbox" class="toggle toggle-primary mr-2" checked />
+        </div>
     </div>
 </template>
 
