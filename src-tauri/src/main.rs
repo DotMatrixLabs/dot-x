@@ -6,6 +6,7 @@ use windows_volume_control::AudioController;
 use windows_volume_control::CoinitMode;
 use tauri_plugin_autostart::MacosLauncher;
 use std::fmt;
+mod decker;
 
 // create the error type that represents all errors possible in our program
 #[derive(Debug, thiserror::Error)]
