@@ -9,13 +9,13 @@
                 </option>
             </select>
         </div>
-        <div class="flex flex-row w-full justify-between px-2 mt-4">
+        <!-- <div class="flex flex-row w-full justify-between px-2 mt-4">
             <span class="my-auto">Run in background: </span>
             <input type="checkbox" class="toggle toggle-primary mr-2" checked />
-        </div>
+        </div> -->
         <div class="flex flex-row w-full justify-between px-2 mt-4">
             <span class="my-auto">Run on startup: </span>
-            <input type="checkbox" class="toggle toggle-primary mr-2" checked />
+            <input type="checkbox" class="toggle toggle-primary mr-2" :checked="autoStartStatus" @change="toggleAutostart" />
         </div>
     </div>
 </template>
@@ -23,6 +23,7 @@
 <script>
 
 import ConfigStore from "../ts/config.ts";
+import SystemSettings from "../ts/systemSettings.ts";
 
 export default {
     name: "General",
@@ -30,6 +31,7 @@ export default {
         return {
             themes: ["light", "dark"],
             currentTheme: "",
+            autoStartStatus: false,
         }
     },
     methods: {
@@ -43,9 +45,21 @@ export default {
             await ConfigStore.save();
             document.documentElement.setAttribute("data-theme", event.target.value);
         },
+        async getAutostartStatus() {
+            this.autoStartStatus = await SystemSettings.checkAutostartStatus();
+            console.log(await SystemSettings.checkAutostartStatus());
+        },
+        async toggleAutostart() {
+            if(!this.autoStartStatus){
+                await SystemSettings.disableAutostart();
+                return;
+            }
+            else await SystemSettings.enableAutostart();
+        }
     },
     mounted() {
         this.getTheme();
+        this.getAutostartStatus();
     },
 }
 </script>
