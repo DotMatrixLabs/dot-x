@@ -102,7 +102,7 @@ export default {
         this.setSliderValue(4, Decker.sliders[4] / 1023 * 100);
         SystemVolumeController.setChannelVolume('4', this.sliders[4].value / 100);
       }
-    }, 100);
+    }, 10);
   },
 
 
