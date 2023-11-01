@@ -23,6 +23,7 @@ import Slider from "./components/Slider.vue";
 import _ from "lodash";
 import SystemVolumeController from "./ts/volumeControl.ts";
 import SelectedApps from "./ts/appsToControl.ts";
+import Decker from "./ts/decker.ts";
 
 export default {
   components: { Slider },
@@ -66,14 +67,26 @@ export default {
       });
     },
 
+    setSliderValue(sliderID, value) {
+      this.sliders[sliderID].value = value;
+    },
+
 
   },
 
   mounted() {
     SystemVolumeController.getAllSessionNames();
-    SystemVolumeController.setChannelVolume('1', 0.5)
+    // SystemVolumeController.setChannelVolume('1', 0.5)
     this.getSelectedApps();
     // boardManager.initBoard(store.get('config.comPort').path)
+
+    setInterval(() => {
+      this.setSliderValue(0, Decker.sliders[0] / 1023 * 100);
+      this.setSliderValue(1, Decker.sliders[1] / 1023 * 100);
+      this.setSliderValue(2, Decker.sliders[2] / 1023 * 100);
+      this.setSliderValue(3, Decker.sliders[3] / 1023 * 100);
+      this.setSliderValue(4, Decker.sliders[4] / 1023 * 100);
+    }, 10);
   },
 
 
