@@ -2,6 +2,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 
+use tauri::{ Manager, Window };
 use windows_volume_control::AudioController;
 use windows_volume_control::CoinitMode;
 
@@ -43,6 +44,11 @@ struct CustomResponse {
 #[derive(serde::Serialize)]
 struct ControllerResponse {
   response: Vec<String>,
+}
+
+#[derive(Clone, serde::Serialize)]
+struct Payload {
+  message: String,
 }
 
 #[tauri::command]
@@ -104,11 +110,27 @@ fn set_application_volume(name: &str, volume: f32) -> Result<(), Error> {
     Ok(())
 }
 
+#[tauri::command]
+fn init_process(window: Window) {
+  std::thread::spawn(move || {
+    loop {
+        let value: String = decker::update_sliders();
+        window.emit("slider-change", Payload { message: value }).unwrap();
+    }
+  });
+}
+
+#[tauri::command]
+fn connect_decker(window: Window) {
+  std::thread::spawn(move || {
+    decker::initialize_decker();
+  });
+}
 
 
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![get_installed_apps, get_all_session_names, set_application_volume])
+        .invoke_handler(tauri::generate_handler![get_installed_apps, get_all_session_names, set_application_volume, init_process, connect_decker])
         .plugin(tauri_plugin_store::Builder::default().build())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
