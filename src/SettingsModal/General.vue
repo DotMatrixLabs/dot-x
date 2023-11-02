@@ -36,7 +36,7 @@ export default {
     },
     methods: {
         async getTheme() {
-            this.currentTheme = await TauriStore.get("theme") || "dark";
+            this.currentTheme = await ConfigStore.get("theme") || "dark";
             document.documentElement.setAttribute("data-theme", this.currentTheme);
             return this.currentTheme;
         },
