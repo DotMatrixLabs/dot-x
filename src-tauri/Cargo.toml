@@ -19,9 +19,9 @@ serde_json = "1.0"
 winreg = "0.51.0"
 installed = "0.1.0"
 thiserror = "1.0.49"
-tauri-plugin-store = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v1" }
+tauri-plugin-store = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v2" }
 windows-volume-control = "0.1.1"
-tauri-plugin-autostart = { git = "https://github.com/lencx/tauri-plugins-workspace", branch = "dev" }
+tauri-plugin-autostart = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v2" }
 serialport = "4.2.2"
 firmata-rs = "0.4.1"
 tracing-subscriber = "0.3.17"
@@ -32,6 +32,3 @@ clap = "4.4.7"
 # this feature is used for production builds or when `devPath` points to the filesystem
 # DO NOT REMOVE!!
 custom-protocol = ["tauri/custom-protocol"]
-
-[lib]
-crate-type = ["staticlib", "cdylib", "rlib"]
