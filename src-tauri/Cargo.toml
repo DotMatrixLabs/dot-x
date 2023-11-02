@@ -13,7 +13,7 @@ edition = "2021"
 tauri-build = { version = "1.5", features = [] }
 
 [dependencies]
-tauri = { version = "1.5", features = ["shell-open"] }
+tauri = { version = "2.0.0-alpha", features = [] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 winreg = "0.51.0"
@@ -32,3 +32,6 @@ clap = "4.4.7"
 # this feature is used for production builds or when `devPath` points to the filesystem
 # DO NOT REMOVE!!
 custom-protocol = ["tauri/custom-protocol"]
+
+[lib]
+crate-type = ["staticlib", "cdylib", "rlib"]
