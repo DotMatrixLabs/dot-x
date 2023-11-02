@@ -1,11 +1,11 @@
 [package]
-name = "decker-desktop"
-version = "0.0.0"
-description = "A Tauri App"
+name = "Dot-X"
+version = "0.0.1"
+description = "Dot-X - Client for Dot Matrix products"
 authors = ["you"]
 license = ""
 repository = ""
-edition = "2021"
+edition = "2023"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

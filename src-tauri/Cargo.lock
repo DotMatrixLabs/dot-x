@@ -13,6 +13,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "Dot-X"
+version = "0.0.1"
+dependencies = [
+ "clap",
+ "firmata-rs",
+ "installed",
+ "serde",
+ "serde_json",
+ "serialport",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-autostart",
+ "tauri-plugin-store",
+ "thiserror",
+ "tracing",
+ "tracing-subscriber",
+ "windows-volume-control",
+ "winreg 0.51.0",
+]
+
+[[package]]
 name = "IOKit-sys"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -632,27 +653,6 @@ dependencies = [
  "darling_core",
  "quote",
  "syn 2.0.38",
-]
-
-[[package]]
-name = "decker-desktop"
-version = "0.0.0"
-dependencies = [
- "clap",
- "firmata-rs",
- "installed",
- "serde",
- "serde_json",
- "serialport",
- "tauri",
- "tauri-build",
- "tauri-plugin-autostart",
- "tauri-plugin-store",
- "thiserror",
- "tracing",
- "tracing-subscriber",
- "windows-volume-control",
- "winreg 0.51.0",
 ]
 
 [[package]]
