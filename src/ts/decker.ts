@@ -1,5 +1,5 @@
 import { listen } from '@tauri-apps/api/event';
-import { invoke } from '@tauri-apps/api/primitives';
+import { invoke } from '@tauri-apps/api/tauri';
 
 class Decker {
     private comPort: string = "COM4";
