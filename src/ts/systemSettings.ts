@@ -19,6 +19,7 @@ class SystemSettings {
   async checkAutostartStatus() {
     const isAutostartEnabled = await isEnabled();
     console.log(`Registered for autostart? ${isAutostartEnabled}`);
+    return isAutostartEnabled;
   }
 
   /**
