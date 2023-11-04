@@ -4,7 +4,7 @@ use std::{thread::{self, sleep}, time::Duration};
 use std::io::{self, Write};
 
 use clap::{Arg, Command};
-use tauri::Manager;
+use tauri::{Manager, Window};
 
 #[derive(Clone, serde::Serialize)]
 struct Payload {
@@ -22,9 +22,9 @@ pub fn list_ports() {
         println!("{}", p.port_name);
     }
 }
-pub fn initialize_decker() {
+pub fn initialize_decker(window: Window) {
 
-    let port_name = "COM4";
+    let port_name = "COM10";
     let baud_rate = 9600;
 
     let port = serialport::new(port_name, baud_rate)
@@ -43,7 +43,8 @@ pub fn initialize_decker() {
                         let received = String::from_utf8_lossy(&serial_buf[..t]).to_string();
                         if((received.ends_with("\r\n") && received.matches(",").count() == 4)) {
                             unsafe {
-                                values = received;
+                                window.emit("slider-change", Payload { message: received }).unwrap();
+                                // values = received;
                             }
                         }
                     },
@@ -55,12 +56,6 @@ pub fn initialize_decker() {
         Err(e) => {
             eprintln!("Failed to open \"{}\". Error: {}", port_name, e);
         }   
-    }
-}
-pub fn update_sliders() -> String {
-    unsafe {
-        sleep(Duration::from_millis(10));
-        return values.to_string();
     }
 }
 
