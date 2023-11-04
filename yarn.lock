@@ -281,11 +281,6 @@
   resolved "https://registry.yarnpkg.com/@tauri-apps/api/-/api-1.5.1.tgz#9074476c4323f71351db624e9711c99277cdfb99"
   integrity sha512-6unsZDOdlXTmauU3NhWhn+Cx0rODV+rvNvTdvolE5Kls5ybA6cqndQENDt1+FS0tF7ozCP66jwWoH6a5h90BrA==
 
-"@tauri-apps/api@2.0.0-alpha.6":
-  version "2.0.0-alpha.6"
-  resolved "https://registry.yarnpkg.com/@tauri-apps/api/-/api-2.0.0-alpha.6.tgz#16b94359e5c8266ed2b774b4f2e1339c594c4cb4"
-  integrity sha512-ZMOc3eu9amwvkC6M69h3hWt4/EsFaAXmtkiw4xd2LN59/lTb4ZQiVfq2QKlRcu1rj3n/Tcr7U30ZopvHwXBGIg==
-
 "@tauri-apps/api@^1.5.0":
   version "1.5.0"
   resolved "https://registry.yarnpkg.com/@tauri-apps/api/-/api-1.5.0.tgz#46a0f9b6edd4bfc39be32afc4ad242e0b8cca3ea"
@@ -356,13 +351,6 @@
     "@tauri-apps/cli-win32-arm64-msvc" "1.5.2"
     "@tauri-apps/cli-win32-ia32-msvc" "1.5.2"
     "@tauri-apps/cli-win32-x64-msvc" "1.5.2"
-
-"@tauri-apps/plugin-autostart@^2.0.0-alpha.1":
-  version "2.0.0-alpha.1"
-  resolved "https://registry.yarnpkg.com/@tauri-apps/plugin-autostart/-/plugin-autostart-2.0.0-alpha.1.tgz#4617d0a1aeb3b620e156e2ec010865de2bb947ec"
-  integrity sha512-xs72S8KCYzt9puML4vrmPvg2/wpUuRg4NMEp+12A7XwCP4mQ9js0fFPKSma770TVeJGpzhdJFvDTdWgrVyhYng==
-  dependencies:
-    "@tauri-apps/api" "2.0.0-alpha.6"
 
 "@types/lodash@^4.14.200":
   version "4.14.200"
@@ -1177,6 +1165,12 @@ tailwindcss@^3.1, tailwindcss@^3.3.3:
     postcss-selector-parser "^6.0.11"
     resolve "^1.22.2"
     sucrase "^3.32.0"
+
+"tauri-plugin-autostart-api@https://github.com/tauri-apps/tauri-plugin-autostart#v1":
+  version "0.0.0"
+  resolved "https://github.com/tauri-apps/tauri-plugin-autostart#072ebc2914c19eb7022c90add7ea328d437d5eb2"
+  dependencies:
+    "@tauri-apps/api" "1.5.1"
 
 "tauri-plugin-store-api@https://github.com/tauri-apps/tauri-plugin-store#v1":
   version "0.0.0"
