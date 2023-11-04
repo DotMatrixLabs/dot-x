@@ -55,7 +55,6 @@ export default {
       if(!apps) return;
       if(apps.length > 1) return `${apps[0]}+${apps.length - 1}`;
       else return apps[0];
-      console.log(apps)
     },
 
     async getSelectedApps() {

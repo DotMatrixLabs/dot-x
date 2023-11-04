@@ -1,4 +1,4 @@
-import { enable, isEnabled, disable } from "@tauri-apps/plugin-autostart";
+import { enable, isEnabled, disable } from "tauri-plugin-autostart-api";
 
 /**
  * A class for managing system settings.

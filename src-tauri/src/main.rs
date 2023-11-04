@@ -124,7 +124,10 @@ fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![get_installed_apps, get_all_session_names, set_application_volume, connect_decker])
         .plugin(tauri_plugin_store::Builder::default().build())
-        .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, Some(vec!["--flag1", "--flag2"]) /* arbitrary number of args to pass to your app */))
+        .plugin(tauri_plugin_autostart::init(
+          MacosLauncher::LaunchAgent,
+          None,
+        ))
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
