@@ -14,7 +14,7 @@ class Decker {
     }
     private async init(){
         await invoke('connect_decker', { comPort: this.comPort });
-        await invoke('init_process');
+        // await invoke('init_process');
         
         const unlisten = await listen('slider-change', (event) => {
             // console.log(event);
