@@ -21,7 +21,7 @@ installed = "0.1.0"
 thiserror = "1.0.49"
 tauri-plugin-store = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v1" }
 windows-volume-control = "0.1.1"
-tauri-plugin-autostart = { git = "https://github.com/lencx/tauri-plugins-workspace", branch = "dev" }
+tauri-plugin-autostart = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v1" }
 serialport = "4.2.2"
 firmata-rs = "0.4.1"
 tracing-subscriber = "0.3.17"
