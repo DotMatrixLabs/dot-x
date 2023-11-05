@@ -44,9 +44,11 @@ pub fn initialize_decker(window: Window) -> std::result::Result<(), std::io::Err
                     match port.read(serial_buf.as_mut_slice()) {
                         Ok(t) => {
                             let received = String::from_utf8_lossy(&serial_buf[..t]).to_string();
-                            let mut recieved_values = received.lines();
-                            let values_to_send = recieved_values.next().unwrap();    
-                            window.emit("slider-change", Payload { message: values_to_send.to_string() }).unwrap();
+                            if received.ends_with("\r\n") && received.matches(",").count() == 4 {
+                                let mut received_values = received.lines();
+                                let values_to_send = received_values.next().unwrap(); 
+                                window.emit("slider-change", Payload { message: values_to_send.to_string() }).unwrap();
+                            }  
                         }
                         Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
                         Err(e) => {
@@ -54,7 +56,7 @@ pub fn initialize_decker(window: Window) -> std::result::Result<(), std::io::Err
                             break;
                         }
                     }
-                    thread::sleep(Duration::from_millis(50));
+                    thread::sleep(Duration::from_millis(5));
                 }
             });
 
