@@ -38,7 +38,7 @@ class SystemVolumeController {
      * @param {number} volume - The volume level to set.
      */
     async setChannelVolume(channel: number, volume: number): Promise<void> {
-        if(volume === NaN || !volume) return;
+        if(Number.isNaN(volume) || !volume) return;
         let apps: string[] | null = await SelectedApps.getApps(channel);
         let sessionNames = await this.getAllSessionNames();
         if (!apps) return;
