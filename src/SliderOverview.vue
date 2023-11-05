@@ -80,6 +80,7 @@ export default {
     // boardManager.initBoard(store.get('config.comPort').path)
 
     setInterval(() => {
+      if(Decker.sliders.length === 0) return;
       if(Decker.sliders[0] / 1023 * 100 != this.sliders[0].value) {
         console.log('change?', Decker.sliders[0] / 1023 * 100, this.sliders[0].value);
         this.setSliderValue(0, Decker.sliders[0] / 1023 * 100);
@@ -101,7 +102,7 @@ export default {
         this.setSliderValue(4, Decker.sliders[4] / 1023 * 100);
         SystemVolumeController.setChannelVolume('4', this.sliders[4].value / 100);
       }
-    }, 10);
+    }, 20);
   },
 
 
