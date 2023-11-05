@@ -1,15 +1,15 @@
 <template>
   <div class="w-full h-full">
     <div class="flex flex-row justify-evenly h-full p-24">
-      <template v-for="slider in sliders" :key="slider.id">
+      <template v-for="(slider, index) in sliders" :key="index">
         <div class="flex flex-col justify-center">
-          <Slider :slider-val="slider.value" class="h-full w-full" />
+          <Slider :slider-val="slider" class="h-full w-full" />
           <!-- <img class="w-12 mt-12 rounded-full shadow" @click="$emit('app-click')" v-if="activeAppIconPath"
             :src="`${activeAppIconPath}`" alt="" /> -->
 
-          <button @click="$emit('app-click', slider.id)"
+          <button @click="$emit('app-click', index)"
             class="m-auto rounded-full w-24 h-12 bg-gray-400 bg-opacity-50 ring-opacity-50 mt-12 btn mx-1">
-            <span v-if="sliderChannelName(slider.id)" class="text-white text-xxs text-center truncate">{{ sliderChannelName(slider.id) }}</span>
+            <span v-if="sliderChannelName(index)" class="text-white text-xxs text-center truncate">{{ sliderChannelName(index) }}</span>
             <span v-else><i class="fas fa-add fa-xl"></i></span>
           </button>
         </div>
@@ -24,6 +24,11 @@ import _ from "lodash";
 import SystemVolumeController from "./ts/volumeControl.ts";
 import SelectedApps from "./ts/appsToControl.ts";
 import Decker from "./ts/decker.ts";
+import { useDeckerStore } from "./store/deckerStore.ts";
+
+import { mapState } from "pinia"; 
+
+// const sliderStore = useSliderStore();
 
 export default {
   components: { Slider },
@@ -38,71 +43,96 @@ export default {
 
   data() {
     return {
-      sliders: [
-        { id: 0, value: 0 },
-        { id: 1, value: 25 },
-        { id: 2, value: 50 },
-        { id: 3, value: 75 },
-        { id: 4, value: 100 },
+      sliderApps: [
+        { apps: [] },
       ],
+      prevSliderValues: [],
     };
   },
+
+  computed: {
+    ...mapState(useDeckerStore, {
+      sliders: 'getSliders',
+    }),
+  },
+
+  watch: {
+      sliders: {
+          handler: function () {
+              this.sliders.forEach((slider, index) => {
+                if(this.prevSliderValues[index] === slider) return;
+                console.log('change', index, slider)
+                console.log('prev', index, this.prevSliderValues[index])
+                SystemVolumeController.setChannelVolume(index, slider / 100);
+              });
+              this.prevSliderValues = this.sliders;
+              if(this.sliders.length !== this.sliderApps.length) {
+                this.getSelectedApps();
+              }
+          },
+          deep: false
+      }
+  },
+
 
   methods: {
 
     sliderChannelName(sliderID){
-      const apps = this.sliders[sliderID]?.apps;
+      const apps = this.sliderApps[sliderID]?.apps;
       if(!apps) return;
       if(apps.length > 1) return `${apps[0]}+${apps.length - 1}`;
       else return apps[0];
     },
 
     async getSelectedApps() {
-      this.sliders.forEach(async (slider) => {
-        const selectedApps = await SelectedApps.getApps(slider.id);
+      const sliders = useDeckerStore().sliders;
+      console.log(sliders);
+      sliders.forEach(async (slider, index) => {
+        const selectedApps = await SelectedApps.getApps(index);
         console.log( selectedApps );
         if(!selectedApps) return;
-        this.sliders[slider.id].apps = selectedApps;
+        if (!this.sliderApps[index]) {
+          this.sliderApps[index] = { apps: selectedApps };
+        } else {
+          this.sliderApps[index].apps = selectedApps;
+        }
+        console.log(this.sliderApps);
       });
     },
-
-    setSliderValue(sliderID, value) {
-      this.sliders[sliderID].value = value;
-    },
-
 
   },
 
   mounted() {
+
     SystemVolumeController.getAllSessionNames();
     // SystemVolumeController.setChannelVolume('1', 0.5)
     this.getSelectedApps();
     // boardManager.initBoard(store.get('config.comPort').path)
 
-    setInterval(() => {
-      if(Decker.sliders.length === 0) return;
-      if(Decker.sliders[0] / 1023 * 100 != this.sliders[0].value) {
-        console.log('change?', Decker.sliders[0] / 1023 * 100, this.sliders[0].value);
-        this.setSliderValue(0, Decker.sliders[0] / 1023 * 100);
-        SystemVolumeController.setChannelVolume('0', this.sliders[0].value / 100);
-      }
-      if(Decker.sliders[1] / 1023 * 100 != this.sliders[1].value) {
-        this.setSliderValue(1, Decker.sliders[1] / 1023 * 100);
-        SystemVolumeController.setChannelVolume('1', this.sliders[1].value / 100);
-      }
-      if(Decker.sliders[2] / 1023 * 100 != this.sliders[2].value) {
-        this.setSliderValue(2, Decker.sliders[2] / 1023 * 100);
-        SystemVolumeController.setChannelVolume('2', this.sliders[2].value / 100);
-      }
-      if(Decker.sliders[3] / 1023 * 100 != this.sliders[3].value) {
-        this.setSliderValue(3, Decker.sliders[3] / 1023 * 100);
-        SystemVolumeController.setChannelVolume('3', this.sliders[3].value / 100);
-      }
-      if(Decker.sliders[4] / 1023 * 100 != this.sliders[4].value) {
-        this.setSliderValue(4, Decker.sliders[4] / 1023 * 100);
-        SystemVolumeController.setChannelVolume('4', this.sliders[4].value / 100);
-      }
-    }, 20);
+    // setInterval(() => {
+    //   if(Decker.sliders.length === 0) return;
+    //   if(Decker.sliders[0] / 1023 * 100 != this.sliders[0].value) {
+    //     console.log('change?', Decker.sliders[0] / 1023 * 100, this.sliders[0].value);
+    //     this.setSliderValue(0, Decker.sliders[0] / 1023 * 100);
+    //     SystemVolumeController.setChannelVolume('0', this.sliders[0].value / 100);
+    //   }
+    //   if(Decker.sliders[1] / 1023 * 100 != this.sliders[1].value) {
+    //     this.setSliderValue(1, Decker.sliders[1] / 1023 * 100);
+    //     SystemVolumeController.setChannelVolume('1', this.sliders[1].value / 100);
+    //   }
+    //   if(Decker.sliders[2] / 1023 * 100 != this.sliders[2].value) {
+    //     this.setSliderValue(2, Decker.sliders[2] / 1023 * 100);
+    //     SystemVolumeController.setChannelVolume('2', this.sliders[2].value / 100);
+    //   }
+    //   if(Decker.sliders[3] / 1023 * 100 != this.sliders[3].value) {
+    //     this.setSliderValue(3, Decker.sliders[3] / 1023 * 100);
+    //     SystemVolumeController.setChannelVolume('3', this.sliders[3].value / 100);
+    //   }
+    //   if(Decker.sliders[4] / 1023 * 100 != this.sliders[4].value) {
+    //     this.setSliderValue(4, Decker.sliders[4] / 1023 * 100);
+    //     SystemVolumeController.setChannelVolume('4', this.sliders[4].value / 100);
+    //   }
+    // }, 20);
   },
 
 
@@ -116,3 +146,4 @@ export default {
 }
 
 </style>
+./store/deckerStore.ts
