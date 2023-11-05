@@ -12,18 +12,30 @@ class Decker {
         this.init();
     }
     private async init(){
-        await invoke('connect_decker', { comPort: this.comPort });
+        await invoke('connect_decker', { comPort: this.comPort }).then((test) => {
+            console.log("test",test)
+        }).catch((error) => {
+            console.log("error",error)
+        });
         // await invoke('init_process');
+
+        const test = await listen('error', (event: any) => {
+            console.log(event)
+        })
         
         const unlisten = await listen('slider-change', (event: any) => {
-            // console.log(event);
+            console.log(event);
             // console.log(event.payload.message);
             // Split event.payload.message on comma and add it to sliders array
             this.sliders = event.payload.message.split(',').map(Number);
             // console.log(this.sliders);
-          })
+        })
 
-          console.log(unlisten)
+        console.log(unlisten)
+
+
+
+        console.log(test)
 
         // setTimeout(() => {
         //     emit('slider-change', { value: 10 });

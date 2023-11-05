@@ -15,6 +15,7 @@ enum Error {
   #[error(transparent)]
   Io(#[from] std::io::Error),
   SessionNotFound,
+  Connection,
 }
 
 impl fmt::Display for Error {
@@ -22,6 +23,7 @@ impl fmt::Display for Error {
         match self {
             Error::Io(inner) => write!(f, "IO Error: {}", inner),
             Error::SessionNotFound => write!(f, "Session not found"),
+            Error::Connection => write!(f, "Decker error"),
         }
     }
 }
@@ -111,13 +113,13 @@ fn set_application_volume(name: &str, volume: f32) -> Result<(), Error> {
 }
 
 
-
 #[tauri::command]
-fn connect_decker(window: Window) {
-  std::thread::spawn(move || {
-    decker::initialize_decker(window);
-  });
+fn connect_decker(window: Window) -> Result<(), Error> {
+    decker::initialize_decker(window)?;
+    Ok(())
 }
+
+
 
 
 fn main() {
