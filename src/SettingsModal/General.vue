@@ -50,11 +50,13 @@ export default {
             console.log(await SystemSettings.checkAutostartStatus());
         },
         async toggleAutostart() {
-            if(!this.autoStartStatus){
+            if(this.autoStartStatus){
                 await SystemSettings.disableAutostart();
+                this.getAutostartStatus();
                 return;
             }
             else await SystemSettings.enableAutostart();
+            this.getAutostartStatus();
         }
     },
     mounted() {
