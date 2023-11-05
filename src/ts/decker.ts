@@ -1,5 +1,6 @@
 import { listen } from '@tauri-apps/api/event';
 import { invoke } from '@tauri-apps/api/tauri';
+import { useDeckerStore } from "../store/deckerStore.ts";
 
 class Decker {
     private comPort: string = "COM4";
@@ -8,10 +9,11 @@ class Decker {
 
     constructor(comPort: string = "COM4") {
         this.comPort = comPort;
-        // this.debug = true;
-        this.init();
     }
-    private async init(){
+
+    public async init(){
+        const deckerStore = useDeckerStore();
+
         await invoke('connect_decker', { comPort: this.comPort }).then((test) => {
             console.log("test",test)
         }).catch((error) => {
@@ -28,6 +30,7 @@ class Decker {
             // console.log(event.payload.message);
             // Split event.payload.message on comma and add it to sliders array
             this.sliders = event.payload.message.split(',').map(Number);
+            deckerStore.setSliders(this.sliders);
             // console.log(this.sliders);
         })
 

@@ -14,6 +14,7 @@ import AppsModal from "./AppSelectModal/AppsModal.vue";
 import SliderOverview from "./SliderOverview.vue";
 import { useToast } from "vue-toastification";
 import ConfigStore from "./ts/config.ts";
+import Decker from "./ts/decker.ts";
 
 const toast = useToast();
 
@@ -66,6 +67,8 @@ export default {
   },
 
   mounted() {
+
+    Decker.init();
 
     this.getTheme();
 
