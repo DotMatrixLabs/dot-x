@@ -1,11 +1,12 @@
 <template>
   <div class="w-full h-full">
     <div class="flex flex-row justify-evenly h-full p-24">
-      <template v-for="(slider, index) in sliders" :key="index">
+      <template v-for="(slider, index) in (sliders.length > 0 ? sliders : 5)" :key="index">
         <div class="flex flex-col justify-center">
-          <Slider :slider-val="slider" class="h-full w-full" />
-          <!-- <img class="w-12 mt-12 rounded-full shadow" @click="$emit('app-click')" v-if="activeAppIconPath"
-            :src="`${activeAppIconPath}`" alt="" /> -->
+          <Slider :class="sliders.length === 0 ? 'opacity-50' : 'opacity-100'" :slider-val="slider" class="h-full w-full" />
+          <div v-if="sliders.length === 0" class="p-2 bg-base-200 rounded-md shadow-md ring-1 ring-gray-500 absolute text-center -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2">
+          <h1>Decker not connected</h1>
+          </div>
 
           <button @click="$emit('app-click', index)"
             class="m-auto rounded-full w-24 h-12 bg-gray-400 bg-opacity-50 ring-opacity-50 mt-12 btn mx-1">
@@ -85,8 +86,9 @@ export default {
     },
 
     async getSelectedApps() {
-      const sliders = useDeckerStore().sliders;
+      let sliders = useDeckerStore().sliders;
       console.log(sliders);
+      if(sliders.length === 0) sliders = [0, 0, 0, 0, 0];
       sliders.forEach(async (slider, index) => {
         const selectedApps = await SelectedApps.getApps(index);
         console.log( selectedApps );
