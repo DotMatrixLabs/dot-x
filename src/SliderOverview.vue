@@ -60,11 +60,10 @@ export default {
   watch: {
       sliders: {
           handler: function () {
-              this.sliders.forEach((slider, index) => {
-                if(this.prevSliderValues[index] === slider) return;
-                console.log('change', index, slider)
-                console.log('prev', index, this.prevSliderValues[index])
-                SystemVolumeController.setChannelVolume(index, slider / 100);
+              this.sliders.forEach((sliderVol, index) => {
+                if(this.prevSliderValues[index] === sliderVol) return;
+                if(sliderVol === 0) sliderVol = 1;
+                SystemVolumeController.setChannelVolume(index, sliderVol / 100);
               });
               this.prevSliderValues = this.sliders;
               if(this.sliders.length !== this.sliderApps.length) {
