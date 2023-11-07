@@ -102,7 +102,12 @@ fn set_application_volume(name: &str, volume: f32) -> Result<(), Error> {
             // Set the volume for the current session
             println!("Setting volume for session: {}", name);
             println!("{}", session.getVolume().to_string());
-            session.setVolume(volume);
+            if volume < 0.01 {
+              session.setMute(true);
+            } else {
+              session.setMute(false);
+              session.setVolume(volume);
+            }
         } else {
             // Handle the case where the session was not found (e.g., return an error)
             return Err(Error::SessionNotFound);
@@ -111,6 +116,8 @@ fn set_application_volume(name: &str, volume: f32) -> Result<(), Error> {
 
     Ok(())
 }
+
+
 
 
 #[tauri::command]

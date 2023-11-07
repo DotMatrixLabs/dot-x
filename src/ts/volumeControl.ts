@@ -58,16 +58,16 @@ class SystemVolumeController {
     /**
      * Mutes the system audio.
      */
-    static async mute(): Promise<void> {
-        await invoke('mute');
-    }
+    // static async mute(): Promise<void> {
+    //     await invoke('mute');
+    // }
 
     /**
      * Unmutes the system audio.
      */
-    static async unmute(): Promise<void> {
-        await invoke('unmute');
-    }
+    // static async unmute(): Promise<void> {
+    //     await invoke('unmute');
+    // }
 }
 
 export default new SystemVolumeController();
