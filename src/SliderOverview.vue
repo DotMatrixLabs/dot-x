@@ -62,8 +62,8 @@ export default {
           handler: function () {
               this.sliders.forEach((sliderVol, index) => {
                 if(this.prevSliderValues[index] === sliderVol) return;
-                if(sliderVol === 0) sliderVol = 1;
-                SystemVolumeController.setChannelVolume(index, sliderVol / 100);
+                if(sliderVol === 0) sliderVol = 0.1;
+                SystemVolumeController.setChannelVolume(index, sliderVol/100);
               });
               this.prevSliderValues = this.sliders;
               if(this.sliders.length !== this.sliderApps.length) {
