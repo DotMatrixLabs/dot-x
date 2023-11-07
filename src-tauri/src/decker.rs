@@ -1,24 +1,16 @@
-use firmata_rs::*;
-use serialport::*;
 use std::{thread::{self, sleep}, time::Duration};
-use std::io::{self, Write, Cursor, Read};
+use std::io::{self, Cursor, Read};
 use serde::{Serialize, Deserialize};
 use serde_json;
 use rmp_serde::{Deserializer};
 use std::collections::BTreeMap;
-use serde::ser::{SerializeMap, Serializer};
-use clap::{Arg, Command};
-use tauri::{Manager, Window};
+use serde::ser::SerializeMap;
+use tauri::Window;
 
 #[derive(Clone, serde::Serialize)]
 struct Payload {
   message: String,
 }
-
-
-
-pub static mut values: String = String::new();
-
 
 // Define a struct to match the JSON structure
 #[derive(Debug)]
@@ -110,7 +102,7 @@ pub fn initialize_decker(window: Window) -> std::result::Result<(), std::io::Err
                                     window.emit("slider-change", Payload { message: json_data }).unwrap();
                                 }
                                 Err(error) => {
-                                    eprintln!("Deserialization failed: {}", error);
+                                    // eprintln!("Deserialization failed: {}", error);
                                 }
                             };
                         }
