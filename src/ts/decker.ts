@@ -26,7 +26,6 @@ class Decker {
         })
         
         const unlisten = await listen('slider-change', (event: any) => {
-            console.log(event);
             // console.log(event.payload.message);
             // Split event.payload.message on comma and add it to sliders array
             this.sliders = event.payload.message.split(',').map(Number);
@@ -49,3 +48,4 @@ class Decker {
 }
 
 export default (new Decker());
+
