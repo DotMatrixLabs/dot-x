@@ -1,8 +1,12 @@
 use firmata_rs::*;
 use serialport::*;
-use std::{thread::{self, sleep}, time::Duration, result};
-use std::io::{self, Write};
-
+use std::{thread::{self, sleep}, time::Duration};
+use std::io::{self, Write, Cursor, Read};
+use serde::{Serialize, Deserialize};
+use serde_json;
+use rmp_serde::{Deserializer};
+use std::collections::BTreeMap;
+use serde::ser::{SerializeMap, Serializer};
 use clap::{Arg, Command};
 use tauri::{Manager, Window};
 
@@ -14,6 +18,60 @@ struct Payload {
 
 
 pub static mut values: String = String::new();
+
+
+// Define a struct to match the JSON structure
+#[derive(Debug)]
+struct SliderData {
+    slider1: u32,
+    slider2: u32,
+    slider3: u32,
+    slider4: u32,
+    slider5: u32,
+}
+
+impl<'de> Deserialize<'de> for SliderData {
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let map: BTreeMap<String, u32> = Deserialize::deserialize(deserializer)?;
+        Ok(SliderData {
+            slider1: *map.get("slider1").unwrap_or(&0),
+            slider2: *map.get("slider2").unwrap_or(&0),
+            slider3: *map.get("slider3").unwrap_or(&0),
+            slider4: *map.get("slider4").unwrap_or(&0),
+            slider5: *map.get("slider5").unwrap_or(&0),
+        })
+    }
+}
+
+impl Serialize for SliderData {
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut map = serializer.serialize_map(Some(5))?;
+        map.serialize_entry("slider1", &self.slider1)?;
+        map.serialize_entry("slider2", &self.slider2)?;
+        map.serialize_entry("slider3", &self.slider3)?;
+        map.serialize_entry("slider4", &self.slider4)?;
+        map.serialize_entry("slider5", &self.slider5)?;
+        map.end()
+    }
+}
+
+fn deserialize_slider_data(data: &[u8]) -> std::result::Result<SliderData, Box<dyn std::error::Error>> {
+    // Create a cursor for the data source
+    let cursor = Cursor::new(data);
+
+    // Deserialize MessagePack data to the SliderData struct
+    let mut deserializer = Deserializer::new(cursor);
+    let slider_data: SliderData = Deserialize::deserialize(&mut deserializer)?;
+
+    Ok(slider_data)
+}
+
 
 //TODO: https://tauri.app/v1/guides/features/events/
 // To subscribe to slider changes in frontend and emit changes from backend when values from sliders update.
@@ -28,8 +86,8 @@ pub fn list_ports() {
 
 
 pub fn initialize_decker(window: Window) -> std::result::Result<(), std::io::Error> {
-    let port_name = "COM6";
-    let baud_rate = 9600;
+    let port_name: &str = "COM10";
+    let baud_rate: u32 = 115_200;
 
     let port = serialport::new(port_name, baud_rate)
         .timeout(Duration::from_millis(10))
@@ -39,16 +97,22 @@ pub fn initialize_decker(window: Window) -> std::result::Result<(), std::io::Err
         Ok(mut port) => {
             // Spawn a thread to handle incoming data
             thread::spawn(move || {
-                let mut serial_buf: Vec<u8> = vec![0; 50];
+                let mut serial_buf: Vec<u8> = vec![0; 100];
                 loop {
                     match port.read(serial_buf.as_mut_slice()) {
                         Ok(t) => {
-                            let received = String::from_utf8_lossy(&serial_buf[..t]).to_string();
-                            if received.ends_with("\r\n") && received.matches(",").count() == 4 {
-                                let mut received_values = received.lines();
-                                let values_to_send = received_values.next().unwrap(); 
-                                window.emit("slider-change", Payload { message: values_to_send.to_string() }).unwrap();
-                            }  
+                            let received: Vec<u8> = serial_buf[..t].to_vec();
+                            let messagepack_data = received;
+
+                            match deserialize_slider_data(&messagepack_data) {
+                                Ok(slider_data) => {
+                                    let json_data = serde_json::to_string(&slider_data).unwrap();
+                                    window.emit("slider-change", Payload { message: json_data }).unwrap();
+                                }
+                                Err(error) => {
+                                    eprintln!("Deserialization failed: {}", error);
+                                }
+                            };
                         }
                         Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
                         Err(e) => {
