@@ -15,6 +15,7 @@ import SliderOverview from "./SliderOverview.vue";
 import { useToast } from "vue-toastification";
 import ConfigStore from "./ts/config.ts";
 import Decker from "./ts/decker.ts";
+import RGBController from "./ts/RGBController";
 
 const toast = useToast();
 
@@ -69,6 +70,7 @@ export default {
   mounted() {
 
     Decker.init();
+    RGBController.setEffect('rainbow', 255, 1);
 
     this.getTheme();
 
