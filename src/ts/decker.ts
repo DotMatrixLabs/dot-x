@@ -29,7 +29,10 @@ class Decker {
             console.log(event);
             // console.log(event.payload.message);
             // Split event.payload.message on comma and add it to sliders array
-            this.sliders = event.payload.message.split(',').map(Number);
+            const jsonString = event.payload.message;
+            const jsonObject = JSON.parse(jsonString);
+            const sliderArray: Array<number> = Object.values(jsonObject);
+            this.sliders = sliderArray;
             deckerStore.setSliders(this.sliders);
             // console.log(this.sliders);
         })
