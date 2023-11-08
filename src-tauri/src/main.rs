@@ -121,8 +121,8 @@ fn set_application_volume(name: &str, volume: f32) -> Result<(), Error> {
 
 
 #[tauri::command]
-fn connect_decker(window: Window) -> Result<(), Error> {
-    decker::initialize_decker(window)?;
+fn connect_decker(window: Window, port_name: &str) -> Result<(), Error> {
+    decker::initialize_decker(window, port_name)?;
     Ok(())
 }
 
