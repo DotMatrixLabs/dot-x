@@ -129,9 +129,10 @@ fn connect_decker(window: Window) -> Result<(), Error> {
 
 
 
+
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![get_installed_apps, get_all_session_names, set_application_volume, connect_decker])
+        .invoke_handler(tauri::generate_handler![get_installed_apps, get_all_session_names, set_application_volume, connect_decker, decker::get_devices])
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_autostart::init(
           MacosLauncher::LaunchAgent,
