@@ -13,28 +13,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "Dot-X"
-version = "0.0.1"
-dependencies = [
- "clap",
- "firmata-rs",
- "installed",
- "rmp-serde",
- "serde",
- "serde_json",
- "serialport",
- "tauri",
- "tauri-build",
- "tauri-plugin-autostart",
- "tauri-plugin-store",
- "thiserror",
- "tracing",
- "tracing-subscriber",
- "windows-volume-control",
- "winreg 0.51.0",
-]
-
-[[package]]
 name = "IOKit-sys"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -741,6 +719,28 @@ name = "doc-comment"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fea41bba32d969b513997752735605054bc0dfa92b4c56bf1189f2e174be7a10"
+
+[[package]]
+name = "dot_x"
+version = "0.0.1"
+dependencies = [
+ "clap",
+ "firmata-rs",
+ "installed",
+ "rmp-serde",
+ "serde",
+ "serde_json",
+ "serialport",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-autostart",
+ "tauri-plugin-store",
+ "thiserror",
+ "tracing",
+ "tracing-subscriber",
+ "windows-volume-control",
+ "winreg 0.51.0",
+]
 
 [[package]]
 name = "dtoa"
