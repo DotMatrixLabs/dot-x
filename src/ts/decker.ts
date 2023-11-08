@@ -40,7 +40,7 @@ class Decker {
         })
         
         const unlisten = await listen('slider-change', (event: any) => {
-            // console.log(event.payload.message);
+            deckerStore.setConnected(true);
             // Split event.payload.message on comma and add it to sliders array
             const jsonString = event.payload.message;
             const jsonObject = JSON.parse(jsonString);
