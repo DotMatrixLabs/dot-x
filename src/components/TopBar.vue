@@ -6,8 +6,8 @@
       <i class="fas fa-arrows-rotate fa-lg text-base-content"></i>
     </button>
     <span>
-      <i :class="connectionDot">●</i>
-      <span class="text-sm text-base-content mx-2 capitalize">{{ connectionStatus }}</span>
+      <i :class="connectionStatus ? 'text-green-400' : 'text-red-400'">●</i>
+      <span class="text-sm text-base-content mx-2 capitalize">{{ connectionStatus ? 'Connected' : 'Disconnected' }}</span>
     </span>
     <button title="Settings" @click="$emit('settings-toggled')" class="mx-8 btn btn-ghost my-2 rounded-md p-2">
       <i class="fas fa-gear fa-lg text-base-content"></i>
@@ -30,19 +30,6 @@ export default {
 
   data() {
     return {
-    }
-  },
-
-  computed: {
-    connectionDot() {
-      switch (this.connectionStatus) {
-        case 'connected':
-          return 'text-green-400'
-        case 'connecting':
-          return 'text-yellow-400'
-        default:
-          return 'text-red-400';
-      }
     }
   },
 

@@ -2,7 +2,7 @@
   <div class="h-screen w-screen flex flex-col pt-12 bg-base-200">
     <SettingsModal :modal-open="settingsModalOpen" @close="settingsToggled" />
     <AppsModal :currentSliderID="currentSliderID" :modal-open="appsModalOpen" @close="appsToggled(null)" />
-    <TopBar @settings-toggled="settingsToggled" @connect-to-board="retryConnection" :connection-status="connectionStatus" />
+    <TopBar @settings-toggled="settingsToggled" @connect-to-board="retryConnection" :connection-status="connectionState" />
     <SliderOverview ref="sliderOverview" :pot-values="potValues" @app-click="appsToggled" />
   </div>
 </template>
