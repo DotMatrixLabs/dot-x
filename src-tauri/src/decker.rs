@@ -124,16 +124,28 @@ pub fn get_devices() -> Vec<Device> {
 
 
 
-pub fn initialize_decker(window: Window) -> std::result::Result<(), std::io::Error> {
-    let port_name: &str = "COM6";
+pub fn initialize_decker(window: Window, port_name: &str) -> std::result::Result<(), std::io::Error> {
     let baud_rate: u32 = 115_200;
 
+    // Check if the connection is already open and close it if it is.
+    if let Ok(ports) = available_ports() {
+        for port_info in ports {
+            if port_info.port_name == port_name {
+                eprintln!("Port \"{}\" is already open. Closing it...", port_name);
+                if let Ok(mut port) = serialport::new(port_name, baud_rate).timeout(Duration::from_millis(20)).open() {
+                    std::mem::drop(port);
+                }
+            }
+        }
+    }
+
     let port = serialport::new(port_name, baud_rate)
-        .timeout(Duration::from_millis(10))
+        .timeout(Duration::from_millis(20))
         .open();
 
     match port {
         Ok(mut port) => {
+            println!("Connected to \"{}\"", port_name);
             // Spawn a thread to handle incoming data
             thread::spawn(move || {
                 let mut serial_buf: Vec<u8> = vec![0; 100];
@@ -155,8 +167,9 @@ pub fn initialize_decker(window: Window) -> std::result::Result<(), std::io::Err
                         }
                         Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
                         Err(e) => {
-                            eprintln!("{:?}", e);
-                            // break;
+                            window.emit("connection-change", Payload { message: "disconnected".to_string() }).unwrap();
+                            std::mem::drop(port); // Drop the port to close it
+                            panic!("An error occurred while reading serial data: {:?}", e);
                         }
                     }
                     thread::sleep(Duration::from_millis(5));
