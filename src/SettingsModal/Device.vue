@@ -49,7 +49,7 @@
 <script>
 import { useToast } from "vue-toastification";
 import Decker from "../ts/decker.ts";
-
+import ConfigStore from "../ts/config.ts";
 
 const toast = useToast();
 
@@ -113,7 +113,8 @@ export default {
         // },
 
         deviceSelected() {
-            store.set("comPort", this.currentDevice.comPort);
+            ConfigStore.set("comPort", this.currentDevice.port_name);
+            ConfigStore.save();
         },
 
 
@@ -122,7 +123,8 @@ export default {
                 this.devices = devices;
                 console.log(devices);
             });
-        }
+        },
+        
 
     },
     mounted() {
