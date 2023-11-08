@@ -128,8 +128,6 @@ fn connect_decker(window: Window, port_name: &str) -> Result<(), Error> {
 
 
 
-
-
 fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![get_installed_apps, get_all_session_names, set_application_volume, connect_decker, decker::get_devices])

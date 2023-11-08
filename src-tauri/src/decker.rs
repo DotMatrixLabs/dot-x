@@ -149,6 +149,7 @@ pub fn initialize_decker(window: Window, port_name: &str) -> std::result::Result
             // Spawn a thread to handle incoming data
             thread::spawn(move || {
                 let mut serial_buf: Vec<u8> = vec![0; 100];
+                window.emit("connection-change", Payload { message: "connected".to_string() }).unwrap();
                 loop {
                     match port.read(serial_buf.as_mut_slice()) {
                         Ok(t) => {
