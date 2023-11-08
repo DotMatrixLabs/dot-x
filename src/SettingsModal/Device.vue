@@ -122,7 +122,18 @@ export default {
             Decker.getDevices().then((devices) => {
                 this.devices = devices;
                 console.log(devices);
+                this.getConnectedDevice();
             });
+        },
+
+
+        async getConnectedDevice() {
+            //check if device stored exists in devices list
+            const storedDevice = await ConfigStore.get("comPort");
+            if(!storedDevice) return;
+            const device = this.devices.find((device) => device.port_name === storedDevice);
+            if(!device) return;
+            this.currentDevice = device;
         },
         
 
