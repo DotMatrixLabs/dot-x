@@ -1,7 +1,7 @@
 [package]
-name = "Dot-X"
+name = "dot_x"
 version = "0.0.1"
-description = "Dot-X - Client for Dot Matrix products"
+description = "Dot X"
 authors = ["you"]
 license = ""
 repository = ""
