@@ -156,7 +156,7 @@ pub fn initialize_decker(window: Window) -> std::result::Result<(), std::io::Err
                         Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
                         Err(e) => {
                             eprintln!("{:?}", e);
-                            break;
+                            // break;
                         }
                     }
                     thread::sleep(Duration::from_millis(5));
