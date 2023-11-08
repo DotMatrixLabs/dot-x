@@ -6,6 +6,7 @@ use rmp_serde::{Deserializer};
 use std::collections::BTreeMap;
 use serde::ser::SerializeMap;
 use tauri::Window;
+use serialport::{available_ports, SerialPortType};
 
 #[derive(Clone, serde::Serialize)]
 struct Payload {
@@ -75,10 +76,56 @@ pub fn list_ports() {
     }
 }
 
+#[derive(serde::Serialize)]
+pub struct Device {
+    port_name: String,
+    port_type: String,
+    vid: u16,
+    pid: u16,
+    serial_number: String,
+    manufacturer: String,
+    product: String,
+}
+
+#[tauri::command]
+pub fn get_devices() -> Vec<Device> {
+    let mut usb_devices = Vec::new();  // Create an empty vector to store USB devices
+
+    match available_ports() {
+        Ok(ports) => {
+            for p in ports {
+                match p.port_type {
+                    SerialPortType::UsbPort(info) => {
+                        let device = Device {
+                            port_name: p.port_name.clone(),
+                            port_type: "USB".to_string(),
+                            vid: info.vid,
+                            pid: info.pid,
+                            serial_number: info.serial_number.as_ref().map_or("", String::as_str).to_string(),
+                            manufacturer: info.manufacturer.as_ref().map_or("", String::as_str).to_string(),
+                            product: info.product.as_ref().map_or("", String::as_str).to_string(),
+                        };
+                        usb_devices.push(device);  // Add the USB device to the vector
+                    }
+                    _ => {}  // Ignore non-USB ports
+                }
+            }
+        }
+        Err(e) => {
+            eprintln!("{:?}", e);
+            eprintln!("Error listing serial ports");
+        }
+    }
+
+    usb_devices // Return the vector of USB devices
+}
+
+
+
 
 
 pub fn initialize_decker(window: Window) -> std::result::Result<(), std::io::Error> {
-    let port_name: &str = "COM10";
+    let port_name: &str = "COM6";
     let baud_rate: u32 = 115_200;
 
     let port = serialport::new(port_name, baud_rate)

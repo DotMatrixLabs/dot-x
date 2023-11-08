@@ -11,6 +11,7 @@ class Decker {
         this.comPort = comPort;
     }
 
+
     public async init(){
         const deckerStore = useDeckerStore();
 
@@ -46,6 +47,11 @@ class Decker {
         //     emit('slider-change', { value: 10 });
         //     console.log('emittd');
         // }, 2500);
+    }
+
+    
+    public async getDevices() {
+        return await invoke('get_devices');
     }
 
 }

@@ -3,10 +3,10 @@
         <!-- Device Selection -->
         <div class="flex flex-row w-full justify-between px-2">
             <span class="shrink-0 pt-1">Device: </span>
-            <select @change="comPortSelected" v-model="currentComPort"
+            <select @change="deviceSelected" v-model="currentDevice"
                 class="select select-bordered select-sm w-2/3 mx-2 capitalize truncate">
-                <option class="w-full" v-for="(comPort, index) in comPorts" :value="comPort" :key="index">
-                    {{ `${comPort.path} - ${comPort.manufacturer}` }}
+                <option class="w-full" v-for="(device, index) in devices" :value="device" :key="index">
+                    {{ deviceName(device) }}
                 </option>
             </select>
             <!-- <button @click="detectBoard" title="Autodiscover" class="btn btn-circle btn-sm">
@@ -20,7 +20,7 @@
                 <span class="shrink-0 pt-1">RGB Effect: </span>
                 <select @change="rgbEffectChange" :value="currentRGBEffect"
                     class="select select-bordered select-sm w-2/3 mx-2 capitalize truncate">
-                    <option class="w-full" v-for="(effect, index) in RGBEffects" :value="comPort" :key="index">
+                    <option class="w-full" v-for="(effect, index) in RGBEffects" :value="effect" :key="index">
                         {{ effect }}
                     </option>
                 </select>
@@ -33,13 +33,13 @@
                 <span class="shrink-0 pt-1">Speed: </span>
                 <input type="range" class="bg-gray-700 rounded-xl px-0.5 mr-2" value="#e66465" />
             </div>
-            <!-- Device Info -->
+            <!-- Device Info - TODO: Set to disabled if not connected -->
             <div class="flex flex-col w-full items-center mt-6">
                 <span class="shrink-0 pt-1 font-bold">Device Info: </span>
                 <div class="divider mt-0"></div>
-                <div :key="deviceInfo" v-for="deviceInfo in deviceInfoPoints" class=" flex flex-row w-2/3 justify-between">
-                    <span class="text-gray-500">{{deviceInfo.name}}:</span>
-                    <span class="font-semibold">{{deviceInfo.value}}</span>
+                <div :key="infopoint" v-for="(infopoint, index) in deviceInfoPoints" class=" flex flex-row w-2/3 justify-between">
+                    <span class="text-gray-500">{{infopoint.name}}:</span>
+                    <span class="font-semibold">{{deviceInfo(currentDevice)?.[index] ?? 'N/A'}}</span>
                 </div>
             </div>
         </div>
@@ -47,72 +47,88 @@
 </template>
 
 <script>
-// import BoardManager from "../../js/boardManager.js";
-// import StorageHandler from "../../js/storage.mjs";
 import { useToast } from "vue-toastification";
+import Decker from "../ts/decker.ts";
 
 
 const toast = useToast();
-// const boardManager = new BoardManager();
-// const store = new StorageHandler();
+
 
 export default {
-    name: "Connectivity",
+    name: "Devices",
     data() {
         return {
-            comPorts: [],
-            currentComPort: null,
+            devices: [],
+            currentDevice: null,
             comPortInterval: null,
-            deviceInfoPoints: [
-                { name: "Model", value: "Decker 1.0" },
-                { name: "Firmware", value: "1.0.0" },
-                { name: "Serial Number", value: "123456789" },
-                { name: "COM Port", value: "COM 2" }
-            ],
+            deviceInfoPoints: {
+                model: { name: "Model", value: "Decker 1.0" },
+                firmwareVersion: { name: "Firmware", value: "1.0.0" },
+                serialNumber: { name: "Serial Number", value: "123456789" },
+                comPort: { name: "COM Port", value: "COM 2" }
+            },
             currentRGBEffect: "Static", 
             RGBEffects: ["Off","Static", "Rainbow", "Candle", "Fire"],
             deviceConnected: true,
         }
     },
+
+
     methods: {
+
+        deviceInfo(device) {
+            if(!device) return;
+            if(device.pid === 58918 && device.vid === 1240){
+                return {
+                    model: "Decker 1.0",
+                    firmwareVersion: "1.0.0",
+                    serialNumber: device.serial_number,
+                    comPort: device.port_name,
+                }
+            } else {
+                return {
+                    model: device.manufacturer,
+                    firmwareVersion: "N/A",
+                    serialNumber: "N/A",
+                    comPort: device.port_name,
+                }
+            }
+        },
+
+        deviceName(device){
+            if(!device) return;
+            if(device.pid === 58918 && device.vid === 1240){
+                return `Decker - SN${device.serial_number}`;
+            } else {
+                return `${device.manufacturer} - ${device.port_name}`;
+            }
+        },
         rgbEffectChange(event) {
             this.currentRGBEffect = event.target.value;           
         },
-        // detectBoard() {
-        //     boardManager.autodiscover().then((boards) => {
-        //         if (boards.length === 0)
-        //             return toast.warning("Unable to find any boards..");
-        //         this.currentComPort = boards[0];
-        //         console.log(boards);
-        //         store.set("config.comPort", this.currentComPort);
-        //     });
-        // },
 
         // getSavedComPort() {
         //     this.currentComPort = store.get("config.comPort");
         //     console.log(this.currentComPort);
         // },
 
-        comPortSelected() {
-            console.log("saving com port ");
-            store.set("config.comPort", this.currentComPort);
+        deviceSelected() {
+            store.set("comPort", this.currentDevice.comPort);
         },
 
-        // getComPorts() {
-        //     boardManager
-        //         .getAllComPorts()
-        //         .then((ports) => {
-        //             this.comPorts = ports;
-        //         })
-        //         .catch(() => {
-        //             this.comPorts = [{ path: "ERROR GETTING COM PORTS" }];
-        //         });
-        // },
+
+        getDevices() {
+            Decker.getDevices().then((devices) => {
+                this.devices = devices;
+                console.log(devices);
+            });
+        }
 
     },
     mounted() {
-        // this.getSavedComPort();
-        // this.getComPorts();
+        this.getDevices();
+
+        //TODO: Add autodiscover - but only if no device is connected
         // this.comPortInterval = setInterval(() => {
         //     this.getComPorts();
         // }, 1000);
