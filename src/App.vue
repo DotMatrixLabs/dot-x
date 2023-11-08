@@ -61,8 +61,7 @@ export default {
    async connectDecker(){
     const comPort = await ConfigStore.get("comPort");
     if(!comPort) {
-      toast.info("Please select a device in the settings");
-      this.settingsToggled();
+      return toast.info("Please select a device in the settings");
     }
     Decker.init(comPort);
    },

@@ -115,6 +115,7 @@ export default {
         deviceSelected() {
             ConfigStore.set("comPort", this.currentDevice.port_name);
             ConfigStore.save();
+            Decker.init(this.currentDevice.port_name);
         },
 
 
