@@ -8,7 +8,7 @@ use windows_volume_control::CoinitMode;
 use tauri_plugin_autostart::MacosLauncher;
 use std::fmt;
 mod decker;
-
+mod midi;
 // create the error type that represents all errors possible in our program
 #[derive(Debug, thiserror::Error)]
 enum Error {
@@ -123,6 +123,17 @@ fn set_application_volume(name: &str, volume: f32) -> Result<(), Error> {
 #[tauri::command]
 fn connect_decker(window: Window) -> Result<(), Error> {
     decker::initialize_decker(window)?;
+    let midiController = midi::midi::new("Decker");
+
+    match midiController {
+        Ok(_) => {
+            println!("Midi port");
+        }
+        Err(error) => {
+            // Handle the error here, or return it if you prefer.
+            return Err(Error::Connection);
+        }
+    }
     Ok(())
 }
 
