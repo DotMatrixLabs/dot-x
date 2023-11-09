@@ -87,18 +87,18 @@ export default {
 
     async getSelectedApps() {
       let sliders = useDeckerStore().sliders;
-      console.log(sliders);
+      // console.log(sliders);
       if(sliders.length === 0) sliders = [0, 0, 0, 0, 0];
       sliders.forEach(async (slider, index) => {
         const selectedApps = await SelectedApps.getApps(index);
-        console.log( selectedApps );
+        // console.log( selectedApps );
         if(!selectedApps) return;
         if (!this.sliderApps[index]) {
           this.sliderApps[index] = { apps: selectedApps };
         } else {
           this.sliderApps[index].apps = selectedApps;
         }
-        console.log(this.sliderApps);
+        // console.log(this.sliderApps);
       });
     },
 
