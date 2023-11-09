@@ -140,6 +140,11 @@ fn build_menu() -> SystemTrayMenu {
       .add_item(menuitem_quit)
 }
 
+#[derive(Clone, serde::Serialize)]
+struct InstancePayload {
+  args: Vec<String>,
+  cwd: String,
+}
 
 
 fn main() {
@@ -152,6 +157,11 @@ fn main() {
           MacosLauncher::LaunchAgent,
           None,
         ))
+        .plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
+          println!("{}, {argv:?}, {cwd}", app.package_info().name);
+
+          app.emit_all("single-instance", InstancePayload { args: argv, cwd }).unwrap();
+        }))
         .system_tray(SystemTray::new().with_menu(tray_menu))
         .on_system_tray_event(|app, event| match event {
           SystemTrayEvent::LeftClick {
