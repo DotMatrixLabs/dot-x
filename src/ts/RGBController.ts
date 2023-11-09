@@ -3,6 +3,8 @@ import { rainbow } from './rgb-effects/rainbow';
 
 class RGBController {
 
+    public rgbInterval: NodeJS.Timeout | null;
+
     constructor() {
         console.log('RGBController initialized');
         this.rgbInterval = null;
@@ -17,17 +19,17 @@ class RGBController {
     public setEffect(effectName: string, ...params: number[]) {
         const effectFunction = this.effects[effectName];
         if (effectFunction) {
-            console.log(effectFunction(...params));
-
+            const updateInterval = 1000; // Adjust this interval as needed
             this.rgbInterval = setInterval(() => {
-                let { r, g, b } = effectFunction(...params);
-                console.log(r, g, b);
-            }, 1000);
-            
+                const response = effectFunction(...params);
+                console.log(response);
+            }, updateInterval);
         } else {
             console.error('Unknown effect: ' + effectName);
         }
     }
+
+    
 }
 
 export default (new RGBController());
