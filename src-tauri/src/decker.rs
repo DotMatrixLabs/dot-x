@@ -1,4 +1,4 @@
-use std::{thread::{self, sleep}, time::Duration};
+use std::{thread::{self}, time::Duration};
 use std::io::{self, Cursor, Read};
 use serde::{Serialize, Deserialize};
 use serde_json;
@@ -142,7 +142,7 @@ pub fn initialize_decker(window: Window, port_name: &str) -> std::result::Result
         for port_info in ports {
             if port_info.port_name == port_name {
                 eprintln!("Port \"{}\" is already open. Closing it...", port_name);
-                if let Ok(mut port) = serialport::new(port_name, baud_rate).timeout(Duration::from_millis(20)).open() {
+                if let Ok(port) = serialport::new(port_name, baud_rate).timeout(Duration::from_millis(20)).open() {
                     std::mem::drop(port);
                 }
             }
@@ -172,7 +172,7 @@ pub fn initialize_decker(window: Window, port_name: &str) -> std::result::Result
                                     unsafe { decker::slider_values = slider_data }
                                     window.emit("slider-change", Payload { message: json_data }).unwrap();
                                 }
-                                Err(error) => {
+                                Err(_error) => {
                                     // eprintln!("Deserialization failed: {}", error);
                                 }
                             };
