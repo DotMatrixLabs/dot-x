@@ -125,18 +125,20 @@ fn set_application_volume(name: &str, volume: f32) -> Result<(), Error> {
 #[tauri::command]
 fn connect_decker(window: Window, port_name: &str) -> Result<(), Error> {
   decker::initialize_decker(window, port_name)?;
-    let midiController = midi::midi::new("Decker");
+  // let midi_output_port = midi::midi::get_available_output_ports();
+  // let midi_controller = midi::midi::new("Decker", midi_output_port);
+  let midi_controller = midi::midi::new("Decker");
 
-    match midiController {
-        Ok(_) => {
-            println!("Midi port");
-        }
-        Err(error) => {
-            // Handle the error here, or return it if you prefer.
-            return Err(Error::Connection);
-        }
+  match midi_controller {
+    Ok(_) => {
+      println!("Midi port");
     }
-    Ok(())
+    Err(error) => {
+      // Handle the error here, or return it if you prefer.
+      return Err(Error::Connection);
+    }
+  }
+  Ok(())
 }
 
 
