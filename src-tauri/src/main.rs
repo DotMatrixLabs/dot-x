@@ -175,6 +175,7 @@ fn main() {
           println!("{}, {argv:?}, {cwd}", app.package_info().name);
 
           app.emit_all("single-instance", InstancePayload { args: argv, cwd }).unwrap();
+          //TODO: Add system notification that app is already running
         }))
         .system_tray(SystemTray::new().with_menu(tray_menu))
         .on_system_tray_event(|app, event| match event {
