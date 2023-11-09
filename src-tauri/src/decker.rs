@@ -7,7 +7,17 @@ use std::collections::BTreeMap;
 use serde::ser::SerializeMap;
 use tauri::Window;
 use serialport::{available_ports, SerialPortType};
+pub mod decker {
+    use super::SliderData;
 
+    pub static mut slider_values: SliderData = SliderData {
+        slider1: 0,
+        slider2: 0,
+        slider3: 0,
+        slider4: 0,
+        slider5: 0,
+    };
+}
 #[derive(Clone, serde::Serialize)]
 struct Payload {
   message: String,
@@ -15,12 +25,12 @@ struct Payload {
 
 // Define a struct to match the JSON structure
 #[derive(Debug)]
-struct SliderData {
-    slider1: u32,
-    slider2: u32,
-    slider3: u32,
-    slider4: u32,
-    slider5: u32,
+pub struct SliderData {
+    pub slider1: u32,
+    pub slider2: u32,
+    pub slider3: u32,
+    pub slider4: u32,
+    pub slider5: u32,
 }
 
 impl<'de> Deserialize<'de> for SliderData {
@@ -61,7 +71,7 @@ fn deserialize_slider_data(data: &[u8]) -> std::result::Result<SliderData, Box<d
     // Deserialize MessagePack data to the SliderData struct
     let mut deserializer = Deserializer::new(cursor);
     let slider_data: SliderData = Deserialize::deserialize(&mut deserializer)?;
-
+    
     Ok(slider_data)
 }
 
@@ -159,6 +169,7 @@ pub fn initialize_decker(window: Window, port_name: &str) -> std::result::Result
                             match deserialize_slider_data(&messagepack_data) {
                                 Ok(slider_data) => {
                                     let json_data = serde_json::to_string(&slider_data).unwrap();
+                                    unsafe { decker::slider_values = slider_data }
                                     window.emit("slider-change", Payload { message: json_data }).unwrap();
                                 }
                                 Err(error) => {

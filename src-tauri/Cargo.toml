@@ -29,6 +29,7 @@ tracing = "0.1.39"
 clap = "4.4.7"
 rmp-serde = "1.1.2"
 tauri-plugin-single-instance = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v1" }
+midir = "0.9.1"
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem
