@@ -1,7 +1,7 @@
 [package]
-name = "Dot-X"
+name = "dot_x"
 version = "0.0.1"
-description = "Dot-X - Client for Dot Matrix products"
+description = "Dot X"
 authors = ["you"]
 license = ""
 repository = ""
@@ -13,7 +13,7 @@ edition = "2021"
 tauri-build = { version = "1.5", features = [] }
 
 [dependencies]
-tauri = { version = "1.5", features = [] }
+tauri = { version = "1.5", features = ["system-tray"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 winreg = "0.51.0"

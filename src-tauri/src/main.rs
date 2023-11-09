@@ -9,6 +9,8 @@ use tauri_plugin_autostart::MacosLauncher;
 use std::fmt;
 mod decker;
 mod midi;
+use tauri::{CustomMenuItem, SystemTrayMenu, SystemTrayMenuItem, SystemTray, SystemTrayEvent};
+
 // create the error type that represents all errors possible in our program
 #[derive(Debug, thiserror::Error)]
 enum Error {
@@ -121,8 +123,8 @@ fn set_application_volume(name: &str, volume: f32) -> Result<(), Error> {
 
 
 #[tauri::command]
-fn connect_decker(window: Window) -> Result<(), Error> {
-    decker::initialize_decker(window)?;
+fn connect_decker(window: Window, port_name: &str) -> Result<(), Error> {
+  decker::initialize_decker(window, port_name)?;
     let midiController = midi::midi::new("Decker");
 
     match midiController {
@@ -139,15 +141,64 @@ fn connect_decker(window: Window) -> Result<(), Error> {
 
 
 
+fn build_menu() -> SystemTrayMenu {
+  let menuitem_quit = CustomMenuItem::new("quit".to_string(), "Quit");
+  let menuitem_show = CustomMenuItem::new("show".to_string(), "Show");
+  let menuitem_hide = CustomMenuItem::new("hide".to_string(), "Hide");
+  SystemTrayMenu::new()
+      .add_item(menuitem_show) 
+      .add_item(menuitem_hide)  
+      .add_native_item(SystemTrayMenuItem::Separator)
+      .add_item(menuitem_quit)
+}
+
+
 
 fn main() {
+    let tray_menu = build_menu();
+
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![get_installed_apps, get_all_session_names, set_application_volume, connect_decker])
+        .invoke_handler(tauri::generate_handler![get_installed_apps, get_all_session_names, set_application_volume, connect_decker, decker::get_devices])
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_autostart::init(
           MacosLauncher::LaunchAgent,
           None,
         ))
+        .system_tray(SystemTray::new().with_menu(tray_menu))
+        .on_system_tray_event(|app, event| match event {
+          SystemTrayEvent::LeftClick {
+            position: _,
+            size: _,
+            ..
+        } => {
+            let window = app.get_window("main").unwrap();
+            window.show().unwrap();
+        }
+          SystemTrayEvent::MenuItemClick { id, .. } => {
+            match id.as_str() {
+              "quit" => {
+                std::process::exit(0);
+              }
+              "hide" => {
+                let window = app.get_window("main").unwrap();
+                window.hide().unwrap();
+              }
+              "show" => {
+                let window = app.get_window("main").unwrap();
+                window.show().unwrap();
+              }
+              _ => {}
+            }
+          }
+          _ => {}
+        })
+        .on_window_event(|event| match event.event() {
+          tauri::WindowEvent::CloseRequested { api, .. } => {
+              event.window().hide().unwrap();
+              api.prevent_close();
+          }
+          _ => {}
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
