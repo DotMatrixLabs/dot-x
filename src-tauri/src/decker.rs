@@ -71,7 +71,7 @@ fn deserialize_slider_data(data: &[u8]) -> std::result::Result<SliderData, Box<d
     // Deserialize MessagePack data to the SliderData struct
     let mut deserializer = Deserializer::new(cursor);
     let slider_data: SliderData = Deserialize::deserialize(&mut deserializer)?;
-
+    
     Ok(slider_data)
 }
 

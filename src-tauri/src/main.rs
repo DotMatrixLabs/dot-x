@@ -127,17 +127,17 @@ fn connect_decker(window: Window, port_name: &str) -> Result<(), Error> {
   decker::initialize_decker(window, port_name)?;
   // let midi_output_port = midi::midi::get_available_output_ports();
   // let midi_controller = midi::midi::new("Decker", midi_output_port);
-  let midi_controller = midi::midi::new("Decker");
+  // let midi_controller = midi::midi::new("Decker");
 
-  match midi_controller {
-    Ok(_) => {
-      println!("Midi port");
-    }
-    Err(error) => {
-      // Handle the error here, or return it if you prefer.
-      return Err(Error::Connection);
-    }
-  }
+  // match midi_controller {
+  //   Ok(_) => {
+  //     println!("Midi port");
+  //   }
+  //   Err(error) => {
+  //     // Handle the error here, or return it if you prefer.
+  //     return Err(Error::Connection);
+  //   }
+  // }
   Ok(())
 }
 
