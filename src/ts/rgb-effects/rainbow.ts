@@ -4,7 +4,7 @@
  * @param {number} [speed=0.1] - The speed of the rainbow effect.
  * @returns {{r: number, g: number, b: number}} - An object containing the clamped RGB values.
  */
-export function rainbow(brightness = 255, speed = 0.1) {
+export function rainbow(brightness = 255, speed = 0.1): { r: number; g: number; b: number } {
     if (brightness < 0 || brightness > 255 || speed <= 0) {
         throw new Error('Invalid parameters: brightness must be in the range [0, 255] and speed must be greater than 0.');
     }
