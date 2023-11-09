@@ -45,7 +45,7 @@ pub mod midi {
 
 
     // pub fn new(name: &str, midi_port: MidiOutputPort) -> Result<(), Box<dyn Error>> {
-    pub fn new(name: &str) -> Result<(), Box<dyn Error>> {
+    pub fn new(_name: &str) -> Result<(), Box<dyn Error>> {
         let mut Midi = Midi::new("Decker");
         let midi_out  = MidiOutput::new("Decker Output")?;
         let output_ports = get_available_output_ports()?;
@@ -66,31 +66,31 @@ pub mod midi {
         loop {
             unsafe { 
                 // println!("Current slider values: {:?}", decker::decker::slider_values); 
-                if(decker::decker::slider_values.slider1 > Midi.previous_slider1 + 2 || decker::decker::slider_values.slider1 < Midi.previous_slider1 - 2) {
+                if decker::decker::slider_values.slider1 > Midi.previous_slider1 + 2 || decker::decker::slider_values.slider1 < Midi.previous_slider1 - 2 {
                     // println!("Slider 1: {}", decker::decker::slider_values.slider1);
                     // map decker::decker::slider_values.slider1 to 0-127
                     let _ = conn_out.send(&[0xB0, 0x01, map_to_range(decker::decker::slider_values.slider1)]);
                     Midi.previous_slider1 = decker::decker::slider_values.slider1;
                 }
-                if(decker::decker::slider_values.slider2 > Midi.previous_slider2 + 2 || decker::decker::slider_values.slider2 < Midi.previous_slider2 - 2) {
+                if decker::decker::slider_values.slider2 > Midi.previous_slider2 + 2 || decker::decker::slider_values.slider2 < Midi.previous_slider2 - 2 {
                     // println!("Slider 2: {}", decker::decker::slider_values.slider2);
                     // map decker::decker::slider_values.slider2 to 0-127
                     let _ = conn_out.send(&[0xB0, 0x02, map_to_range(decker::decker::slider_values.slider2)]);
                     Midi.previous_slider2 = decker::decker::slider_values.slider2;
                 }
-                if(decker::decker::slider_values.slider3 > Midi.previous_slider3 + 2 || decker::decker::slider_values.slider3 < Midi.previous_slider3 - 2) {
+                if decker::decker::slider_values.slider3 > Midi.previous_slider3 + 2 || decker::decker::slider_values.slider3 < Midi.previous_slider3 - 2 {
                     // println!("Slider 3: {}", decker::decker::slider_values.slider3);
                     // map decker::decker::slider_values.slider3 to 0-127
                     let _ = conn_out.send(&[0xB0, 0x03, map_to_range(decker::decker::slider_values.slider3)]);
                     Midi.previous_slider3 = decker::decker::slider_values.slider3;
                 }
-                if(decker::decker::slider_values.slider4 > Midi.previous_slider4 + 2 || decker::decker::slider_values.slider4 < Midi.previous_slider4 - 2) {
+                if decker::decker::slider_values.slider4 > Midi.previous_slider4 + 2 || decker::decker::slider_values.slider4 < Midi.previous_slider4 - 2 {
                     // println!("Slider 4: {}", decker::decker::slider_values.slider4);
                     // map decker::decker::slider_values.slider4 to 0-127
                     let _ = conn_out.send(&[0xB0, 0x04, map_to_range(decker::decker::slider_values.slider4)]);
                     Midi.previous_slider4 = decker::decker::slider_values.slider4;
                 }
-                if(decker::decker::slider_values.slider5 > Midi.previous_slider5 + 2 || decker::decker::slider_values.slider5 < Midi.previous_slider5 - 2) {
+                if decker::decker::slider_values.slider5 > Midi.previous_slider5 + 2 || decker::decker::slider_values.slider5 < Midi.previous_slider5 - 2 {
                     // println!("Slider 5: {}", decker::decker::slider_values.slider5);
                     // map decker::decker::slider_values.slider5 to 0-127
                     let _ = conn_out.send(&[0xB0, 0x05, map_to_range(decker::decker::slider_values.slider5)]);
