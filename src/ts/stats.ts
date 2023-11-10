@@ -1,10 +1,12 @@
 import { Store } from "tauri-plugin-store-api";
+import * as CryptoJS from 'crypto-js';
 
 class Stats {
     private store: Store;
 
     constructor() {
         this.store = new Store("stats.x");
+        this.secretKey = "madebyfrogs";
         setInterval(() => {
             this.save();
         }, 1000 * 60); //save every minute
@@ -13,9 +15,15 @@ class Stats {
     async logSliderChange(slider: number, value: number) {
         if(isNaN(value)) return;
         const key = `slider-${slider}`;
-        const oldValue: number = await this.store.get(key) || 0;
-        const newValue = oldValue + value;
-        this.store.set(key, newValue);
+        const oldValue: string = await this.store.get(key);
+        if(!oldValue) {
+            this.store.set(key, this.encrypt(value));
+            return;
+        }
+        const decryptedOldValue = this.decrypt(oldValue) || "0";
+        const newValue = parseInt(decryptedOldValue) + value;
+        const cryptedValue = this.encrypt(newValue);
+        this.store.set(key, cryptedValue);
     }
 
     sliderMovementToCentimeters(movement: number) {
@@ -24,12 +32,13 @@ class Stats {
 
     async getSliderDistance(slider: number): Promise<string> {
         const key = `slider-${slider}`;
-        const value: number = await this.store.get(key) || 0;
+        const value: string = this.decrypt(await this.store.get(key) || "");
         const distance: string = this.formatDistance(value);
         return distance;
     }
 
     formatDistance(distance: number): string {
+        if(distance === 'cheater') return "Are you trying to cheat?👀";
         const distanceInCentimeters = this.sliderMovementToCentimeters(distance);
         const centimeters = distanceInCentimeters;
         const meters = distanceInCentimeters / 100;
@@ -43,6 +52,29 @@ class Stats {
             return `${centimeters.toFixed(2)}cm`;
         }
     }
+
+    private isNumericString(input: string): boolean {
+        return /^[0-9]+$/.test(input);
+    }
+
+    // Encrypt function
+    private encrypt(value: number): string {
+        value = value.toString();
+        const encryptedValue = CryptoJS.AES.encrypt(value, this.secretKey).toString();
+        return encryptedValue;
+    }
+
+    // Decrypt function
+    private decrypt(encryptedValue: string): string {
+
+        if(this.isNumericString(encryptedValue)) return 'cheater';
+
+        const bytes = CryptoJS.AES.decrypt(encryptedValue, this.secretKey);
+        const decryptedValue = bytes.toString(CryptoJS.enc.Utf8);
+
+        return decryptedValue;
+}
+
 
     private async save() {
         await this.store.save();
