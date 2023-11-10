@@ -1,6 +1,7 @@
 import { listen } from '@tauri-apps/api/event';
 import { invoke } from '@tauri-apps/api/tauri';
 import { useDeckerStore } from "../store/deckerStore.ts";
+import ConfigStore from './config.ts';
 class Decker {
     private comPort: string = "";
     // private debug: boolean;
@@ -67,6 +68,20 @@ class Decker {
         return await invoke('get_available_midi_output_port_names');
     }
 
+    public detectDeviceChanges() {
+        const deckerStore = useDeckerStore();
+
+        setInterval(async () => {
+            if(deckerStore.connected) return;
+            const comPort = await ConfigStore.get("comPort");
+            const newDevices:any = await this.getDevices();
+            const device = newDevices.find((device:any) => device.port_name === comPort);
+            if(!device) return;
+            if(device.port_name === comPort && !deckerStore.connected){
+                this.init(comPort);
+            }
+        }, 1000);
+    }
 }
 
 export default (new Decker());
