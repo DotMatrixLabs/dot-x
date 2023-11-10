@@ -45,6 +45,11 @@
     "systemTray": {
       "iconPath": "icons/icon.png",
       "iconAsTemplate": true
+    },
+    "allowlist": {
+      "notification": {
+        "all": true
+      }
     }
   }
 }

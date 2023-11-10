@@ -10,6 +10,7 @@ use std::fmt;
 mod decker;
 mod midi;
 use tauri::{CustomMenuItem, SystemTrayMenu, SystemTrayMenuItem, SystemTray, SystemTrayEvent};
+use tauri::api::notification::Notification;
 
 // create the error type that represents all errors possible in our program
 #[derive(Debug, thiserror::Error)]
@@ -154,6 +155,15 @@ fn build_menu() -> SystemTrayMenu {
       .add_item(menuitem_quit)
 }
 
+fn show_notification(title: &str, body : &str) {
+  let context = tauri::generate_context!("tauri.conf.json");
+  Notification::new(&context.config().tauri.bundle.identifier)
+    .title(title)
+    .body(body)
+    .show()
+    .unwrap();
+}
+
 #[derive(Clone, serde::Serialize)]
 struct InstancePayload {
   args: Vec<String>,
@@ -172,10 +182,7 @@ fn main() {
           None,
         ))
         .plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
-          println!("{}, {argv:?}, {cwd}", app.package_info().name);
-
-          app.emit_all("single-instance", InstancePayload { args: argv, cwd }).unwrap();
-          //TODO: Add system notification that app is already running
+          show_notification("Decker", "Decker is already running");
         }))
         .system_tray(SystemTray::new().with_menu(tray_menu))
         .on_system_tray_event(|app, event| match event {
