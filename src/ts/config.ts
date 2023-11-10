@@ -1,5 +1,4 @@
 import { Store } from "tauri-plugin-store-api";
-import * as _ from "lodash"; // Make sure to import lodash if you haven't already
 class ConfigStore {
     private store: Store;
 
