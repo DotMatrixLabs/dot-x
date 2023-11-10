@@ -6,6 +6,7 @@ use tauri::{ Manager, Window };
 use windows_volume_control::AudioController;
 use windows_volume_control::CoinitMode;
 use tauri_plugin_autostart::MacosLauncher;
+use midir::{MidiOutput};
 use std::fmt;
 mod decker;
 mod midi;
@@ -18,6 +19,7 @@ enum Error {
   Io(#[from] std::io::Error),
   SessionNotFound,
   Connection,
+  InitError
 }
 
 impl fmt::Display for Error {
@@ -26,9 +28,11 @@ impl fmt::Display for Error {
             Error::Io(inner) => write!(f, "IO Error: {}", inner),
             Error::SessionNotFound => write!(f, "Session not found"),
             Error::Connection => write!(f, "Decker error"),
+            Error::InitError => write!(f, "Initialization error"),
         }
     }
 }
+
 // we must manually implement serde::Serialize
 impl serde::Serialize for Error {
   fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -53,6 +57,49 @@ struct ControllerResponse {
 #[derive(Clone, serde::Serialize)]
 struct Payload {
   message: String,
+}
+
+#[derive(serde::Serialize)]
+struct MidiPortNames {
+  names: Vec<String>,
+}
+
+
+#[tauri::command]
+fn get_available_midi_output_port_names() -> Result<MidiPortNames, Error> {
+  let mut available_ports: Vec<String> = Vec::new();
+    
+  // Explicitly handle the error and convert it to Box<dyn Error>
+  let midi_out_result = MidiOutput::new("Decker Output");
+  let midi_out = match midi_out_result {
+      Ok(midi_out) => midi_out,
+      Err(error) => {
+          // Handle the error here, or return it if you prefer.
+          return Err(Error::InitError);
+      }  };
+
+  let output_ports_result = midi::midi::get_available_output_ports();
+  let output_ports = match output_ports_result {
+      Ok(output_ports) => output_ports,
+      Err(error) => {
+          // Handle the error here, or return it if you prefer.
+          return Err(Error::InitError);
+      }  
+    };
+  
+  for (i, p) in output_ports.iter().enumerate() {
+      let port_name_result = midi_out.port_name(p);
+      let port_name = match port_name_result {
+          Ok(port_name) => available_ports.push(port_name),
+          Err(error) => {
+              // Handle the error here, or return it if you prefer.
+              return Err(Error::InitError);
+          }  
+        };
+  }
+
+  let available_ports_response = MidiPortNames { names: available_ports };
+  Ok(available_ports_response)
 }
 
 #[tauri::command]
@@ -165,7 +212,7 @@ fn main() {
     let tray_menu = build_menu();
 
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![get_installed_apps, get_all_session_names, set_application_volume, connect_decker, decker::get_devices])
+        .invoke_handler(tauri::generate_handler![get_installed_apps, get_all_session_names, set_application_volume, connect_decker, decker::get_devices, get_available_midi_output_port_names])
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_autostart::init(
           MacosLauncher::LaunchAgent,
