@@ -43,13 +43,16 @@ pub mod midi {
         Ok(available_ports)
     }
 
-
+  
     // pub fn new(name: &str, midi_port: MidiOutputPort) -> Result<(), Box<dyn Error>> {
     pub fn new(_name: &str) -> Result<(), Box<dyn Error>> {
         let mut Midi = Midi::new("Decker");
         let midi_out  = MidiOutput::new("Decker Output")?;
         let output_ports = get_available_output_ports()?;
-
+        // print output_ports
+        // for (i, p) in output_ports.iter().enumerate() {
+        //     println!("{}: {}", i, midi_out.port_name(p)?);
+        // }
         if output_ports.is_empty() {
             eprintln!("No available MIDI output ports.");
         }
