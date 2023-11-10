@@ -26,7 +26,7 @@ class Decker {
             console.log("Decker Connected!")
             deckerStore.setConnected(true);
         }).catch((error) => {
-            console.log("Error connecting to Decker:(",error)
+            console.log("Error connecting to Decker😭😭",error)
             deckerStore.setConnected(false);
         });
         // await invoke('init_process');
@@ -61,6 +61,10 @@ class Decker {
     
     public async getDevices() {
         return await invoke('get_devices');
+    }
+
+    public async getMidiDevices() {
+        return await invoke('get_available_midi_output_port_names');
     }
 
 }
