@@ -78,11 +78,14 @@ export default {
             if(this.midiEnabled){
                 await ConfigStore.set("midiEnabled", false);
                 this.update();
-
+                ConfigStore.save();
+                decker.detachMidiDevice();
                 return;
             }
             await ConfigStore.set("midiEnabled", true);
+            ConfigStore.save();
             this.update();
+            decker.attachMidiDevice();
         },
 
         update() {
