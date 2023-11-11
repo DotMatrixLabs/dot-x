@@ -53,7 +53,11 @@ pub mod midi {
         if output_ports.is_empty() {
             eprintln!("No available MIDI output ports.");
         }
-    
+        if(output_ports.len() < 2) {
+            eprintln!("The selected MIDI port doesn't exist.");
+            Err("The selected MIDI port doesn't exist.")?;
+        }
+
         let selected_output_port: &MidiOutputPort = &output_ports[1]; // Should be selectable by user
         let mut conn_out: MidiOutputConnection = midi_out.connect(selected_output_port, "Decker SW Output")?;
     
