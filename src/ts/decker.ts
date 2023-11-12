@@ -64,9 +64,24 @@ class Decker {
         return await invoke('get_devices');
     }
 
+    /**
+     * Get the names of all available MIDI devices.
+     * @returns {Promise<string[]>} A promise that resolves with an array of session names.
+     */
     public async getMidiDevices() {
         return await invoke('get_available_midi_output_port_names');
     }
+
+    /**
+     * Open a MIDI connection to the selected device.
+     * @param deviceName The name of the MIDI device to attach to.
+     * @returns 
+     */
+    public async attachMidiDevice() {
+        const outputName = await ConfigStore.get("midiOutputPort");
+        return await invoke('attach_midi_device', { outputName });
+    }
+
 
     public detectDeviceChanges() {
         const deckerStore = useDeckerStore();
@@ -81,6 +96,17 @@ class Decker {
                 this.init(comPort);
             }
         }, 1000);
+    }
+
+    public async initMidi() {
+        const midiEnabled = await ConfigStore.get("midiEnabled");
+        console.log("MIDI Enabled?", midiEnabled);
+        if(!midiEnabled) return;
+        const midiOutputPort = await ConfigStore.get("midiOutputPort");
+        console.log("MIDI Output port?", midiOutputPort);
+        if(!midiOutputPort) return;
+        console.log("Connecting to MIDI Device...", midiOutputPort)
+        this.attachMidiDevice();
     }
 }
 

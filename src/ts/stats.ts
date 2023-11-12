@@ -3,6 +3,7 @@ import * as CryptoJS from 'crypto-js';
 
 class Stats {
     private store: Store;
+    private secretKey: string;
 
     constructor() {
         this.store = new Store("stats.x");
@@ -15,7 +16,7 @@ class Stats {
     async logSliderChange(slider: number, value: number) {
         if(isNaN(value)) return;
         const key = `slider-${slider}`;
-        const oldValue: string = await this.store.get(key);
+        const oldValue: any = await this.store.get(key);
         if(!oldValue) {
             this.store.set(key, this.encrypt(value));
             return;
@@ -32,12 +33,12 @@ class Stats {
 
     async getSliderDistance(slider: number): Promise<string> {
         const key = `slider-${slider}`;
-        const value: string = this.decrypt(await this.store.get(key) || "");
-        const distance: string = this.formatDistance(value);
+        const value: any = this.decrypt(await this.store.get(key) || "");
+        const distance: any = this.formatDistance(value);
         return distance;
     }
 
-    formatDistance(distance: number): string {
+    formatDistance(distance: any): string {
         if(distance === 'cheater') return "Are you trying to cheat?👀";
         const distanceInCentimeters = this.sliderMovementToCentimeters(distance);
         const centimeters = distanceInCentimeters;
@@ -58,7 +59,7 @@ class Stats {
     }
 
     // Encrypt function
-    private encrypt(value: number): string {
+    private encrypt(value: any): string {
         value = value.toString();
         const encryptedValue = CryptoJS.AES.encrypt(value, this.secretKey).toString();
         return encryptedValue;
