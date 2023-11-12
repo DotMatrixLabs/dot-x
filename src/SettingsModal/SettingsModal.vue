@@ -2,7 +2,7 @@
   <div :class="modalOpen ? 'modal-open' : ''" class="modal h-full w-full">
     <div class="modal-box w-full max-w-xl h-2/3 overflow-hidden">
       <h1 class="font-bold text-lg text-center">Settings</h1>
-      <div class="flex flex-row pt-3">
+      <div class="flex flex-row pt-3 h-full">
         <div class="text-left p-4">
           <ul class="menu rounded-box menu-compact p-2">
             <li v-for="tab in tabs" :key="tab">
@@ -12,7 +12,7 @@
             </li>
           </ul>
         </div>
-        <div class="col-span-2 w-full p-6">
+        <div class="col-span-2 w-full p-6 ">
           <component :is="activeTab" :key="activeTab" />
         </div>
       </div>
