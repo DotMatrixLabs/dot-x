@@ -73,7 +73,7 @@ class Stats {
         const decryptedValue = bytes.toString(CryptoJS.enc.Utf8);
 
         return decryptedValue;
-}
+    }
 
 
     private async save() {
