@@ -77,6 +77,7 @@ export default {
     this.getTheme();
     this.connectDecker();
     Decker.detectDeviceChanges();
+    Decker.initMidi();
   },
 };
 </script>
