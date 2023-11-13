@@ -1,7 +1,7 @@
 <template>
-    <div class="flex flex-col justify-between items-center h-full w-full">
+    <div class="flex flex-col items-center h-full w-full gap-4">
 
-        <!-- Device Selection -->
+        <!-- Enable Midi -->
         <div class="flex flex-row w-full justify-between px-2 mt-4">
             <span class="my-auto">Enable MIDI Output: </span>
             <input type="checkbox" class="toggle toggle-primary mr-2" :checked="midiEnabled" @change="toggleMidi" />
