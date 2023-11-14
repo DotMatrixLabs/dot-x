@@ -137,14 +137,16 @@ fn get_all_session_names() -> Result<Vec<String>, Error> {
 }
 
 #[tauri::command]
-fn attach_midi_device(output_name: &str) -> Result<(), Error> {
-    let midi_controller = midi::midi::new("Decker");
+fn attach_midi_device(output_name: &str, output_port: u32) -> Result<(), Error> {
+    let midi_controller = midi::midi::new("Decker", output_port);
     match midi_controller {
       Ok(midi_controller) => {
-        println!("Midi port");
+        println!("Midi port {}: Port name: {}", output_port, output_name);
+        unsafe { midi::midi::ENABLED = true; }
       }
       Err(error) => {
         // Handle the error here, or return it if you prefer.
+        println!("Error{:?} ", error);
         return Err(Error::Connection);
       }
     }
@@ -153,6 +155,7 @@ fn attach_midi_device(output_name: &str) -> Result<(), Error> {
 
 #[tauri::command]
 fn detach_midi_device() -> Result<(), Error> {
+  unsafe { midi::midi::ENABLED = false; }
   Ok(())
 }
 
@@ -229,7 +232,7 @@ fn main() {
     let tray_menu = build_menu();
 
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![get_installed_apps, get_all_session_names, set_application_volume, connect_decker, decker::get_devices, get_available_midi_output_port_names, attach_midi_device])
+        .invoke_handler(tauri::generate_handler![get_installed_apps, get_all_session_names, set_application_volume, connect_decker, decker::get_devices, get_available_midi_output_port_names, attach_midi_device, detach_midi_device])
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_autostart::init(
           MacosLauncher::LaunchAgent,
