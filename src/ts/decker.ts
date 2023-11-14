@@ -74,13 +74,21 @@ class Decker {
 
     /**
      * Open a MIDI connection to the selected device.
-     * @param deviceName The name of the MIDI device to attach to.
      * @returns 
      */
-    public async attachMidiDevice() {
+    public async attachMidiDevice(outputPort: number) {
         const outputName = await ConfigStore.get("midiOutputPort");
-        return await invoke('attach_midi_device', { outputName });
+        return await invoke('attach_midi_device', { outputName, outputPort });
     }
+
+    /**
+     * Disables the MIDI connection
+     * @returns 
+     */
+        public async detachMidiDevice() {
+            const outputName = await ConfigStore.get("midiOutputPort");
+            return await invoke('detach_midi_device');
+        }
 
 
     public detectDeviceChanges() {
@@ -105,8 +113,9 @@ class Decker {
         const midiOutputPort = await ConfigStore.get("midiOutputPort");
         console.log("MIDI Output port?", midiOutputPort);
         if(!midiOutputPort) return;
-        console.log("Connecting to MIDI Device...", midiOutputPort)
-        this.attachMidiDevice();
+        const midiOutputPortNumber = await ConfigStore.get("midiOutputPortNumber");
+        console.log("Connecting to MIDI Device...", midiOutputPort, "on port number", midiOutputPortNumber);
+        this.attachMidiDevice(midiOutputPortNumber);
     }
 }
 
