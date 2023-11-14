@@ -3,6 +3,7 @@ pub mod midi {
     use midir::{MidiOutput, MidiOutputConnection, MidiOutputPort};
     use std::error::Error;
     use std::thread;
+    pub static mut ENABLED: bool = false;
     pub struct Midi {
         pub name: String,
         previous_slider1: u32,
@@ -45,7 +46,7 @@ pub mod midi {
         Ok(available_ports)
     }
 
-    pub fn new(_name: &str) -> Result<(), Box<dyn Error>> {
+    pub fn new(_name: &str, midi_output_port: u32) -> Result<(), Box<dyn Error>> {
         let mut Midi = Midi::new("Decker");
         let midi_out = MidiOutput::new("Decker Output")?;
         let output_ports = get_available_output_ports()?;
@@ -53,18 +54,21 @@ pub mod midi {
         if output_ports.is_empty() {
             eprintln!("No available MIDI output ports.");
         }
-        if(output_ports.len() < 2) {
+        if(output_ports.len() -1 < midi_output_port as usize) {
             eprintln!("The selected MIDI port doesn't exist.");
             Err("The selected MIDI port doesn't exist.")?;
         }
 
-        let selected_output_port: &MidiOutputPort = &output_ports[1]; // Should be selectable by user
+        let selected_output_port: &MidiOutputPort = &output_ports[midi_output_port as usize]; // Should be selectable by user
         let mut conn_out: MidiOutputConnection = midi_out.connect(selected_output_port, "Decker SW Output")?;
     
         let thread_handle = thread::spawn(move || {
             loop {
-
                 unsafe { 
+                    if(!ENABLED) {
+                        conn_out.close();
+                        break;
+                    }
                     // println!("Current slider values: {:?}", decker::decker::slider_values); 
                     for i in 1..=5 {
                         let current_slider = match i {
