@@ -48,16 +48,21 @@ export default {
 
         portSelected() {
             ConfigStore.set("midiOutputPort", this.selectedPort);
+            const outputPort = this.devices.findIndex((device) => device === this.selectedPort);
+            ConfigStore.set("midiOutputPortNumber", outputPort);
             ConfigStore.save();
             this.getMidiDevices();
             this.getConnectedDevice();
+            console.log(this.midiEnabled);
+            if(this.midiEnabled) this.toggleMidi(true);
+
         },
 
 
         getMidiDevices() {
             decker.getMidiDevices().then((devices) => {
                 console.log("devices", devices);
-                this.devices = devices.names.values();
+                this.devices = devices.names;
             });
         },
 
@@ -74,6 +79,7 @@ export default {
             this.midiEnabled = await ConfigStore.get("midiEnabled");
             console.log(this.midiEnabled);
         },
+
         async toggleMidi() {
             if(this.midiEnabled){
                 await ConfigStore.set("midiEnabled", false);
@@ -85,7 +91,12 @@ export default {
             await ConfigStore.set("midiEnabled", true);
             ConfigStore.save();
             this.update();
-            decker.attachMidiDevice();
+            // await this.getMidiDevices();
+            this.connectMidiDevice();
+        },
+        connectMidiDevice(){
+            const outputPort = this.devices.findIndex((device) => device === this.selectedPort);
+            decker.attachMidiDevice(outputPort);
         },
 
         update() {
@@ -97,7 +108,6 @@ export default {
     },
     mounted() {
         this.update();
-
     },
 }
 </script>
