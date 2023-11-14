@@ -1,5 +1,6 @@
 <template>
-    <div class="flex flex-col justify-between items-center h-full w-full">
+    <div class="flex flex-col justify-between items-center h-full w-full overflow-y-auto">
+        <StatsPanel v-if="statsModalOpen" :device="currentDevice" :modal-open="statsModalOpen" @close="statsToggled" />
         <!-- Device Selection -->
         <div class="flex flex-row w-full justify-between px-2">
             <span class="shrink-0 pt-1">Device: </span>
@@ -34,12 +35,16 @@
                 <input type="range" class="bg-gray-700 rounded-xl px-0.5 mr-2" value="#e66465" />
             </div>
             <!-- Device Info - TODO: Set to disabled if not connected -->
-            <div class="flex flex-col w-full items-center mt-6">
+            <div class="flex flex-col w-full items-center mt-3">
                 <span class="shrink-0 pt-1 font-bold">Device Info: </span>
                 <div class="divider mt-0"></div>
-                <div :key="infopoint" v-for="(infopoint, index) in deviceInfoPoints" class=" flex flex-row w-2/3 justify-between">
+                <div :key="infopoint" v-for="(infopoint, index) in deviceInfoPoints" class="flex flex-row w-2/3 justify-between my-1">
                     <span class="text-gray-500">{{infopoint.name}}:</span>
-                    <span class="font-semibold">{{deviceInfo(currentDevice)?.[index] ?? 'N/A'}}</span>
+                    <span class="font-semibold w-1/3 text-center">{{deviceInfo(currentDevice)?.[index] ?? 'N/A'}}</span>
+                </div>
+                <div class=" flex flex-row w-2/3 justify-between my-1">
+                    <span class="text-gray-500">Stats</span>
+                    <button @click="statsToggled" class="font-semibold btn btn-sm w-1/3">See</button>
                 </div>
             </div>
         </div>
@@ -50,12 +55,19 @@
 import { useToast } from "vue-toastification";
 import Decker from "../ts/decker.ts";
 import ConfigStore from "../ts/config.ts";
+import StatsPanel from "./StatsPanel.vue";
 
 const toast = useToast();
 
 
 export default {
     name: "Devices",
+
+
+    components: {
+        StatsPanel,
+    },
+
     data() {
         return {
             devices: [],
@@ -70,11 +82,16 @@ export default {
             currentRGBEffect: "Static", 
             RGBEffects: ["Off","Static", "Rainbow", "Candle", "Fire"],
             deviceConnected: true,
+            statsModalOpen: false,
         }
     },
 
 
     methods: {
+
+        statsToggled() {
+            this.statsModalOpen = !this.statsModalOpen;
+        },
 
         deviceInfo(device) {
             if(!device) return;
