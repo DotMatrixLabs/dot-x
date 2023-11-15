@@ -3,7 +3,7 @@ pub mod midi {
     use midir::{MidiOutput, MidiOutputConnection, MidiOutputPort};
     use std::error::Error;
     use std::thread;
-    pub static mut ENABLED: bool = false;
+    pub static mut ENABLED: bool = true;
     pub struct Midi {
         pub name: String,
         previous_slider1: u32,
@@ -50,7 +50,6 @@ pub mod midi {
         let mut Midi = Midi::new("Decker");
         let midi_out = MidiOutput::new("Decker Output")?;
         let output_ports = get_available_output_ports()?;
-    
         if output_ports.is_empty() {
             eprintln!("No available MIDI output ports.");
         }
@@ -58,51 +57,64 @@ pub mod midi {
             eprintln!("The selected MIDI port doesn't exist.");
             Err("The selected MIDI port doesn't exist.")?;
         }
-
         let selected_output_port: &MidiOutputPort = &output_ports[midi_output_port as usize]; // Should be selectable by user
-        let mut conn_out: MidiOutputConnection = midi_out.connect(selected_output_port, "Decker SW Output")?;
-    
-        let thread_handle = thread::spawn(move || {
-            loop {
-                unsafe { 
-                    if(!ENABLED) {
-                        conn_out.close();
-                        break;
-                    }
-                    // println!("Current slider values: {:?}", decker::decker::slider_values); 
-                    for i in 1..=5 {
-                        let current_slider = match i {
-                            1 => decker::decker::slider_values.slider1,
-                            2 => decker::decker::slider_values.slider2,
-                            3 => decker::decker::slider_values.slider3,
-                            4 => decker::decker::slider_values.slider4,
-                            5 => decker::decker::slider_values.slider5,
-                            _ => unreachable!(), // Should never happen
-                        };
-                    
-                        let previous_slider = match i {
-                            1 => &mut Midi.previous_slider1,
-                            2 => &mut Midi.previous_slider2,
-                            3 => &mut Midi.previous_slider3,
-                            4 => &mut Midi.previous_slider4,
-                            5 => &mut Midi.previous_slider5,
-                            _ => unreachable!(), // Should never happen
-                        };
-                    
-                        if current_slider.checked_sub(2).map_or(false, |result| result > *previous_slider) ||
-                        current_slider.checked_add(2).map_or(false, |result| result < *previous_slider) {
-                            // println!("Slider {}: {}", i, current_slider);
-                            // map current_slider to 0-127
-                            let _ = conn_out.send(&[0xB0, i as u8, map_to_range(current_slider)]);
-                            *previous_slider = current_slider;
+        let mut conn_out_result = midi_out.connect(selected_output_port, "Decker SW Output");
+        let mut conn_out: MidiOutputConnection;
+        match conn_out_result {
+            Ok(conn) => {
+                println!("Connection to {} successful", Midi.name);
+                conn_out = conn;
+                let thread_handle = thread::spawn(move || {
+                    println!("starting midi thread");
+                    loop {
+                        unsafe { 
+                            if !ENABLED {
+                                println!("detaching midi thread");
+                                conn_out.close();
+                                break;
+                            }
+                            // println!("Current slider values: {:?}", decker::decker::slider_values); 
+                            for i in 1..=5 {
+                                let current_slider = match i {
+                                    1 => decker::decker::slider_values.slider1,
+                                    2 => decker::decker::slider_values.slider2,
+                                    3 => decker::decker::slider_values.slider3,
+                                    4 => decker::decker::slider_values.slider4,
+                                    5 => decker::decker::slider_values.slider5,
+                                    _ => unreachable!(), // Should never happen
+                                };
+                            
+                                let previous_slider = match i {
+                                    1 => &mut Midi.previous_slider1,
+                                    2 => &mut Midi.previous_slider2,
+                                    3 => &mut Midi.previous_slider3,
+                                    4 => &mut Midi.previous_slider4,
+                                    5 => &mut Midi.previous_slider5,
+                                    _ => unreachable!(), // Should never happen
+                                };
+                            
+                                if current_slider.checked_sub(2).map_or(false, |result| result > *previous_slider) ||
+                                current_slider.checked_add(2).map_or(false, |result| result < *previous_slider) {
+                                    // println!("Slider {}: {}", i, current_slider);
+                                    // map current_slider to 0-127
+                                    let _ = conn_out.send(&[0xB0, i as u8, map_to_range(current_slider)]);
+                                    *previous_slider = current_slider;
+                                }
+                            }
+                            
                         }
+                        
                     }
-                    
-                }
-                
+                });
+
             }
-        });
-    
+            Err(e) => {
+                println!("Connection to {} failed: {:?}", Midi.name, e);
+                conn_out_result = Err(e);
+            }
+        }
+
+        println!("Midi initialized");
         Ok(())
     }
 }
