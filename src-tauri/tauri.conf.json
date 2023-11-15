@@ -39,7 +39,9 @@
         "resizable": true,
         "title": "Dot X",
         "width": 800,
-        "minWidth": 750
+        "minWidth": 750,
+        "transparent": true,
+        "decorations": true
       }
     ],
     "systemTray": {

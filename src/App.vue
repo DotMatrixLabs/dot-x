@@ -1,5 +1,5 @@
 <template>
-  <div class="h-screen w-screen flex flex-col pt-12 bg-base-200">
+  <div class="h-screen w-screen flex flex-col pt-12 bg-transparent">
     <SettingsModal :modal-open="settingsModalOpen" @close="settingsToggled" />
     <AppsModal :currentSliderID="currentSliderID" :modal-open="appsModalOpen" @close="appsToggled(null)" />
     <TopBar @settings-toggled="settingsToggled" @connect-to-board="retryConnection" :connection-status="connectionState" />
@@ -81,3 +81,21 @@ export default {
   },
 };
 </script>
+
+<style>
+
+:root, [data-theme] {
+  background-color: transparent !important;
+}
+
+.modal-box {
+  background: rgba(23, 23, 23, 0.95) !important;
+  background-color: none !important;
+  border-radius: 16px;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(9.2px);
+  -webkit-backdrop-filter: blur(9.2px);
+  border: 1px solid rgba(44, 44, 44, 0.3);
+}
+
+</style>
