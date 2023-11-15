@@ -40,8 +40,21 @@ class SystemVolumeController {
     async setChannelVolume(channel: number, volume: number): Promise<void> {
         if(Number.isNaN(volume) || !volume) return;
         let apps: string[] | null = await SelectedApps.getApps(channel);
+        if(!apps) return;
+        if(apps.includes("unmapped")) {
+            //get all apps and remove the ones that are already mapped
+            apps = await this.getAllSessionNames();
+            //remove master
+            apps = apps.filter((app) => app !== "master");
+            const mappedApps = await SelectedApps.getMappedApps();
+            if(!mappedApps) return;
+            apps = apps.filter((app) => !mappedApps.includes(app));
+            const channelApps: string[] | null = await SelectedApps.getApps(channel);
+            //add back the apps that are mapped to same channel
+            if(channelApps) apps = [...apps, ...channelApps];
+        }
+
         let sessionNames = await this.getAllSessionNames();
-        if (!apps) return;
         apps = apps.map((str) => str.toLowerCase());
         for (const session of sessionNames) {
             if (!session) continue;
