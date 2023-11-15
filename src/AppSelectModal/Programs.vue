@@ -150,7 +150,6 @@ export default {
         async getActiveApps() {
             let activeApps = await SystemVolumeController.getAllSessionNames();
             activeApps = activeApps.filter((str) => str !== ""); // Remove empty entries
-            activeApps = activeApps.filter((str) => str !== "master"); // Remove empty entries
             activeApps = _.uniqBy(activeApps, item => item.toLowerCase());// Remove duplicates
             activeApps = activeApps.map((str) => ({ DisplayName: str, id: str, appType: 'active' }));  
             console.log(activeApps)
