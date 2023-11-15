@@ -164,6 +164,8 @@ fn set_application_volume(name: &str, volume: f32) -> Result<(), Error> {
         controller.GetDefaultAudioEnpointVolumeControl();
         controller.GetAllProcessSessions();
 
+        println!("All session names: {:?}", controller.get_all_session_names());
+
         // Get the current session by name
         let current_session = controller.get_session_by_name(name.to_string());
 
