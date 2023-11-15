@@ -46,7 +46,6 @@ export default {
   },
 
   mounted() {
-    console.log("slider");
     this.colorScheme = window.matchMedia("(prefers-color-scheme: dark)").matches
       ? "dark"
       : "light";
