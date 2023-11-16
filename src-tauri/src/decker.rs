@@ -1,4 +1,4 @@
-use std::{thread::{self}, time::Duration};
+use std::{thread::{self}, time::Duration, sync::mpsc};
 use std::io::{self, Cursor, Read};
 use serde::{Serialize, Deserialize};
 use serde_json;
@@ -131,9 +131,6 @@ pub fn get_devices() -> Vec<Device> {
 }
 
 
-
-
-
 pub fn initialize_decker(window: Window, port_name: &str) -> std::result::Result<(), std::io::Error> {
     let baud_rate: u32 = 115_200;
 
@@ -156,11 +153,19 @@ pub fn initialize_decker(window: Window, port_name: &str) -> std::result::Result
     match port {
         Ok(mut port) => {
             println!("Connected to \"{}\"", port_name);
+            let (tx, rx) = mpsc::channel::<Command>();
             // Spawn a thread to handle incoming data
             thread::spawn(move || {
                 let mut serial_buf: Vec<u8> = vec![0; 100];
                 window.emit("connection-change", Payload { message: "connected".to_string() }).unwrap();
                 loop {
+                    match rx.try_recv() {
+                        Ok(command) => {
+                            println!("Received: {:?}", command);
+                        }
+                        Err(_) => {}
+                    }
+                    
                     match port.read(serial_buf.as_mut_slice()) {
                         Ok(t) => {
                             let received: Vec<u8> = serial_buf[..t].to_vec();
@@ -196,4 +201,15 @@ pub fn initialize_decker(window: Window, port_name: &str) -> std::result::Result
             Err(e.into())
         }
     }
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub struct Command {
+    pub command: String,
+}
+
+
+#[tauri::command]
+pub fn send_decker_command(command: &str) {
+    // sender.send(Command { command: command.to_string() }).unwrap();
 }
