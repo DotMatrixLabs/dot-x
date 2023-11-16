@@ -3,7 +3,7 @@
     <SettingsModal :modal-open="settingsModalOpen" @close="settingsToggled" />
     <AppsModal :currentSliderID="currentSliderID" :modal-open="appsModalOpen" @close="appsToggled(null)" />
     <TopBar @settings-toggled="settingsToggled" @connect-to-board="retryConnection" :connection-status="connectionState" />
-    <SliderOverview ref="sliderOverview" :pot-values="potValues" @app-click="appsToggled" />
+    <SliderOverview :class="backgroundColor" ref="sliderOverview" :pot-values="potValues" @app-click="appsToggled" />
   </div>
 </template>
 
@@ -17,6 +17,7 @@ import ConfigStore from "./ts/config.ts";
 import Decker from "./ts/decker.ts";
 import RGBController from "./ts/RGBController";
 import { useDeckerStore } from "./store/deckerStore.ts";
+import { version } from '@tauri-apps/api/os';
 
 import { mapState } from "pinia"; 
 
@@ -33,6 +34,8 @@ export default {
       connectionStatus: "not connected",
       potValues: null,
       currentSliderID: null,
+      colorScheme: "dark",
+      isWin10: true,
     };
   },
 
@@ -40,9 +43,39 @@ export default {
     ...mapState(useDeckerStore, {
       connectionState: 'getConnectionState',
     }),
+
+    backgroundColor() {
+      if(this.isWin10 && this.colorScheme === "dark") {
+        return "bg-gray-900";
+      } else if (this.isWin10) {
+        return "bg-white";
+      } else {
+        return "bg-transparent";
+      }
+    },
   },
 
   methods: {
+
+    async setThemeFromOS() {
+      const osTheme = await version().then((version) => {
+        const winVersion = this.getWindowsVersion(version)
+        this.isWin10 = winVersion === 'Windows 10';
+      });
+    },
+
+    getWindowsVersion(kernelVersion) {
+      const win11KernelVersion = 22000;
+
+      const versionArray = kernelVersion.split('.').map(Number);
+      const kernel = versionArray[2] || versionArray[1]; // Handle both formats
+
+      if (kernel >= win11KernelVersion) {
+          return 'Windows 11';
+      } else {
+          return 'Windows 10';
+      }
+    },
     // async getTheme() {
     //   this.currentTheme = await ConfigStore.get("theme") || "dark";
     //   document.documentElement.setAttribute("data-theme", this.currentTheme);
@@ -83,6 +116,8 @@ export default {
     this.colorScheme = window.matchMedia("(prefers-color-scheme: dark)").matches
       ? "dark"
       : "light";
+
+    this.setThemeFromOS();
 
     document.documentElement.setAttribute("data-theme", this.colorScheme);
     console.log(this.colorScheme);
