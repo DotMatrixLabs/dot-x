@@ -298,7 +298,7 @@ fn main() {
     
           #[cfg(target_os = "windows")]
           apply_mica(&window, None)
-            .unwrap_or_else(|_| { let _ = apply_blur(&window, Some((0, 0, 0, 23))); });
+            .unwrap_or_else(|_| { let _ = apply_blur(&window, Some((25, 10, 30, 255))); });
     
           Ok(())
         })
