@@ -237,7 +237,7 @@ fn main() {
     let tray_menu = build_menu();
 
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![get_installed_apps, get_all_session_names, set_application_volume, connect_decker, decker::get_devices, get_available_midi_output_port_names, attach_midi_device, detach_midi_device])
+        .invoke_handler(tauri::generate_handler![get_installed_apps, get_all_session_names, set_application_volume, connect_decker, decker::get_devices, decker::send_decker_command, get_available_midi_output_port_names, attach_midi_device, detach_midi_device])
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_autostart::init(
           MacosLauncher::LaunchAgent,
