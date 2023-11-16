@@ -1,5 +1,5 @@
 <template>
-  <div class="w-full h-full">
+  <div :class="isWin10 ? 'bg-gray-900 bg-opacity-70' : 'bg-transparent'" class="w-full h-full">
     <!-- <button @click="clickTest">
       TEST
     </button> -->
@@ -30,6 +30,7 @@ import SelectedApps from "./ts/appsToControl.ts";
 import Decker from "./ts/decker.ts";
 import { useDeckerStore } from "./store/deckerStore.ts";
 import { invoke } from "@tauri-apps/api/tauri";
+import { version } from '@tauri-apps/api/os';
 
 import { mapState } from "pinia"; 
 
@@ -52,6 +53,7 @@ export default {
         { apps: [] },
       ],
       prevSliderValues: [],
+      isWin10: true,
     };
   },
 
@@ -81,6 +83,26 @@ export default {
 
 
   methods: {
+    async setThemeFromOS() {
+      const osTheme = await version().then((version) => {
+        const winVersion = this.getWindowsVersion(version)
+        this.isWin10 = winVersion === 'Windows 10';
+      });
+    },
+
+    getWindowsVersion(kernelVersion) {
+      const win11KernelVersion = 22000;
+
+      const versionArray = kernelVersion.split('.').map(Number);
+      const kernel = versionArray[2] || versionArray[1]; // Handle both formats
+
+      if (kernel >= win11KernelVersion) {
+          return 'Windows 11';
+      } else {
+          return 'Windows 10';
+      }
+    },
+
     clickTest() {
       invoke('send_decker_command', { command: 'test', data: { test: 'test' }});
     },
@@ -116,6 +138,9 @@ export default {
     SystemVolumeController.getAllSessionNames();
     // SystemVolumeController.setChannelVolume('1', 0.5)
     this.getSelectedApps();
+
+    this.setThemeFromOS();
+    
     // boardManager.initBoard(store.get('config.comPort').path)
 
     // setInterval(() => {
