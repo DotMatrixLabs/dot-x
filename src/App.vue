@@ -43,11 +43,11 @@ export default {
   },
 
   methods: {
-    async getTheme() {
-      this.currentTheme = await ConfigStore.get("theme") || "dark";
-      document.documentElement.setAttribute("data-theme", this.currentTheme);
-      return this.currentTheme;
-    },
+    // async getTheme() {
+    //   this.currentTheme = await ConfigStore.get("theme") || "dark";
+    //   document.documentElement.setAttribute("data-theme", this.currentTheme);
+    //   return this.currentTheme;
+    // },
 
     settingsToggled() {
       this.settingsModalOpen = !this.settingsModalOpen;
@@ -74,7 +74,7 @@ export default {
   },
 
   mounted() {
-    this.getTheme();
+    // this.getTheme();
     this.connectDecker();
     Decker.detectDeviceChanges();
     Decker.initMidi();
@@ -83,8 +83,14 @@ export default {
     this.colorScheme = window.matchMedia("(prefers-color-scheme: dark)").matches
       ? "dark"
       : "light";
+
+    document.documentElement.setAttribute("data-theme", this.colorScheme);
+    console.log(this.colorScheme);
+
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+      console.log(event.matches ? "dark" : "light");
       this.colorScheme = event.matches ? "dark" : "light";
+      document.documentElement.setAttribute("data-theme", this.colorScheme);
     });
   },
 };

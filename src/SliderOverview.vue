@@ -9,8 +9,8 @@
           </div>
 
           <button @click="$emit('app-click', index)"
-            class="m-auto rounded-full w-24 h-12 dark:bg-gray-400 border-0 bg-opacity-60 dark:bg-opacity-30 dark:ring-opacity-50 mt-12 btn mx-1">
-            <span v-if="sliderChannelName(index)" class="text-white text-xxs text-center truncate">{{ sliderChannelName(index) }}</span>
+            class="m-auto rounded-full w-24 h-12 bg-gray-500 dark:bg-gray-400 border-0 bg-opacity-40 dark:bg-opacity-30 dark:ring-opacity-50 mt-12 btn mx-1">
+            <span v-if="sliderChannelName(index)" class="text-base-content text-xxs text-center truncate">{{ sliderChannelName(index) }}</span>
             <span v-else><i class="fas fa-add fa-xl"></i></span>
           </button>
         </div>

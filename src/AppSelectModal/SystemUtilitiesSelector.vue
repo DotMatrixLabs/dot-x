@@ -5,7 +5,7 @@
                 :class="activeDevices.includes(device.id) ? 'btn-primary' : ''">
                 <i :class="device.icon"></i>
             </button>
-            <span class="text-white text-xs text-center capitalize my-1"> {{ device.title }}</span>
+            <span class="text-base-content text-xs text-center capitalize my-1"> {{ device.title }}</span>
         </div>
     </div>
 </template>
