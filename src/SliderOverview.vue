@@ -1,5 +1,8 @@
 <template>
   <div class="w-full h-full">
+    <button @click="clickTest">
+      TEST
+    </button>
     <div class="flex flex-row justify-evenly h-full p-24">
       <template v-for="(slider, index) in (sliders.length > 0 ? sliders : 5)" :key="index">
         <div class="flex flex-col justify-center">
@@ -26,6 +29,7 @@ import SystemVolumeController from "./ts/volumeControl.ts";
 import SelectedApps from "./ts/appsToControl.ts";
 import Decker from "./ts/decker.ts";
 import { useDeckerStore } from "./store/deckerStore.ts";
+import { invoke } from "@tauri-apps/api/tauri";
 
 import { mapState } from "pinia"; 
 
@@ -77,6 +81,9 @@ export default {
 
 
   methods: {
+    clickTest() {
+      invoke('send_decker_command', { command: 'test' })
+    },
 
     sliderChannelName(sliderID){
       const apps = this.sliderApps[sliderID]?.apps;
