@@ -35,15 +35,15 @@ export default {
         }
     },
     methods: {
-        async getTheme() {
-            this.currentTheme = await ConfigStore.get("theme") || "dark";
-            document.documentElement.setAttribute("data-theme", this.currentTheme);
-            return this.currentTheme;
-        },
-        async setTheme(event) {
-            ConfigStore.setTheme("light");
-            // document.documentElement.setAttribute("data-theme", event.target.value);
-        },
+        // async getTheme() {
+        //     this.currentTheme = await ConfigStore.get("theme") || "dark";
+        //     document.documentElement.setAttribute("data-theme", this.currentTheme);
+        //     return this.currentTheme;
+        // },
+        // async setTheme(event) {
+        //     ConfigStore.setTheme("light");
+        //     // document.documentElement.setAttribute("data-theme", event.target.value);
+        // },
         async getAutostartStatus() {
             this.autoStartStatus = await SystemSettings.checkAutostartStatus();
             console.log(await SystemSettings.checkAutostartStatus());
@@ -59,7 +59,7 @@ export default {
         }
     },
     mounted() {
-        this.getTheme();
+        // this.getTheme();
         this.getAutostartStatus();
     },
 }
