@@ -1,5 +1,5 @@
 <template>
-  <div class="h-screen w-screen flex flex-col pt-12 bg-transparent">
+  <div class="h-screen w-screen flex flex-col pt-12 bg-transparent rounded-xl">
     <SettingsModal :modal-open="settingsModalOpen" @close="settingsToggled" />
     <AppsModal :currentSliderID="currentSliderID" :modal-open="appsModalOpen" @close="appsToggled(null)" />
     <TopBar @settings-toggled="settingsToggled" @connect-to-board="retryConnection" :connection-status="connectionState" />
@@ -78,6 +78,14 @@ export default {
     this.connectDecker();
     Decker.detectDeviceChanges();
     Decker.initMidi();
+
+
+    this.colorScheme = window.matchMedia("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light";
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+      this.colorScheme = event.matches ? "dark" : "light";
+    });
   },
 };
 </script>
@@ -85,17 +93,34 @@ export default {
 <style>
 
 :root, [data-theme] {
+  background: none !important;
   background-color: transparent !important;
 }
 
-.modal-box {
-  background: rgba(23, 23, 23, 0.95) !important;
-  background-color: none !important;
-  border-radius: 16px;
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(9.2px);
-  -webkit-backdrop-filter: blur(9.2px);
-  border: 1px solid rgba(44, 44, 44, 0.3);
+@media (prefers-color-scheme: light) {
+  .modal-box  {
+    background: rgba(255, 255, 255, 0.9) !important;
+    background-color: none !important;
+    color: black !important;
+    border-radius: 16px;
+    box-shadow: 0 4px 30px rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(9.2px);
+    -webkit-backdrop-filter: blur(9.2px);
+    border: 1px solid rgba(166, 166, 166, 0.3);
+  }
+}
+
+
+@media (prefers-color-scheme: dark) {
+  .modal-box  {
+    background: rgba(23, 23, 23, 0.95) !important;
+    background-color: none !important;
+    border-radius: 16px;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(9.2px);
+    -webkit-backdrop-filter: blur(9.2px);
+    border: 1px solid rgba(44, 44, 44, 0.3);
+  }
 }
 
 </style>

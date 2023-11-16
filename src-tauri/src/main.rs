@@ -12,7 +12,8 @@ mod decker;
 mod midi;
 use tauri::{CustomMenuItem, SystemTrayMenu, SystemTrayMenuItem, SystemTray, SystemTrayEvent};
 use tauri::api::notification::Notification;
-use window_vibrancy::{apply_blur, apply_mica, NSVisualEffectMaterial};
+use window_vibrancy::{apply_vibrancy, apply_mica, NSVisualEffectMaterial};
+use window_shadows::set_shadow;
 
 
 // create the error type that represents all errors possible in our program
@@ -279,6 +280,9 @@ fn main() {
         })
         .setup(|app| {
           let window = app.get_window("main").unwrap();
+
+          #[cfg(any(windows, target_os = "macos"))]
+          set_shadow(&window, true).unwrap();
     
           #[cfg(target_os = "macos")]
           apply_vibrancy(&window, NSVisualEffectMaterial::HudWindow, None, None)
