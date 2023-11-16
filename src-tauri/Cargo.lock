@@ -4615,6 +4615,7 @@ checksum = "f838de2fe15fe6bac988e74b798f26499a8b21a9d97edec321e79b28d1d7f597"
 [[package]]
 name = "windows-volume-control"
 version = "0.1.1"
+source = "git+https://github.com/Frogbyte-io/windows-volume-control.git#f4dac4ddc561c905d11caf8e31666209b2fdbc93"
 dependencies = [
  "windows 0.44.0",
 ]
