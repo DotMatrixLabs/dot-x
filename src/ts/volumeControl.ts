@@ -18,9 +18,9 @@ class SystemVolumeController {
      * @param {boolean} includeSystemFeatures - Whether or not to include system features.
      * @returns {Promise<string[]>} A promise that resolves with an array of session names.
      */
-    async getAllSessionNames(includeSystemFeatures): Promise<string[]> {
+    async getAllSessionNames(includeSystemFeatures: boolean | undefined): Promise<string[]> {
         const systemFeatures = ['master', 'mic', 'system_sounds'];
-        const result = await invoke('get_all_session_names');
+        const result: string[] = await invoke('get_all_session_names');
 
         // Filter out system features
         if(!includeSystemFeatures) return result.filter((sessionName: string) => !systemFeatures.includes(sessionName));
@@ -49,7 +49,7 @@ class SystemVolumeController {
         if(!apps) return;
         if(apps.includes("unmapped")) {
             //get all apps and remove the ones that are already mapped
-            apps = await this.getAllSessionNames();
+            apps = await this.getAllSessionNames(false);
             //remove system features
             const mappedApps = await SelectedApps.getMappedApps();
             if(!mappedApps) return;
