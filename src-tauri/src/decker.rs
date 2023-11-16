@@ -1,4 +1,4 @@
-use std::{thread::{self}, time::Duration, sync::mpsc};
+use std::{thread::{self}, time::Duration, sync::{mpsc, Mutex}};
 use std::io::{self, Cursor, Read};
 use serde::{Serialize, Deserialize};
 use serde_json;
@@ -130,6 +130,7 @@ pub fn get_devices() -> Vec<Device> {
     usb_devices // Return the vector of USB devices
 }
 
+static SENDER: Mutex<Option<mpsc::Sender<String>>> = Mutex::new(None);
 
 pub fn initialize_decker(window: Window, port_name: &str) -> std::result::Result<(), std::io::Error> {
     let baud_rate: u32 = 115_200;
@@ -153,7 +154,7 @@ pub fn initialize_decker(window: Window, port_name: &str) -> std::result::Result
     match port {
         Ok(mut port) => {
             println!("Connected to \"{}\"", port_name);
-            let (tx, rx) = mpsc::channel::<Command>();
+            let (tx, rx) = mpsc::channel();
             // Spawn a thread to handle incoming data
             thread::spawn(move || {
                 let mut serial_buf: Vec<u8> = vec![0; 100];
@@ -193,6 +194,8 @@ pub fn initialize_decker(window: Window, port_name: &str) -> std::result::Result
                 }
             });
 
+            *SENDER.lock().unwrap() = Some(tx);
+
             Ok(())
 
         }
@@ -209,7 +212,16 @@ pub struct Command {
 }
 
 
+
+
 #[tauri::command]
 pub fn send_decker_command(command: &str) {
-    // sender.send(Command { command: command.to_string() }).unwrap();
+    // Serialize the command and send it through the channel
+    let sender = SENDER.lock().unwrap();
+    // Send the command through the global sender
+    if let Some(sender) = sender.as_ref() {
+        sender.send(command.to_string()).unwrap();
+    } else {
+        eprintln!("Sender not initialized. Make sure to initialize it before calling send_to_decker.");
+    }
 }
