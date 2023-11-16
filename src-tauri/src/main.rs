@@ -12,7 +12,7 @@ mod decker;
 mod midi;
 use tauri::{CustomMenuItem, SystemTrayMenu, SystemTrayMenuItem, SystemTray, SystemTrayEvent};
 use tauri::api::notification::Notification;
-use window_vibrancy::{apply_vibrancy, apply_acrylic, apply_mica, NSVisualEffectMaterial};
+use window_vibrancy::{apply_vibrancy, apply_blur, apply_mica, NSVisualEffectMaterial};
 use window_shadows::set_shadow;
 
 
@@ -298,7 +298,7 @@ fn main() {
     
           #[cfg(target_os = "windows")]
           apply_mica(&window, None)
-            .unwrap_or_else(|_| { let _ = apply_acrylic(&window, Some((0, 0, 0, 23))); });
+            .unwrap_or_else(|_| { let _ = apply_blur(&window, Some((0, 0, 0, 23))); });
     
           Ok(())
         })
