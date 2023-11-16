@@ -41,7 +41,7 @@
         "width": 800,
         "minWidth": 750,
         "transparent": true,
-        "decorations": true
+        "decorations": false
       }
     ],
     "systemTray": {
@@ -50,6 +50,9 @@
     },
     "allowlist": {
       "notification": {
+        "all": true
+      },
+      "window": {
         "all": true
       }
     }
