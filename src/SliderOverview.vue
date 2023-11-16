@@ -82,7 +82,7 @@ export default {
 
   methods: {
     clickTest() {
-      invoke('send_decker_command', { command: 'test' })
+      invoke('send_decker_command', { command: 'test', data: { test: 'test' }});
     },
 
     sliderChannelName(sliderID){
