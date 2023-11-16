@@ -86,7 +86,6 @@ class Decker {
      * @returns 
      */
         public async detachMidiDevice() {
-            const outputName = await ConfigStore.get("midiOutputPort");
             return await invoke('detach_midi_device');
         }
 
