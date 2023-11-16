@@ -241,7 +241,7 @@ fn main() {
           None,
         ))
         .plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
-          show_notification("Decker", "Decker is already running");
+          show_notification("Dot X", "Dot X is already running");
         }))
         .system_tray(SystemTray::new().with_menu(tray_menu))
         .on_system_tray_event(|app, event| match event {
