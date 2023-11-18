@@ -87,6 +87,7 @@ class Decker {
      */
         public async detachMidiDevice() {
             const outputName = await ConfigStore.get("midiOutputPort");
+            console.log("Detaching MIDI Device", outputName);
             return await invoke('detach_midi_device');
         }
 
@@ -117,6 +118,11 @@ class Decker {
         console.log("Connecting to MIDI Device...", midiOutputPort, "on port number", midiOutputPortNumber);
         this.attachMidiDevice(midiOutputPortNumber);
     }
+
+    public async sendCommand(command: string, options: Object) {
+        return await invoke('send_decker_command', { command, options });
+    }
+
 }
 
 export default (new Decker());
