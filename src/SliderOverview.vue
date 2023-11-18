@@ -1,8 +1,5 @@
 <template>
   <div class="w-full h-full">
-    <!-- <button @click="clickTest">
-      TEST
-    </button> -->
     <div class="flex flex-row justify-evenly h-full p-24">
       <template v-for="(slider, index) in (sliders.length > 0 ? sliders : 5)" :key="index">
         <div class="flex flex-col justify-center">
@@ -84,7 +81,7 @@ export default {
   methods: {
 
     clickTest() {
-      invoke('send_decker_command', { command: 'test', data: { test: 'test' }});
+      invoke('send_decker_command', { command: 'rgb-control', options: { r: 255, g: 255, b: 100 }});
     },
 
     sliderChannelName(sliderID){

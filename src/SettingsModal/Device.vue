@@ -28,7 +28,7 @@
             </div>
             <div v-if="currentRGBEffect === 'Static'" class="flex flex-row w-full justify-between mt-2">
                 <span class="shrink-0 pt-1">Choose static color: </span>
-                <input type="color" class="colorpicker bg-gray-700 rounded-xl px-0.5 mr-2" value="#e66465" />
+                <input @input="colorChange" type="color" class="colorpicker bg-gray-700 rounded-xl px-0.5 mr-2" value="#e66465" />
             </div>
             <div v-else-if="currentRGBEffect !== 'Off'" class="flex flex-row w-full justify-between mt-2">
                 <span class="shrink-0 pt-1">Speed: </span>
@@ -56,6 +56,7 @@ import { useToast } from "vue-toastification";
 import Decker from "../ts/decker.ts";
 import ConfigStore from "../ts/config.ts";
 import StatsPanel from "./StatsPanel.vue";
+import RGBController from "../ts/RGBController";
 
 const toast = useToast();
 
@@ -83,6 +84,7 @@ export default {
             RGBEffects: ["Off","Static", "Rainbow", "Candle", "Fire"],
             deviceConnected: true,
             statsModalOpen: false,
+            lastExecutionTime: 0,
         }
     },
 
@@ -121,8 +123,28 @@ export default {
             }
         },
         rgbEffectChange(event) {
-            this.currentRGBEffect = event.target.value;           
+            this.currentRGBEffect = event.target.value;
+            if(this.currentRGBEffect === 'Off') {
+                RGBController.setEffect('off');
+                return;
+            } else if (this.currentRGBEffect === 'Static') {
+                RGBController.setEffect('setColor', 255, 255, 245, 10);       
+            }
         },
+
+        colorChange(event) {
+        const currentTime = Date.now();
+
+        if (currentTime - this.lastExecutionTime >= 100) {
+            const color = event.target.value;
+            const r = parseInt(color.substr(1, 2), 16);
+            const g = parseInt(color.substr(3, 2), 16);
+            const b = parseInt(color.substr(5, 2), 16);
+            RGBController.setEffect('setColor', r, g, b, 10);
+
+            this.lastExecutionTime = currentTime;
+        }
+    },
 
         // getSavedComPort() {
         //     this.currentComPort = store.get("config.comPort");
