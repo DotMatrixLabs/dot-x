@@ -32,6 +32,7 @@ tauri-plugin-single-instance = { git = "https://github.com/tauri-apps/plugins-wo
 midir = "0.9.1"
 window-vibrancy = "0.4.2"
 window-shadows = "0.2.2"
+sentry-tauri = "0.2.0"
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem
