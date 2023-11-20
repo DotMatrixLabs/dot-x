@@ -233,11 +233,6 @@ struct InstancePayload {
   cwd: String,
 }
 
-#[tauri::command]
-fn windows_vibrancy(vibrancy_mode: &str) {
-    
-}
-
 
 fn main() {
     let tray_menu = build_menu();
