@@ -17,25 +17,26 @@
 
         <div :class="deviceConnected ? '' : 'opacity-40 pointer-events-none'" class="w-full h-full rounded-lg px-2 ">
             <!-- RGB Control -->
-            <div class="flex flex-row w-full justify-between mt-4">
-                <span class="shrink-0 pt-1">RGB Effect: </span>
-                <select @change="rgbEffectChange" :value="currentRGBEffect"
-                    class="select select-bordered select-sm w-2/3 mx-2 capitalize truncate">
-                    <option class="w-full" v-for="(effect, index) in RGBEffects" :value="effect" :key="index">
-                        {{ effect }}
-                    </option>
-                </select>
+            <div :class="connectionState ? '' : 'opacity-40 pointer-events-none'">
+                <div class="flex flex-row w-full justify-between mt-4">
+                    <span class="shrink-0 pt-1">RGB Effect: </span>
+                    <select @change="rgbEffectChange" :value="currentRGBEffect"
+                        class="select select-bordered select-sm w-2/3 mx-2 capitalize truncate">
+                        <option class="w-full" v-for="(effect, index) in RGBEffects" :value="effect" :key="index">
+                            {{ effect }}
+                        </option>
+                    </select>
+                </div>
+                <div v-if="currentRGBEffect === 'Static'" class="flex flex-row w-full justify-between mt-2">
+                    <span class="shrink-0 pt-1">Choose static color: </span>
+                    <input @input="colorChange" type="color" class="colorpicker bg-gray-700 rounded-xl px-0.5 mr-2" value="#e66465" />
+                </div>
+                <div v-else-if="currentRGBEffect !== 'Off'" class="flex flex-row w-full justify-between mt-2">
+                    <span class="shrink-0 pt-1">Speed: </span>
+                    <input type="range" class="bg-gray-700 rounded-xl px-0.5 mr-2" value="#e66465" />
+                </div>
             </div>
-            <div v-if="currentRGBEffect === 'Static'" class="flex flex-row w-full justify-between mt-2">
-                <span class="shrink-0 pt-1">Choose static color: </span>
-                <input @input="colorChange" type="color" class="colorpicker bg-gray-700 rounded-xl px-0.5 mr-2" value="#e66465" />
-            </div>
-            <div v-else-if="currentRGBEffect !== 'Off'" class="flex flex-row w-full justify-between mt-2">
-                <span class="shrink-0 pt-1">Speed: </span>
-                <input type="range" class="bg-gray-700 rounded-xl px-0.5 mr-2" value="#e66465" />
-            </div>
-            <!-- Device Info - TODO: Set to disabled if not connected -->
-            <div class="flex flex-col w-full items-center mt-3">
+            <div :class="connectionState ? '' : 'opacity-40 pointer-events-none'" class="flex flex-col w-full items-center mt-3">
                 <span class="shrink-0 pt-1 font-bold">Device Info: </span>
                 <div class="divider mt-0"></div>
                 <div :key="infopoint" v-for="(infopoint, index) in deviceInfoPoints" class="flex flex-row w-2/3 justify-between my-1">
@@ -57,6 +58,8 @@ import Decker from "../ts/decker.ts";
 import ConfigStore from "../ts/config.ts";
 import StatsPanel from "./StatsPanel.vue";
 import RGBController from "../ts/RGBController";
+import { mapState } from "pinia";
+import { useDeckerStore } from "../store/deckerStore.ts";
 
 const toast = useToast();
 
@@ -86,6 +89,12 @@ export default {
             statsModalOpen: false,
             lastExecutionTime: 0,
         }
+    },
+
+    computed: {
+        ...mapState(useDeckerStore, {
+            connectionState: 'getConnectionState',
+        }),
     },
 
 
