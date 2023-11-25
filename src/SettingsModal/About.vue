@@ -9,14 +9,14 @@
 
 <script>
 
-import { version } from "../../package.json";
+import tauriConf from "../../src-tauri/tauri.conf.json";
 
 
 export default {
     name: "About",
     data() {
         return {
-            appVersion: version,
+            appVersion: tauriConf.package.version,
         }
     },
     methods: {
