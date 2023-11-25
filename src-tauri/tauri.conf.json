@@ -48,6 +48,14 @@
       "iconPath": "icons/icon.png",
       "iconAsTemplate": true
     },
+    "updater": {
+      "active": true,
+      "endpoints": [
+          "https://dist.anystack.sh/v1/tauri/PRODUCT-ID/{{current_version}}"
+      ],
+      "dialog": true,
+      "pubkey": "REDACTED_UPDATER_PRIVATE_KEY"
+    },
     "allowlist": {
       "notification": {
         "all": true
