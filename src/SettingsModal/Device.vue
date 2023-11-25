@@ -115,7 +115,7 @@ export default {
                 }
             } else {
                 return {
-                    model: device.manufacturer,
+                    model: "N/A",
                     firmwareVersion: "N/A",
                     serialNumber: "N/A",
                     comPort: device.port_name,
@@ -128,7 +128,7 @@ export default {
             if(device.pid === 58918 && device.vid === 1240){
                 return `Decker - SN${device.serial_number}`;
             } else {
-                return `${device.manufacturer} - ${device.port_name}`;
+                return `${device.port_name}`;
             }
         },
         rgbEffectChange(event) {
