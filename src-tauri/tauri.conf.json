@@ -48,6 +48,14 @@
       "iconPath": "icons/icon.png",
       "iconAsTemplate": true
     },
+    "updater": {
+      "active": true,
+      "endpoints": [
+          "https://dist.anystack.sh/v1/tauri/PRODUCT-ID/{{current_version}}"
+      ],
+      "dialog": true,
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IHJzaWduIGVuY3J5cHRlZCBzZWNyZXQga2V5ClJXUlRZMEl5WDZJSm1BNnhraTV2M2NjaDl6MGxpTVFLZnZlRUxiTlF4OW15emhUQ01jWUFBQkFBQUFBQUFBQUFBQUlBQUFBQTZiUnlmQjYrYTFkUDRTUEdZeWo3a0l6OGNhL0NETVZLOHI4MHlaZndleTdnbWFFZW81WkhrOE1xeDdibXlna2t5VEpNcWM5VDRvZit0djFYOG5lTXVzZ25lVndIT0JmWFAwVWNwL2ZoQ0R0NmVUNEh1anRnNHVBdnhZbUphTWlLRE5wcXhjNGxZQ2s9Cg=="
+    },
     "allowlist": {
       "notification": {
         "all": true
