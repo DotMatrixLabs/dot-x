@@ -1011,6 +1011,7 @@ dependencies = [
  "firmata-rs",
  "installed",
  "midir",
+ "once_cell",
  "rmp-serde",
  "serde",
  "serde_json",

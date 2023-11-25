@@ -1,6 +1,7 @@
 pub mod midi {
-    use crate::decker;
+    use crate::{decker, APP, get_app_handle};
     use midir::{MidiOutput, MidiOutputConnection, MidiOutputPort};
+    use tauri::Manager;
     use std::error::Error;
     use std::thread;
     pub static mut ENABLED: bool = true;
@@ -70,6 +71,8 @@ pub mod midi {
                         unsafe { 
                             if !ENABLED {
                                 println!("detaching midi thread");
+                                let app_handle = get_app_handle();
+                                app_handle.emit_all("midi_detached", {});
                                 conn_out.close();
                                 break;
                             }
