@@ -126,6 +126,11 @@ class Decker {
         console.log("Connecting to MIDI Device...", midiOutputPort, "on port number", midiOutputPortNumber);
         this.attachMidiDevice(midiOutputPortNumber);
     }
+
+    public async sendCommand(command: string, options: Object) {
+        return await invoke('send_decker_command', { command, options });
+    }
+
 }
 
 export default (new Decker());
