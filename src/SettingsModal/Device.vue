@@ -193,10 +193,10 @@ export default {
     mounted() {
         this.getDevices();
 
-        //TODO: Add autodiscover - but only if no device is connected
-        // this.comPortInterval = setInterval(() => {
-        //     this.getComPorts();
-        // }, 1000);
+        this.comPortInterval = setInterval(() => {
+            if(this.connectionState) return;
+            this.getDevices();
+        }, 1000);
     },
 }
 </script>
