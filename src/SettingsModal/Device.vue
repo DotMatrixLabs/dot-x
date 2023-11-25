@@ -15,9 +15,9 @@
             </button> -->
         </div>
 
-        <div :class="deviceConnected ? '' : 'opacity-40 pointer-events-none'" class="w-full h-full rounded-lg px-2 ">
+        <div v-if="deviceType === 'Decker'" :class="connectionState ? '' : 'opacity-40 pointer-events-none'" class="w-full h-full rounded-lg px-2 ">
             <!-- RGB Control -->
-            <div :class="connectionState ? '' : 'opacity-40 pointer-events-none'">
+            <div>
                 <div class="flex flex-row w-full justify-between mt-4">
                     <span class="shrink-0 pt-1">RGB Effect: </span>
                     <select @change="rgbEffectChange" :value="currentRGBEffect"
@@ -36,7 +36,7 @@
                     <input type="range" class="bg-gray-700 rounded-xl px-0.5 mr-2" value="#e66465" />
                 </div>
             </div>
-            <div :class="connectionState ? '' : 'opacity-40 pointer-events-none'" class="flex flex-col w-full items-center mt-3">
+            <div class="flex flex-col w-full items-center mt-3">
                 <span class="shrink-0 pt-1 font-bold">Device Info: </span>
                 <div class="divider mt-0"></div>
                 <div :key="infopoint" v-for="(infopoint, index) in deviceInfoPoints" class="flex flex-row w-2/3 justify-between my-1">
@@ -88,6 +88,7 @@ export default {
             deviceConnected: true,
             statsModalOpen: false,
             lastExecutionTime: 0,
+            deviceType: "Unknown",
         }
     },
 
@@ -126,8 +127,10 @@ export default {
         deviceName(device){
             if(!device) return;
             if(device.pid === 58918 && device.vid === 1240){
+                this.deviceType = "Decker";
                 return `Decker - SN${device.serial_number}`;
             } else {
+                this.deviceType = "Unknown";
                 return `${device.port_name}`;
             }
         },
