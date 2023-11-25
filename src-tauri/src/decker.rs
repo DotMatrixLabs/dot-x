@@ -2,11 +2,12 @@ use std::{thread::{self}, time::Duration, sync::{mpsc, Mutex}};
 use std::io::{self, Cursor, Read};
 use serde::{Serialize, Deserialize};
 use serde_json;
-use rmp_serde::{Deserializer};
+use rmp_serde::{Deserializer, Serializer};
 use std::collections::BTreeMap;
 use serde::ser::SerializeMap;
 use tauri::Window;
 use serialport::{available_ports, SerialPortType};
+use serde_json::Value;
 pub mod decker {
     use super::SliderData;
 
@@ -74,6 +75,24 @@ fn deserialize_slider_data(data: &[u8]) -> std::result::Result<SliderData, Box<d
     
     Ok(slider_data)
 }
+
+
+fn serialize_decker_data(json_string: &str) -> std::result::Result<Vec<u8>, Box<dyn std::error::Error>> {
+    // Parse the JSON string into a serde_json::Value
+    let value: Value = serde_json::from_str(json_string)?;
+
+    // Create a buffer to store the serialized data
+    let mut buf = Vec::new();
+
+    // Create a MessagePack serializer
+    let mut serializer = Serializer::new(&mut buf);
+
+    // Serialize the JSON value
+    value.serialize(&mut serializer)?;
+
+    Ok(buf)
+}
+
 
 
 //TODO: https://tauri.app/v1/guides/features/events/
@@ -154,8 +173,7 @@ pub fn initialize_decker(window: Window, port_name: &str) -> std::result::Result
     match port {
         Ok(mut port) => {
             println!("Connected to \"{}\"", port_name);
-            let (tx, rx) = mpsc::channel();
-            // Spawn a thread to handle incoming data
+            let (tx, rx): (mpsc::Sender<String>, mpsc::Receiver<String>) = mpsc::channel();            // Spawn a thread to handle incoming data
             thread::spawn(move || {
                 let mut serial_buf: Vec<u8> = vec![0; 100];
                 window.emit("connection-change", Payload { message: "connected".to_string() }).unwrap();
@@ -163,6 +181,22 @@ pub fn initialize_decker(window: Window, port_name: &str) -> std::result::Result
                     match rx.try_recv() {
                         Ok(command) => {
                             println!("Received: {:?}", command);
+                            match serialize_decker_data(&command) {
+                                Ok(serialized_data) => {
+                                    match port.write(serialized_data.as_slice()) {
+                                        Ok(t) => {
+                                            println!("Sent {} bytes", t);
+                                        }
+                                        Err(e) => {
+                                            eprintln!("Failed to write to serial port: {}", e);
+                                        }
+                                    }
+                                }
+                                Err(e) => {
+                                    eprintln!("Failed to serialize data: {}", e);
+                                }
+                            }
+
                         }
                         Err(_) => {}
                     }
@@ -212,16 +246,28 @@ pub struct Command {
 }
 
 
-
+#[derive(Serialize, Deserialize)]
+pub struct Options {
+    r: i32,
+    g: i32,
+    b: i32
+}
 
 #[tauri::command]
-pub fn send_decker_command(command: &str) {
-    // Serialize the command and send it through the channel
+pub fn send_decker_command(command: &str, options: Options) {
+    // Serialize the command and options, then send them through the channel
     let sender = SENDER.lock().unwrap();
-    // Send the command through the global sender
+
+    // Serialize the options using serde
+    let options_str = serde_json::to_string(&options).unwrap();
+
+    // Concatenate the command and options into a single string
+    let payload = format!(r#"{{ "command": "{}", "options": {} }}"#, command, options_str);
+    println!("Sending: {}", payload);
+    // Send the payload through the global sender
     if let Some(sender) = sender.as_ref() {
-        sender.send(command.to_string()).unwrap();
+        sender.send(payload).unwrap();
     } else {
-        eprintln!("Sender not initialized. Make sure to initialize it before calling send_to_decker.");
+        eprintln!("Sender not initialized. Make sure to initialize it before calling send_decker_command.");
     }
 }

@@ -1,29 +1,34 @@
 import { rainbow } from './rgb-effects/rainbow';
+import { setColor } from './rgb-effects/staticColor';
+
 // import { setColor } from './setColor';
+import Decker from './decker';
 
 class RGBController {
 
-    public rgbInterval: NodeJS.Timeout | null;
-
     constructor() {
         console.log('RGBController initialized');
-        this.rgbInterval = null;
     }
 
     effects: { [key: string]: (...params: number[]) => void } = {
         rainbow,
-        // setColor: (r: number, g: number, b: number) => setColor(r, g, b),
-        // Add more effects as needed
+        setColor,
     };
 
     public setEffect(effectName: string, ...params: number[]) {
         const effectFunction = this.effects[effectName];
         if (effectFunction) {
-            const updateInterval = 1000; // Adjust this interval as needed
-            this.rgbInterval = setInterval(() => {
-                const response = effectFunction(...params);
-                console.log(response);
-            }, updateInterval);
+            const response: any = effectFunction(...params);
+            const options = { r: parseInt(response.r), g: parseInt(response.g), b: parseInt(response.b)};
+            Decker.sendCommand('rgb-control', options);
+            // const updateInterval = 400; // Adjust this interval as needed
+            // this.rgbInterval = setInterval(() => {
+            //     const response: any = effectFunction(...params);
+            //     console.log(response);
+            //     const options = { r: parseInt(response.r), g: parseInt(response.g), b: parseInt(response.b)};
+            //     Decker.sendCommand('rgb-control', options);
+                
+            // }, updateInterval);
         } else {
             console.error('Unknown effect: ' + effectName);
         }

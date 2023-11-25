@@ -6,7 +6,7 @@
  * @param {number} [brightness=255] - The brightness of the color (0-255).
  * @returns {{r: number, g: number, b: number}} - An object containing the clamped RGB values.
  */
-export function setColor(r: number, g: number, b: number, brightness = 255) {
+export function setColor(r: number, g: number, b: number, brightness: number = 255) {
     if (r < 0 || r > 255 || g < 0 || g > 255 || b < 0 || b > 255 || brightness < 0 || brightness > 255) {
         throw new Error('Invalid parameters: RGB values and brightness must be in the range [0, 255].');
     }
