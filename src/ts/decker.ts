@@ -49,9 +49,19 @@ class Decker {
             this.sliders = sliderArray;
             deckerStore.setSliders(this.sliders);
             // console.log(this.sliders);
-        })
+        });
+
+        const detachListener = await listen('midi_detached', async () => {
+            console.log("[Midi.rs backend]: Midi was detached");
+            const midiEnabled = await ConfigStore.get("midiEnabled");
+            const midiOutputPortNumber = await ConfigStore.get("midiOutputPortNumber");
+            if(!midiEnabled) return;
+            if(!midiOutputPortNumber) return;
+            this.attachMidiDevice(midiOutputPortNumber);
+        });
 
         console.log(unlisten)
+        console.log(detachListener)
 
         // setTimeout(() => {
         //     emit('slider-change', { value: 10 });

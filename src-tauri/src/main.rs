@@ -2,6 +2,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 
+use tauri::AppHandle;
 use tauri::{ Manager, Window };
 use windows_volume_control::AudioController;
 use windows_volume_control::CoinitMode;
@@ -14,7 +15,9 @@ use tauri::{CustomMenuItem, SystemTrayMenu, SystemTrayMenuItem, SystemTray, Syst
 use tauri::api::notification::Notification;
 use window_vibrancy::{apply_vibrancy, apply_blur, apply_mica, NSVisualEffectMaterial};
 use window_shadows::set_shadow;
+use once_cell::sync::OnceCell;
 
+static APP: OnceCell<tauri::AppHandle> = OnceCell::new();
 
 // create the error type that represents all errors possible in our program
 #[derive(Debug, thiserror::Error)]
@@ -288,20 +291,24 @@ fn main() {
         })
         .setup(|app| {
           let window = app.get_window("main").unwrap();
-
           #[cfg(any(windows, target_os = "macos"))]
           set_shadow(&window, true).unwrap();
-    
+          
           #[cfg(target_os = "macos")]
           apply_vibrancy(&window, NSVisualEffectMaterial::HudWindow, None, None)
-            .expect("Unsupported platform! 'apply_vibrancy' is only supported on macOS");
-    
-          #[cfg(target_os = "windows")]
-          apply_mica(&window, None)
-            .unwrap_or_else(|_| { let _ = apply_blur(&window, Some((25, 10, 30, 255))); });
-    
+          .expect("Unsupported platform! 'apply_vibrancy' is only supported on macOS");
+        
+        #[cfg(target_os = "windows")]
+        apply_mica(&window, None)
+        .unwrap_or_else(|_| { let _ = apply_blur(&window, Some((25, 10, 30, 255))); });
+      
+        APP.set(app.handle()).expect("error setting up app");
           Ok(())
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+fn get_app_handle() -> &'static AppHandle {
+  APP.get().expect("AppHandle not initialized")
 }
