@@ -150,8 +150,11 @@ export default {
         async getActiveApps() {
             let activeApps = await SystemVolumeController.getAllSessionNames();
             activeApps = activeApps.filter((str) => str !== ""); // Remove empty entries
-            activeApps = _.uniqBy(activeApps, item => item.toLowerCase());// Remove duplicates
-            activeApps = activeApps.map((str) => ({ DisplayName: str, id: str, appType: 'active' }));  
+            //check if an app has the same name, and ends in (1), (2), (3), etc, remove the number and keep the original
+            const duplicates = activeApps.filter((str) => str.match(/\(\d+\)$/));
+            activeApps = activeApps.map((str) => str.replace(/\(\d+\)$/, '').trim());
+            activeApps = _.uniqBy(activeApps, item => item.toLowerCase());
+            activeApps = activeApps.map((str) => ({ DisplayName: str, id: str, appType: 'active', duplicates: duplicates }));  
             console.log(activeApps)
             this.activeApps = activeApps;
         },
@@ -181,9 +184,11 @@ export default {
         },
 
         selectSliderApp(app) {
-            SelectedApps.toggleApp(this.currentSliderID.toString(), app.DisplayName).then(() => {
+            const allApps = [app.DisplayName, ...app.duplicates];
+            console.log(allApps)
+            SelectedApps.toggleApps(this.currentSliderID.toString(), allApps).then(() => {
                 this.getSelectedApps();
-            }); 
+            })
         },
 
         async getSelectedApps() {
