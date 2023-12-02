@@ -35,7 +35,7 @@ export default {
 
     methods: {
         async setActiveDevice(device) {
-            await SelectedApps.toggleApp(this.currentSliderID.toString(), device);
+            await SelectedApps.toggleApps(this.currentSliderID.toString(), device);
             this.getActiveDevices();
         },
 
