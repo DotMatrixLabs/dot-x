@@ -40,8 +40,8 @@ export default {
         },
 
         async getActiveDevices(){
+            if(this.currentSliderID === null) return;
             this.activeDevices = await SelectedApps.getApps(this.currentSliderID?.toString());
-            console.log(this.activeDevices);
         }
     },
 
