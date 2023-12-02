@@ -7,7 +7,8 @@
         <i class="fas fa-arrows-rotate fa-lg text-base-content"></i>
       </button> -->
 
-      <img class="object-cover h-6" src="../assets/dotX.png">
+      <img v-if="colorScheme === 'dark'" class="object-cover h-6" src="../assets/DotX-darkmode.png">
+      <img v-else class="object-cover h-6" src="../assets/DotX-lightmode.png">
 
       <h1 class="text-base-content">Decker</h1>
       <div>
@@ -36,7 +37,7 @@ import { appWindow } from '@tauri-apps/api/window'
 export default {
   name: 'TopBar',
 
-  props: ["connection-status"],
+  props: ["connection-status", "colorScheme"],
 
   emits: ["settings-toggled", "connect-to-board"],
 
