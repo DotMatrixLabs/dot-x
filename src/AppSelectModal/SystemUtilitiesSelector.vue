@@ -2,7 +2,7 @@
     <div class="grid grid-cols-3 w-1/2 m-auto">
         <div class="flex flex-col justify-center items-center" v-for="device in devices">
             <button @click="setActiveDevice(device.id)" class="btn btn-circle"
-                :class="activeDevices.includes(device.id) ? 'btn-primary' : ''">
+                :class="activeDevices?.includes(device.id) ? 'btn-primary' : ''">
                 <i :class="device.icon"></i>
             </button>
             <span class="text-base-content text-xs text-center capitalize my-1"> {{ device.title }}</span>
@@ -40,7 +40,7 @@ export default {
         },
 
         async getActiveDevices(){
-            this.activeDevices = await SelectedApps.getApps(this.currentSliderID.toString());
+            this.activeDevices = await SelectedApps.getApps(this.currentSliderID?.toString());
             console.log(this.activeDevices);
         }
     },
