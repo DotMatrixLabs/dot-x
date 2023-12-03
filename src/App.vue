@@ -2,7 +2,7 @@
   <div class="h-screen w-screen flex flex-col pt-12 bg-transparent rounded-xl">
     <SettingsModal :modal-open="settingsModalOpen" @close="settingsToggled" />
     <AppsModal :currentSliderID="currentSliderID" :modal-open="appsModalOpen" @close="appsToggled(null)" />
-    <TopBar :colorScheme="colorScheme" :class="backgroundColor" @settings-toggled="settingsToggled" @connect-to-board="retryConnection" :connection-status="connectionState" />
+    <TopBar :colorScheme="colorScheme" :class="backgroundColorTopBar" @settings-toggled="settingsToggled" @connect-to-board="retryConnection" :connection-status="connectionState" />
     <SliderOverview :class="backgroundColor" ref="sliderOverview" :pot-values="potValues" @app-click="appsToggled" />
   </div>
 </template>
@@ -53,6 +53,19 @@ export default {
         return "bg-transparent";
       }
     },
+
+    
+    backgroundColorTopBar() {
+      if(this.isWin10 && this.colorScheme === "dark") {
+        return "bg-gray-900 bg-opacity-20";
+      } else if (this.isWin10) {
+        return "bg-white";
+      } else {
+        return "bg-black bg-opacity-10 ";
+      }
+    },
+
+
   },
 
   methods: {
