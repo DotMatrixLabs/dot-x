@@ -1,5 +1,5 @@
 <template>
-  <nav data-tauri-drag-region class="w-screen h-12 bg-black bg-opacity-20 shadow-md items-center flex z-0 fixed top-0 flex-row justify-between"
+  <nav data-tauri-drag-region class="w-screen h-12 shadow-md items-center flex z-0 fixed top-0 flex-row justify-between"
     style="-webkit-app-region: drag">
     <!-- <img class="h-12 absolute -top-1 left-1/2 -translate-x-1/2 transform" src="../../assets/logos/decker-logo.svg"/> -->
     <div class="flex flex-row ml-6 gap-4">
