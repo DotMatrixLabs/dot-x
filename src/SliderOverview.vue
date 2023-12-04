@@ -85,9 +85,12 @@ export default {
     },
 
     sliderChannelName(sliderID){
-      const apps = this.sliderApps[sliderID]?.apps;
+      let apps = this.sliderApps[sliderID]?.apps;
       if(!apps) return;
-      if(apps.length > 1) return `${apps[0]}+${apps.length - 1}`;
+      //get the number of duplicates in the array - Duplicates have a (1), (2), (3), etc at the end of the name
+      const duplicates = apps.filter((app) => app.match(/\(\d+\)$/));
+      //remove the number and keep the original
+      if((apps.length - duplicates.length) > 1) return `${apps[0]}+${(apps.length - 1) - duplicates.length}`;
       else return apps[0];
     },
 
