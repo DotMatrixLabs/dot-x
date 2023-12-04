@@ -1,5 +1,5 @@
 <template>
-  <nav data-tauri-drag-region class="w-screen h-12 bg-black bg-opacity-20 shadow-md items-center flex z-0 fixed top-0 flex-row justify-between"
+  <nav data-tauri-drag-region class="w-screen h-12 shadow-md items-center flex z-0 fixed top-0 flex-row justify-between"
     style="-webkit-app-region: drag">
     <!-- <img class="h-12 absolute -top-1 left-1/2 -translate-x-1/2 transform" src="../../assets/logos/decker-logo.svg"/> -->
     <div class="flex flex-row ml-6 gap-4">
@@ -7,7 +7,8 @@
         <i class="fas fa-arrows-rotate fa-lg text-base-content"></i>
       </button> -->
 
-      <img class="object-cover h-6" src="../assets/dotX.png">
+      <img v-if="colorScheme === 'dark'" class="object-cover h-6" src="../assets/DotX-darkmode.png">
+      <img v-else class="object-cover h-6" src="../assets/DotX-lightmode.png">
 
       <h1 class="text-base-content">Decker</h1>
       <div>
@@ -36,7 +37,7 @@ import { appWindow } from '@tauri-apps/api/window'
 export default {
   name: 'TopBar',
 
-  props: ["connection-status"],
+  props: ["connection-status", "colorScheme"],
 
   emits: ["settings-toggled", "connect-to-board"],
 
