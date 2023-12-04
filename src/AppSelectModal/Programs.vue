@@ -107,6 +107,7 @@ export default {
             selectedApps: [""],
             activeApps: [],
             showAllApps: false,
+            duplicates: [],
         }
     },
 
@@ -150,9 +151,12 @@ export default {
         async getActiveApps() {
             let activeApps = await SystemVolumeController.getAllSessionNames();
             activeApps = activeApps.filter((str) => str !== ""); // Remove empty entries
-            activeApps = _.uniqBy(activeApps, item => item.toLowerCase());// Remove duplicates
-            activeApps = activeApps.map((str) => ({ DisplayName: str, id: str, appType: 'active' }));  
-            console.log(activeApps)
+            //check if an app has the same name, and ends in (1), (2), (3), etc and create an array of duplicates
+            this.duplicates = activeApps.filter((str) => str.match(/\(\d+\)$/));
+            //remove the number and keep the original
+            activeApps = activeApps.map((str) => str.replace(/\(\d+\)$/, '').trim());
+            activeApps = _.uniqBy(activeApps, item => item.toLowerCase());
+            activeApps = activeApps.map((str) => ({ DisplayName: str, id: str, appType: 'active'}));  
             this.activeApps = activeApps;
         },
 
@@ -161,7 +165,6 @@ export default {
             const extraApps = await this.getExtraApps();
             invoke('get_installed_apps')
                 .then((apps) => {
-                    console.log(apps)
                     apps = apps.app_list.filter((str) => str !== ""); // Remove empty entries
                     apps = apps.map((str) => ({ DisplayName: str }));
                     apps = _.orderBy(
@@ -181,14 +184,20 @@ export default {
         },
 
         selectSliderApp(app) {
-            SelectedApps.toggleApp(this.currentSliderID.toString(), app.DisplayName).then(() => {
+            //if app display name is the same name as the duplicate with the number removed, add the duplicate to the array
+            if(this.duplicates.some((str) => str.replace(/\(\d+\)$/, '').trim() === app.DisplayName)) {
+                app.duplicates = this.duplicates.filter((str) => str.replace(/\(\d+\)$/, '').trim() === app.DisplayName);
+            } else {
+                app.duplicates = [];
+            }
+            const allApps = [app.DisplayName, ...app.duplicates];
+            SelectedApps.toggleApps(this.currentSliderID.toString(), allApps).then(() => {
                 this.getSelectedApps();
-            }); 
+            })
         },
 
         async getSelectedApps() {
             this.selectedApps = await SelectedApps.getApps(this.currentSliderID?.toString());
-            console.log(this.selectedApps);
         },
 
         refreshData() {

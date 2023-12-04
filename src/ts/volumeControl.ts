@@ -58,9 +58,9 @@ class SystemVolumeController {
             //add back the apps that are mapped to same channel
             if(channelApps) apps = [...apps, ...channelApps];
         }
-
         let sessionNames = await this.getAllSessionNames(true);
         apps = apps.map((str) => str.toLowerCase());
+
         for (const session of sessionNames) {
             if (!session) continue;
             let app = session.toLowerCase();
