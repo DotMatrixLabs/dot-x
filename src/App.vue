@@ -18,6 +18,7 @@ import Decker from "./ts/decker.ts";
 import RGBController from "./ts/RGBController";
 import { useDeckerStore } from "./store/deckerStore.ts";
 import { version } from '@tauri-apps/api/os';
+import PillWidget from "./ts/pill.ts";
 
 import { mapState } from "pinia"; 
 
