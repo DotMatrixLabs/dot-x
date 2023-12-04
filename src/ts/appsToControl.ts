@@ -15,21 +15,23 @@ class SelectedApps {
     }
 
     /**
-     * Toggles the specified app for a slider.
+     * Toggles the specified apps for a slider.
      * @param {string} sliderID - The ID of the slider.
-     * @param {string} appName - The name of the app to toggle.
+     * @param {string | string[]} appNames - The name or array of names of the app(s) to toggle.
      */
-    async toggleApp(sliderID: string, appName: string) {
-        const key = sliderID.toString();
-        const currentApps: string[] | null = await this.store.get(key);
-        if (!currentApps) await this.store.set(key, [appName]);
-        else if (_.includes(currentApps, appName)) {
-            let applications = _.pull(currentApps, appName);
-            this.store.set(key, applications);
-        } else {
-            let applications = [...currentApps, appName];
-            await this.store.set(key, applications);
+    async toggleApps(sliderID: string, appNames: string | string[]) {
+        console.log("toggleApps", sliderID, appNames);
+
+        const key: string = sliderID.toString();
+        const currentApps: string[] = (await this.store.get(key)) || [];
+
+        if (!Array.isArray(appNames)) {
+            appNames = [appNames];
         }
+
+        const updatedApps: string[] = _.xor(currentApps, appNames);
+
+        this.store.set(key, updatedApps);
         await this.store.save();
     }
 
