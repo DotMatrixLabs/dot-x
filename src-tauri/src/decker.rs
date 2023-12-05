@@ -1,5 +1,6 @@
 use std::{thread::{self}, time::Duration, sync::{mpsc, Mutex}};
 use std::io::{self, Cursor, Read};
+use log::{error, warn, info};
 use serde::{Serialize, Deserialize};
 use serde_json;
 use rmp_serde::{Deserializer, Serializer};
@@ -141,6 +142,7 @@ pub fn get_devices() -> Vec<Device> {
             }
         }
         Err(e) => {
+            error!("Error listing serial ports - {:?}", e);
             eprintln!("{:?}", e);
             eprintln!("Error listing serial ports");
         }
@@ -159,6 +161,7 @@ pub fn initialize_decker(window: Window, port_name: &str) -> std::result::Result
         for port_info in ports {
             if port_info.port_name == port_name {
                 eprintln!("Port \"{}\" is already open. Closing it...", port_name);
+                warn!("Port \"{}\" is already open. Closing it...", port_name);
                 if let Ok(port) = serialport::new(port_name, baud_rate).timeout(Duration::from_millis(20)).open() {
                     std::mem::drop(port);
                 }
@@ -173,6 +176,7 @@ pub fn initialize_decker(window: Window, port_name: &str) -> std::result::Result
     match port {
         Ok(mut port) => {
             println!("Connected to \"{}\"", port_name);
+            info!("Connected to \"{}\"", port_name);
             let (tx, rx): (mpsc::Sender<String>, mpsc::Receiver<String>) = mpsc::channel();            // Spawn a thread to handle incoming data
             thread::spawn(move || {
                 let mut serial_buf: Vec<u8> = vec![0; 100];
@@ -188,11 +192,13 @@ pub fn initialize_decker(window: Window, port_name: &str) -> std::result::Result
                                             println!("Sent {} bytes", t);
                                         }
                                         Err(e) => {
+                                            error!("Failed to write to serial port: {}", e);
                                             eprintln!("Failed to write to serial port: {}", e);
                                         }
                                     }
                                 }
                                 Err(e) => {
+                                    error!("Failed to serialize data: {}", e);
                                     eprintln!("Failed to serialize data: {}", e);
                                 }
                             }
@@ -221,6 +227,7 @@ pub fn initialize_decker(window: Window, port_name: &str) -> std::result::Result
                         Err(e) => {
                             window.emit("connection-change", Payload { message: "disconnected".to_string() }).unwrap();
                             std::mem::drop(port); // Drop the port to close it
+                            error!("An error occurred while reading serial data: {:?}", e);
                             panic!("An error occurred while reading serial data: {:?}", e);
                         }
                     }
@@ -235,6 +242,7 @@ pub fn initialize_decker(window: Window, port_name: &str) -> std::result::Result
         }
         Err(e) => {
             eprintln!("Failed to open \"{}\". Error: {}", port_name, e);
+            error!("Failed to open \"{}\". Error: {}", port_name, e);
             Err(e.into())
         }
     }
