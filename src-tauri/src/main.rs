@@ -2,6 +2,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 
+use log::{info, trace, error};
 use tauri::AppHandle;
 use tauri::{ Manager, Window };
 use windows_volume_control::AudioController;
@@ -80,6 +81,7 @@ fn get_available_midi_output_port_names() -> Result<MidiPortNames, Error> {
     
   // Explicitly handle the error and convert it to Box<dyn Error>
   let midi_out_result = MidiOutput::new("Decker Output");
+  
   let midi_out = match midi_out_result {
       Ok(midi_out) => midi_out,
       Err(error) => {
@@ -102,7 +104,9 @@ fn get_available_midi_output_port_names() -> Result<MidiPortNames, Error> {
           Ok(port_name) => available_ports.push(port_name),
           Err(error) => {
               // Handle the error here, or return it if you prefer.
+              error!("Dot X Error: {:?}", error);
               return Err(Error::InitError);
+
           }  
         };
   }
@@ -150,11 +154,13 @@ fn attach_midi_device(output_name: &str, output_port: u32) -> Result<(), Error> 
     match midi_controller {
       Ok(midi_controller) => {
         println!("Midi port {}: Port name: {}", output_port, output_name);
+        info!("Midi port {}: Port name: {}", output_port, output_name);
         unsafe { midi::midi::ENABLED = true; }
       }
       Err(error) => {
         // Handle the error here, or return it if you prefer.
         println!("Error{:?} ", error);
+        error!("[attach_midi_device] Dot X Error: {:?}", error);
         return Err(Error::Connection);
       }
     }
@@ -206,6 +212,7 @@ fn set_application_volume(name: &str, volume: f32) -> Result<(), Error> {
 #[tauri::command]
 fn connect_decker(window: Window, port_name: &str) -> Result<(), Error> {
   decker::initialize_decker(window, port_name)?;
+  info!("Decker connected at {}", port_name);
   Ok(())
 }
 
@@ -223,6 +230,7 @@ fn build_menu() -> SystemTrayMenu {
 }
 
 fn show_notification(title: &str, body : &str) {
+  info!("Showing notification || Title: {} | Message: {}", title, body);
   let context = tauri::generate_context!("tauri.conf.json");
   Notification::new(&context.config().tauri.bundle.identifier)
     .title(title)
@@ -239,6 +247,7 @@ struct InstancePayload {
 
 
 fn main() {
+
     let tray_menu = build_menu();
 
 
@@ -254,6 +263,7 @@ fn main() {
 
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![get_installed_apps, get_all_session_names, set_application_volume, connect_decker, decker::get_devices, decker::send_decker_command, get_available_midi_output_port_names, attach_midi_device, detach_midi_device])
+        .plugin(tauri_plugin_log::Builder::default().build())
         .plugin(sentry_tauri::plugin())
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_autostart::init(
@@ -276,13 +286,17 @@ fn main() {
           SystemTrayEvent::MenuItemClick { id, .. } => {
             match id.as_str() {
               "quit" => {
+                info!("Quitting Dot X");
                 std::process::exit(0);
               }
               "hide" => {
+                info!("Hiding Dot X");
+                trace!("HIDING!");
                 let window = app.get_window("main").unwrap();
                 window.hide().unwrap();
               }
               "show" => {
+                info!("Showing Dot X");
                 let window = app.get_window("main").unwrap();
                 window.show().unwrap();
               }
@@ -310,12 +324,16 @@ fn main() {
         #[cfg(target_os = "windows")]
         apply_mica(&window, None)
         .unwrap_or_else(|_| { let _ = apply_blur(&window, Some((25, 10, 30, 255))); });
+
+        info!("Starting Dot X with version {:?}", sentry_tauri::sentry::release_name!());
+
       
         APP.set(app.handle()).expect("error setting up app");
           Ok(())
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+
 }
 
 fn get_app_handle() -> &'static AppHandle {
