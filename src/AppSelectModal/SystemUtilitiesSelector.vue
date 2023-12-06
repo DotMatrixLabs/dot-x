@@ -1,7 +1,7 @@
 <template>
     <div class="grid grid-cols-3 w-1/2 m-auto">
         <div class="flex flex-col justify-center items-center" v-for="device in devices">
-            <button @click="setActiveDevice(device.id)" class="btn btn-circle"
+            <button :disabled="(device.id === 'master' || device.id === 'mic') && !sessions?.includes(device.id)" @click="setActiveDevice(device.id)" class="btn btn-circle"
                 :class="activeDevices?.includes(device.id) ? 'btn-primary' : ''">
                 <i :class="device.icon"></i>
             </button>
@@ -14,7 +14,7 @@
 
 
 import SelectedApps from "../ts/appsToControl.ts";
-
+import SystemVolumeController from "../ts/volumeControl.ts";
 
 export default {
 
@@ -30,6 +30,7 @@ export default {
                 { title: "unmapped", icon: "fas fa-lg fa-question-circle", id: "unmapped"}
             ],
             activeDevices: [],
+            sessions: [],
         }
     },
 
@@ -42,11 +43,17 @@ export default {
         async getActiveDevices(){
             if(this.currentSliderID === null) return;
             this.activeDevices = await SelectedApps.getApps(this.currentSliderID?.toString());
+        },
+
+        async getSessions() {
+            this.sessions = await SystemVolumeController.getAllSessionNames(true);
         }
+        
     },
 
     mounted() {
         this.getActiveDevices();
+        this.getSessions();
     },
 
 }
