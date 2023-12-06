@@ -35,6 +35,8 @@ window-vibrancy = "0.4.2"
 window-shadows = "0.2.2"
 once_cell = "1.18.0"
 sentry-tauri = "0.2.0"
+log = "^0.4"
+tauri-plugin-log = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "dev" }
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem
