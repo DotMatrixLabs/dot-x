@@ -4476,7 +4476,7 @@ dependencies = [
 [[package]]
 name = "tauri-plugin-autostart"
 version = "0.0.0"
-source = "git+https://github.com/tauri-apps/plugins-workspace?branch=v1#84208e0a53d0dcea6629659b88b1968469d7c030"
+source = "git+https://github.com/tauri-apps/plugins-workspace?branch=v1#c7336bc33015dff2f7adfe27ae64eae4d4f0cfc8"
 dependencies = [
  "auto-launch",
  "log",
@@ -4504,7 +4504,7 @@ dependencies = [
 [[package]]
 name = "tauri-plugin-single-instance"
 version = "0.0.0"
-source = "git+https://github.com/tauri-apps/plugins-workspace?branch=v1#84208e0a53d0dcea6629659b88b1968469d7c030"
+source = "git+https://github.com/tauri-apps/plugins-workspace?branch=v1#c7336bc33015dff2f7adfe27ae64eae4d4f0cfc8"
 dependencies = [
  "log",
  "serde",
@@ -4518,7 +4518,7 @@ dependencies = [
 [[package]]
 name = "tauri-plugin-store"
 version = "0.0.0"
-source = "git+https://github.com/tauri-apps/plugins-workspace?branch=v1#84208e0a53d0dcea6629659b88b1968469d7c030"
+source = "git+https://github.com/tauri-apps/plugins-workspace?branch=v1#c7336bc33015dff2f7adfe27ae64eae4d4f0cfc8"
 dependencies = [
  "log",
  "serde",
@@ -5570,7 +5570,7 @@ dependencies = [
 [[package]]
 name = "windows-volume-control"
 version = "0.1.1"
-source = "git+https://github.com/Frogbyte-io/windows-volume-control.git#59c73abe40c98df1123b00d00699d963da96612d"
+source = "git+https://github.com/Frogbyte-io/windows-volume-control.git#ea20b5c398de53b590262f899308f32465af7c1a"
 dependencies = [
  "log",
  "windows 0.44.0",
