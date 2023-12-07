@@ -1077,7 +1077,7 @@ checksum = "fea41bba32d969b513997752735605054bc0dfa92b4c56bf1189f2e174be7a10"
 
 [[package]]
 name = "dot_x"
-version = "1.0.2"
+version = "1.0.3"
 dependencies = [
  "clap",
  "firmata-rs",
