@@ -119,10 +119,14 @@ export default {
 
   },
 
-  mounted() {
-    setInterval(async () => {
-      this.midiEnabled = await configStore.get("midiEnabled");
-    }, 1000);
+  async mounted() {
+    this.midiEnabled = await configStore.get('midiEnabled');
+    configStore.store.onChange((key, value) => {
+      if(key === 'midiEnabled'){
+        console.log('midiEnabled changed', value);
+        this.midiEnabled = value;
+      }
+    });
     SystemVolumeController.getAllSessionNames();
     // SystemVolumeController.setChannelVolume('1', 0.5)
     this.getSelectedApps();
