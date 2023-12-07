@@ -3,9 +3,13 @@
     <div class="flex flex-row justify-evenly h-full p-24">
       <template v-for="(slider, index) in (sliders.length > 0 ? sliders : 5)" :key="index">
         <div class="flex flex-col justify-center">
-          <Slider :class="sliders.length === 0 || connectionState === false ? 'opacity-50' : 'opacity-100'" :slider-val="slider" class="h-full w-full" />
+          <Slider :midiEnabled="midiEnabled" :class="sliders.length === 0 || connectionState === false ? 'opacity-50' : 'opacity-100'" :slider-val="slider" class="h-full w-full" />
           <div v-if="sliders.length === 0 || connectionState === false" class="p-2 bg-base-200 rounded-md shadow-md ring-1 ring-gray-500 absolute text-center -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2">
           <h1>Decker not connected</h1>
+          <!-- If MIDI is enabled, show a message to inform that no programs or groups will have their volume applied. Only MIDI messages will work. -->
+          </div> 
+          <div v-if="midiEnabled" class="p-2 bg-base-200 rounded-md shadow-md ring-1 ring-green-500 absolute text-center -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2">
+          <h1>MIDI Enabled - Programs and groups are disabled</h1>
           </div>
 
           <button @click="$emit('app-click', index)"
