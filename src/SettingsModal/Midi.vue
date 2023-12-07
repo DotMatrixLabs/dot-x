@@ -91,7 +91,6 @@ export default {
             await ConfigStore.set("midiEnabled", true);
             ConfigStore.save();
             this.update();
-            // await this.getMidiDevices();
             this.connectMidiDevice();
         },
         connectMidiDevice(){
