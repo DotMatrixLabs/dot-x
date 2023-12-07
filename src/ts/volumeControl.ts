@@ -1,5 +1,6 @@
 import { invoke } from '@tauri-apps/api/tauri';
 import SelectedApps from './appsToControl';
+import ConfigStore from "../ts/config.ts";
 
 /**
  * Class for controlling system volume and audio sessions.
@@ -44,6 +45,7 @@ class SystemVolumeController {
      * @param {number} volume - The volume level to set.
      */
     async setChannelVolume(channel: number, volume: number): Promise<void> {
+        if(await ConfigStore.get("midiEnabled")) return;
         if(Number.isNaN(volume) || !volume) return;
         let apps: string[] | null = await SelectedApps.getApps(channel);
         if(!apps) return;
