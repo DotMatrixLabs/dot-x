@@ -16,7 +16,7 @@
       :fill-opacity="colorScheme === 'dark' ? 0.3 : 0.5"
     />
     <g :transform="`translate(0,${sliderPosition})`">
-      <rect x="1" y="0" width="34" height="50" rx="5" style="fill:rgb(255, 255, 255);stroke-width:1.5;stroke:rgba(141, 141, 141, 0.512)"  fill="#f2f2f2" />
+      <rect x="1" y="0" width="34" height="50" rx="5" :style="rectStyle"  fill="#f2f2f2" />
       <line x1="1.2" y1="16" x2="35" y2="16" stroke="black" />
       <line x1="1.2" y1="25" x2="35" y2="25" stroke="black" />
       <line x1="1.2" y1="34" x2="35" y2="34" stroke="black" />
@@ -25,17 +25,34 @@
 </template>
 
 <script>
+import { watch, ref } from "vue";
 export default {
   props: {
     sliderVal: {
       type: Number,
       default: 0,
     },
+    midiEnabled: {
+      type: Boolean,
+      default: false,
+    }
+  },
+  
+  watch: {
+    midiEnabled(val) {
+      // If MIDI is enabled, set it to green to indicate that it's disabled.
+      if (val) {
+        this.rectStyle = "fill:rgb(0, 255, 0);stroke-width:1.5;stroke:rgba(141, 141, 141, 0.512)";
+      } else {
+        this.rectStyle = "fill:rgb(255, 255, 255);stroke-width:1.5;stroke:rgba(141, 141, 141, 0.512)";
+      }
+    },
   },
 
   data() {
     return {
       colorScheme: "",
+      rectStyle: "",
     };
   },
 
