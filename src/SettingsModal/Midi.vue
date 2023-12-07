@@ -14,9 +14,6 @@
                     {{ device }}
                 </option>
             </select>
-            <!-- <button @click="detectBoard" title="Autodiscover" class="btn btn-circle btn-sm">
-                <i class="fa-solid fa-magnifying-glass"></i>
-            </button> -->
         </div>
     </div>
 </template>
@@ -53,11 +50,14 @@ export default {
             ConfigStore.save();
             this.getMidiDevices();
             this.getConnectedDevice();
-            console.log(this.midiEnabled);
-            if(this.midiEnabled) this.toggleMidi(true);
+            if(this.midiEnabled) this.reconnectMidi();
 
         },
 
+        reconnectMidi(){
+            decker.detachMidiDevice();
+            this.connectMidiDevice();
+        },
 
         getMidiDevices() {
             decker.getMidiDevices().then((devices) => {
@@ -91,7 +91,6 @@ export default {
             await ConfigStore.set("midiEnabled", true);
             ConfigStore.save();
             this.update();
-            // await this.getMidiDevices();
             this.connectMidiDevice();
         },
         connectMidiDevice(){
