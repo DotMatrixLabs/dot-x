@@ -29,6 +29,7 @@ import _ from "lodash";
 import SystemVolumeController from "./ts/volumeControl.ts";
 import SelectedApps from "./ts/appsToControl.ts";
 import Decker from "./ts/decker.ts";
+import configStore from "./ts/config.ts";
 import { useDeckerStore } from "./store/deckerStore.ts";
 import { invoke } from "@tauri-apps/api/tauri";
 
@@ -54,6 +55,7 @@ export default {
       ],
       prevSliderValues: [],
       isWin10: true,
+      midiEnabled: false,
     };
   },
 
@@ -118,7 +120,9 @@ export default {
   },
 
   mounted() {
-
+    setInterval(async () => {
+      this.midiEnabled = await configStore.get("midiEnabled");
+    }, 1000);
     SystemVolumeController.getAllSessionNames();
     // SystemVolumeController.setChannelVolume('1', 0.5)
     this.getSelectedApps();
