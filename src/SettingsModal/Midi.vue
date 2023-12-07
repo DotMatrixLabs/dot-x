@@ -53,11 +53,14 @@ export default {
             ConfigStore.save();
             this.getMidiDevices();
             this.getConnectedDevice();
-            console.log(this.midiEnabled);
-            if(this.midiEnabled) this.toggleMidi(true);
+            if(this.midiEnabled) this.reconnectMidi();
 
         },
 
+        reconnectMidi(){
+            decker.detachMidiDevice();
+            this.connectMidiDevice();
+        },
 
         getMidiDevices() {
             decker.getMidiDevices().then((devices) => {
