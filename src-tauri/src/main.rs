@@ -193,6 +193,8 @@ fn set_application_volume(name: &str, volume: f32) -> Result<(), Error> {
             println!("{}", session.getVolume().to_string());
             if volume < 0.01 {
               session.setMute(true);
+              // Also set application volume to 0. This is not actually needed, but it's visually pleasing since the slider is at 0 and makes it easier to see which applications are muted.
+              session.setVolume(0.0); 
             } else {
               session.setMute(false);
               session.setVolume(volume);
