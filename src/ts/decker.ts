@@ -3,13 +3,29 @@ import { invoke } from '@tauri-apps/api/tauri';
 import { useDeckerStore } from "../store/deckerStore.ts";
 import SystemVolumeController from "./volumeControl.ts";
 import ConfigStore from './config.ts';
+
 class Decker {
     private comPort: string = "";
+    private initiated: boolean;
     // private debug: boolean;
     public sliders: Array<number> = [];
 
     constructor() {
         this.comPort = "";
+        this.initiated = false;
+    }
+
+    private async initClass() {
+        const deckerStore = useDeckerStore();
+        await listen('connection-change', (event: any) => {
+            if(event.payload.message === "connected"){
+                deckerStore.setConnected(true);
+                this.updateSliders();
+            } else if (event.payload.message === "disconnected"){
+                this.handleSliderDisconnect();
+                deckerStore.setConnected(false);
+            }
+        })
     }
 
     public retryConnection(){
@@ -36,13 +52,43 @@ class Decker {
             }
             
         });
+    }
+
+    // Update sliders after reconnecting the Decker.
+    private updateSliders(){
+        const sliders = useDeckerStore().sliders;
+        sliders.forEach((_sliderVol, index) => {
+            console.log("Setting slider", index, "to 0.001");
+            SystemVolumeController.setChannelVolume(index, 0.001);
+        });
+
+        sliders.forEach((sliderVol, index) => {
+          if (sliderVol === 0) sliderVol = 0.1;
         
+          const targetVolume = sliderVol / 100;
+          const initialVolume = 0;
+          const increment = 0.1; // Adjust the increment value as needed
+          let currentVolume = initialVolume;
+        
+          const graduallyIncreaseVolume = () => {
+            SystemVolumeController.setChannelVolume(index, currentVolume);
+            currentVolume += increment;
+        
+            if (currentVolume <= targetVolume) {
+              setTimeout(graduallyIncreaseVolume, 100); // Adjust the timeout value as needed
+            }
+          };
+        
+          graduallyIncreaseVolume();
+        });
     }
 
 
     public async init(comPort: string){
+        if(!this.initiated) this.initClass();
+        this.initiated = true;
+        
         const deckerStore = useDeckerStore();
-
         this.comPort = comPort;
 
         console.log("Connecting to Decker...", comPort)
@@ -56,14 +102,7 @@ class Decker {
         });
         // await invoke('init_process');
 
-        await listen('connection-change', (event: any) => {
-            if(event.payload.message === "connected"){
-                deckerStore.setConnected(true);
-            } else if (event.payload.message === "disconnected"){
-                this.handleSliderDisconnect();
-                deckerStore.setConnected(false);
-            }
-        })
+
         
         const unlisten = await listen('slider-change', (event: any) => {
             deckerStore.setConnected(true);
