@@ -36,6 +36,14 @@ class Decker {
             if(event.payload.message === "connected"){
                 deckerStore.setConnected(true);
             } else if (event.payload.message === "disconnected"){
+                // Check if automatic muting is enabled
+                ConfigStore.get("actOnDeckerDisconnect").then((value) => {
+                    console.log(`Decker disconnected, actOnDeckerDisconnect is ${value}`);
+
+                    if(value === true){
+                        //! Get all sliders selected for automute from config and set them to mute
+                    }
+                });
                 deckerStore.setConnected(false);
             }
         })
