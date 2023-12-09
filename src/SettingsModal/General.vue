@@ -21,7 +21,7 @@
             <span class="my-auto">Act when Decker disconnects: <br></span>
             <input type="checkbox" class="toggle toggle-primary mr-2" :checked="actOnDeckerDisconnect" @change="toggleActOnDeckerDisconnect" />
         </div>
-        <div v-for="slider in sliderAmount" :key="slider" class="flex flex-row w-full justify-between px-2 mt-2">
+        <div v-if="actOnDeckerDisconnect" v-for="slider in sliderAmount" :key="slider" class="flex flex-row w-full justify-between px-2 mt-2">
             <span class="shrink-0 pt-1">Slider {{slider}}: </span>
             <select @change="sliderDisconnectHandle" v-model="selectedValues[slider - 1]"
                 class="select select-bordered select-sm w-2/3 mx-2 truncate">
@@ -84,20 +84,21 @@ export default {
             this.getAutostartStatus();
         },
         async toggleActOnDeckerDisconnect() {
-            if(this.autoMuteOnDisconnect){
+            if(this.actOnDeckerDisconnect){
                 await ConfigStore.set("actOnDeckerDisconnect", false);
-                this.getAutostartStatus();
+                this.getActOnDeckerDisconnect();
                 return;
             }
             else await ConfigStore.set("actOnDeckerDisconnect", true);
-            this.getAutostartStatus();
+            this.getActOnDeckerDisconnect();
         },
+        // Update the selected option for each slider, i.e do nothing, mute, maximize volume
         async sliderDisconnectHandle() {
             console.log(this.selectedValues);
-            await ConfigStore.set("sliderDisconnectHandle", this.selectedValues);
+            await ConfigStore.set("sliderDisconnectHandleOptions", this.selectedValues);
         },
         async getDisconnectHandleSelectedValues() {
-            const storedValues = await ConfigStore.get("sliderDisconnectHandle");
+            const storedValues = await ConfigStore.get("sliderDisconnectHandleOptions");
             if(storedValues) this.selectedValues = storedValues;
             else this.selectedValues = Array(this.sliderAmount).fill(this.sliderOptions[0]);
         }
