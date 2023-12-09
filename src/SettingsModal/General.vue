@@ -17,6 +17,19 @@
             <span class="my-auto">Run on startup: </span>
             <input type="checkbox" class="toggle toggle-primary mr-2" :checked="autoStartStatus" @change="toggleAutostart" />
         </div>
+        <div class="flex flex-row w-full justify-between px-2 mt-4">
+            <span class="my-auto">Act when Decker disconnects: <br></span>
+            <input type="checkbox" class="toggle toggle-primary mr-2" :checked="actOnDeckerDisconnect" @change="toggleActOnDeckerDisconnect" />
+        </div>
+        <div v-for="slider in sliderAmount" :key="slider" class="flex flex-row w-full justify-between px-2 mt-2">
+            <span class="shrink-0 pt-1">Slider {{slider}}: </span>
+            <select @change="sliderDisconnectHandle" v-model="selectedValues[slider - 1]"
+                class="select select-bordered select-sm w-2/3 mx-2 truncate">
+                <option class="w-full" v-for="(option, index) in sliderOptions" :value="option" :key="index">
+                    {{ option }}
+                </option>
+            </select>
+        </div>
     </div>
 </template>
 
@@ -32,6 +45,10 @@ export default {
             themes: ["light", "dark"],
             currentTheme: "",
             autoStartStatus: false,
+            actOnDeckerDisconnect: false,
+            sliderOptions: ["Do nothing", "Mute", "Maximize volume"],
+            sliderAmount: 5,
+            selectedValues: [], // Array to store selected values for each slider
         }
     },
     methods: {
@@ -46,7 +63,9 @@ export default {
         // },
         async getAutostartStatus() {
             this.autoStartStatus = await SystemSettings.checkAutostartStatus();
-            console.log(await SystemSettings.checkAutostartStatus());
+        },
+        async getActOnDeckerDisconnect() {
+            this.actOnDeckerDisconnect = await ConfigStore.get("actOnDeckerDisconnect");
         },
         async toggleAutostart() {
             if(this.autoStartStatus){
@@ -56,11 +75,31 @@ export default {
             }
             else await SystemSettings.enableAutostart();
             this.getAutostartStatus();
+        },
+        async toggleActOnDeckerDisconnect() {
+            if(this.autoMuteOnDisconnect){
+                await ConfigStore.set("actOnDeckerDisconnect", false);
+                this.getAutostartStatus();
+                return;
+            }
+            else await ConfigStore.set("actOnDeckerDisconnect", true);
+            this.getAutostartStatus();
+        },
+        async sliderDisconnectHandle() {
+            console.log(this.selectedValues);
+            await ConfigStore.set("sliderDisconnectHandle", this.selectedValues);
+        },
+        async getDisconnectHandleSelectedValues() {
+            const storedValues = await ConfigStore.get("sliderDisconnectHandle");
+            if(storedValues) this.selectedValues = storedValues;
+            else this.selectedValues = Array(this.sliderAmount).fill(this.sliderOptions[0]);
         }
     },
     mounted() {
         // this.getTheme();
         this.getAutostartStatus();
+        this.getAutoMuteOnDisconnectStatus();
+        this.getDisconnectHandleSelectedValues();
     },
 }
 </script>
