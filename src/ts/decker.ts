@@ -55,27 +55,32 @@ class Decker {
     }
 
     // Update sliders after reconnecting the Decker.
-    private updateSliders(){
+    private async updateSliders(){
+        const actOnDeckerDisconnect = await ConfigStore.get("actOnDeckerDisconnect"); // Get the value of actOnDeckerDisconnect from config
+        console.log({actOnDeckerDisconnect});
         const sliders = useDeckerStore().sliders;
-        sliders.forEach((_sliderVol, index) => {
-            console.log("Setting slider", index, "to 0.001");
-            SystemVolumeController.setChannelVolume(index, 0.001);
-        });
+        if(actOnDeckerDisconnect === true){
+            sliders.forEach((_sliderVol, index) => {
+                console.log("Setting slider", index, "to 0.001");
+                SystemVolumeController.setChannelVolume(index, 0.001);
+            });
+        }
 
         sliders.forEach((sliderVol, index) => {
           if (sliderVol === 0) sliderVol = 0.1;
         
           const targetVolume = sliderVol / 100;
-          const initialVolume = 0;
-          const increment = 0.1; // Adjust the increment value as needed
+          const initialVolume = sliderVol;
+          const increment = 0.5; // Adjust the increment value as needed
           let currentVolume = initialVolume;
+          if(currentVolume + increment > targetVolume) currentVolume = targetVolume; // If the current volume + increment is greater than the target volume, set the current volume to the target volume.
         
           const graduallyIncreaseVolume = () => {
             SystemVolumeController.setChannelVolume(index, currentVolume);
             currentVolume += increment;
         
             if (currentVolume <= targetVolume) {
-              setTimeout(graduallyIncreaseVolume, 100); // Adjust the timeout value as needed
+              setTimeout(graduallyIncreaseVolume, 50); // Adjust the timeout value as needed
             }
           };
         
@@ -87,7 +92,7 @@ class Decker {
     public async init(comPort: string){
         if(!this.initiated) this.initClass();
         this.initiated = true;
-        
+
         const deckerStore = useDeckerStore();
         this.comPort = comPort;
 
