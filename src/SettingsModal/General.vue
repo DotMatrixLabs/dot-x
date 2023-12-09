@@ -86,16 +86,19 @@ export default {
         async toggleActOnDeckerDisconnect() {
             if(this.actOnDeckerDisconnect){
                 await ConfigStore.set("actOnDeckerDisconnect", false);
+                ConfigStore.save();
                 this.getActOnDeckerDisconnect();
                 return;
             }
             else await ConfigStore.set("actOnDeckerDisconnect", true);
+            ConfigStore.save();
             this.getActOnDeckerDisconnect();
         },
         // Update the selected option for each slider, i.e do nothing, mute, maximize volume
         async sliderDisconnectHandle() {
             console.log(this.selectedValues);
             await ConfigStore.set("sliderDisconnectHandleOptions", this.selectedValues);
+            ConfigStore.save();
         },
         async getDisconnectHandleSelectedValues() {
             const storedValues = await ConfigStore.get("sliderDisconnectHandleOptions");
