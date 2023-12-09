@@ -37,6 +37,8 @@
 
 import ConfigStore from "../ts/config.ts";
 import SystemSettings from "../ts/systemSettings.ts";
+import { useDeckerStore } from "../store/deckerStore";
+import { mapState } from "pinia"; 
 
 export default {
     name: "General",
@@ -47,10 +49,15 @@ export default {
             autoStartStatus: false,
             actOnDeckerDisconnect: false,
             sliderOptions: ["Do nothing", "Mute", "Maximize volume"],
-            sliderAmount: 5,
+            sliderAmount: 3,
             selectedValues: [], // Array to store selected values for each slider
         }
     },
+    computed: {
+    ...mapState(useDeckerStore, {
+      sliders: 'getSliders',
+    }),
+  },
     methods: {
         // async getTheme() {
         //     this.currentTheme = await ConfigStore.get("theme") || "dark";
@@ -98,8 +105,10 @@ export default {
     mounted() {
         // this.getTheme();
         this.getAutostartStatus();
-        this.getAutoMuteOnDisconnectStatus();
+        this.getActOnDeckerDisconnect();
         this.getDisconnectHandleSelectedValues();
+
+        this.sliderAmount = this.sliders.length; // Set the amount of sliders to the amount of sliders in the store
     },
 }
 </script>
