@@ -1,24 +1,99 @@
 import { listen } from '@tauri-apps/api/event';
 import { invoke } from '@tauri-apps/api/tauri';
 import { useDeckerStore } from "../store/deckerStore.ts";
+import SystemVolumeController from "./volumeControl.ts";
 import ConfigStore from './config.ts';
+
 class Decker {
     private comPort: string = "";
+    private initiated: boolean;
     // private debug: boolean;
     public sliders: Array<number> = [];
 
     constructor() {
         this.comPort = "";
+        this.initiated = false;
+    }
+
+    private async initClass() {
+        const deckerStore = useDeckerStore();
+        await listen('connection-change', (event: any) => {
+            if(event.payload.message === "connected"){
+                deckerStore.setConnected(true);
+                this.updateSliders();
+            } else if (event.payload.message === "disconnected"){
+                this.handleSliderDisconnect();
+                deckerStore.setConnected(false);
+            }
+        })
     }
 
     public retryConnection(){
         this.init(this.comPort);
     }
 
+    private async handleSliderDisconnect(){
+        const actOnDeckerDisconnect = await ConfigStore.get("actOnDeckerDisconnect"); // Get the value of actOnDeckerDisconnect from config
+        if(!actOnDeckerDisconnect) return; // If actOnDeckerDisconnect is false, don't do anything
+
+        const sliderOptions = await ConfigStore.get("sliderDisconnectHandleOptions");
+
+        sliderOptions.forEach( (sliderOption: string, index: number) => {
+            sliderOption = sliderOption.toLowerCase();
+            if(sliderOption === "do nothing") return;
+
+            if(sliderOption === "mute"){
+                console.log("Muting slider", index);
+                SystemVolumeController.setChannelVolume(index, 0.001); // Set the volume to 0.001 to mute it, since WSAPI is a piece of work.
+            }
+
+            if(sliderOption === "maximize volume"){
+                SystemVolumeController.setChannelVolume(index, 1.0);
+            }
+            
+        });
+    }
+
+    // Update sliders after reconnecting the Decker.
+    private async updateSliders(){
+        const actOnDeckerDisconnect = await ConfigStore.get("actOnDeckerDisconnect"); // Get the value of actOnDeckerDisconnect from config
+        console.log({actOnDeckerDisconnect});
+        const sliders = useDeckerStore().sliders;
+        if(actOnDeckerDisconnect === true){
+            sliders.forEach((_sliderVol, index) => {
+                console.log("Setting slider", index, "to 0.001");
+                SystemVolumeController.setChannelVolume(index, 0.001);
+            });
+        }
+
+        sliders.forEach((sliderVol, index) => {
+          if (sliderVol === 0) sliderVol = 0.1;
+        
+          const targetVolume = sliderVol / 100;
+          const initialVolume = sliderVol;
+          const increment = 0.5; // Adjust the increment value as needed
+          let currentVolume = initialVolume;
+          if(currentVolume + increment > targetVolume) currentVolume = targetVolume; // If the current volume + increment is greater than the target volume, set the current volume to the target volume.
+        
+          const graduallyIncreaseVolume = () => {
+            SystemVolumeController.setChannelVolume(index, currentVolume);
+            currentVolume += increment;
+        
+            if (currentVolume <= targetVolume) {
+              setTimeout(graduallyIncreaseVolume, 50); // Adjust the timeout value as needed
+            }
+          };
+        
+          graduallyIncreaseVolume();
+        });
+    }
+
 
     public async init(comPort: string){
-        const deckerStore = useDeckerStore();
+        if(!this.initiated) this.initClass();
+        this.initiated = true;
 
+        const deckerStore = useDeckerStore();
         this.comPort = comPort;
 
         console.log("Connecting to Decker...", comPort)
@@ -32,13 +107,7 @@ class Decker {
         });
         // await invoke('init_process');
 
-        await listen('connection-change', (event: any) => {
-            if(event.payload.message === "connected"){
-                deckerStore.setConnected(true);
-            } else if (event.payload.message === "disconnected"){
-                deckerStore.setConnected(false);
-            }
-        })
+
         
         const unlisten = await listen('slider-change', (event: any) => {
             deckerStore.setConnected(true);
