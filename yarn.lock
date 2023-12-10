@@ -2148,13 +2148,13 @@ tailwindcss@^3.1, tailwindcss@^3.3.3:
 
 "tauri-plugin-autostart-api@https://github.com/tauri-apps/tauri-plugin-autostart#v1":
   version "0.0.0"
-  resolved "git+ssh://git@github.com/tauri-apps/tauri-plugin-autostart.git#072ebc2914c19eb7022c90add7ea328d437d5eb2"
+  resolved "git+ssh://git@github.com/tauri-apps/tauri-plugin-autostart.git#7404c3ccd2e45c642e3b876500ab79d88af85e4d"
   dependencies:
     "@tauri-apps/api" "1.5.1"
 
 "tauri-plugin-store-api@https://github.com/tauri-apps/tauri-plugin-store#v1":
   version "0.0.0"
-  resolved "git+ssh://git@github.com/tauri-apps/tauri-plugin-store.git#6e19887b1bdea9b921a31993d72396a350731e07"
+  resolved "git+ssh://git@github.com/tauri-apps/tauri-plugin-store.git#3367248b2661abcb73d2a89f30df780c387fb57d"
   dependencies:
     "@tauri-apps/api" "1.5.1"
 
