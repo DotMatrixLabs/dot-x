@@ -1,5 +1,5 @@
 <template>
-    <div class="flex flex-col justify-between items-center w-full">
+    <div class="flex flex-col justify-between items-center w-full h-full overflow-y-auto">
         <!-- <div class="flex flex-row w-full justify-between px-2">
             <span class="shrink-0 pt-1">Theme: </span>
             <select @change="setTheme" v-model="currentTheme"
