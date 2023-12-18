@@ -178,9 +178,20 @@ export default {
                     this.fullAppList = apps;
                     this.loading = false;
                 })
+
                 .catch(() => {
                     this.loading = false;
                 });
+
+                // Put selected apps at the top of the list
+                await this.getSelectedApps();
+                this.appList.forEach((app, index) => {
+                    const selectedApp = this.selectedApps?.find((str) => str === app.DisplayName);
+                    if(selectedApp) {
+                        this.appList.splice(index, 1);
+                        this.appList.unshift(app);
+                    }
+                })
         },
 
         selectSliderApp(app) {
