@@ -113,6 +113,7 @@ export default {
         this.getDisconnectHandleSelectedValues();
 
         this.sliderAmount = this.sliders.length; // Set the amount of sliders to the amount of sliders in the store
+        if(this.sliderAmount === 0) this.sliderAmount = 5;
     },
 }
 </script>
