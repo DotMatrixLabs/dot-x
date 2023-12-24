@@ -5,7 +5,7 @@ Check out:
 - https://crates.io/crates/tauri-plugin-autostart
 - https://crates.io/crates/tauri-plugin-notification
 - https://crates.io/crates/tauri-plugin-single-instance
-- https://crates.io/crates/firmata-rs
+- https://crates.io/crates/firmata-rs 
 
 ## DEV
 
