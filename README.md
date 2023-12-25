@@ -1,12 +1,5 @@
 # Dot X
 
-Check out:
-- https://crates.io/crates/tauri-plugin-store
-- https://crates.io/crates/tauri-plugin-autostart
-- https://crates.io/crates/tauri-plugin-notification
-- https://crates.io/crates/tauri-plugin-single-instance
-- https://crates.io/crates/firmata-rs 
-
 ## DEV
 
 To run the project, use:
