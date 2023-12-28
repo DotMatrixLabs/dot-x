@@ -185,6 +185,12 @@ pub fn initialize_decker(window: Window, port_name: &str) -> std::result::Result
                     match rx.try_recv() {
                         Ok(command) => {
                             println!("Received: {:?}", command);
+                            if command == "disconnect" {
+                                window.emit("connection-change", Payload { message: "disconnected".to_string() }).unwrap();
+                                std::mem::drop(port); // Drop the port to close it
+                                info!("Disconnected");
+                                panic!("Disconnected");
+                            }
                             match serialize_decker_data(&command) {
                                 Ok(serialized_data) => {
                                     match port.write(serialized_data.as_slice()) {
@@ -248,6 +254,15 @@ pub fn initialize_decker(window: Window, port_name: &str) -> std::result::Result
     }
 }
 
+pub fn disconnect_decker() {
+    let sender = SENDER.lock().unwrap();
+    if let Some(sender) = sender.as_ref() {
+        sender.send("disconnect".to_owned()).unwrap();
+    } else {
+        eprintln!("Sender not initialized. Make sure to initialize it before calling send_decker_command.");
+    }
+}
+
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Command {
     pub command: String,
@@ -256,9 +271,10 @@ pub struct Command {
 
 #[derive(Serialize, Deserialize)]
 pub struct Options {
-    r: i32,
-    g: i32,
-    b: i32
+    effect: String,
+    color: String,
+    speed: i32,
+    brightness: i32,
 }
 
 #[tauri::command]
