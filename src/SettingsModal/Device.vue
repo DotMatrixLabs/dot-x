@@ -9,6 +9,9 @@
                 <option class="w-full" v-for="(device, index) in devices" :value="device" :key="index">
                     {{ deviceName(device) }}
                 </option>
+                <option v-if="connectionState" class="w-full" value="disconnect">
+                    Disconnect
+                </option>
             </select>
             <!-- <button @click="detectBoard" title="Autodiscover" class="btn btn-circle btn-sm">
                 <i class="fa-solid fa-magnifying-glass"></i>
@@ -137,10 +140,16 @@ export default {
         rgbEffectChange(event) {
             this.currentRGBEffect = event.target.value;
             if(this.currentRGBEffect === 'Off') {
-                RGBController.setEffect('off');
+                RGBController.setEffect('off', 0, 0, '#000000');
                 return;
             } else if (this.currentRGBEffect === 'Static') {
-                RGBController.setEffect('setColor', 255, 255, 245, 10);       
+                RGBController.setEffect('static', 0, 255, '#fffff' );
+            } else if (this.currentRGBEffect === 'Rainbow') {
+                RGBController.setEffect('rainbow', 0, 255, '#fffff' );
+            } else if (this.currentRGBEffect === 'Candle') {
+                RGBController.setEffect('candle', 0, 255, '#fffff' );
+            } else if (this.currentRGBEffect === 'Fire') {
+                RGBController.setEffect('fire', 0, 255, '#fffff' );
             }
         },
 
@@ -149,10 +158,7 @@ export default {
 
         if (currentTime - this.lastExecutionTime >= 100) {
             const color = event.target.value;
-            const r = parseInt(color.substr(1, 2), 16);
-            const g = parseInt(color.substr(3, 2), 16);
-            const b = parseInt(color.substr(5, 2), 16);
-            RGBController.setEffect('setColor', r, g, b, 10);
+            RGBController.setEffect('static', 0, 255, color );
 
             this.lastExecutionTime = currentTime;
         }
@@ -164,6 +170,13 @@ export default {
         // },
 
         deviceSelected() {
+            if(this.currentDevice === "disconnect") {
+                Decker.disconnect();
+                this.currentDevice = null;
+                ConfigStore.set("comPort", null);
+                ConfigStore.save();
+                return;
+            }
             ConfigStore.set("comPort", this.currentDevice.port_name);
             ConfigStore.save();
             Decker.init(this.currentDevice.port_name);
