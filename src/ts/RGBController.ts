@@ -8,7 +8,9 @@ class RGBController {
         this.effects = [
             'rainbow',
             'static',
-            'off'
+            'off',
+            'theaterChase',
+            'theaterChaseRainbow',
         ]
     }
 
