@@ -140,16 +140,16 @@ export default {
         rgbEffectChange(event) {
             this.currentRGBEffect = event.target.value;
             if(this.currentRGBEffect === 'Off') {
-                RGBController.setEffect('off', 0, 0, '#000000');
+                RGBController.setEffect('off', 0, 255, '#000000');
                 return;
             } else if (this.currentRGBEffect === 'Static') {
                 RGBController.setEffect('static', 0, 255, '#fffff' );
             } else if (this.currentRGBEffect === 'Rainbow') {
-                RGBController.setEffect('rainbow', 0, 255, '#fffff' );
+                RGBController.setEffect('rainbow', 10, 255, '#fffff' );
             } else if (this.currentRGBEffect === 'Candle') {
-                RGBController.setEffect('candle', 0, 255, '#fffff' );
+                RGBController.setEffect('theaterChase', 10, 255, '#fffff' );
             } else if (this.currentRGBEffect === 'Fire') {
-                RGBController.setEffect('fire', 0, 255, '#fffff' );
+                RGBController.setEffect('theaterChaseRainbow', 10, 255, '#fffff' );
             }
         },
 
