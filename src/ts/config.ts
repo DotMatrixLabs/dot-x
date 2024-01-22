@@ -29,6 +29,15 @@ class ConfigStore {
         return await this.store.get(key);
     }
 
+    async delete(key: string) {
+        await this.store.delete(key);
+    }
+
+    async has(key: string) {
+       return await this.store.has(key);
+    }
+
+
     async getTheme(): Promise<string> {
         return await invoke("plugin:theme|get_theme");
     }
