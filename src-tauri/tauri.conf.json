@@ -41,7 +41,8 @@
         "width": 800,
         "minWidth": 750,
         "transparent": true,
-        "decorations": false
+        "decorations": false,
+        "visible": false
       }
     ],
     "systemTray": {
@@ -51,7 +52,7 @@
     "updater": {
       "active": true,
       "endpoints": [
-          "https://dist.anystack.sh/v1/tauri/9ab29103-730b-453d-b1c2-e7b57d099d07/{{current_version}}"
+        "https://dist.anystack.sh/v1/tauri/9ab29103-730b-453d-b1c2-e7b57d099d07/{{current_version}}"
       ],
       "dialog": true,
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDU2QzVDQUYzNDVERjJDNzEKUldSeExOOUY4OHJGVm5PNnZHQlZPRWE4WERodmxBYkpYbzluS2V0czlhZjRqWm5QWkRqNUt5b0cK"
@@ -66,6 +67,19 @@
       "os": {
         "all": true
       }
+    },
+    "cli": {
+      "description": "",
+      "longDescription": "",
+      "beforeHelp": "",
+      "afterHelp": "",
+      "args": [
+        {
+          "name": "hidden",
+          "short": "h"
+        }
+      ],
+      "subcommands": {}
     }
   }
 }
