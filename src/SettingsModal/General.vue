@@ -18,10 +18,6 @@
             <input type="checkbox" class="toggle toggle-primary mr-2" :checked="autoStartStatus" @change="toggleAutostart" />
         </div>
         <div class="flex flex-row w-full justify-between px-2 mt-4">
-            <span class="my-auto">Start minimized: </span>
-            <input type="checkbox" class="toggle toggle-primary mr-2" :checked="startMinimizedStatus" @change="toggleStartMinimized" />
-        </div>
-        <div class="flex flex-row w-full justify-between px-2 mt-4">
             <span class="my-auto">Act when Decker disconnects: <br></span>
             <input type="checkbox" class="toggle toggle-primary mr-2" :checked="actOnDeckerDisconnect" @change="toggleActOnDeckerDisconnect" />
         </div>
@@ -51,7 +47,6 @@ export default {
             themes: ["light", "dark"],
             currentTheme: "",
             autoStartStatus: false,
-            startMinimizedStatus: true,
             actOnDeckerDisconnect: false,
             sliderOptions: ["Do nothing", "Mute", "Maximize volume"],
             sliderAmount: 3,
@@ -83,16 +78,6 @@ export default {
 
         async toggleAutostart() {
             if(this.autoStartStatus){
-                await SystemSettings.disableAutostart();
-                this.getAutostartStatus();
-                return;
-            }
-            else await SystemSettings.enableAutostart();
-            this.getAutostartStatus();
-        },
-
-        async toggleStartMinimized() {
-            if(this.startMinimizedStatus){
                 await SystemSettings.disableAutostart();
                 this.getAutostartStatus();
                 return;
