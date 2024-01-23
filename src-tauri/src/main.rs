@@ -257,6 +257,8 @@ fn main() {
       "https://d85ea8b9310b2fa28a036ce4cf5dd449@o4506258387959808.ingest.sentry.io/4506258413387776",
       sentry_tauri::sentry::ClientOptions {
           release: sentry_tauri::sentry::release_name!(),
+          auto_session_tracking: true,
+          session_mode: sentry_tauri::sentry::SessionMode::Application,
           ..Default::default()
       },
     ));
