@@ -71,9 +71,11 @@ export default {
         async getAutostartStatus() {
             this.autoStartStatus = await SystemSettings.checkAutostartStatus();
         },
+        
         async getActOnDeckerDisconnect() {
             this.actOnDeckerDisconnect = await ConfigStore.get("actOnDeckerDisconnect");
         },
+
         async toggleAutostart() {
             if(this.autoStartStatus){
                 await SystemSettings.disableAutostart();
@@ -83,6 +85,7 @@ export default {
             else await SystemSettings.enableAutostart();
             this.getAutostartStatus();
         },
+
         async toggleActOnDeckerDisconnect() {
             if(this.actOnDeckerDisconnect){
                 await ConfigStore.set("actOnDeckerDisconnect", false);

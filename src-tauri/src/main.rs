@@ -3,6 +3,7 @@
 
 
 use log::{info, trace, error};
+use serde_json::Value;
 use tauri::AppHandle;
 use tauri::{ Manager, Window };
 use windows_volume_control::AudioController;
@@ -250,6 +251,8 @@ struct InstancePayload {
 
 fn main() {
 
+
+
     let tray_menu = build_menu();
 
 
@@ -263,14 +266,14 @@ fn main() {
 
     let _guard = sentry_tauri::minidump::init(&client);
 
-    tauri::Builder::default()
+      tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![get_installed_apps, get_all_session_names, set_application_volume, connect_decker, decker::get_devices, decker::send_decker_command, get_available_midi_output_port_names, attach_midi_device, detach_midi_device])
         .plugin(tauri_plugin_log::Builder::default().build())
         .plugin(sentry_tauri::plugin())
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_autostart::init(
           MacosLauncher::LaunchAgent,
-          None,
+          Some(vec!["--hidden"]),
         ))
         .plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
           show_notification("Dot X", "Dot X is already running");
@@ -326,6 +329,24 @@ fn main() {
         #[cfg(target_os = "windows")]
         apply_mica(&window, None)
         .unwrap_or_else(|_| { let _ = apply_blur(&window, Some((25, 10, 30, 255))); });
+
+        // This gets any command line arguments passed to the app
+        match app.get_cli_matches() {
+          // `matches` here is a Struct with { args, subcommand }.
+          // `args` is `HashMap<String, ArgData>` where `ArgData` is a struct with { value, occurrences }.
+          // `subcommand` is `Option<Box<SubcommandMatches>>` where `SubcommandMatches` is a struct with { name, matches }.
+          Ok(matches) => {
+            //if hidden is true, hide the window, else show it
+            if let Some(arg_data) = matches.args.get("hidden") {
+              if arg_data.value == Value::Bool(true) {
+                  window.hide().unwrap();
+              } else {
+                window.show().unwrap();
+              }
+            }
+          }
+          Err(_) => {}
+        }
 
         info!("Starting Dot X with version {:?}", sentry_tauri::sentry::release_name!());
 
