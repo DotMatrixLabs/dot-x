@@ -130,9 +130,9 @@ export default {
             this.getAllApps();
         },
 
-        removeClicked(name) {
-            console.log("name: ", name);
-        },
+        // removeClicked(name) {
+        //     console.log("name: ", name);
+        // },
 
         async getExtraApps() {
             const extraApps = await ExtraApps.getExtraApps();
@@ -142,9 +142,6 @@ export default {
                     extraAppsArray.push(extraApps[app]);
                 });
             }
-            console.log({
-                extraAppsArray: extraAppsArray,
-            });
             return extraAppsArray;
         },
 

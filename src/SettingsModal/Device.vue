@@ -173,7 +173,6 @@ export default {
         getDevices() {
             Decker.getDevices().then((devices) => {
                 this.devices = devices;
-                console.log(devices);
                 this.getConnectedDevice();
             });
         },

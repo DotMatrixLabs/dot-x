@@ -7,7 +7,6 @@ import Decker from './decker';
 class RGBController {
 
     constructor() {
-        console.log('RGBController initialized');
     }
 
     effects: { [key: string]: (...params: number[]) => void } = {

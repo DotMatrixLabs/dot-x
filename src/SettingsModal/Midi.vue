@@ -61,7 +61,6 @@ export default {
 
         getMidiDevices() {
             decker.getMidiDevices().then((devices) => {
-                console.log("devices", devices);
                 this.devices = devices.names;
             });
         },
@@ -70,14 +69,12 @@ export default {
         async getConnectedDevice() {
             const storedPort = await ConfigStore.get("midiOutputPort");
             this.selectedPort = storedPort;
-            console.log({selectedPortThis: this.selectedPort});
             this.getMidiDevices();
 
         },
 
         async getMidiEnabledStatus() {
             this.midiEnabled = await ConfigStore.get("midiEnabled");
-            console.log(this.midiEnabled);
         },
 
         async toggleMidi() {

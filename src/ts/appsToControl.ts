@@ -20,8 +20,6 @@ class SelectedApps {
      * @param {string | string[]} appNames - The name or array of names of the app(s) to toggle.
      */
     async toggleApps(sliderID: string, appNames: string | string[]) {
-        console.log("toggleApps", sliderID, appNames);
-
         const key: string = sliderID.toString();
         const currentApps: string[] = (await this.store.get(key)) || [];
 

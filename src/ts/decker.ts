@@ -43,7 +43,6 @@ class Decker {
             if(sliderOption === "do nothing") return;
 
             if(sliderOption === "mute"){
-                console.log("Muting slider", index);
                 SystemVolumeController.setChannelVolume(index, 0.001); // Set the volume to 0.001 to mute it, since WSAPI is a piece of work.
             }
 
@@ -57,11 +56,9 @@ class Decker {
     // Update sliders after reconnecting the Decker.
     private async updateSliders(){
         const actOnDeckerDisconnect = await ConfigStore.get("actOnDeckerDisconnect"); // Get the value of actOnDeckerDisconnect from config
-        console.log({actOnDeckerDisconnect});
         const sliders = useDeckerStore().sliders;
         if(actOnDeckerDisconnect === true){
             sliders.forEach((_sliderVol, index) => {
-                console.log("Setting slider", index, "to 0.001");
                 SystemVolumeController.setChannelVolume(index, 0.001);
             });
         }

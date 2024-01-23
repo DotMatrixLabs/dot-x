@@ -143,10 +143,8 @@ export default {
     this.setThemeFromOS();
 
     document.documentElement.setAttribute("data-theme", this.colorScheme);
-    console.log(this.colorScheme);
 
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
-      console.log(event.matches ? "dark" : "light");
       this.colorScheme = event.matches ? "dark" : "light";
       document.documentElement.setAttribute("data-theme", this.colorScheme);
     });

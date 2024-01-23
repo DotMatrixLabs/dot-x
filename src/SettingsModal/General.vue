@@ -96,7 +96,6 @@ export default {
         },
         // Update the selected option for each slider, i.e do nothing, mute, maximize volume
         async sliderDisconnectHandle() {
-            console.log(this.selectedValues);
             await ConfigStore.set("sliderDisconnectHandleOptions", this.selectedValues);
             ConfigStore.save();
         },
