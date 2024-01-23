@@ -18,8 +18,19 @@ import Decker from "./ts/decker.ts";
 import RGBController from "./ts/RGBController";
 import { useDeckerStore } from "./store/deckerStore.ts";
 import { version } from '@tauri-apps/api/os';
+import tauriConf from "../src-tauri/tauri.conf.json";
 
 import { mapState } from "pinia"; 
+import { H } from 'highlight.run';
+
+H.init('1epm7wme', {
+    environment: 'production',
+    version: tauriConf.package.version,
+	networkRecording: {
+		enabled: true,
+		recordHeadersAndBody: true,
+	},
+});
 
 const toast = useToast();
 
