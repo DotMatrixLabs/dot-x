@@ -295,8 +295,7 @@ fn main() {
               "quit" => {
                 info!("Quitting Dot X");
                 app.track_event("app_exited", None);
-                let duration = Duration::from_secs(2);
-                thread::sleep(duration); // Emit app_exited event before quitting 👀👀
+                app.flush_events_blocking();
                 std::process::exit(0);
               }
               "hide" => {
@@ -324,6 +323,7 @@ fn main() {
         })
         .setup(|app| {
           app.track_event("app_started", None);
+          app.flush_events_blocking();
           let window = app.get_window("main").unwrap();
           #[cfg(any(windows, target_os = "macos"))]
           set_shadow(&window, true).unwrap();
