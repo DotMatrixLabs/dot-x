@@ -20,7 +20,8 @@ use window_shadows::set_shadow;
 use once_cell::sync::OnceCell;
 use sentry_tauri::sentry;
 use tauri_plugin_aptabase::EventTracker;
-
+use std::thread;
+use std::time::Duration;
 static APP: OnceCell<tauri::AppHandle> = OnceCell::new();
 
 // create the error type that represents all errors possible in our program
@@ -293,6 +294,9 @@ fn main() {
             match id.as_str() {
               "quit" => {
                 info!("Quitting Dot X");
+                app.track_event("app_exited", None);
+                let duration = Duration::from_secs(2);
+                thread::sleep(duration); // Emit app_exited event before quitting 👀👀
                 std::process::exit(0);
               }
               "hide" => {
@@ -356,15 +360,8 @@ fn main() {
         APP.set(app.handle()).expect("error setting up app");
           Ok(())
         })
-        .build(tauri::generate_context!())
-        .expect("error while running tauri application")
-        .run(|handler, event| match event {
-          tauri::RunEvent::Exit { .. } => {
-              handler.track_event("app_exited", None);
-              handler.flush_events_blocking();
-          }
-          _ => {}
-      });
+        .run(tauri::generate_context!())
+        .expect("error while running tauri application");
 
 }
 
