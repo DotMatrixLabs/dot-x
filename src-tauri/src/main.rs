@@ -175,9 +175,10 @@ fn detach_midi_device() -> Result<(), Error> {
 }
 
 #[tauri::command]
-fn get_active_app_name() -> String {
+fn get_active_app_process_path() -> String {
   let active_window = get_active_window().unwrap();
-  let active_app_name = active_window.app_name;
+  println!("Active window: {:?}", active_window);
+  let active_app_name = active_window.process_path.to_string_lossy().to_string();
   active_app_name
 }
 
@@ -274,7 +275,7 @@ fn main() {
     let _guard = sentry_tauri::minidump::init(&client);
 
       tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![get_installed_apps, get_all_session_names, set_application_volume, connect_decker, decker::get_devices, decker::send_decker_command, get_available_midi_output_port_names, attach_midi_device, detach_midi_device, get_active_app_name])
+        .invoke_handler(tauri::generate_handler![get_installed_apps, get_all_session_names, set_application_volume, connect_decker, decker::get_devices, decker::send_decker_command, get_available_midi_output_port_names, attach_midi_device, detach_midi_device, get_active_app_process_path])
         .plugin(tauri_plugin_log::Builder::default().build())
         .plugin(sentry_tauri::plugin())
         .plugin(tauri_plugin_store::Builder::default().build())
