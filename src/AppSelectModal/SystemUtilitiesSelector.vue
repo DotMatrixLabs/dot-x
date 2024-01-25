@@ -1,5 +1,5 @@
 <template>
-    <div class="grid grid-cols-3 w-1/2 m-auto">
+    <div class="grid grid-cols-3 w-1/2 m-auto gap-4">
         <div class="flex flex-col justify-center items-center" v-for="device in devices">
             <button :disabled="(device.id === 'master' || device.id === 'mic') && !sessions?.includes(device.id)" @click="setActiveDevice(device.id)" class="btn btn-circle"
                 :class="activeDevices?.includes(device.id) ? 'btn-primary' : ''">
@@ -27,7 +27,9 @@ export default {
             devices: [
                 { title: "master", icon: "fas fa-volume-up fa-lg", id: "master" },
                 { title: "microphone", icon: "fas fa-lg fa-microphone", id: "mic" },
-                { title: "unmapped", icon: "fas fa-lg fa-question-circle", id: "unmapped"}
+                { title: "unmapped", icon: "fas fa-lg fa-question-circle", id: "unmapped"},
+                { title: "active window", icon: "fas fa-lg fa-window-maximize", id: "activeWindow"},
+
             ],
             activeDevices: [],
             sessions: [],
