@@ -57,10 +57,11 @@ class SystemVolumeController {
         if(Number.isNaN(volume) || !volume) return;
         let apps: string[] | null = await SelectedApps.getApps(channel);
         if(!apps) return;
-        const currentActiveWindow = await this.getActiveWindowSessionName();
-        console.log("Current active window:", currentActiveWindow);
-        console.log(apps);
+
         if(apps.includes("activeWindow")) {
+            const currentActiveWindow = await this.getActiveWindowSessionName();
+            console.log("Current active window:", currentActiveWindow);
+            console.log(apps);
             this.setVolume(currentActiveWindow, volume);
         }
         if(apps.includes("unmapped")) {
