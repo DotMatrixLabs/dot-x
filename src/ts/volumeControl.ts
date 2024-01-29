@@ -64,8 +64,6 @@ class SystemVolumeController {
 
         if(apps.includes("activeWindow")) {
             const currentActiveWindow = await this.getActiveWindowSessionName();
-            console.log("Current active window:", currentActiveWindow);
-            console.log(apps);
             this.setVolume(currentActiveWindow, volume);
         }
         if(apps.includes("unmapped")) {
