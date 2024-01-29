@@ -15,6 +15,7 @@ tauri-build = { version = "1.5", features = [] }
 [dependencies]
 tauri = { version = "1.5", features = [ "cli", "updater", "os-all", "window-all", "notification-all", "system-tray"] }
 serde = { version = "1.0", features = ["derive"] }
+tauri-plugin-aptabase = "0.4"
 serde_json = "1.0"
 winreg = "0.51.0"
 installed = "0.1.0"
