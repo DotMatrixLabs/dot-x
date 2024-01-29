@@ -9,6 +9,7 @@
     "tauri": "tauri"
   },
   "dependencies": {
+    "@aptabase/tauri": "^0.4.1",
     "@fortawesome/fontawesome-free": "^6.4.0",
     "@tauri-apps/api": "^1.5.0",
     "@types/lodash": "^4.14.200",
