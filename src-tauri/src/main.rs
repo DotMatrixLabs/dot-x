@@ -19,9 +19,11 @@ use window_vibrancy::{apply_vibrancy, apply_blur, apply_mica, NSVisualEffectMate
 use window_shadows::set_shadow;
 use once_cell::sync::OnceCell;
 use sentry_tauri::sentry;
+use active_win_pos_rs::get_active_window;
 use tauri_plugin_aptabase::EventTracker;
 use std::thread;
 use std::time::Duration;
+
 static APP: OnceCell<tauri::AppHandle> = OnceCell::new();
 
 // create the error type that represents all errors possible in our program
@@ -176,6 +178,14 @@ fn detach_midi_device() -> Result<(), Error> {
 }
 
 #[tauri::command]
+fn get_active_app_process_path() -> String {
+  let active_window = get_active_window().unwrap();
+  println!("Active window: {:?}", active_window);
+  let active_app_name = active_window.process_path.to_string_lossy().to_string();
+  active_app_name
+}
+
+#[tauri::command]
 fn set_application_volume(name: &str, volume: f32) -> Result<(), Error> {
     unsafe {
         let mut controller = AudioController::init(Some(CoinitMode::ApartmentThreaded));
@@ -268,7 +278,7 @@ fn main() {
     let _guard = sentry_tauri::minidump::init(&client);
 
       tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![get_installed_apps, get_all_session_names, set_application_volume, connect_decker, decker::get_devices, decker::send_decker_command, get_available_midi_output_port_names, attach_midi_device, detach_midi_device])
+        .invoke_handler(tauri::generate_handler![get_installed_apps, get_all_session_names, set_application_volume, connect_decker, decker::get_devices, decker::send_decker_command, get_available_midi_output_port_names, attach_midi_device, detach_midi_device, get_active_app_process_path])
         .plugin(tauri_plugin_aptabase::Builder::new("A-EU-7429874879").build()) // 👈 this is where you enter your App Key
         .plugin(tauri_plugin_log::Builder::default().build())
         .plugin(sentry_tauri::plugin())

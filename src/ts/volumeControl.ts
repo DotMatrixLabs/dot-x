@@ -6,6 +6,14 @@ import ConfigStore from "../ts/config.ts";
  * Class for controlling system volume and audio sessions.
  */
 class SystemVolumeController {
+    private lastActiveWindowExecutionTime: number;
+    private lastActiveWindowExecutionResult: any;
+    
+    constructor() {
+        this.lastActiveWindowExecutionTime = 0;
+        this.lastActiveWindowExecutionResult = "";
+    }
+
     /**
      * Gets the current system volume.
      * @returns {Promise<number>} The current system volume.
@@ -36,7 +44,11 @@ class SystemVolumeController {
      * @param {number} volume - The volume level to set.
      */
     async setVolume(name: string, volume: number): Promise<void> {
-        await invoke('set_application_volume', { name, volume });
+        try {
+            await invoke('set_application_volume', { name, volume });
+        } catch (error) {
+            console.log(error);
+        }
     }
 
     /**
@@ -49,6 +61,11 @@ class SystemVolumeController {
         if(Number.isNaN(volume) || !volume) return;
         let apps: string[] | null = await SelectedApps.getApps(channel);
         if(!apps) return;
+
+        if(apps.includes("activeWindow")) {
+            const currentActiveWindow = await this.getActiveWindowSessionName();
+            this.setVolume(currentActiveWindow, volume);
+        }
         if(apps.includes("unmapped")) {
             //get all apps and remove the ones that are already mapped
             apps = await this.getAllSessionNames(false);
@@ -73,6 +90,32 @@ class SystemVolumeController {
                 console.error(e);
             }
         }
+    }
+
+
+    async getActiveWindowProcessPath(): Promise<string> {
+        const currentTime = Date.now();
+
+        if (currentTime - this.lastActiveWindowExecutionTime >= 500) {
+            const appName: any = invoke('get_active_app_process_path');
+            this.lastActiveWindowExecutionTime = currentTime;
+            this.lastActiveWindowExecutionResult = appName;
+            return appName;
+        } else {
+            return this.lastActiveWindowExecutionResult;
+        }
+    }
+
+    async getActiveWindowSessionName(): Promise<string> {
+        const appName = await this.getActiveWindowProcessPath();
+        // Split the file path using the path separator
+        const pathSegments = appName.split(/[\\/]/);
+
+        // Get the last segment (file name) and remove the file extension
+        const fileName = pathSegments[pathSegments.length - 1];
+        const fileNameWithoutExt = fileName.replace(/\..+$/, '');
+
+        return fileNameWithoutExt;
     }
 
     /**
