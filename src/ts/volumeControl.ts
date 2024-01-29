@@ -44,7 +44,11 @@ class SystemVolumeController {
      * @param {number} volume - The volume level to set.
      */
     async setVolume(name: string, volume: number): Promise<void> {
-        await invoke('set_application_volume', { name, volume });
+        try {
+            await invoke('set_application_volume', { name, volume });
+        } catch (error) {
+            console.log(error);
+        }
     }
 
     /**
