@@ -20,6 +20,9 @@ use window_shadows::set_shadow;
 use once_cell::sync::OnceCell;
 use sentry_tauri::sentry;
 use active_win_pos_rs::get_active_window;
+use tauri_plugin_aptabase::EventTracker;
+use std::thread;
+use std::time::Duration;
 
 static APP: OnceCell<tauri::AppHandle> = OnceCell::new();
 
@@ -276,6 +279,7 @@ fn main() {
 
       tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![get_installed_apps, get_all_session_names, set_application_volume, connect_decker, decker::get_devices, decker::send_decker_command, get_available_midi_output_port_names, attach_midi_device, detach_midi_device, get_active_app_process_path])
+        .plugin(tauri_plugin_aptabase::Builder::new("A-EU-7429874879").build()) // 👈 this is where you enter your App Key
         .plugin(tauri_plugin_log::Builder::default().build())
         .plugin(sentry_tauri::plugin())
         .plugin(tauri_plugin_store::Builder::default().build())
@@ -300,6 +304,8 @@ fn main() {
             match id.as_str() {
               "quit" => {
                 info!("Quitting Dot X");
+                app.track_event("app_exited", None);
+                app.flush_events_blocking();
                 std::process::exit(0);
               }
               "hide" => {
@@ -326,6 +332,8 @@ fn main() {
           _ => {}
         })
         .setup(|app| {
+          app.track_event("app_started", None);
+          app.flush_events_blocking();
           let window = app.get_window("main").unwrap();
           #[cfg(any(windows, target_os = "macos"))]
           set_shadow(&window, true).unwrap();
