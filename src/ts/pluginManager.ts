@@ -83,9 +83,16 @@ class PluginManager {
     //     this.config = config;
     // }
 
-    // public updateSliderValues(sliderValues: any): void {
-    //     this.sliderValues = sliderValues;
-    // }
+    public updateSliderValues(sliderValues: any): void {
+        console.log("Updating slider values", sliderValues);
+        console.log(this.plugins);
+        Object.values(this.plugins).forEach((plugin: any, index) => {
+            plugin.call("updateSliderValues", sliderValues)
+            .catch((error: any) => {
+                console.log('Error updating slider values for plugin', Object.keys(this.plugins)[index]);
+            })
+        });
+    }
 }
 
 export default (new PluginManager());

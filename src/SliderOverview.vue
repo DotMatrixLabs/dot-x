@@ -34,6 +34,7 @@ import { useDeckerStore } from "./store/deckerStore.ts";
 import { invoke } from "@tauri-apps/api/tauri";
 
 import { mapState } from "pinia"; 
+import PluginManager from "./ts/pluginManager";
 
 // const sliderStore = useSliderStore();
 
@@ -69,6 +70,7 @@ export default {
   watch: {
       sliders: {
           handler: function () {
+              PluginManager.updateSliderValues(this.sliders);
               this.sliders.forEach((sliderVol, index) => {
                 if(this.prevSliderValues[index] === sliderVol) return;
                 if(sliderVol === 0) sliderVol = 0.1;
