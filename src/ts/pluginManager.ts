@@ -46,7 +46,7 @@ class PluginManager {
                 console.error('Error loading file:', name);
             }
         } catch (error) {
-            console.error('Error loading plugin:', name);
+            console.error('Error loading plugin:', name, error);
         }
     }
 
@@ -65,6 +65,7 @@ class PluginManager {
         const resourcePath = await resolveResource('plugins')
         try {
             const files = await readDir(resourcePath);
+            console.log('Files in resource folder:', files);
             return files;
         } catch (error) {
             console.error('Error reading directory:', error);
@@ -87,7 +88,9 @@ class PluginManager {
         console.log("Updating slider values", sliderValues);
         console.log(this.plugins);
         Object.values(this.plugins).forEach((plugin: any, index) => {
-            plugin.call("updateSliderValues", sliderValues)
+            plugin.call("updateSliderValues", sliderValue, index).then(response => {
+                console.log("Response from plugin", Object.keys(this.plugins)[index], response.string());
+            })
             .catch((error: any) => {
                 console.log('Error updating slider values for plugin', Object.keys(this.plugins)[index]);
             })
