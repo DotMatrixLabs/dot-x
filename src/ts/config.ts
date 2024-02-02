@@ -46,6 +46,21 @@ class ConfigStore {
         await this.store.save();
     }
 
+    async togglePlugin(pluginName: string, value: boolean) {
+        let currentPlugins = await this.get("activePlugins");
+        if(!currentPlugins) currentPlugins = [];
+        if (value === false && currentPlugins.includes(pluginName)) {
+            const index = currentPlugins.indexOf(pluginName);
+            currentPlugins.splice(index, 1);
+        } else {
+            currentPlugins.push(pluginName);
+        }
+        await this.set("activePlugins", currentPlugins);
+        await this.save();
+
+        console.log("Active plugins: ", currentPlugins);
+    }
+
 }
 
 export default new ConfigStore();

@@ -8,13 +8,12 @@
                 </div>
             </div>
             <div class="w-full h-full">
-                <button v-for="plugin in plugins" :key="plugin" class="hover:bg-base-100 rounded-lg w-full flex flex-row justify-between p-1 border-2 border-base-100"
-                    @click="selectSliderApp(item)">
+                <button v-for="plugin in plugins" :key="plugin" class="hover:bg-base-100 rounded-lg w-full flex flex-row justify-between p-1 border-2 border-base-100">
                     <div class="truncate cursor-pointer py-0.5 text-lg w-full text-left mx-2">
                         <span>{{ plugin.name.replace('.wasm', '') }}</span>
                         <span class="text-xs opacity-30 ml-2"> - {{ plugin.name }}</span>
                     </div>
-                    <input type="checkbox" class="toggle toggle-md m-auto" checked />
+                    <input type="checkbox" class="toggle toggle-md m-auto" :checked="plugin.active" @change="togglePlugin($event.target.checked, plugin.name)" />
                     <!-- <button class="mt-1" @click="removeClicked(plugin.name)">
                         <i class="fas fa-xmark m-auto w-4 h-4 p-1 rounded-full hover:bg-gray-500 hover:bg-opacity-30"></i>
                     </button> -->
@@ -38,6 +37,10 @@ export default {
         };
     },
     methods: {
+
+        togglePlugin(value, plugin) {
+            ConfigStore.togglePlugin(plugin, value);
+        },
 
         async getActivePlugins() {
            return await ConfigStore.get("activePlugins");
