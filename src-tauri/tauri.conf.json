@@ -62,7 +62,7 @@
     },
     "allowlist": {
       "fs": {
-        "scope": ["$RESOURCE/*"],
+        "scope": ["$RESOURCE/**"],
         "all": true
       },
       "path": {

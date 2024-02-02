@@ -1,6 +1,7 @@
 import createPlugin from "@extism/extism";
 import { readDir } from '@tauri-apps/api/fs';
 import { resolveResource } from '@tauri-apps/api/path'
+import { readBinaryFile } from '@tauri-apps/api/fs';
 
 class PluginManager {
     // private config: any;
@@ -27,16 +28,38 @@ class PluginManager {
 
 
     private async loadPlugin(pluginData: any) {
-        const { path, name } = pluginData;
+        let { path, name } = pluginData;
+        path = path.replace(/\\/g, '/'); // Replace backslashes with forward slashes
+        path = path.replace('//?/', ''); // Remove the prefix
         console.log("Plugin name: " + name + " path: " + path);
-        const plugin = await createPlugin(
-            'https://github.com/extism/plugins/releases/latest/download/count_vowels.wasm',
-            { useWasi: true }
-        );
-
-        this.plugins[name] = plugin as any; // Add index signature to allow indexing with a string parameter
-
+        try {
+            const ArrayBuffer = await this.loadFileAsArrayBuffer(path);
+            if (ArrayBuffer) {
+                const plugin = await createPlugin(
+                    ArrayBuffer,
+                    { useWasi: true }
+                );
+                this.plugins[name] = plugin as any; // Add index signature to allow indexing with a string parameter
+                console.log('Loaded plugin:', name);
+                console.log(this.plugins)
+            } else {
+                console.error('Error loading file:', name);
+            }
+        } catch (error) {
+            console.error('Error loading plugin:', name);
+        }
     }
+
+    async loadFileAsArrayBuffer(filePath: string): Promise<ArrayBuffer | null> {
+        try {
+            const fileData = await readBinaryFile(filePath);
+            return fileData.buffer;
+        } catch (error) {
+            console.error('Error loading file:', error);
+            return null;
+        }
+    }
+
 
     async getAllFilesInResourceFolder() {
         const resourcePath = await resolveResource('plugins')
