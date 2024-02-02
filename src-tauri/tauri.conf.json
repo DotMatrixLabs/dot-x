@@ -26,6 +26,9 @@
         "icons/128x128@2x.png",
         "icons/icon.icns",
         "icons/icon.ico"
+      ],
+      "resources": [
+        "plugins/*"
       ]
     },
     "security": {
@@ -58,6 +61,13 @@
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDU2QzVDQUYzNDVERjJDNzEKUldSeExOOUY4OHJGVm5PNnZHQlZPRWE4WERodmxBYkpYbzluS2V0czlhZjRqWm5QWkRqNUt5b0cK"
     },
     "allowlist": {
+      "fs": {
+        "scope": ["$RESOURCE/*"],
+        "all": true
+      },
+      "path": {
+        "all": true
+      },
       "notification": {
         "all": true
       },
