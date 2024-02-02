@@ -28,6 +28,7 @@ import About from "./About.vue";
 import General from "./General.vue";
 import Device from "./Device.vue";
 import Midi from "./Midi.vue";
+import Plugins from "./Plugins.vue";
 
 
 export default {
@@ -40,6 +41,7 @@ export default {
     General,
     Midi,
     Device,
+    Plugins
   },
 
   props: {
@@ -48,7 +50,7 @@ export default {
 
   data() {
     return {
-      tabs: ['Device', 'General', 'Midi', 'About'],
+      tabs: ['Device', 'General', 'Midi', 'Plugins', 'About'],
       activeTab: "Device"
     };
   },

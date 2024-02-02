@@ -24,6 +24,12 @@ class PluginManager {
             this.loadPlugin(plugin);
         })
     }
+
+
+    async getPlugins() {
+        const plugins = await this.getAllFilesInResourceFolder();
+        return plugins;
+    }
         
 
 
@@ -88,12 +94,12 @@ class PluginManager {
         console.log("Updating slider values", sliderValues);
         console.log(this.plugins);
         Object.values(this.plugins).forEach((plugin: any, index) => {
-            plugin.call("updateSliderValues", sliderValue, index).then(response => {
-                console.log("Response from plugin", Object.keys(this.plugins)[index], response.string());
-            })
-            .catch((error: any) => {
-                console.log('Error updating slider values for plugin', Object.keys(this.plugins)[index]);
-            })
+            // plugin.call("updateSliderValues", sliderValue, index).then(response => {
+            //     console.log("Response from plugin", Object.keys(this.plugins)[index], response.string());
+            // })
+            // .catch((error: any) => {
+            //     console.log('Error updating slider values for plugin', Object.keys(this.plugins)[index]);
+            // })
         });
     }
 }
