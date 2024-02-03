@@ -72,16 +72,13 @@ class PluginManager {
         const resourcePath = await resolveResource('plugins');
         try {
             const folders = await readDir(resourcePath);
-            console.log('Folders in plugins folder:', folders);
             
             const wasmFiles = await Promise.all(folders.map(async (folder) => {
                 const files = await readDir(folder.path);
-                console.log('Files in folder:', folder, files);
                 const wasmFile = files.find((file) => file.name.endsWith('.wasm'));
                 return wasmFile ? { name: wasmFile.name, path: `${folder.path}\\${wasmFile.name}` } : null;
             }));
 
-            console.log('Wasm files:', wasmFiles);
 
             return wasmFiles.filter((file) => file !== null);
         } catch (error) {
