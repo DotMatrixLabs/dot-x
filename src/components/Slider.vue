@@ -39,8 +39,8 @@ export default {
   },
   
   watch: {
-    midiEnabled(val) {
-      this.updateMidiEnabled(val);
+    midiEnabled(state) {
+      this.updateMidiEnabled(state);
     },
   },
 
@@ -57,9 +57,8 @@ export default {
     },
   },
   methods: {
-    updateMidiEnabled(val) {
-      console.log("Midi enabled: ", val);
-      if (val) {
+    updateMidiEnabled(state) {
+      if (state) {
         this.rectStyle = "fill:rgb(0, 255, 0);stroke-width:1.5;stroke:rgba(141, 141, 141, 0.512)";
       } else {
         this.rectStyle = "fill:rgb(255, 255, 255);stroke-width:1.5;stroke:rgba(141, 141, 141, 0.512)";
