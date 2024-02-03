@@ -1,5 +1,6 @@
 <template>
     <div class="flex flex-col items-center h-full w-full gap-2">
+        <PluginSettings ref="pluginSettings"/>
         <h1 class="font-bold text-lg text-center">Plugins</h1>
         <div class="flex flex-col overflow-y-auto bg-base-200 bg-opacity-50 overflow-x-hidden h-full w-full p-4 rounded-lg relative">
             <div v-if="loading" class="absolute bg-gray-900 h-full w-full left-0 top-0 bg-opacity-50">
@@ -8,7 +9,7 @@
                 </div>
             </div>
             <div class="w-full h-full">
-                <button @click="openPluginSettings" v-for="plugin in plugins" :key="plugin" class="hover:bg-base-100 rounded-lg w-full flex flex-row justify-between p-1 border-2 border-base-100">
+                <button @click="openPluginSettings(plugin.name)" v-for="plugin in plugins" :key="plugin" class="hover:bg-base-100 rounded-lg w-full flex flex-row justify-between p-1 border-2 border-base-100">
                     <div class="truncate cursor-pointer py-0.5 text-lg w-full text-left mx-2">
                         <span>{{ plugin.name.replace('.wasm', '') }}</span>
                         <span class="text-xs opacity-30 ml-2"> - {{ plugin.name }}</span>
@@ -27,6 +28,7 @@
 import LoadingSpinner from "../assets/loadingSpinner.vue";
 import PluginManager from "../ts/pluginManager";
 import ConfigStore from "../ts/config";
+import PluginSettings from "./PluginSettings.vue";
 
 export default {
     name: "Plugins",
@@ -36,9 +38,14 @@ export default {
             loading: false,
         };
     },
+    components: {
+        LoadingSpinner,
+        PluginSettings,
+    },
     methods: {
 
-        openPluginSettings() {
+        openPluginSettings(plugin) {
+            this.$refs.pluginSettings.open(plugin);
             console.log("Open plugin settings");
         },
 

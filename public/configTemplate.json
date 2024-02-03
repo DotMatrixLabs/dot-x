@@ -1,0 +1,43 @@
+{
+    "general": {
+        "IP": {
+            "value": "",
+            "inputType": "",
+            "placeholder": "",
+            "label": "IP Address",
+            "required": "true",
+            "desciption": "The IP address of the device"
+        },
+        "port": {
+            "value": "",
+            "inputType": "",
+            "placeholder": "",
+            "label": "IP Address",
+            "required": "true",
+            "desciption": "The IP address of the device"
+        },
+        "username": {
+            "value": "",
+            "inputType": "",
+            "placeholder": "",
+            "label": "IP Address",
+            "required": "true",
+            "desciption": "The IP address of the device"
+        },
+        "password": {
+            "value": "",
+            "inputType": "",
+            "placeholder": "",
+            "label": "IP Address",
+            "required": "true",
+            "desciption": "The IP address of the device"
+        }
+    },
+    "info": {
+        "versionNumber": {
+            "value": "V1.0.0",
+            "inputType": "text",
+            "placeholder": ""
+        }
+    }
+}
