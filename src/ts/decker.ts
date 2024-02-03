@@ -172,7 +172,6 @@ class Decker {
         sliderApps.forEach((sliderApp, index) => {
             if(sliderApp == null) return;
             if(sliderApp.includes("midi")){
-                console.log("Midi found in slider", index);
                 midiSliders.push(index);
             }
         });
