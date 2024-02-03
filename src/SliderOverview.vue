@@ -52,7 +52,8 @@ export default {
       ],
       prevSliderValues: [],
       isWin10: true,
-      midiEnabled: false,
+      midiEnabled: [], // Array of booleans, midiEnabled for every slider
+      midiEnabledGlobal: false,
     };
   },
 
