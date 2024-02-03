@@ -105,7 +105,6 @@ export default {
   // },
   computed: {
     currentTab() {
-      console.log("tab", this.tabs.find(tab => tab.isActive) || this.tabs[0]);
       return this.tabs.find(tab => tab.isActive) || this.tabs[0];
     },
   },
