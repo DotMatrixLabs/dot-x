@@ -29,6 +29,7 @@
 
 import SelectedApps from "../ts/appsToControl.ts";
 import SystemVolumeController from "../ts/volumeControl.ts";
+import Decker from "../ts/decker.ts";
 
 export default {
 
@@ -50,6 +51,14 @@ export default {
         async setActiveDevice(device) {
             await SelectedApps.toggleApps(this.currentSliderID.toString(), device);
             this.getActiveDevices();
+            this.reconnectMIDI();
+        },
+
+        async reconnectMIDI(){
+            /** This looks like it shouldn't work, and I agree. But it does. 
+            The reason it does is because if you try to detach from MIDI without the midiEnabled in the settings modal being set to false, it will automatically reconnect. How convenient! 🔥
+            Totally intended behaviour. */
+            await Decker.detachMidiDevice();
         },
 
         async getActiveDevices(){
