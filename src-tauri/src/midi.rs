@@ -47,7 +47,8 @@ pub mod midi {
         Ok(available_ports)
     }
 
-    pub fn new(_name: &str, midi_output_port: u32) -> Result<(), Box<dyn Error>> {
+    pub fn new(_name: &str, midi_output_port: u32, midi_sliders: Vec<i32>) -> Result<(), Box<dyn Error>> {
+        println!("midi_sliders: {:?}", midi_sliders);
         let mut Midi = Midi::new("Decker");
         let midi_out = MidiOutput::new("Decker Output")?;
         let output_ports = get_available_output_ports()?;
@@ -95,12 +96,14 @@ pub mod midi {
                                     5 => &mut Midi.previous_slider5,
                                     _ => unreachable!(), // Should never happen
                                 };
-                            
+                                
+                                // Check if the slider has moved more than 2 units, prevents jitter
                                 if current_slider.checked_sub(2).map_or(false, |result| result > *previous_slider) ||
                                 current_slider.checked_add(2).map_or(false, |result| result < *previous_slider) {
-                                    // println!("Slider {}: {}", i, current_slider);
-                                    // map current_slider to 0-127
-                                    let _ = conn_out.send(&[0xB0, i as u8, map_to_range(current_slider)]);
+                                    // Check if the slider is MIDI enabled, -1 because the sliders are 1 indexed here, but 0 indexed in the midi_sliders array coming from the frontend
+                                    if(midi_sliders.contains(&(i - 1))){ 
+                                        let _ = conn_out.send(&[0xB0, i as u8, map_to_range(current_slider)]);
+                                    }
                                     *previous_slider = current_slider;
                                 }
                             }
