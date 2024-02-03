@@ -35,12 +35,19 @@ export default {
     midiEnabled: {
       type: Boolean,
       default: false,
+    },
+    midiEnabledGlobal: {
+      type: Boolean,
+      default: false,
     }
   },
   
   watch: {
     midiEnabled(state) {
       this.updateMidiEnabled(state);
+    },
+    midiEnabledGlobal(state) {
+      this.updateMidiEnabledGlobal(state);
     },
   },
 
@@ -58,16 +65,20 @@ export default {
   },
   methods: {
     updateMidiEnabled(state) {
-      if (state) {
+      if (state && this.midiEnabledGlobal) {
         this.rectStyle = "fill:rgb(0, 255, 0);stroke-width:1.5;stroke:rgba(141, 141, 141, 0.512)";
       } else {
         this.rectStyle = "fill:rgb(255, 255, 255);stroke-width:1.5;stroke:rgba(141, 141, 141, 0.512)";
       }
     },
+    updateMidiEnabledGlobal(state) {
+      this.updateMidiEnabled(this.midiEnabled);
+    },
   },
 
   mounted() {
     this.updateMidiEnabled(this.midiEnabled);
+    this.updateMidiEnabledGlobal(this.midiEnabledGlobal);
     this.colorScheme = window.matchMedia("(prefers-color-scheme: dark)").matches
       ? "dark"
       : "light";
