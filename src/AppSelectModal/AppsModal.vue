@@ -84,7 +84,6 @@ export default {
     },
 
     async getMidiEnabledGlobal() {
-      console.log('getting midi enabled global');
       this.midiEnabledGlobal = await config.get("midiEnabled");
       const midiTab = this.tabs.find(tab => tab.name === "Midi").hide = !this.midiEnabledGlobal;
     },
