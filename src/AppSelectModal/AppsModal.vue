@@ -9,7 +9,12 @@
           </li>
         </ul>
         <div class="col-span-2 pb-6 pt-2">
-          <component :ref="tabs[0].isActive ? 'programs' : 'SystemUtilitiesSelector'" :currentSliderID="currentSliderID" :key="tabs[0].isActive ? 'Programs' : 'SystemUtilitiesSelector'" :is="tabs[0].isActive ? 'Programs' : 'SystemUtilitiesSelector'" />
+          <component
+            :is="currentTab.component"
+            :ref="currentTab.isActive ? currentTab.name : 'Programs'"
+            :key="currentTab.name"
+            :currentSliderID="currentSliderID"
+          />        
         </div>
       </div>
 
@@ -30,6 +35,7 @@ import _ from "lodash";
 
 import Programs from "./Programs.vue"
 import SystemUtilitiesSelector from "./SystemUtilitiesSelector.vue"
+import Midi from "./Midi.vue"
 
 // import { useMicrophoneStore } from "../store/microphoneStore";
 
@@ -43,7 +49,8 @@ const toast = useToast();
 export default {
   components: {
     Programs,
-    SystemUtilitiesSelector
+    SystemUtilitiesSelector,
+    Midi
   },
 
   name: "SettingsModal",
@@ -57,7 +64,11 @@ export default {
 
   data() {
     return {
-      tabs: [ { name: "Programs", isActive: true }, { name: "System Utilities" } ], 
+      tabs: [
+        { name: 'Programs', component: 'Programs', isActive: true },
+        { name: 'System Utilities', component: 'SystemUtilitiesSelector', isActive: false },
+        { name: 'Midi', component: 'Midi', isActive: false}
+      ],
     };
   },
 
@@ -79,6 +90,11 @@ export default {
   //   const microphone = useMicrophoneStore();
   //   microphone.getAudioDevices();
   // },
+  computed: {
+    currentTab() {
+      return this.tabs.find(tab => tab.isActive) || this.tabs[0];
+    },
+  },
 };
 </script>
 
