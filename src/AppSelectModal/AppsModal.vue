@@ -11,7 +11,7 @@
         <div class="col-span-2 pb-6 pt-2">
           <component
             :is="currentTab.component"
-            :ref="currentTab.isActive ? currentTab.name : 'Programs'"
+            :ref="currentTab.isActive ? currentTab.component : 'programs'"
             :key="currentTab.name"
             :currentSliderID="currentSliderID"
           />        
@@ -66,8 +66,8 @@ export default {
     return {
       tabs: [
         { name: 'Programs', component: 'Programs', isActive: true },
-        { name: 'System Utilities', component: 'SystemUtilitiesSelector', isActive: false },
-        { name: 'Midi', component: 'Midi', isActive: false}
+        { name: 'System Utilities', component: 'SystemUtilitiesSelector'},
+        { name: 'Midi', component: 'Midi'}
       ],
     };
   },
@@ -82,8 +82,11 @@ export default {
   },
 
   updated() {
-    this.$refs?.programs?.refreshData();
+    console.log('updated');
+    this.$refs?.Programs?.refreshData();
     this.$refs?.SystemUtilitiesSelector?.getActiveDevices();
+    this.$refs?.Midi?.getActiveDevices();
+    console.log(this.$refs.programs, this.$refs.SystemUtilitiesSelector, this.$refs.Midi);
   },
 
   // created() {
@@ -92,6 +95,7 @@ export default {
   // },
   computed: {
     currentTab() {
+      console.log("tab", this.tabs.find(tab => tab.isActive) || this.tabs[0]);
       return this.tabs.find(tab => tab.isActive) || this.tabs[0];
     },
   },
