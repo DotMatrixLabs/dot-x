@@ -19,7 +19,7 @@ class PluginManager {
 
 
     async loadPlugins() {
-        const plugins = await this.getAllFilesInResourceFolder();
+        const plugins = await this.getAllPlugins();
         plugins.forEach((plugin) => {
             this.loadPlugin(plugin);
         })
@@ -27,7 +27,8 @@ class PluginManager {
 
 
     async getPlugins() {
-        const plugins = await this.getAllFilesInResourceFolder();
+        const plugins = await this.getAllPlugins();
+        console.log("Plugins", plugins);
         return plugins;
     }
         
@@ -67,12 +68,22 @@ class PluginManager {
     }
 
 
-    async getAllFilesInResourceFolder() {
-        const resourcePath = await resolveResource('plugins')
+    async getAllPlugins(): Promise<{ name: string, path: string }[]> {
+        const resourcePath = await resolveResource('plugins');
         try {
-            const files = await readDir(resourcePath);
-            console.log('Files in resource folder:', files);
-            return files;
+            const folders = await readDir(resourcePath);
+            console.log('Folders in plugins folder:', folders);
+            
+            const wasmFiles = await Promise.all(folders.map(async (folder) => {
+                const files = await readDir(folder.path);
+                console.log('Files in folder:', folder, files);
+                const wasmFile = files.find((file) => file.name.endsWith('.wasm'));
+                return wasmFile ? { name: wasmFile.name, path: `${folder.path}\\${wasmFile.name}` } : null;
+            }));
+
+            console.log('Wasm files:', wasmFiles);
+
+            return wasmFiles.filter((file) => file !== null);
         } catch (error) {
             console.error('Error reading directory:', error);
             return [];
