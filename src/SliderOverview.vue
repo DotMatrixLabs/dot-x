@@ -120,11 +120,10 @@ export default {
   },
 
   async mounted() {
-    this.midiEnabled = await configStore.get('midiEnabled');
+    this.midiEnabledGlobal = await configStore.get('midiEnabled');
     configStore.store.onChange((key, value) => {
       if(key === 'midiEnabled'){
-        console.log('midiEnabled changed', value);
-        this.midiEnabled = value;
+        this.midiEnabledGlobal = value;
       }
     });
     SystemVolumeController.getAllSessionNames();
