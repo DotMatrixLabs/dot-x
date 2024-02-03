@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api/tauri';
 import { useDeckerStore } from "../store/deckerStore.ts";
 import SystemVolumeController from "./volumeControl.ts";
 import ConfigStore from './config.ts';
+import appsToControl from './appsToControl.ts';
 
 class Decker {
     private comPort: string = "";
@@ -156,8 +157,26 @@ class Decker {
      * @returns 
      */
     public async attachMidiDevice(outputPort: number) {
+        const deckerStore = useDeckerStore();
         const outputName = await ConfigStore.get("midiOutputPort");
-        return await invoke('attach_midi_device', { outputName, outputPort });
+        let sliderApps: Array<string>[] = [];
+        let midiSliders: Array<Number> = [];
+        
+        // Iterate over all sliders and get the apps for each slider
+        for (let i = 0; i < deckerStore.getSliders.length; i++) {
+            const apps = await appsToControl.getApps(i) || [];  // Use empty array if apps is null
+            sliderApps.push(apps);
+        }
+        
+        // Iterate over sliderApps, look for "midi" in all arrays inside sliderApps array and if found, add it to the midiSliders array
+        sliderApps.forEach((sliderApp, index) => {
+            if(sliderApp == null) return;
+            if(sliderApp.includes("midi")){
+                console.log("Midi found in slider", index);
+                midiSliders.push(index);
+            }
+        });
+        return await invoke('attach_midi_device', { outputName, outputPort, midiSliders });
     }
 
     /**
