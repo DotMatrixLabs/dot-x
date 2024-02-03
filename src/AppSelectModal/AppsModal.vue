@@ -11,7 +11,7 @@
         <div class="col-span-2 pb-6 pt-2">
           <component
             :is="currentTab.component"
-            :ref="currentTab.isActive ? currentTab.component : 'programs'"
+            :ref="currentTab.component"
             :key="currentTab.name"
             :currentSliderID="currentSliderID"
           />        
