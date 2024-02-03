@@ -129,33 +129,6 @@ export default {
     SystemVolumeController.getAllSessionNames();
     // SystemVolumeController.setChannelVolume('1', 0.5)
     this.getSelectedApps();
-    
-    // boardManager.initBoard(store.get('config.comPort').path)
-
-    // setInterval(() => {
-    //   if(Decker.sliders.length === 0) return;
-    //   if(Decker.sliders[0] / 1023 * 100 != this.sliders[0].value) {
-    //     console.log('change?', Decker.sliders[0] / 1023 * 100, this.sliders[0].value);
-    //     this.setSliderValue(0, Decker.sliders[0] / 1023 * 100);
-    //     SystemVolumeController.setChannelVolume('0', this.sliders[0].value / 100);
-    //   }
-    //   if(Decker.sliders[1] / 1023 * 100 != this.sliders[1].value) {
-    //     this.setSliderValue(1, Decker.sliders[1] / 1023 * 100);
-    //     SystemVolumeController.setChannelVolume('1', this.sliders[1].value / 100);
-    //   }
-    //   if(Decker.sliders[2] / 1023 * 100 != this.sliders[2].value) {
-    //     this.setSliderValue(2, Decker.sliders[2] / 1023 * 100);
-    //     SystemVolumeController.setChannelVolume('2', this.sliders[2].value / 100);
-    //   }
-    //   if(Decker.sliders[3] / 1023 * 100 != this.sliders[3].value) {
-    //     this.setSliderValue(3, Decker.sliders[3] / 1023 * 100);
-    //     SystemVolumeController.setChannelVolume('3', this.sliders[3].value / 100);
-    //   }
-    //   if(Decker.sliders[4] / 1023 * 100 != this.sliders[4].value) {
-    //     this.setSliderValue(4, Decker.sliders[4] / 1023 * 100);
-    //     SystemVolumeController.setChannelVolume('4', this.sliders[4].value / 100);
-    //   }
-    // }, 20);
   },
 
 
