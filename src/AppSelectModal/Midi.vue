@@ -5,10 +5,10 @@
             <button :disabled="(device.id === 'master' || device.id === 'mic') && !sessions?.includes(device.id)" @click="setActiveDevice(device.id)" class="btn btn-wide"
                 :class="activeDevices?.includes(device.id) ? 'btn-primary' : ''">
                 <div v-if="activeDevices?.includes(device.id)">
-                    <span class="my-auto">Enabled</span> 
+                    <span class="my-auto">MIDI Enabled</span> 
                 </div>
                 <div v-else>
-                    <span class="my-auto">Disabled</span> 
+                    <span class="my-auto">MIDI Disabled</span> 
                 <!-- <i :class="device.icon"></i> -->
                 </div>
             </button>
