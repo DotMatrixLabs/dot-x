@@ -40,12 +40,7 @@ export default {
   
   watch: {
     midiEnabled(val) {
-      // If MIDI is enabled, set it to green to indicate that it's disabled.
-      if (val) {
-        this.rectStyle = "fill:rgb(0, 255, 0);stroke-width:1.5;stroke:rgba(141, 141, 141, 0.512)";
-      } else {
-        this.rectStyle = "fill:rgb(255, 255, 255);stroke-width:1.5;stroke:rgba(141, 141, 141, 0.512)";
-      }
+      this.updateMidiEnabled(val);
     },
   },
 
@@ -61,8 +56,19 @@ export default {
       return ((this.sliderVal - 0) * (0 - 300)) / (100 - 0) + 300;
     },
   },
+  methods: {
+    updateMidiEnabled(val) {
+      console.log("Midi enabled: ", val);
+      if (val) {
+        this.rectStyle = "fill:rgb(0, 255, 0);stroke-width:1.5;stroke:rgba(141, 141, 141, 0.512)";
+      } else {
+        this.rectStyle = "fill:rgb(255, 255, 255);stroke-width:1.5;stroke:rgba(141, 141, 141, 0.512)";
+      }
+    },
+  },
 
   mounted() {
+    this.updateMidiEnabled(this.midiEnabled);
     this.colorScheme = window.matchMedia("(prefers-color-scheme: dark)").matches
       ? "dark"
       : "light";
