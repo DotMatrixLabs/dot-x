@@ -16,12 +16,12 @@
             
         </div>
     </div>
-    <div class="grid grid-cols-2 w-1/2 m-auto gap-2">
+    <!-- <div class="grid grid-cols-2 w-1/2 m-auto gap-2">
         <span class="my-auto">Channel: </span>
         <input type="text" placeholder="Type here" class="input input-bordered w-full max-w-xs" />
         <span class="my-auto">CC value: </span>
         <input type="text" placeholder="Type here" class="input input-bordered w-full max-w-xs" />
-    </div>
+    </div> -->
 </template>
 
 <script>
