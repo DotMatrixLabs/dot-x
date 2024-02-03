@@ -111,7 +111,9 @@ export default {
         } else {
           this.sliderApps[index].apps = selectedApps;
         }
-        // console.log(this.sliderApps);
+
+        // Set midiEnabled to pass to the Slider component if it's enabled.
+        this.midiEnabled[index] = selectedApps.some((app) => app.includes('midi'));
       });
     },
 
