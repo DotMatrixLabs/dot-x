@@ -61,7 +61,6 @@ export default {
 
         getMidiDevices() {
             decker.getMidiDevices().then((devices) => {
-                console.log("devices", devices);
                 this.devices = devices.names;
             });
         },
@@ -77,7 +76,6 @@ export default {
 
         async getMidiEnabledStatus() {
             this.midiEnabled = await ConfigStore.get("midiEnabled");
-            console.log(this.midiEnabled);
         },
 
         async toggleMidi() {
