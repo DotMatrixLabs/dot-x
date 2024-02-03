@@ -25,6 +25,8 @@
   </template>
 
 <script>
+import PluginManager from "../ts/pluginManager";
+
     export default {
 
         data() {
@@ -43,7 +45,15 @@
                 console.log("Open plugin settings", pluginName);
                 this.modalOpen = true;
                 this.currentPlugin = pluginName;
+                this.getPluginSettings(pluginName);
             },
+            getPluginSettings(pluginName) {
+                console.log("Get plugin settings");
+                PluginManager.getPluginSettings(pluginName).then((settings) => {
+                    console.log("Got plugin settings", settings);
+                    this.tabs = settings;
+                });
+            }
         },
 
         
