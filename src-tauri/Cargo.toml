@@ -36,7 +36,7 @@ window-vibrancy = "0.4.2"
 window-shadows = "0.2.2"
 once_cell = "1.18.0"
 sentry-tauri = "0.2.0"
-log = "^0.4"
+log = { version = "^0.4", features = ["max_level_debug", "release_max_level_warn"] }
 tauri-plugin-log = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "dev" }
 active-win-pos-rs = "0.8.3"
 
