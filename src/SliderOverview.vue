@@ -3,13 +3,10 @@
     <div class="flex flex-row justify-evenly h-full p-24">
       <template v-for="(slider, index) in (sliders.length > 0 ? sliders : 5)" :key="index">
         <div class="flex flex-col justify-center">
-          <Slider :midiEnabled="midiEnabled" :class="sliders.length === 0 || connectionState === false ? 'opacity-50' : 'opacity-100'" :slider-val="slider" class="h-full w-full" />
+          <Slider :midiEnabledGlobal="midiEnabledGlobal" :midiEnabled="midiEnabled[index]" :class="sliders.length === 0 || connectionState === false ? 'opacity-50' : 'opacity-100'" :slider-val="slider" class="h-full w-full" />
           <div v-if="sliders.length === 0 || connectionState === false" class="p-2 bg-base-200 rounded-md shadow-md ring-1 ring-gray-500 absolute text-center -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2">
-          <h1>Decker not connected</h1>
+            <h1>Decker not connected</h1>
           <!-- If MIDI is enabled, show a message to inform that no programs or groups will have their volume applied. Only MIDI messages will work. -->
-          </div> 
-          <div v-if="midiEnabled" class="p-2 bg-base-200 rounded-md shadow-md ring-1 ring-green-500 absolute text-center -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2">
-          <h1>MIDI Enabled - Programs and groups are disabled</h1>
           </div>
 
           <button @click="$emit('app-click', index)"
@@ -55,7 +52,8 @@ export default {
       ],
       prevSliderValues: [],
       isWin10: true,
-      midiEnabled: false,
+      midiEnabled: [], // Array of booleans, midiEnabled for every slider
+      midiEnabledGlobal: false,
     };
   },
 
@@ -113,50 +111,24 @@ export default {
         } else {
           this.sliderApps[index].apps = selectedApps;
         }
-        // console.log(this.sliderApps);
+
+        // Set midiEnabled to pass to the Slider component if it's enabled.
+        this.midiEnabled[index] = selectedApps.some((app) => app.includes('midi'));
       });
     },
 
   },
 
   async mounted() {
-    this.midiEnabled = await configStore.get('midiEnabled');
+    this.midiEnabledGlobal = await configStore.get('midiEnabled');
     configStore.store.onChange((key, value) => {
       if(key === 'midiEnabled'){
-        console.log('midiEnabled changed', value);
-        this.midiEnabled = value;
+        this.midiEnabledGlobal = value;
       }
     });
     SystemVolumeController.getAllSessionNames();
     // SystemVolumeController.setChannelVolume('1', 0.5)
     this.getSelectedApps();
-    
-    // boardManager.initBoard(store.get('config.comPort').path)
-
-    // setInterval(() => {
-    //   if(Decker.sliders.length === 0) return;
-    //   if(Decker.sliders[0] / 1023 * 100 != this.sliders[0].value) {
-    //     console.log('change?', Decker.sliders[0] / 1023 * 100, this.sliders[0].value);
-    //     this.setSliderValue(0, Decker.sliders[0] / 1023 * 100);
-    //     SystemVolumeController.setChannelVolume('0', this.sliders[0].value / 100);
-    //   }
-    //   if(Decker.sliders[1] / 1023 * 100 != this.sliders[1].value) {
-    //     this.setSliderValue(1, Decker.sliders[1] / 1023 * 100);
-    //     SystemVolumeController.setChannelVolume('1', this.sliders[1].value / 100);
-    //   }
-    //   if(Decker.sliders[2] / 1023 * 100 != this.sliders[2].value) {
-    //     this.setSliderValue(2, Decker.sliders[2] / 1023 * 100);
-    //     SystemVolumeController.setChannelVolume('2', this.sliders[2].value / 100);
-    //   }
-    //   if(Decker.sliders[3] / 1023 * 100 != this.sliders[3].value) {
-    //     this.setSliderValue(3, Decker.sliders[3] / 1023 * 100);
-    //     SystemVolumeController.setChannelVolume('3', this.sliders[3].value / 100);
-    //   }
-    //   if(Decker.sliders[4] / 1023 * 100 != this.sliders[4].value) {
-    //     this.setSliderValue(4, Decker.sliders[4] / 1023 * 100);
-    //     SystemVolumeController.setChannelVolume('4', this.sliders[4].value / 100);
-    //   }
-    // }, 20);
   },
 
 

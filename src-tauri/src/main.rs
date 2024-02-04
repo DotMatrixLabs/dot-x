@@ -152,9 +152,29 @@ fn get_all_session_names() -> Result<Vec<String>, Error> {
     }
 }
 
+fn value_to_i32_vec(value: &Value) -> Option<Vec<i32>> {
+  if let Value::Array(array) = value {
+      let mut i32_vec = Vec::new();
+
+      for v in array {
+          if let Some(i) = v.as_i64() {
+              i32_vec.push(i as i32);
+          } else {
+              return None;
+          }
+      }
+
+      Some(i32_vec)
+  } else {
+      None 
+  }
+}
+
 #[tauri::command]
-fn attach_midi_device(output_name: &str, output_port: u32) -> Result<(), Error> {
-    let midi_controller = midi::midi::new("Decker", output_port);
+fn attach_midi_device(output_name: &str, output_port: u32, midi_sliders: Value) -> Result<(), Error> {
+    println!("Midi port {}: Port name: {}", output_port, output_name);
+    let midi_sliders_vec = value_to_i32_vec(&midi_sliders).unwrap_or_default();
+    let midi_controller = midi::midi::new("Decker", output_port, midi_sliders_vec); // midi_sliders as string maybe? since the trait bound `&[i32]: _::_serde::Deserialize<'_>` is not satisfied
     match midi_controller {
       Ok(midi_controller) => {
         println!("Midi port {}: Port name: {}", output_port, output_name);

@@ -57,11 +57,9 @@ class SystemVolumeController {
      * @param {number} volume - The volume level to set.
      */
     async setChannelVolume(channel: number, volume: number): Promise<void> {
-        if(await ConfigStore.get("midiEnabled")) return;
         if(Number.isNaN(volume) || !volume) return;
         let apps: string[] | null = await SelectedApps.getApps(channel);
         if(!apps) return;
-
         if(apps.includes("activeWindow")) {
             const currentActiveWindow = await this.getActiveWindowSessionName();
             this.setVolume(currentActiveWindow, volume);

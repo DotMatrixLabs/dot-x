@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api/tauri';
 import { useDeckerStore } from "../store/deckerStore.ts";
 import SystemVolumeController from "./volumeControl.ts";
 import ConfigStore from './config.ts';
+import appsToControl from './appsToControl.ts';
 
 class Decker {
     private comPort: string = "";
@@ -98,9 +99,10 @@ class Decker {
 
         console.log("Connecting to Decker...", comPort)
 
-        await invoke('connect_decker', { portName: comPort }).then(() => {
+        await invoke('connect_decker', { portName: comPort }).then(async () => {
             console.log("Decker Connected!")
             deckerStore.setConnected(true);
+            if(await ConfigStore.get("midiEnabled")) this.attachMidiDevice(await ConfigStore.get("midiOutputPortNumber"));
         }).catch((error) => {
             console.log("Error connecting to Decker😭😭",error)
             deckerStore.setConnected(false);
@@ -156,8 +158,38 @@ class Decker {
      * @returns 
      */
     public async attachMidiDevice(outputPort: number) {
+        const deckerStore = useDeckerStore();
         const outputName = await ConfigStore.get("midiOutputPort");
-        return await invoke('attach_midi_device', { outputName, outputPort });
+        const MAX_RETRIES = 5;
+        let retries = 0;
+        let sliderApps: Array<string>[] = [];
+        let midiSliders: Array<Number> = [];
+
+        // Wait for deckerStore.getSliders to not return an empty array. This takes some time when the app is first started.
+        while (deckerStore.getSliders.length === 0) {
+            console.log('[decker]: Waiting for deckerStore.getSliders to not return an empty array.');
+            retries++;
+            if (retries > MAX_RETRIES) {
+                console.error("[decker]: Failed to get sliders from deckerStore, no sliders are MIDI enabled.");
+                return;
+            }
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for 1 second before checking again
+        }
+
+        // Iterate over all sliders and get the apps for each slider
+        for (let i = 0; i < deckerStore.getSliders.length; i++) {
+            const apps = await appsToControl.getApps(i) || [];  // Use empty array if apps is null
+            sliderApps.push(apps);
+        }
+        
+        // Iterate over sliderApps, look for "midi" in all arrays inside sliderApps array and if found, add it to the midiSliders array
+        sliderApps.forEach((sliderApp, index) => {
+            if(sliderApp == null) return;
+            if(sliderApp.includes("midi")){
+                midiSliders.push(index);
+            }
+        });
+        return await invoke('attach_midi_device', { outputName, outputPort, midiSliders });
     }
 
     /**

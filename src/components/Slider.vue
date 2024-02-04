@@ -35,17 +35,19 @@ export default {
     midiEnabled: {
       type: Boolean,
       default: false,
+    },
+    midiEnabledGlobal: {
+      type: Boolean,
+      default: false,
     }
   },
   
   watch: {
-    midiEnabled(val) {
-      // If MIDI is enabled, set it to green to indicate that it's disabled.
-      if (val) {
-        this.rectStyle = "fill:rgb(0, 255, 0);stroke-width:1.5;stroke:rgba(141, 141, 141, 0.512)";
-      } else {
-        this.rectStyle = "fill:rgb(255, 255, 255);stroke-width:1.5;stroke:rgba(141, 141, 141, 0.512)";
-      }
+    midiEnabled(state) {
+      this.updateMidiEnabled(state);
+    },
+    midiEnabledGlobal(state) {
+      this.updateMidiEnabledGlobal(state);
     },
   },
 
@@ -61,8 +63,22 @@ export default {
       return ((this.sliderVal - 0) * (0 - 300)) / (100 - 0) + 300;
     },
   },
+  methods: {
+    updateMidiEnabled(state) {
+      if (state && this.midiEnabledGlobal) {
+        this.rectStyle = "fill:rgb(0, 255, 0);stroke-width:1.5;stroke:rgba(141, 141, 141, 0.512)";
+      } else {
+        this.rectStyle = "fill:rgb(255, 255, 255);stroke-width:1.5;stroke:rgba(141, 141, 141, 0.512)";
+      }
+    },
+    updateMidiEnabledGlobal(state) {
+      this.updateMidiEnabled(this.midiEnabled);
+    },
+  },
 
   mounted() {
+    this.updateMidiEnabled(this.midiEnabled);
+    this.updateMidiEnabledGlobal(this.midiEnabledGlobal);
     this.colorScheme = window.matchMedia("(prefers-color-scheme: dark)").matches
       ? "dark"
       : "light";

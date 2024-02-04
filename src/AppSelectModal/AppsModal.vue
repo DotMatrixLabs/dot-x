@@ -4,12 +4,19 @@
       <h1 class="font-bold text-lg text-center">Apps</h1>
       <div class="w-full">
         <ul class="menu rounded-box menu-compact p-2 flex flex-row w-full justify-center gap-2">
-          <li v-for="tab in tabs" :key="tab">
-            <a @click="selectTab(tab)" class="w-full text-center" :class="{ active: tab.isActive }">{{ tab.name }}</a>
-          </li>
+          <template v-for="tab in tabs" :key="tab">
+            <li v-if="!tab.hide">
+              <a @click="selectTab(tab)" class="w-full text-center" :class="{ active: tab.isActive }">{{ tab.name }}</a>
+            </li>
+          </template>
         </ul>
         <div class="col-span-2 pb-6 pt-2">
-          <component :ref="tabs[0].isActive ? 'programs' : 'SystemUtilitiesSelector'" :currentSliderID="currentSliderID" :key="tabs[0].isActive ? 'Programs' : 'SystemUtilitiesSelector'" :is="tabs[0].isActive ? 'Programs' : 'SystemUtilitiesSelector'" />
+          <component
+            :is="currentTab.component"
+            :ref="currentTab.component"
+            :key="currentTab.name"
+            :currentSliderID="currentSliderID"
+          />        
         </div>
       </div>
 
@@ -30,6 +37,8 @@ import _ from "lodash";
 
 import Programs from "./Programs.vue"
 import SystemUtilitiesSelector from "./SystemUtilitiesSelector.vue"
+import Midi from "./Midi.vue"
+import config from "../ts/config";
 
 // import { useMicrophoneStore } from "../store/microphoneStore";
 
@@ -43,7 +52,8 @@ const toast = useToast();
 export default {
   components: {
     Programs,
-    SystemUtilitiesSelector
+    SystemUtilitiesSelector,
+    Midi
   },
 
   name: "SettingsModal",
@@ -57,7 +67,12 @@ export default {
 
   data() {
     return {
-      tabs: [ { name: "Programs", isActive: true }, { name: "System Utilities" } ], 
+      tabs: [
+        { name: 'Programs', component: 'Programs', isActive: true },
+        { name: 'System Utilities', component: 'SystemUtilitiesSelector'},
+        { name: 'Midi', component: 'Midi', hide: true}
+      ],
+      midiEnabledGlobal: false,
     };
   },
 
@@ -68,17 +83,31 @@ export default {
       });
     },
 
+    async getMidiEnabledGlobal() {
+      this.midiEnabledGlobal = await config.get("midiEnabled");
+      const midiTab = this.tabs.find(tab => tab.name === "Midi").hide = !this.midiEnabledGlobal;
+    },
+
   },
 
   updated() {
-    this.$refs?.programs?.refreshData();
+    this.getMidiEnabledGlobal();
+    this.$refs?.Programs?.refreshData();
     this.$refs?.SystemUtilitiesSelector?.getActiveDevices();
+    this.$refs?.Midi?.getActiveDevices();
+
+    if(this.currentTab.hide) this.selectTab(this.tabs[0]); // If the current tab is hidden, select the first tab (Programs, which can never be hidden, so it's safe to assume it's there)
   },
 
   // created() {
   //   const microphone = useMicrophoneStore();
   //   microphone.getAudioDevices();
   // },
+  computed: {
+    currentTab() {
+      return this.tabs.find(tab => tab.isActive) || this.tabs[0];
+    },
+  },
 };
 </script>
 
