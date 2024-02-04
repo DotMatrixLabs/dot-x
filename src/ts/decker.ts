@@ -99,9 +99,10 @@ class Decker {
 
         console.log("Connecting to Decker...", comPort)
 
-        await invoke('connect_decker', { portName: comPort }).then(() => {
+        await invoke('connect_decker', { portName: comPort }).then(async () => {
             console.log("Decker Connected!")
             deckerStore.setConnected(true);
+            if(await ConfigStore.get("midiEnabled")) this.attachMidiDevice(await ConfigStore.get("midiOutputPortNumber"));
         }).catch((error) => {
             console.log("Error connecting to Decker😭😭",error)
             deckerStore.setConnected(false);
