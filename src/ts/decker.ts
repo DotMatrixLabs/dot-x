@@ -159,9 +159,22 @@ class Decker {
     public async attachMidiDevice(outputPort: number) {
         const deckerStore = useDeckerStore();
         const outputName = await ConfigStore.get("midiOutputPort");
+        const MAX_RETRIES = 5;
+        let retries = 0;
         let sliderApps: Array<string>[] = [];
         let midiSliders: Array<Number> = [];
-        
+
+        // Wait for deckerStore.getSliders to not return an empty array. This takes some time when the app is first started.
+        while (deckerStore.getSliders.length === 0) {
+            console.log('[decker]: Waiting for deckerStore.getSliders to not return an empty array.');
+            retries++;
+            if (retries > MAX_RETRIES) {
+                console.error("[decker]: Failed to get sliders from deckerStore, no sliders are MIDI enabled.");
+                return;
+            }
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for 1 second before checking again
+        }
+
         // Iterate over all sliders and get the apps for each slider
         for (let i = 0; i < deckerStore.getSliders.length; i++) {
             const apps = await appsToControl.getApps(i) || [];  // Use empty array if apps is null
