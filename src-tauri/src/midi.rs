@@ -104,6 +104,11 @@ pub mod midi {
                                     // Check if the slider is MIDI enabled, -1 because the sliders are 1 indexed here, but 0 indexed in the midi_sliders array coming from the frontend
                                     if(midi_sliders.contains(&(i - 1))){ 
                                         // Filter the midi_configuration array to only include the current slider
+                                        if let Some(element) = midi_configuration.get(i as usize - 1) {
+                                            println!("element: {:?}", element);
+                                        } else {
+                                            println!("element: None");
+                                        }
                                         let filtered_vec: Vec<_> = midi_configuration
                                         .iter()
                                         .enumerate()
@@ -115,12 +120,8 @@ pub mod midi {
                                         println!("CCValue: {:?}", CCValue);
                                         println!("filtered_vec: {:?}", filtered_vec);
                                         let CCValueParsed = u8::from_str_radix(&CCValue, 16).unwrap();
-                                        if let Ok(parsed_value) = u8::from_str_radix(&CCValue, 16) {
-                                            println!("Parsed value as u8: {}", parsed_value);
-                                        } else {
-                                            println!("Failed to parse the hexadecimal string");
-                                        }
-                                        let _ = conn_out.send(&[CCValueParsed, channel.parse::<u8>().unwrap(), map_to_range(current_slider)]);
+                                        let channel = channel.parse::<u8>().unwrap();
+                                        let _ = conn_out.send(&[CCValueParsed, channel, map_to_range(current_slider)]);
                                     }
                                     *previous_slider = current_slider;
                                 }
