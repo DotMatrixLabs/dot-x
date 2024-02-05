@@ -11,6 +11,7 @@ class ConfigStore {
 
     async set(key: string, value: any) {
         await this.store.set(key, value);
+        await this.save();
     }
 
     /**
