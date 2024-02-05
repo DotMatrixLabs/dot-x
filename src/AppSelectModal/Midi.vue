@@ -27,6 +27,7 @@
         <label class="form-control w-full max-w-xs">
             <div class="label">
                 <span class="label-text">CC Value</span>
+                <span v-if="CCValueInvalidInput" class="label-text-alt text-red-600 text-sm">Must be a two-digit hex value!</span>
             </div>
             <input v-model.trim="CCValueInput" @change="setCCValue" type="text" placeholder="CC Value" class="input input-bordered w-full max-w-xs" />
         </label>
@@ -57,6 +58,7 @@ export default {
             channelInput: "",
             CCValueInput: "",
             MIDIConfiguration: [], // Store the MIDI configuration for every slider, so reference the current slider ID when setting the MIDI configuration
+            CCValueInvalidInput: false,
         }
     },
 
@@ -101,17 +103,17 @@ export default {
             const hexPattern = /^[0-9A-Fa-f]{2}$/;
             if(!hexPattern.test(this.CCValueInput) && this.CCValueInput !== "") {
                 console.error("Invalid CC Value. Must be a valid hex value.");
+                this.CCValueInvalidInput = true;
                 this.getMIDISettings();
                 return;
             }
-            console.log(this.CCValueInput);
             this.MIDIConfiguration[this.currentSliderID].CCValue = this.CCValueInput !== "" ? this.CCValueInput : `B0`;
+            this.CCValueInvalidInput = false;
             await config.set(`midiConfiguration`, this.MIDIConfiguration);
             this.getMIDISettings();
         },
 
         async setChannel() {
-            console.log(this.channelInput);
             this.MIDIConfiguration[this.currentSliderID].channel = this.channelInput !== "" ? this.channelInput : `${this.currentSliderID + 1}`;
             await config.set(`midiConfiguration`, this.MIDIConfiguration);
             this.getMIDISettings();
@@ -120,6 +122,7 @@ export default {
         refreshData() {
             this.getActiveDevices();
             this.getMIDISettings();
+            this.CCValueInvalidInput = false;
         }
         
     },
