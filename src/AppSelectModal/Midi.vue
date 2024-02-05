@@ -20,6 +20,7 @@
         <label class="form-control w-full max-w-xs">
             <div class="label">
                 <span class="label-text">Channel</span>
+                <span v-if="channelInvalidInput" class="label-text-alt text-red-600 text-sm">Must be a valid number 0-127!</span>
             </div>
             <input v-model.trim="channelInput" @change="setChannel" type="text" placeholder="Channel" class="input input-bordered w-full max-w-xs" />
         </label>
@@ -59,6 +60,7 @@ export default {
             CCValueInput: "",
             MIDIConfiguration: [], // Store the MIDI configuration for every slider, so reference the current slider ID when setting the MIDI configuration
             CCValueInvalidInput: false,
+            channelInvalidInput: false,
         }
     },
 
@@ -114,15 +116,31 @@ export default {
         },
 
         async setChannel() {
-            this.MIDIConfiguration[this.currentSliderID].channel = this.channelInput !== "" ? this.channelInput : `${this.currentSliderID + 1}`;
+            // MIDI channel value regex, must be a valid decimal number between 0 and 127
+            const numberPattern = /^(?:\d|[1-9]\d|1[01]\d|12[0-7])$/;
+            
+            if (!numberPattern.test(this.channelInput) && this.channelInput !== "") {
+                console.error("Invalid Channel Value. Must be a valid number between 0 and 127.");
+                this.channelInvalidInput = true;
+                this.getMIDISettings();
+                return;
+            }
+
+            const channelValue = this.channelInput !== "" ? this.channelInput : `${this.currentSliderID + 1}`;
+            
+            this.MIDIConfiguration[this.currentSliderID].channel = channelValue;
+            this.channelInvalidInput = false;
+
             await config.set(`midiConfiguration`, this.MIDIConfiguration);
             this.getMIDISettings();
         },
+
         
         refreshData() {
             this.getActiveDevices();
             this.getMIDISettings();
             this.CCValueInvalidInput = false;
+            this.channelInvalidInput = false;
         }
         
     },
