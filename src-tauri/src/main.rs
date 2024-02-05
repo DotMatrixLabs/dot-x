@@ -170,11 +170,34 @@ fn value_to_i32_vec(value: &Value) -> Option<Vec<i32>> {
   }
 }
 
+fn value_to_object_vec(value: &Value) -> Option<Vec<(String, String)>> {
+  if let Value::Array(array) = value {
+      let mut object_vec = Vec::new();
+
+      for v in array {
+          if let Value::Object(obj) = v {
+              // Assuming each object has two keys with string values
+              let key1 = obj.get("channel")?.as_str()?.to_string();
+              let key2 = obj.get("CCValue")?.as_str()?.to_string();
+
+              object_vec.push((key1, key2));
+          } else {
+              return None;
+          }
+      }
+
+      Some(object_vec)
+  } else {
+      None
+  }
+}
+
 #[tauri::command]
-fn attach_midi_device(output_name: &str, output_port: u32, midi_sliders: Value) -> Result<(), Error> {
+fn attach_midi_device(output_name: &str, output_port: u32, midi_sliders: Value, midi_configuration: Value) -> Result<(), Error> {
     println!("Midi port {}: Port name: {}", output_port, output_name);
     let midi_sliders_vec = value_to_i32_vec(&midi_sliders).unwrap_or_default();
-    let midi_controller = midi::midi::new("Decker", output_port, midi_sliders_vec); // midi_sliders as string maybe? since the trait bound `&[i32]: _::_serde::Deserialize<'_>` is not satisfied
+    let midi_configuration_vec = value_to_object_vec(&midi_configuration).unwrap_or_default();
+    let midi_controller = midi::midi::new("Decker", output_port, midi_sliders_vec, midi_configuration_vec); // midi_sliders as string maybe? since the trait bound `&[i32]: _::_serde::Deserialize<'_>` is not satisfied
     match midi_controller {
       Ok(midi_controller) => {
         println!("Midi port {}: Port name: {}", output_port, output_name);
