@@ -16,11 +16,20 @@
             
         </div>
     </div>
-    <div class="grid grid-cols-2 w-1/2 m-auto gap-2">
-        <span class="my-auto">Channel: </span>
-        <input type="text" placeholder="Type here" class="input input-bordered w-full max-w-xs" />
-        <span class="my-auto">CC value: </span>
-        <input type="text" placeholder="Type here" class="input input-bordered w-full max-w-xs" />
+    <div class="grid grid-cols-1 w-1/2 m-auto gap-1">
+        <label class="form-control w-full max-w-xs">
+            <div class="label">
+                <span class="label-text">Channel</span>
+            </div>
+            <input v-model.trim="channelInput" @change="setChannel" type="text" placeholder="Channel" class="input input-bordered w-full max-w-xs" />
+        </label>
+
+        <label class="form-control w-full max-w-xs">
+            <div class="label">
+                <span class="label-text">CC Value</span>
+            </div>
+            <input v-model.trim="CCValueInput" @change="setCCValue" type="text" placeholder="CC Value" class="input input-bordered w-full max-w-xs" />
+        </label>
     </div>
 </template>
 
