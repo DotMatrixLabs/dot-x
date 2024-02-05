@@ -97,6 +97,13 @@ export default {
         },
 
         async setCCValue() {
+            // MIDI CC value regex, must be a valid two-digit hex value
+            const hexPattern = /^[0-9A-Fa-f]{2}$/;
+            if(!hexPattern.test(this.CCValueInput) && this.CCValueInput !== "") {
+                console.error("Invalid CC Value. Must be a valid hex value.");
+                this.getMIDISettings();
+                return;
+            }
             console.log(this.CCValueInput);
             this.MIDIConfiguration[this.currentSliderID].CCValue = this.CCValueInput !== "" ? this.CCValueInput : `B0`;
             await config.set(`midiConfiguration`, this.MIDIConfiguration);
