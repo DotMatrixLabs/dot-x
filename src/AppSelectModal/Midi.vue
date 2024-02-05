@@ -39,6 +39,7 @@
 import SelectedApps from "../ts/appsToControl.ts";
 import SystemVolumeController from "../ts/volumeControl.ts";
 import Decker from "../ts/decker.ts";
+import config from "../ts/config";
 
 export default {
 
@@ -53,6 +54,9 @@ export default {
             ],
             activeDevices: [],
             sessions: [],
+            channelInput: "",
+            CCValueInput: "",
+            MIDIConfiguration: [], // Store the MIDI configuration for every slider, so reference the current slider ID when setting the MIDI configuration
         }
     },
 
@@ -78,6 +82,37 @@ export default {
 
         async getSessions() {
             this.sessions = await SystemVolumeController.getAllSessionNames(true);
+        },
+
+        async getMIDISettings() {
+            // Read MIDIConfiguration from config.get(MIDIConfiguration), if it exists. If not, set it to an empty array.
+
+            this.MIDIConfiguration = await config.get("midiConfiguration") ?? [];
+            if(this.MIDIConfiguration[this.currentSliderID] === undefined || this.MIDIConfiguration[this.currentSliderID] === null) this.MIDIConfiguration[this.currentSliderID] = {}; // If the MIDI configuration for the current slider doesn't exist, create it
+            this.channelInput = this.MIDIConfiguration[this.currentSliderID]?.channel ?? `${this.currentSliderID + 1}`; // By default, the channel is the slider ID/number
+            this.CCValueInput = this.MIDIConfiguration[this.currentSliderID]?.CCValue ?? `B0`; // By default, the CC value is B0
+            
+            console.log(this.MIDIConfiguration);
+            console.log(`[Slider ${this.currentSliderID +1}]: Channel: ${this.channelInput}, CC Value: ${this.CCValueInput}, MIDI Configuration: ${this.MIDIConfiguration}`);
+        },
+
+        async setCCValue() {
+            console.log(this.CCValueInput);
+            this.MIDIConfiguration[this.currentSliderID].CCValue = this.CCValueInput !== "" ? this.CCValueInput : `B0`;
+            await config.set(`midiConfiguration`, this.MIDIConfiguration);
+            this.getMIDISettings();
+        },
+
+        async setChannel() {
+            console.log(this.channelInput);
+            this.MIDIConfiguration[this.currentSliderID].channel = this.channelInput !== "" ? this.channelInput : `${this.currentSliderID + 1}`;
+            await config.set(`midiConfiguration`, this.MIDIConfiguration);
+            this.getMIDISettings();
+        },
+        
+        refreshData() {
+            this.getActiveDevices();
+            this.getMIDISettings();
         }
         
     },
@@ -85,6 +120,7 @@ export default {
     mounted() {
         this.getActiveDevices();
         this.getSessions();
+        this.getMIDISettings();
     },
 
 }
