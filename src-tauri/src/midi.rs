@@ -47,8 +47,9 @@ pub mod midi {
         Ok(available_ports)
     }
 
-    pub fn new(_name: &str, midi_output_port: u32, midi_sliders: Vec<i32>) -> Result<(), Box<dyn Error>> {
+    pub fn new(_name: &str, midi_output_port: u32, midi_sliders: Vec<i32>, midi_configuration: Vec<(String, String)>) -> Result<(), Box<dyn Error>> {
         println!("midi_sliders: {:?}", midi_sliders);
+        println!("midi_configuration: {:?}", midi_configuration);
         let mut Midi = Midi::new("Decker");
         let midi_out = MidiOutput::new("Decker Output")?;
         let output_ports = get_available_output_ports()?;
@@ -102,7 +103,24 @@ pub mod midi {
                                 current_slider.checked_add(2).map_or(false, |result| result < *previous_slider) {
                                     // Check if the slider is MIDI enabled, -1 because the sliders are 1 indexed here, but 0 indexed in the midi_sliders array coming from the frontend
                                     if(midi_sliders.contains(&(i - 1))){ 
-                                        let _ = conn_out.send(&[0xB0, i as u8, map_to_range(current_slider)]);
+                                        // Filter the midi_configuration array to only include the current slider
+                                        let filtered_vec: Vec<_> = midi_configuration
+                                        .iter()
+                                        .enumerate()
+                                        .filter(|(index, _)| *index == i as usize - 1) // -1 because the sliders are 1 indexed here, but 0 indexed in the midi_configuration array coming from the frontend
+                                        .map(|(_, tuple)| tuple.clone())
+                                        .collect();
+                                        let (channel, CCValue) = filtered_vec[0].clone(); // The filtered_vec should only contain one element, so we can safely unwrap it I think
+                                        println!("channel: {:?}", channel);
+                                        println!("CCValue: {:?}", CCValue);
+                                        println!("filtered_vec: {:?}", filtered_vec);
+                                        let CCValueParsed = u8::from_str_radix(&CCValue, 16).unwrap();
+                                        if let Ok(parsed_value) = u8::from_str_radix(&CCValue, 16) {
+                                            println!("Parsed value as u8: {}", parsed_value);
+                                        } else {
+                                            println!("Failed to parse the hexadecimal string");
+                                        }
+                                        let _ = conn_out.send(&[CCValueParsed, channel.parse::<u8>().unwrap(), map_to_range(current_slider)]);
                                     }
                                     *previous_slider = current_slider;
                                 }
