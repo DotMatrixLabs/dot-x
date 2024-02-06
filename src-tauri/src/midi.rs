@@ -1,5 +1,6 @@
 pub mod midi {
     use crate::{decker, APP, get_app_handle};
+    use log::{debug, error, info, trace};
     use midir::{MidiOutput, MidiOutputConnection, MidiOutputPort};
     use tauri::Manager;
     use std::error::Error;
@@ -48,13 +49,11 @@ pub mod midi {
     }
 
     pub fn new(_name: &str, midi_output_port: u32, midi_sliders: Vec<i32>, midi_configuration: Vec<(String, String)>) -> Result<(), Box<dyn Error>> {
-        println!("midi_sliders: {:?}", midi_sliders);
-        println!("midi_configuration: {:?}", midi_configuration);
         let mut Midi = Midi::new("Decker");
         let midi_out = MidiOutput::new("Decker Output")?;
         let output_ports = get_available_output_ports()?;
         if output_ports.is_empty() {
-            eprintln!("No available MIDI output ports.");
+            error!("No available MIDI output ports.");
         }
         if(output_ports.len() -1 < midi_output_port as usize) {
             eprintln!("The selected MIDI port doesn't exist.");
@@ -65,14 +64,14 @@ pub mod midi {
         let mut conn_out: MidiOutputConnection;
         match conn_out_result {
             Ok(conn) => {
-                println!("Connection to {} successful", Midi.name);
+                debug!("Connection to {} successful", Midi.name);
                 conn_out = conn;
                 let thread_handle = thread::spawn(move || {
-                    println!("starting midi thread");
+                    debug!("starting midi thread");
                     loop {
                         unsafe { 
                             if !ENABLED {
-                                println!("detaching midi thread");
+                                debug!("detaching midi thread");
                                 let app_handle = get_app_handle();
                                 app_handle.emit_all("midi_detached", {});
                                 conn_out.close();
@@ -104,23 +103,36 @@ pub mod midi {
                                     // Check if the slider is MIDI enabled, -1 because the sliders are 1 indexed here, but 0 indexed in the midi_sliders array coming from the frontend
                                     if(midi_sliders.contains(&(i - 1))){ 
                                         // Filter the midi_configuration array to only include the current slider
+                                        let CCValueParsed: u8;
+                                        let channel: u8;
                                         if let Some(element) = midi_configuration.get(i as usize - 1) {
-                                            println!("element: {:?}", element);
+                                            let filtered_vec: Vec<_> = midi_configuration
+                                            .iter()
+                                            .enumerate()
+                                            .filter(|(index, _)| *index == i as usize - 1) // -1 because the sliders are 1 indexed here, but 0 indexed in the midi_configuration array coming from the frontend
+                                            .map(|(_, tuple)| tuple.clone())
+                                            .collect();
+                                            let (channelFromTuple, CCValueFromTuple) = filtered_vec[0].clone(); // The filtered_vec should only contain one element, so we can safely unwrap it I think
+                                            if(channelFromTuple == "") {
+                                                trace!("channelFromTuple is empty, setting to default {}", i);
+                                                channel = i as u8;
+                                            } else {
+                                                trace!("channelFromTuple is not empty, parsing to u8");
+                                                channel = channelFromTuple.parse::<u8>().unwrap();
+                                            }
+
+                                            if(CCValueFromTuple == "") {
+                                                trace!("CCValueFromTuple is empty, setting to default 0xB0");
+                                                CCValueParsed = 0xB0;
+                                            } else {
+                                                trace!("CCValueFromTuple is not empty, parsing to u8/hex");
+                                                CCValueParsed = u8::from_str_radix(&CCValueFromTuple, 16).unwrap();
+                                            }
                                         } else {
-                                            println!("element: None");
+                                            trace!("MIDI Configuration doesn't exist for slider {}, setting to default 0xB0 and channel {}", i, i);
+                                            CCValueParsed = 0xB0;
+                                            channel = i as u8;
                                         }
-                                        let filtered_vec: Vec<_> = midi_configuration
-                                        .iter()
-                                        .enumerate()
-                                        .filter(|(index, _)| *index == i as usize - 1) // -1 because the sliders are 1 indexed here, but 0 indexed in the midi_configuration array coming from the frontend
-                                        .map(|(_, tuple)| tuple.clone())
-                                        .collect();
-                                        let (channel, CCValue) = filtered_vec[0].clone(); // The filtered_vec should only contain one element, so we can safely unwrap it I think
-                                        println!("channel: {:?}", channel);
-                                        println!("CCValue: {:?}", CCValue);
-                                        println!("filtered_vec: {:?}", filtered_vec);
-                                        let CCValueParsed = u8::from_str_radix(&CCValue, 16).unwrap();
-                                        let channel = channel.parse::<u8>().unwrap();
                                         let _ = conn_out.send(&[CCValueParsed, channel, map_to_range(current_slider)]);
                                     }
                                     *previous_slider = current_slider;
@@ -139,7 +151,7 @@ pub mod midi {
             }
         }
 
-        println!("Midi initialized");
+        info!("Midi initialized");
         Ok(())
     }
 }
