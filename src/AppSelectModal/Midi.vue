@@ -113,6 +113,7 @@ export default {
             this.CCValueInvalidInput = false;
             await config.set(`midiConfiguration`, this.MIDIConfiguration);
             this.getMIDISettings();
+            this.reconnectMIDI();
         },
 
         async setChannel() {
@@ -133,6 +134,7 @@ export default {
 
             await config.set(`midiConfiguration`, this.MIDIConfiguration);
             this.getMIDISettings();
+            this.reconnectMIDI();
         },
 
         
