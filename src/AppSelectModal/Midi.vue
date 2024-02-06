@@ -81,7 +81,6 @@ export default {
         async getActiveDevices(){
             if(this.currentSliderID === null) return;
             this.activeDevices = await SelectedApps.getApps(this.currentSliderID?.toString());
-            console.log(this.activeDevices, this.activeDevices[this.currentSliderID?.toString()]);
         },
 
         async getSessions() {
@@ -95,9 +94,7 @@ export default {
             if(this.MIDIConfiguration[this.currentSliderID] === undefined || this.MIDIConfiguration[this.currentSliderID] === null) this.MIDIConfiguration[this.currentSliderID] = {}; // If the MIDI configuration for the current slider doesn't exist, create it
             this.channelInput = this.MIDIConfiguration[this.currentSliderID]?.channel ?? `${this.currentSliderID + 1}`; // By default, the channel is the slider ID/number
             this.CCValueInput = this.MIDIConfiguration[this.currentSliderID]?.CCValue ?? `B0`; // By default, the CC value is B0
-            
-            console.log(this.MIDIConfiguration);
-            console.log(`[Slider ${this.currentSliderID +1}]: Channel: ${this.channelInput}, CC Value: ${this.CCValueInput}, MIDI Configuration: ${this.MIDIConfiguration}`);
+            console.log(`[Slider ${this.currentSliderID +1}]: Channel: ${this.channelInput}, CC Value: ${this.CCValueInput}`);
         },
 
         async setCCValue() {
