@@ -20,7 +20,7 @@
         <label class="form-control w-full max-w-xs">
             <div class="label">
                 <span class="label-text">Channel</span>
-                <span v-if="channelInvalidInput" class="label-text-alt text-red-600 text-sm">Must be a valid number 0-127!</span>
+                <span v-if="channelInvalidInput" class="label-text-alt text-red-600 text-sm">Must be a valid number 1-16!</span>
             </div>
             <input v-model.trim="channelInput" @change="setChannel" type="text" placeholder="Channel" class="input input-bordered w-full max-w-xs" />
         </label>
@@ -28,7 +28,7 @@
         <label class="form-control w-full max-w-xs">
             <div class="label">
                 <span class="label-text">CC Value</span>
-                <span v-if="CCValueInvalidInput" class="label-text-alt text-red-600 text-sm">Must be a two-digit hex value!</span>
+                <span v-if="CCValueInvalidInput" class="label-text-alt text-red-600 text-sm">Must be a valid number 0-127!</span>
             </div>
             <input v-model.trim="CCValueInput" @change="setCCValue" type="text" placeholder="CC Value" class="input input-bordered w-full max-w-xs" />
         </label>
@@ -93,20 +93,20 @@ export default {
             this.MIDIConfiguration = await config.get("midiConfiguration") ?? [];
             if(this.MIDIConfiguration[this.currentSliderID] === undefined || this.MIDIConfiguration[this.currentSliderID] === null) this.MIDIConfiguration[this.currentSliderID] = {}; // If the MIDI configuration for the current slider doesn't exist, create it
             this.channelInput = this.MIDIConfiguration[this.currentSliderID]?.channel ?? `${this.currentSliderID + 1}`; // By default, the channel is the slider ID/number
-            this.CCValueInput = this.MIDIConfiguration[this.currentSliderID]?.CCValue ?? `B0`; // By default, the CC value is B0
+            this.CCValueInput = this.MIDIConfiguration[this.currentSliderID]?.CCValue ?? `7`; // By default, the CC value is 7
             console.log(`[Slider ${this.currentSliderID +1}]: Channel: ${this.channelInput}, CC Value: ${this.CCValueInput}`);
         },
 
         async setCCValue() {
-            // MIDI CC value regex, must be a valid two-digit hex value
-            const hexPattern = /^[0-9A-Fa-f]{2}$/;
-            if(!hexPattern.test(this.CCValueInput) && this.CCValueInput !== "") {
-                console.error("Invalid CC Value. Must be a valid hex value.");
+            // MIDI CC value regex, must be a valid decimal number between 0 and 127
+            const numberPattern = /^(?:\d{1,2}|1[0-1]\d|12[0-7])$/;
+            if(!numberPattern.test(this.CCValueInput) && this.CCValueInput !== "") {
+                console.error("Invalid CC Value.Must be a valid number between 0 and 127.");
                 this.CCValueInvalidInput = true;
                 this.getMIDISettings();
                 return;
             }
-            this.MIDIConfiguration[this.currentSliderID].CCValue = this.CCValueInput !== "" ? this.CCValueInput : `B0`;
+            this.MIDIConfiguration[this.currentSliderID].CCValue = this.CCValueInput !== "" ? this.CCValueInput : `7`;
             this.CCValueInvalidInput = false;
             await config.set(`midiConfiguration`, this.MIDIConfiguration);
             this.getMIDISettings();
@@ -114,11 +114,11 @@ export default {
         },
 
         async setChannel() {
-            // MIDI channel value regex, must be a valid decimal number between 0 and 127
-            const numberPattern = /^(?:\d|[1-9]\d|1[01]\d|12[0-7])$/;
+            // MIDI channel value regex, must be a valid decimal number between 1 and 16
+            const numberPattern = /^(?:[1-9]|1[0-6])$/;
             
             if (!numberPattern.test(this.channelInput) && this.channelInput !== "") {
-                console.error("Invalid Channel Value. Must be a valid number between 0 and 127.");
+                console.error("Invalid Channel Value. Must be a valid number between 1 and 16.");
                 this.channelInvalidInput = true;
                 this.getMIDISettings();
                 return;
