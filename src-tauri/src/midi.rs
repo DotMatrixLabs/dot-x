@@ -1,5 +1,5 @@
 pub mod midi {
-    use crate::{decker, APP, get_app_handle};
+    use crate::{decker, get_app_handle};
     use log::{debug, error, info, trace};
     use midir::{MidiOutput, MidiOutputConnection, MidiOutputPort};
     use tauri::Manager;
