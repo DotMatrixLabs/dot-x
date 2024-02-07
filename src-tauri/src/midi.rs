@@ -122,15 +122,15 @@ pub mod midi {
                                             }
 
                                             if(CCValueFromTuple == "") {
-                                                trace!("CCValueFromTuple is empty, setting to default 0xB0");
-                                                CCValueParsed = 0xB0;
+                                                trace!("CCValueFromTuple is empty, setting to default CC value 07");
+                                                CCValueParsed = 7;
                                             } else {
                                                 trace!("CCValueFromTuple is not empty, parsing to u8/hex");
-                                                CCValueParsed = u8::from_str_radix(&CCValueFromTuple, 16).unwrap();
+                                                CCValueParsed = u8::from_str_radix(&CCValueFromTuple, 10).unwrap();
                                             }
                                         } else {
-                                            trace!("MIDI Configuration doesn't exist for slider {}, setting to default 0xB0 and channel {}", i, i);
-                                            CCValueParsed = 0xB0;
+                                            trace!("MIDI Configuration doesn't exist for slider {}, setting to default CC value 07 and channel {}", i, i);
+                                            CCValueParsed = 7;
                                             channel = i as u8;
                                         }
                                         println!("Sending MIDI message: {:?} {:?} {:?}", CCValueParsed, channel, map_to_range(current_slider));
