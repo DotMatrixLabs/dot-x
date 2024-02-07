@@ -133,7 +133,8 @@ pub mod midi {
                                             CCValueParsed = 0xB0;
                                             channel = i as u8;
                                         }
-                                        let _ = conn_out.send(&[CCValueParsed, channel, map_to_range(current_slider)]);
+                                        println!("Sending MIDI message: {:?} {:?} {:?}", CCValueParsed, channel, map_to_range(current_slider));
+                                        let _ = conn_out.send(&[0xB0 | (channel - 1 & 0x0F), CCValueParsed, map_to_range(current_slider)]);
                                     }
                                     *previous_slider = current_slider;
                                 }
