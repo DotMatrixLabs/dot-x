@@ -16,12 +16,23 @@
             
         </div>
     </div>
-    <!-- <div class="grid grid-cols-2 w-1/2 m-auto gap-2">
-        <span class="my-auto">Channel: </span>
-        <input type="text" placeholder="Type here" class="input input-bordered w-full max-w-xs" />
-        <span class="my-auto">CC value: </span>
-        <input type="text" placeholder="Type here" class="input input-bordered w-full max-w-xs" />
-    </div> -->
+    <div class="grid grid-cols-1 w-1/2 m-auto gap-1">
+        <label class="form-control w-full max-w-xs">
+            <div class="label">
+                <span class="label-text">Channel</span>
+                <span v-if="channelInvalidInput" class="label-text-alt text-red-600 text-sm">Must be a valid number 1-16!</span>
+            </div>
+            <input v-model.trim="channelInput" @change="setChannel" type="text" placeholder="Channel" class="input input-bordered w-full max-w-xs" />
+        </label>
+
+        <label class="form-control w-full max-w-xs">
+            <div class="label">
+                <span class="label-text">CC Value</span>
+                <span v-if="CCValueInvalidInput" class="label-text-alt text-red-600 text-sm">Must be a valid number 0-127!</span>
+            </div>
+            <input v-model.trim="CCValueInput" @change="setCCValue" type="text" placeholder="CC Value" class="input input-bordered w-full max-w-xs" />
+        </label>
+    </div>
 </template>
 
 <script>
@@ -30,6 +41,7 @@
 import SelectedApps from "../ts/appsToControl.ts";
 import SystemVolumeController from "../ts/volumeControl.ts";
 import Decker from "../ts/decker.ts";
+import config from "../ts/config";
 
 export default {
 
@@ -44,6 +56,11 @@ export default {
             ],
             activeDevices: [],
             sessions: [],
+            channelInput: "",
+            CCValueInput: "",
+            MIDIConfiguration: [], // Store the MIDI configuration for every slider, so reference the current slider ID when setting the MIDI configuration
+            CCValueInvalidInput: false,
+            channelInvalidInput: false,
         }
     },
 
@@ -64,11 +81,65 @@ export default {
         async getActiveDevices(){
             if(this.currentSliderID === null) return;
             this.activeDevices = await SelectedApps.getApps(this.currentSliderID?.toString());
-            console.log(this.activeDevices, this.activeDevices[this.currentSliderID?.toString()]);
         },
 
         async getSessions() {
             this.sessions = await SystemVolumeController.getAllSessionNames(true);
+        },
+
+        async getMIDISettings() {
+            // Read MIDIConfiguration from config.get(MIDIConfiguration), if it exists. If not, set it to an empty array.
+
+            this.MIDIConfiguration = await config.get("midiConfiguration") ?? [];
+            if(this.MIDIConfiguration[this.currentSliderID] === undefined || this.MIDIConfiguration[this.currentSliderID] === null) this.MIDIConfiguration[this.currentSliderID] = {}; // If the MIDI configuration for the current slider doesn't exist, create it
+            this.channelInput = this.MIDIConfiguration[this.currentSliderID]?.channel ?? `${this.currentSliderID + 1}`; // By default, the channel is the slider ID/number
+            this.CCValueInput = this.MIDIConfiguration[this.currentSliderID]?.CCValue ?? `7`; // By default, the CC value is 7
+            console.log(`[Slider ${this.currentSliderID +1}]: Channel: ${this.channelInput}, CC Value: ${this.CCValueInput}`);
+        },
+
+        async setCCValue() {
+            // MIDI CC value regex, must be a valid decimal number between 0 and 127
+            const numberPattern = /^(?:\d{1,2}|1[0-1]\d|12[0-7])$/;
+            if(!numberPattern.test(this.CCValueInput) && this.CCValueInput !== "") {
+                console.error("Invalid CC Value.Must be a valid number between 0 and 127.");
+                this.CCValueInvalidInput = true;
+                this.getMIDISettings();
+                return;
+            }
+            this.MIDIConfiguration[this.currentSliderID].CCValue = this.CCValueInput !== "" ? this.CCValueInput : `7`;
+            this.CCValueInvalidInput = false;
+            await config.set(`midiConfiguration`, this.MIDIConfiguration);
+            this.getMIDISettings();
+            this.reconnectMIDI();
+        },
+
+        async setChannel() {
+            // MIDI channel value regex, must be a valid decimal number between 1 and 16
+            const numberPattern = /^(?:[1-9]|1[0-6])$/;
+            
+            if (!numberPattern.test(this.channelInput) && this.channelInput !== "") {
+                console.error("Invalid Channel Value. Must be a valid number between 1 and 16.");
+                this.channelInvalidInput = true;
+                this.getMIDISettings();
+                return;
+            }
+
+            const channelValue = this.channelInput !== "" ? this.channelInput : `${this.currentSliderID + 1}`;
+            
+            this.MIDIConfiguration[this.currentSliderID].channel = channelValue;
+            this.channelInvalidInput = false;
+
+            await config.set(`midiConfiguration`, this.MIDIConfiguration);
+            this.getMIDISettings();
+            this.reconnectMIDI();
+        },
+
+        
+        refreshData() {
+            this.getActiveDevices();
+            this.getMIDISettings();
+            this.CCValueInvalidInput = false;
+            this.channelInvalidInput = false;
         }
         
     },
@@ -76,6 +147,7 @@ export default {
     mounted() {
         this.getActiveDevices();
         this.getSessions();
+        this.getMIDISettings();
     },
 
 }
