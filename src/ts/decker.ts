@@ -189,7 +189,12 @@ class Decker {
                 midiSliders.push(index);
             }
         });
-        return await invoke('attach_midi_device', { outputName, outputPort, midiSliders });
+
+        let midiConfiguration = await ConfigStore.get("midiConfiguration");
+        if(midiConfiguration?.length === 0) midiConfiguration = [];
+        console.log("Attaching MIDI with MIDI Configuration:");
+        console.log(midiConfiguration);
+        return await invoke('attach_midi_device', { outputName, outputPort, midiSliders, midiConfiguration });
     }
 
     /**

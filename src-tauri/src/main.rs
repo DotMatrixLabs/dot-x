@@ -170,20 +170,41 @@ fn value_to_i32_vec(value: &Value) -> Option<Vec<i32>> {
   }
 }
 
+fn value_to_object_vec(value: &Value) -> Option<Vec<(String, String)>> {
+  let mut object_vec = Vec::new();
+
+  if let Value::Array(items) = value {
+    object_vec = items
+        .into_iter()
+        .filter_map(|item| {
+            if let Value::Object(obj) = item {
+                // Extract values from the object
+                let cc_value = obj.get("CCValue").and_then(|v| v.as_str().map(|s| s.to_string())).unwrap_or_else(String::new); // If the value is null, return an empty string
+                let channel = obj.get("channel").and_then(|v| v.as_str().map(|s| s.to_string())).unwrap_or_else(String::new); // If the value is null, return an empty string
+                // Return the tuple
+                Some((channel, cc_value))
+            } else {
+              Some((String::new(), String::new())) // Create an empty tuple for the indexes containing Null
+            }
+        })
+        .collect();
+  } else {
+      error!("Expected a JSON array.");
+  }
+  Some(object_vec)
+}
+
 #[tauri::command]
-fn attach_midi_device(output_name: &str, output_port: u32, midi_sliders: Value) -> Result<(), Error> {
-    println!("Midi port {}: Port name: {}", output_port, output_name);
+fn attach_midi_device(output_name: &str, output_port: u32, midi_sliders: Value, midi_configuration: Value) -> Result<(), Error> {
     let midi_sliders_vec = value_to_i32_vec(&midi_sliders).unwrap_or_default();
-    let midi_controller = midi::midi::new("Decker", output_port, midi_sliders_vec); // midi_sliders as string maybe? since the trait bound `&[i32]: _::_serde::Deserialize<'_>` is not satisfied
+    let midi_configuration_vec = value_to_object_vec(&midi_configuration).unwrap_or_default();
+    let midi_controller = midi::midi::new("Decker", output_port, midi_sliders_vec, midi_configuration_vec); 
     match midi_controller {
       Ok(midi_controller) => {
-        println!("Midi port {}: Port name: {}", output_port, output_name);
         info!("Midi port {}: Port name: {}", output_port, output_name);
         unsafe { midi::midi::ENABLED = true; }
       }
       Err(error) => {
-        // Handle the error here, or return it if you prefer.
-        println!("Error{:?} ", error);
         error!("[attach_midi_device] Dot X Error: {:?}", error);
         return Err(Error::Connection);
       }

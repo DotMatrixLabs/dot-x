@@ -94,7 +94,7 @@ export default {
     this.getMidiEnabledGlobal();
     this.$refs?.Programs?.refreshData();
     this.$refs?.SystemUtilitiesSelector?.getActiveDevices();
-    this.$refs?.Midi?.getActiveDevices();
+    this.$refs?.Midi?.refreshData();
 
     if(this.currentTab.hide) this.selectTab(this.tabs[0]); // If the current tab is hidden, select the first tab (Programs, which can never be hidden, so it's safe to assume it's there)
   },
