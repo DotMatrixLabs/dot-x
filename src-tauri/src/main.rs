@@ -301,6 +301,16 @@ struct InstancePayload {
 }
 
 
+fn start_aptabase_heartbeat(app: tauri::AppHandle) {
+  thread::spawn(move || {
+    loop {
+      app.track_event("app_heartbeat💓", None);
+      thread::sleep(Duration::from_secs(3 * 60 * 60));//heartbeat every 3 hours
+    }
+  });
+}
+
+
 fn main() {
 
 
@@ -373,6 +383,7 @@ fn main() {
           _ => {}
         })
         .setup(|app| {
+          start_aptabase_heartbeat(app.handle().clone());
           app.track_event("app_started", None);
           app.flush_events_blocking();
           let window = app.get_window("main").unwrap();
