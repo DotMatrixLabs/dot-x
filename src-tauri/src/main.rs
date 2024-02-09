@@ -319,7 +319,7 @@ fn main() {
 
 
     let client = sentry_tauri::sentry::init((
-      "https://d85ea8b9310b2fa28a036ce4cf5dd449@o4506258387959808.ingest.sentry.io/4506258413387776",
+      "https://639f6e1e3e7b44e3b43c6534a82a8d99@sentry-ingest.frogbyte.io/3",
       sentry_tauri::sentry::ClientOptions {
           release: sentry_tauri::sentry::release_name!(),
           ..Default::default()
