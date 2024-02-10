@@ -1,6 +1,5 @@
 import { invoke } from '@tauri-apps/api/tauri';
 import SelectedApps from './appsToControl';
-import ConfigStore from "../ts/config.ts";
 
 /**
  * Class for controlling system volume and audio sessions.
