@@ -4,9 +4,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc --noEmit && vite build",
+    "build": "npm run licenses && vue-tsc --noEmit && vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "licenses": "npm run rust-licenses && npm run js-licenses",
+    "rust-licenses": "cd src-tauri && cargo license --avoid-dev-deps --avoid-build-deps --json > licenses/rust_licenses.json",
+    "js-licenses": "npx license-checker --json > src-tauri/licenses/js_licenses.json"
   },
   "dependencies": {
     "@aptabase/tauri": "^0.4.1",
