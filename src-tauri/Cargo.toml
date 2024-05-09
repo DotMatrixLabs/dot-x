@@ -39,6 +39,7 @@ sentry-tauri = "0.2.0"
 log = { version = "^0.4", features = ["max_level_debug", "release_max_level_warn"] }
 tauri-plugin-log = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "dev" }
 active-win-pos-rs = "0.8.3"
+lazy_static = "1.4.0"
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem
