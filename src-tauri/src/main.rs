@@ -305,7 +305,7 @@ fn start_aptabase_heartbeat(app: tauri::AppHandle) {
   thread::spawn(move || {
     loop {
       app.track_event("app_heartbeat💓", None);
-      thread::sleep(Duration::from_secs(3 * 60 * 60));//heartbeat every 3 hours
+      thread::sleep(Duration::from_secs(1 * 60 * 59));//heartbeat every hour (I'm concerned exactly 1 hour will make a new session, so I'm doing 59 minutes - you got a problem with that? That's what I thought.)
     }
   });
 }
