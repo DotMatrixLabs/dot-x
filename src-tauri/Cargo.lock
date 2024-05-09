@@ -1185,6 +1185,7 @@ dependencies = [
  "clap 4.4.11",
  "firmata-rs",
  "installed",
+ "lazy_static",
  "log",
  "midir",
  "once_cell",
