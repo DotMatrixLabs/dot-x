@@ -184,9 +184,7 @@ pub fn initialize_decker(window: Window, port_name: &str, inverted: bool) -> std
             if port_info.port_name == port_name {
                 eprintln!("Port \"{}\" is already open. Closing it...", port_name);
                 warn!("Port \"{}\" is already open. Closing it...", port_name);
-                if let Ok(port) = serialport::new(port_name, baud_rate).timeout(Duration::from_millis(20)).open() {
-                    kill_decker_thread();
-                }
+                kill_decker_thread();
             }
         }
     }
