@@ -1,4 +1,5 @@
-use std::{thread::{self}, time::Duration, sync::{mpsc, Mutex}};
+use std::{thread::{self}, time::Duration, sync::{Arc, mpsc, Mutex}};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::io::{self, Cursor, Read};
 use log::{error, warn, info};
 use serde::{Serialize, Deserialize};
@@ -162,6 +163,17 @@ pub fn get_devices() -> Vec<Device> {
 }
 
 static SENDER: Mutex<Option<mpsc::Sender<String>>> = Mutex::new(None);
+static SHOULD_RUN: AtomicBool = AtomicBool::new(true);
+
+pub fn kill_decker_thread() {
+    SHOULD_RUN.store(false, Ordering::Relaxed);
+    thread::sleep(Duration::from_millis(250));
+    start_background_thread();
+}
+
+pub fn start_background_thread() {
+    SHOULD_RUN.store(true, Ordering::Relaxed);
+}
 
 pub fn initialize_decker(window: Window, port_name: &str, inverted: bool) -> std::result::Result<(), std::io::Error> {
     let baud_rate: u32 = 115_200;
@@ -173,7 +185,7 @@ pub fn initialize_decker(window: Window, port_name: &str, inverted: bool) -> std
                 eprintln!("Port \"{}\" is already open. Closing it...", port_name);
                 warn!("Port \"{}\" is already open. Closing it...", port_name);
                 if let Ok(port) = serialport::new(port_name, baud_rate).timeout(Duration::from_millis(20)).open() {
-                    std::mem::drop(port);
+                    kill_decker_thread();
                 }
             }
         }
@@ -192,6 +204,9 @@ pub fn initialize_decker(window: Window, port_name: &str, inverted: bool) -> std
                 let mut serial_buf: Vec<u8> = vec![0; 100];
                 window.emit("connection-change", Payload { message: "connected".to_string() }).unwrap();
                 loop {
+                    if(!SHOULD_RUN.load(Ordering::Relaxed)) {
+                        break;
+                    }
                     match rx.try_recv() {
                         Ok(command) => {
                             println!("Received: {:?}", command);
