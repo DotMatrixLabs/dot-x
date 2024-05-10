@@ -3,13 +3,14 @@
 
 
 use log::{info, trace, error};
-use serde_json::Value;
+use serde_json::{json, Value};
 use tauri::AppHandle;
 use tauri::{ Manager, Window };
 use windows_volume_control::AudioController;
 use windows_volume_control::CoinitMode;
 use tauri_plugin_autostart::MacosLauncher;
 use midir::{MidiOutput};
+use std::collections::HashMap;
 use std::fmt;
 mod decker;
 mod midi;
@@ -384,7 +385,12 @@ fn main() {
         })
         .setup(|app| {
           start_aptabase_heartbeat(app.handle().clone());
-          app.track_event("app_started", None);
+          let mut props_map = HashMap::new();
+          props_map.insert("slider_amount".to_string(), Value::String("5".to_string()));
+      
+          // Convert the HashMap to a serde_json::Value
+          let props_value = json!(props_map);
+          app.track_event("app_started", Some(props_value));
           app.flush_events_blocking();
           let window = app.get_window("main").unwrap();
           #[cfg(any(windows, target_os = "macos"))]
