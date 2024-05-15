@@ -2,9 +2,19 @@
 
 ## DEV
 
+Initial installation:
+
+1. Clone the repo
+2. `yarn`
+3. `cd src-tauri`
+4. `cargo update`
+5. `yarn tauri dev`
+
+Be aware that installation can take a while on first run, since it has to download all packages.
+
 To run the project, use:
 
-`yarn` then `yarn tauri dev`
+`yarn tauri dev`
 
 ## Recommended IDE Setup
 
