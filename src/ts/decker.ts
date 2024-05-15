@@ -99,8 +99,9 @@ class Decker {
         this.comPort = comPort;
 
         console.log("Connecting to Decker...", comPort)
-
-        await invoke('connect_decker', { portName: comPort }).then(async () => {
+        const inverted = await ConfigStore.get("invertedSliders");
+        console.log({inverted});
+        await invoke('connect_decker', { portName: comPort, inverted: inverted ?? false }).then(async () => {
             console.log("Decker Connected!")
             deckerStore.setConnected(true);
             if(await ConfigStore.get("midiEnabled")) this.attachMidiDevice(await ConfigStore.get("midiOutputPortNumber"));

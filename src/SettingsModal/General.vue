@@ -30,6 +30,10 @@
                 </option>
             </select>
         </div>
+        <div class="flex flex-row w-full justify-between px-2 mt-4">
+            <span class="my-auto">Inverted sliders: <br></span>
+            <input type="checkbox" class="toggle toggle-primary mr-2" :checked="invertedSliders" @change="toggleInvertedSliders" />
+        </div>
     </div>
 </template>
 
@@ -37,6 +41,7 @@
 
 import ConfigStore from "../ts/config.ts";
 import SystemSettings from "../ts/systemSettings.ts";
+import decker from "../ts/decker.ts";
 import { useDeckerStore } from "../store/deckerStore";
 import { mapState } from "pinia"; 
 
@@ -50,7 +55,8 @@ export default {
             actOnDeckerDisconnect: false,
             sliderOptions: ["Do nothing", "Mute", "Maximize volume"],
             sliderAmount: 3,
-            selectedValues: [], // Array to store selected values for each slider
+            selectedValues: [], // Array to store selected values for each slider,
+            invertedSliders: false
         }
     },
     computed: {
@@ -76,6 +82,10 @@ export default {
             this.actOnDeckerDisconnect = await ConfigStore.get("actOnDeckerDisconnect");
         },
 
+        async getInvertedSlidersStatus() {
+            this.invertedSliders = await ConfigStore.get("invertedSliders");
+        },
+
         async toggleAutostart() {
             if(this.autoStartStatus){
                 await SystemSettings.disableAutostart();
@@ -97,6 +107,22 @@ export default {
             ConfigStore.save();
             this.getActOnDeckerDisconnect();
         },
+
+        async toggleInvertedSliders() {
+            const comPort = await ConfigStore.get("comPort");
+            if(this.invertedSliders){
+                await ConfigStore.set("invertedSliders", false);
+                ConfigStore.save();
+                this.getInvertedSlidersStatus();
+                decker.init(comPort);
+                return;
+            }
+            else await ConfigStore.set("invertedSliders", true);
+            ConfigStore.save();
+            this.getInvertedSlidersStatus();
+            decker.init(comPort);
+        },
+
         // Update the selected option for each slider, i.e do nothing, mute, maximize volume
         async sliderDisconnectHandle() {
             console.log(this.selectedValues);
@@ -114,6 +140,7 @@ export default {
         this.getAutostartStatus();
         this.getActOnDeckerDisconnect();
         this.getDisconnectHandleSelectedValues();
+        this.getInvertedSlidersStatus();
 
         this.sliderAmount = this.sliders.length; // Set the amount of sliders to the amount of sliders in the store
         if(this.sliderAmount === 0) this.sliderAmount = 5;

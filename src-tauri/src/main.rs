@@ -266,12 +266,19 @@ fn set_application_volume(name: &str, volume: f32) -> Result<(), Error> {
 
 
 #[tauri::command]
-fn connect_decker(window: Window, port_name: &str) -> Result<(), Error> {
-  decker::initialize_decker(window, port_name)?;
+fn connect_decker(window: Window, port_name: &str, inverted: bool) -> Result<(), Error> {
+  println!("Connecting Decker at port: {}, inverted: {}", port_name, inverted);
+  decker::initialize_decker(window, port_name, inverted)?;
   info!("Decker connected at {}", port_name);
   Ok(())
 }
 
+#[tauri::command]
+fn disconnect_decker() -> Result<(), Error> {
+  decker::kill_decker_thread();
+  info!("Decker disconnected");
+  Ok(())
+}
 
 
 fn build_menu() -> SystemTrayMenu {
@@ -330,7 +337,7 @@ fn main() {
     let _guard = sentry_tauri::minidump::init(&client);
 
       tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![get_installed_apps, get_all_session_names, set_application_volume, connect_decker, decker::get_devices, decker::send_decker_command, get_available_midi_output_port_names, attach_midi_device, detach_midi_device, get_active_app_process_path])
+        .invoke_handler(tauri::generate_handler![get_installed_apps, get_all_session_names, set_application_volume, connect_decker, decker::get_devices, decker::send_decker_command, get_available_midi_output_port_names, attach_midi_device, detach_midi_device, get_active_app_process_path, disconnect_decker ])
         .plugin(tauri_plugin_aptabase::Builder::new("A-EU-7429874879").build()) // 👈 this is where you enter your App Key
         .plugin(tauri_plugin_log::Builder::default().build())
         .plugin(sentry_tauri::plugin())
