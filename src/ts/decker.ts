@@ -4,6 +4,7 @@ import { useDeckerStore } from "../store/deckerStore.ts";
 import SystemVolumeController from "./volumeControl.ts";
 import ConfigStore from './config.ts';
 import appsToControl from './appsToControl.ts';
+import { trackEvent } from "@aptabase/tauri";
 
 class Decker {
     private comPort: string = "";
@@ -98,8 +99,9 @@ class Decker {
         this.comPort = comPort;
 
         console.log("Connecting to Decker...", comPort)
-
-        await invoke('connect_decker', { portName: comPort }).then(async () => {
+        const inverted = await ConfigStore.get("invertedSliders");
+        console.log({inverted});
+        await invoke('connect_decker', { portName: comPort, inverted: inverted ?? false }).then(async () => {
             console.log("Decker Connected!")
             deckerStore.setConnected(true);
             if(await ConfigStore.get("midiEnabled")) this.attachMidiDevice(await ConfigStore.get("midiOutputPortNumber"));
@@ -194,6 +196,7 @@ class Decker {
         if(midiConfiguration?.length === 0) midiConfiguration = [];
         console.log("Attaching MIDI with MIDI Configuration:");
         console.log(midiConfiguration);
+        trackEvent("midi_attached🔊") // An event with no properties
         return await invoke('attach_midi_device', { outputName, outputPort, midiSliders, midiConfiguration });
     }
 
