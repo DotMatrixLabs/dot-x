@@ -36,7 +36,7 @@
                 </div>
                 <div v-else-if="currentRGBEffect !== 'Off'" class="flex flex-row w-full justify-between mt-2">
                     <span class="shrink-0 pt-1">Speed: </span>
-                    <input type="range" class="bg-gray-700 rounded-xl px-0.5 mr-2" value="#e66465" />
+                    <input @change="speedChanged" v-model="speed" type="range" class="bg-gray-700 rounded-xl px-0.5 mr-2" />
                 </div>
             </div>
             <div class="flex flex-col w-full items-center mt-3">
@@ -92,6 +92,7 @@ export default {
             statsModalOpen: false,
             lastExecutionTime: 0,
             deviceType: "Unknown",
+            speed: 10,
         }
     },
 
@@ -127,6 +128,10 @@ export default {
             }
         },
 
+        speedChanged(event) {
+            RGBController.setEffect('rainbow', parseInt(this.speed), 255, '#fffff' );
+        },
+
         deviceName(device){
             if(!device) return;
             if(device.pid === 58918 && device.vid === 1240){
@@ -145,7 +150,7 @@ export default {
             } else if (this.currentRGBEffect === 'Static') {
                 RGBController.setEffect('static', 0, 255, '#fffff' );
             } else if (this.currentRGBEffect === 'Rainbow') {
-                RGBController.setEffect('rainbow', 10, 255, '#fffff' );
+                RGBController.setEffect('rainbow', parseInt(this.speed), 255, '#fffff' );
             } else if (this.currentRGBEffect === 'Candle') {
                 RGBController.setEffect('theaterChase', 10, 255, '#fffff' );
             } else if (this.currentRGBEffect === 'Fire') {
@@ -209,6 +214,10 @@ export default {
         this.comPortInterval = setInterval(() => {
             if(this.connectionState) return;
             this.getDevices();
+        }, 1000);
+
+        setInterval(() => {
+            console.log({speed: this.speed});
         }, 1000);
     },
 }
