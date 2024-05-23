@@ -15,6 +15,7 @@ class RGBController {
     }
 
     public setEffect(effectName: string, speed: number, brightness: number, color: string) {
+        if(effectName === 'candle') effectName = 'theaterChase';
         if (this.effects.includes(effectName)) {
             const options = {effect: effectName, speed: speed, brightness: brightness, color: color};
             Decker.sendCommand('rgb-control', options);
