@@ -129,7 +129,7 @@ export default {
         },
 
         speedChanged(event) {
-            RGBController.setEffect('rainbow', parseInt(this.speed), 255, '#fffff' );
+            RGBController.setEffect('rainbow', parseInt(100 - this.speed), 255, '#fffff' );
         },
 
         deviceName(device){
@@ -150,7 +150,7 @@ export default {
             } else if (this.currentRGBEffect === 'Static') {
                 RGBController.setEffect('static', 0, 255, '#fffff' );
             } else if (this.currentRGBEffect === 'Rainbow') {
-                RGBController.setEffect('rainbow', parseInt(this.speed), 255, '#fffff' );
+                RGBController.setEffect('rainbow', parseInt(100 - this.speed), 255, '#fffff' );
             } else if (this.currentRGBEffect === 'Candle') {
                 RGBController.setEffect('theaterChase', 10, 255, '#fffff' );
             } else if (this.currentRGBEffect === 'Fire') {
