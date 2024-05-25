@@ -34,7 +34,7 @@
                     <span class="shrink-0 pt-1">Choose static color: </span>
                     <input @input="colorChange" type="color" class="colorpicker bg-gray-700 rounded-xl px-0.5 mr-2" value="#e66465" />
                 </div>
-                <div v-else-if="currentRGBEffect !== 'Off'" class="flex flex-row w-full justify-between mt-2">
+                <div v-else-if="currentRGBEffect !== 'Off' && currentRGBEffect !== 'Lightning Storm'" class="flex flex-row w-full justify-between mt-2">
                     <span class="shrink-0 pt-1">Speed: </span>
                     <input @change="speedChanged" v-model="speed" type="range" class="bg-gray-700 rounded-xl px-0.5 mr-2" />
                 </div>
@@ -87,7 +87,7 @@ export default {
                 comPort: { name: "COM Port", value: "COM 2" }
             },
             currentRGBEffect: "Static", 
-            RGBEffects: ["Off","Static", "Rainbow", "Candle", "Fire"],
+            RGBEffects: ["Off", "Static", "Rainbow", "Candle", "Lightning Storm"],
             deviceConnected: true,
             statsModalOpen: false,
             lastExecutionTime: 0,
@@ -144,17 +144,18 @@ export default {
         },
         rgbEffectChange(event) {
             this.currentRGBEffect = event.target.value;
+            console.log(this.currentRGBEffect);
             if(this.currentRGBEffect === 'Off') {
                 RGBController.setEffect('off', 0, 255, '#000000');
                 return;
             } else if (this.currentRGBEffect === 'Static') {
-                RGBController.setEffect('static', 0, 255, '#fffff' );
+                RGBController.setEffect('static', 0, 255, '#fffff');
             } else if (this.currentRGBEffect === 'Rainbow') {
-                RGBController.setEffect('rainbow', parseInt(100 - this.speed), 255, '#fffff' );
+                RGBController.setEffect('rainbow', parseInt(100 - this.speed), 255, '#fffff');
             } else if (this.currentRGBEffect === 'Candle') {
-                RGBController.setEffect('theaterChase', parseInt(100 - this.speed), 255, '#fffff' );
-            } else if (this.currentRGBEffect === 'Fire') {
-                RGBController.setEffect('theaterChaseRainbow', 10, 255, '#fffff' );
+                RGBController.setEffect('candle', parseInt(100 - this.speed), 255, '#fffff');
+            } else if (this.currentRGBEffect === 'Lightning Storm') {
+                RGBController.setEffect('lightningStorm', 10, 255, '#fffff');
             }
         },
 
