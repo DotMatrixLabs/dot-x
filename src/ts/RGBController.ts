@@ -11,6 +11,8 @@ class RGBController {
             'off',
             'lightningStorm',
             'candle',
+            'perimeter',
+            'breathing'
         ]
     }
 
