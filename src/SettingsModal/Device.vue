@@ -30,11 +30,17 @@
                         </option>
                     </select>
                 </div>
-                <div v-if="currentRGBEffect === 'Static'" class="flex flex-row w-full justify-between mt-2">
-                    <span class="shrink-0 pt-1">Choose static color: </span>
-                    <input @input="colorChange" type="color" class="colorpicker bg-gray-700 rounded-xl px-0.5 mr-2" value="#e66465" />
+                <div v-if="currentRGBEffect === 'Static'" class="d-flex flex-row w-full mt-2">
+                    <div class="mb-4">
+                        <span class="shrink-0 pt-1">Choose static color: </span>
+                        <input @input="colorChange" type="color" class="colorpicker bg-gray-700 rounded-xl px-0.5 mr-2" value="#e66465" />
+                    </div>
+                    <div class="">
+                        <span class="shrink-0 pt-1">Breathing: </span>
+                        <input @change="toggleBreathing" type="checkbox" class="toggle toggle-primary mr-2" :checked="breathingEnabled"/>
+                    </div>
                 </div>
-                <div v-else-if="currentRGBEffect !== 'Off' && currentRGBEffect !== 'Lightning Storm'" class="flex flex-row w-full justify-between mt-2">
+                <div v-if="currentRGBEffect !== 'Off' && currentRGBEffect !== 'Lightning Storm' || (currentRGBEffect === 'Static' && breathingEnabled)" class="flex flex-row w-full justify-between mt-2">
                     <span class="shrink-0 pt-1">Speed: </span>
                     <input @change="speedChanged" v-model="speed" type="range" class="bg-gray-700 rounded-xl px-0.5 mr-2" />
                 </div>
@@ -87,12 +93,14 @@ export default {
                 comPort: { name: "COM Port", value: "COM 2" }
             },
             currentRGBEffect: "Static", 
-            RGBEffects: ["Off", "Static", "Rainbow", "Candle", "Lightning Storm"],
+            RGBEffects: ["Off", "Static", "Rainbow", "Candle", "Lightning Storm", "Perimeter"],
             deviceConnected: true,
             statsModalOpen: false,
             lastExecutionTime: 0,
             deviceType: "Unknown",
             speed: 10,
+            breathingEnabled: false,
+            selectedColor: "#e66465",
         }
     },
 
@@ -129,7 +137,10 @@ export default {
         },
 
         speedChanged(event) {
-            RGBController.setEffect(this.currentRGBEffect.toLowerCase(), parseInt(100 - this.speed), 255, '#fffff' );
+            if(this.currentRGBEffect === 'Static' && this.breathingEnabled) {
+                return RGBController.setEffect('breathing', parseInt(100 - this.speed), 255, this.selectedColor);
+            }
+            RGBController.setEffect(this.currentRGBEffect.toLowerCase(), parseInt(100 - this.speed), 255, this.selectedColor);
         },
 
         deviceName(device){
@@ -142,6 +153,16 @@ export default {
                 return `${device.port_name}`;
             }
         },
+
+        toggleBreathing(event) {
+            this.breathingEnabled = event.target.checked;
+            if(this.breathingEnabled) {
+                RGBController.setEffect('breathing', parseInt(100 - this.speed), 255, this.selectedColor);
+                return;
+            }
+            RGBController.setEffect('static', 0, 255, this.selectedColor);
+        },
+
         rgbEffectChange(event) {
             this.currentRGBEffect = event.target.value;
             console.log(this.currentRGBEffect);
@@ -156,17 +177,21 @@ export default {
                 RGBController.setEffect('candle', parseInt(100 - this.speed), 255, '#fffff');
             } else if (this.currentRGBEffect === 'Lightning Storm') {
                 RGBController.setEffect('lightningStorm', 10, 255, '#fffff');
-            }
+            } else if (this.currentRGBEffect === 'Perimeter') {
+                RGBController.setEffect('perimeter', (100 - this.speed), 255, '#fffff');
+            } 
         },
 
         colorChange(event) {
         const currentTime = Date.now();
 
         if (currentTime - this.lastExecutionTime >= 100) {
-            const color = event.target.value;
-            RGBController.setEffect('static', 0, 255, color );
-
+            this.selectedColor = event.target.value;
+            
             this.lastExecutionTime = currentTime;
+
+            RGBController.setEffect('static', 0, 255, this.selectedColor);
+            if(this.breathingEnabled) return RGBController.setEffect('breathing', parseInt(100 - this.speed), 255, this.selectedColor);
         }
     },
 
