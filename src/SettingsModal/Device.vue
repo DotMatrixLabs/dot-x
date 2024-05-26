@@ -40,7 +40,7 @@
                         <input @change="toggleBreathing" type="checkbox" class="toggle toggle-primary" :checked="breathingEnabled"/>
                     </div>
                 </div>
-                <div v-if="currentRGBEffect !== 'Off' && currentRGBEffect !== 'Lightning Storm' || (currentRGBEffect === 'Static' && breathingEnabled)" class="flex flex-row w-full justify-between mt-2">
+                <div v-if="(currentRGBEffect === 'Static' && breathingEnabled) || (currentRGBEffect !== 'Off' && currentRGBEffect !== 'Lightning Storm' && currentRGBEffect !== 'Static')" class="flex flex-row w-full justify-between mt-2">
                     <span class="shrink-0 pt-1">Speed: </span>
                     <input @change="speedChanged" v-model="speed" type="range" class="bg-gray-700 rounded-xl px-0.5 mr-2" />
                 </div>
