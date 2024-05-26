@@ -23,7 +23,7 @@
             <div>
                 <div class="flex flex-row w-full justify-between mt-4">
                     <span class="shrink-0 pt-1">RGB Effect: </span>
-                    <select @change="rgbEffectChange" :value="currentRGBEffect"
+                    <select @change="rgbEffectChangeHandler" :value="currentRGBEffect"
                         class="select select-bordered select-sm w-2/3 mx-2 capitalize truncate">
                         <option class="w-full" v-for="(effect, index) in RGBEffects" :value="effect" :key="index">
                             {{ effect }}
@@ -138,6 +138,8 @@ export default {
         },
 
         speedChanged(event) {
+            ConfigStore.set("RGBSpeed", this.speed);
+            ConfigStore.save();
             if(this.currentRGBEffect === 'Static' && this.breathingEnabled) {
                 return RGBController.setEffect('breathing', parseInt(100 - this.speed), 255, this.selectedColor);
             }
@@ -157,6 +159,8 @@ export default {
 
         toggleBreathing(event) {
             this.breathingEnabled = event.target.checked;
+            ConfigStore.set("RGBBreathing", this.breathingEnabled);
+            ConfigStore.save();
             if(this.breathingEnabled) {
                 RGBController.setEffect('breathing', parseInt(100 - this.speed), 255, this.selectedColor);
                 return;
@@ -165,12 +169,18 @@ export default {
         },
 
         sendCurrentRGBEffect() {
-            if(this.currentRGBEffect === "Breathing") {
-                RGBController.setEffect('Static', 0, 255, this.selectedColor);
-                return RGBController.setEffect('Breathing', parseInt(100 - this.speed), 255, this.selectedColor);
+            if(this.currentRGBEffect === "Static" && this.breathingEnabled) {
+                RGBController.setEffect('static', 0, 255, this.selectedColor);
+                return RGBController.setEffect('breathing', parseInt(100 - this.speed), 255, this.selectedColor);
             }
-            
+
             RGBController.setEffect(this.currentRGBEffect.toLowerCase(), parseInt(100 - this.speed), 255, this.selectedColor);
+        },
+
+        rgbEffectChangeHandler(event){
+            ConfigStore.set("RGBEffect", event.target.value);
+            ConfigStore.save();
+            this.rgbEffectChange(event);
         },
 
         rgbEffectChange(event) {
@@ -202,6 +212,8 @@ export default {
 
             RGBController.setEffect('static', 0, 255, this.selectedColor);
             if(this.breathingEnabled) return RGBController.setEffect('breathing', parseInt(100 - this.speed), 255, this.selectedColor);
+            ConfigStore.set("RGBColor", this.selectedColor);
+            ConfigStore.save();
         }
     },
 
@@ -244,8 +256,12 @@ export default {
         
 
     },
-    mounted() {
+    async mounted() {
         this.getDevices();
+        this.selectedColor = await ConfigStore.get("RGBColor") ?? "#e66465";
+        this.speed = await ConfigStore.get("RGBSpeed") ?? 10;
+        this.currentRGBEffect = await ConfigStore.get("RGBEffect") ?? "Static";
+        this.breathingEnabled = await ConfigStore.get("RGBBreathing") ?? false;
 
         this.comPortInterval = setInterval(() => {
             if(this.connectionState) return;
@@ -259,6 +275,8 @@ export default {
                 return;
             }
         });
+
+        if(this.connectionState) this.sendCurrentRGBEffect(); // Dot X was just opened and device is connected, send current RGB effect
     },
 }
 </script>
