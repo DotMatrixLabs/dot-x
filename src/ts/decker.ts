@@ -5,7 +5,7 @@ import SystemVolumeController from "./volumeControl.ts";
 import ConfigStore from './config.ts';
 import appsToControl from './appsToControl.ts';
 import { trackEvent } from "@aptabase/tauri";
-
+import EventBus from '../js/eventBus.js';
 class Decker {
     private comPort: string = "";
     private initiated: boolean;
@@ -27,9 +27,11 @@ class Decker {
             if(event.payload.message === "connected"){
                 deckerStore.setConnected(true);
                 this.updateSliders();
+                EventBus.emit('connectionChange', {connected: true});
             } else if (event.payload.message === "disconnected"){
                 this.handleSliderDisconnect();
                 deckerStore.setConnected(false);
+                EventBus.emit('connectionChange', {connected: false});
             }
         })
     }
