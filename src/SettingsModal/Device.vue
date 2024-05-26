@@ -33,7 +33,7 @@
                 <div v-if="currentRGBEffect === 'Static'" class="flex flex-col w-full mt-2">
                     <div class="mb-4 flex justify-between items-center w-full">
                         <span class="shrink-0">Choose static color: </span>
-                        <input @input="colorChange" type="color" class="colorpicker bg-gray-700 rounded-xl px-0.5" value="#e66465" />
+                        <input @input="colorChange" type="color" class="colorpicker bg-gray-700 rounded-xl px-0.5" :value="selectedColor" />
                     </div>
                     <div class="flex justify-between items-center w-full">
                         <span class="shrink-0">Breathing effect: </span>
@@ -101,7 +101,7 @@ export default {
             deviceType: "Unknown",
             speed: 10,
             breathingEnabled: false,
-            selectedColor: "#e66465",
+            selectedColor: "#f0f0f0",
         }
     },
 
@@ -190,7 +190,8 @@ export default {
                 RGBController.setEffect('off', 0, 255, '#000000');
                 return;
             } else if (this.currentRGBEffect === 'Static') {
-                RGBController.setEffect('static', 0, 255, '#fffff');
+                RGBController.setEffect('static', 0, 255, this.selectedColor);
+                if(this.breathingEnabled) return RGBController.setEffect('breathing', parseInt(100 - this.speed), 255, this.selectedColor);
             } else if (this.currentRGBEffect === 'Rainbow') {
                 RGBController.setEffect('rainbow', parseInt(100 - this.speed), 255, '#fffff');
             } else if (this.currentRGBEffect === 'Candle') {
@@ -258,7 +259,7 @@ export default {
     },
     async mounted() {
         this.getDevices();
-        this.selectedColor = await ConfigStore.get("RGBColor") ?? "#e66465";
+        this.selectedColor = await ConfigStore.get("RGBColor") ?? "#f0f0f0";
         this.speed = await ConfigStore.get("RGBSpeed") ?? 10;
         this.currentRGBEffect = await ConfigStore.get("RGBEffect") ?? "Static";
         this.breathingEnabled = await ConfigStore.get("RGBBreathing") ?? false;
