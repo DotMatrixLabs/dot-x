@@ -30,14 +30,14 @@
                         </option>
                     </select>
                 </div>
-                <div v-if="currentRGBEffect === 'Static'" class="d-flex flex-row w-full mt-2">
-                    <div class="mb-4">
-                        <span class="shrink-0 pt-1">Choose static color: </span>
-                        <input @input="colorChange" type="color" class="colorpicker bg-gray-700 rounded-xl px-0.5 mr-2" value="#e66465" />
+                <div v-if="currentRGBEffect === 'Static'" class="flex flex-col w-full mt-2">
+                    <div class="mb-4 flex justify-between items-center w-full">
+                        <span class="shrink-0">Choose static color: </span>
+                        <input @input="colorChange" type="color" class="colorpicker bg-gray-700 rounded-xl px-0.5" value="#e66465" />
                     </div>
-                    <div class="">
-                        <span class="shrink-0 pt-1">Breathing: </span>
-                        <input @change="toggleBreathing" type="checkbox" class="toggle toggle-primary mr-2" :checked="breathingEnabled"/>
+                    <div class="flex justify-between items-center w-full">
+                        <span class="shrink-0">Breathing effect: </span>
+                        <input @change="toggleBreathing" type="checkbox" class="toggle toggle-primary" :checked="breathingEnabled"/>
                     </div>
                 </div>
                 <div v-if="currentRGBEffect !== 'Off' && currentRGBEffect !== 'Lightning Storm' || (currentRGBEffect === 'Static' && breathingEnabled)" class="flex flex-row w-full justify-between mt-2">
@@ -69,6 +69,7 @@ import StatsPanel from "./StatsPanel.vue";
 import RGBController from "../ts/RGBController";
 import { mapState } from "pinia";
 import { useDeckerStore } from "../store/deckerStore.ts";
+import EventBus from "../js/eventBus";
 
 const toast = useToast();
 
@@ -163,6 +164,15 @@ export default {
             RGBController.setEffect('static', 0, 255, this.selectedColor);
         },
 
+        sendCurrentRGBEffect() {
+            if(this.currentRGBEffect === "Breathing") {
+                RGBController.setEffect('Static', 0, 255, this.selectedColor);
+                return RGBController.setEffect('Breathing', parseInt(100 - this.speed), 255, this.selectedColor);
+            }
+            
+            RGBController.setEffect(this.currentRGBEffect.toLowerCase(), parseInt(100 - this.speed), 255, this.selectedColor);
+        },
+
         rgbEffectChange(event) {
             this.currentRGBEffect = event.target.value;
             console.log(this.currentRGBEffect);
@@ -242,9 +252,13 @@ export default {
             this.getDevices();
         }, 1000);
 
-        setInterval(() => {
-            console.log({speed: this.speed});
-        }, 1000);
+        EventBus.on('connectionChange', dataObject => {
+            const { connected } = dataObject;
+            if(connected) {
+                this.sendCurrentRGBEffect();                
+                return;
+            }
+        });
     },
 }
 </script>
