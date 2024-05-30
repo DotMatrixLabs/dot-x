@@ -475,13 +475,13 @@
         "licenses": "MIT",
         "repository": "https://github.com/juliangruber/brace-expansion",
         "licenseUrl": "https://github.com/juliangruber/brace-expansion/raw/master/LICENSE",
-        "parents": "dot-x"
+        "parents": "npm-license-crawler:dot-x"
     },
     "brace-expansion@2.0.1": {
         "licenses": "MIT",
         "repository": "https://github.com/juliangruber/brace-expansion",
         "licenseUrl": "https://github.com/juliangruber/brace-expansion/raw/master/LICENSE",
-        "parents": "@vue/language-core:dot-x"
+        "parents": "dot-x"
     },
     "braces@3.0.2": {
         "licenses": "MIT",
@@ -893,13 +893,13 @@
         "licenses": "MIT",
         "repository": "https://github.com/sindresorhus/escape-string-regexp",
         "licenseUrl": "https://github.com/sindresorhus/escape-string-regexp/raw/master/license",
-        "parents": "dot-x"
+        "parents": "chalk:dot-x"
     },
     "escape-string-regexp@4.0.0": {
         "licenses": "MIT",
         "repository": "https://github.com/sindresorhus/escape-string-regexp",
         "licenseUrl": "https://github.com/sindresorhus/escape-string-regexp/raw/master/license",
-        "parents": "matcher:dot-x"
+        "parents": "dot-x"
     },
     "estree-walker@2.0.2": {
         "licenses": "MIT",
@@ -1429,13 +1429,13 @@
         "licenses": "ISC",
         "repository": "https://github.com/isaacs/minimatch",
         "licenseUrl": "https://github.com/isaacs/minimatch/raw/master/LICENSE",
-        "parents": "dot-x"
+        "parents": "npm-license-crawler:dot-x"
     },
     "minimatch@9.0.3": {
         "licenses": "ISC",
         "repository": "https://github.com/isaacs/minimatch",
         "licenseUrl": "https://github.com/isaacs/minimatch/raw/master/LICENSE",
-        "parents": "@vue/language-core:dot-x"
+        "parents": "dot-x"
     },
     "minimist@1.2.8": {
         "licenses": "MIT",
@@ -1447,6 +1447,12 @@
         "licenses": "MIT",
         "repository": "https://github.com/developit/mitt",
         "licenseUrl": "https://github.com/developit/mitt",
+        "parents": "vue-virtual-scroller:dot-x"
+    },
+    "mitt@3.0.1": {
+        "licenses": "MIT",
+        "repository": "https://github.com/developit/mitt",
+        "licenseUrl": "https://github.com/developit/mitt/raw/master/LICENSE",
         "parents": "dot-x"
     },
     "mkdirp@0.3.5": {
@@ -1465,7 +1471,7 @@
         "licenses": "MIT",
         "repository": "https://github.com/zeit/ms",
         "licenseUrl": "https://github.com/zeit/ms/raw/master/license.md",
-        "parents": "debug:send:dot-x"
+        "parents": "dot-x"
     },
     "ms@2.1.2": {
         "licenses": "MIT",
@@ -1477,7 +1483,7 @@
         "licenses": "MIT",
         "repository": "https://github.com/vercel/ms",
         "licenseUrl": "https://github.com/vercel/ms/raw/master/license.md",
-        "parents": "dot-x"
+        "parents": "send:dot-x"
     },
     "muggle-string@0.3.1": {
         "licenses": "MIT",
@@ -1547,13 +1553,13 @@
         "licenses": "ISC",
         "repository": "https://github.com/npm/nopt",
         "licenseUrl": "https://github.com/npm/nopt/raw/master/LICENSE",
-        "parents": "dot-x"
+        "parents": "npm-license-crawler:dot-x"
     },
     "nopt@4.0.3": {
         "licenses": "ISC",
         "repository": "https://github.com/npm/nopt",
         "licenseUrl": "https://github.com/npm/nopt/raw/master/LICENSE",
-        "parents": "license-checker:dot-x"
+        "parents": "dot-x"
     },
     "normalize-package-data@1.0.3": {
         "licenses": "MIT*",
@@ -1967,7 +1973,7 @@
         "licenses": "ISC",
         "repository": "https://github.com/npm/node-semver",
         "licenseUrl": "https://github.com/npm/node-semver/raw/master/LICENSE",
-        "parents": "dot-x"
+        "parents": "normalize-package-data:dot-x"
     },
     "semver@6.3.1": {
         "licenses": "ISC",
@@ -1979,7 +1985,7 @@
         "licenses": "ISC",
         "repository": "https://github.com/npm/node-semver",
         "licenseUrl": "https://github.com/npm/node-semver/raw/master/LICENSE",
-        "parents": "global-agent:dot-x"
+        "parents": "dot-x"
     },
     "send@0.18.0": {
         "licenses": "MIT",
