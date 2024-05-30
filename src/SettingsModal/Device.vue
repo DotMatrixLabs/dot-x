@@ -82,6 +82,10 @@ export default {
         StatsPanel,
     },
 
+    props: {
+        modalOpen: Boolean,
+    },
+
     data() {
         return {
             devices: [],
@@ -174,6 +178,7 @@ export default {
                 return RGBController.setEffect('breathing', parseInt(100 - this.speed), 255, this.selectedColor);
             }
 
+            if(this.currentRGBEffect === "Lightning Storm") return RGBController.setEffect('lightningStorm', 10, 255, '#fffff');
             RGBController.setEffect(this.currentRGBEffect.toLowerCase(), parseInt(100 - this.speed), 255, this.selectedColor);
         },
 
@@ -265,7 +270,7 @@ export default {
         this.breathingEnabled = await ConfigStore.get("RGBBreathing") ?? false;
 
         this.comPortInterval = setInterval(() => {
-            if(this.connectionState) return;
+            if(this.connectionState && !this.modalOpen) return;
             this.getDevices();
         }, 1000);
 
