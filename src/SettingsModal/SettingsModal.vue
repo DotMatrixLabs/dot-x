@@ -13,7 +13,7 @@
           </ul>
         </div>
         <div class="col-span-2 w-full p-6 ">
-          <component :is="activeTab" :key="activeTab" />
+          <component :modalOpen="modalOpen" :is="activeTab" :key="activeTab" />
         </div>
       </div>
     </div>

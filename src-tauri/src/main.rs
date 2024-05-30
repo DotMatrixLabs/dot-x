@@ -275,7 +275,7 @@ fn connect_decker(window: Window, port_name: &str, inverted: bool) -> Result<(),
 
 #[tauri::command]
 fn disconnect_decker() -> Result<(), Error> {
-  decker::kill_decker_thread();
+  decker::disconnect_decker();
   info!("Decker disconnected");
   Ok(())
 }

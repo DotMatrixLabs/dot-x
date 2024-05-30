@@ -9,6 +9,9 @@
                 <option class="w-full" v-for="(device, index) in devices" :value="device" :key="index">
                     {{ deviceName(device) }}
                 </option>
+                <option v-if="connectionState" class="w-full" value="disconnect">
+                    Disconnect
+                </option>
             </select>
             <!-- <button @click="detectBoard" title="Autodiscover" class="btn btn-circle btn-sm">
                 <i class="fa-solid fa-magnifying-glass"></i>
@@ -20,20 +23,30 @@
             <div>
                 <div class="flex flex-row w-full justify-between mt-4">
                     <span class="shrink-0 pt-1">RGB Effect: </span>
-                    <select @change="rgbEffectChange" :value="currentRGBEffect"
+                    <select @change="rgbEffectChangeHandler" :value="currentRGBEffect"
                         class="select select-bordered select-sm w-2/3 mx-2 capitalize truncate">
                         <option class="w-full" v-for="(effect, index) in RGBEffects" :value="effect" :key="index">
                             {{ effect }}
                         </option>
                     </select>
                 </div>
-                <div v-if="currentRGBEffect === 'Static'" class="flex flex-row w-full justify-between mt-2">
-                    <span class="shrink-0 pt-1">Choose static color: </span>
-                    <input @input="colorChange" type="color" class="colorpicker bg-gray-700 rounded-xl px-0.5 mr-2" value="#e66465" />
+                <div v-if="currentRGBEffect === 'Static'" class="flex flex-col w-full mt-2">
+                    <div class="mb-4 flex justify-between items-center w-full">
+                        <span class="shrink-0">Choose static color: </span>
+                        <input @input="colorChange" type="color" class="colorpicker bg-gray-700 rounded-xl px-0.5" :value="selectedColor" />
+                    </div>
+                    <div class="flex justify-between items-center w-full">
+                        <span class="shrink-0">Breathing effect: </span>
+                        <input @change="toggleBreathing" type="checkbox" class="toggle toggle-primary" :checked="breathingEnabled"/>
+                    </div>
                 </div>
-                <div v-else-if="currentRGBEffect !== 'Off'" class="flex flex-row w-full justify-between mt-2">
+                <div v-if="(currentRGBEffect === 'Static' && breathingEnabled) || (currentRGBEffect !== 'Off' && currentRGBEffect !== 'Lightning Storm' && currentRGBEffect !== 'Static')" class="flex flex-row w-full justify-between mt-2">
                     <span class="shrink-0 pt-1">Speed: </span>
-                    <input type="range" class="bg-gray-700 rounded-xl px-0.5 mr-2" value="#e66465" />
+                    <input @change="speedChanged" v-model="speed" type="range" class="bg-gray-700 rounded-xl px-0.5 mr-2" />
+                </div>
+                <div class="flex flex-row w-full justify-between mt-2">
+                    <span class="shrink-0 pt-1">Brightness: </span>
+                    <input @change="brightnessChanged" v-model="brightness" type="range" class="bg-gray-700 rounded-xl px-0.5 mr-2" />
                 </div>
             </div>
             <div class="flex flex-col w-full items-center mt-3">
@@ -60,6 +73,7 @@ import StatsPanel from "./StatsPanel.vue";
 import RGBController from "../ts/RGBController";
 import { mapState } from "pinia";
 import { useDeckerStore } from "../store/deckerStore.ts";
+import EventBus from "../js/eventBus";
 
 const toast = useToast();
 
@@ -70,6 +84,10 @@ export default {
 
     components: {
         StatsPanel,
+    },
+
+    props: {
+        modalOpen: Boolean,
     },
 
     data() {
@@ -84,11 +102,15 @@ export default {
                 comPort: { name: "COM Port", value: "COM 2" }
             },
             currentRGBEffect: "Static", 
-            RGBEffects: ["Off","Static", "Rainbow", "Candle", "Fire"],
+            RGBEffects: ["Off", "Static", "Rainbow", "Candle", "Lightning Storm", "Perimeter"],
             deviceConnected: true,
             statsModalOpen: false,
             lastExecutionTime: 0,
             deviceType: "Unknown",
+            speed: 10,
+            breathingEnabled: false,
+            selectedColor: "#f0f0f0",
+            brightness: 100,
         }
     },
 
@@ -124,6 +146,22 @@ export default {
             }
         },
 
+        speedChanged(event) {
+            const brightness = parseInt(this.brightness * 2.55);
+            ConfigStore.set("RGBSpeed", this.speed);
+            ConfigStore.save();
+            if(this.currentRGBEffect === 'Static' && this.breathingEnabled) {
+                return RGBController.setEffect('breathing', parseInt(100 - this.speed), brightness, this.selectedColor);
+            }
+            RGBController.setEffect(this.currentRGBEffect.toLowerCase(), parseInt(100 - this.speed), brightness, this.selectedColor);
+        },
+
+        brightnessChanged(event) {
+            ConfigStore.set("RGBBrightness", this.brightness);
+            ConfigStore.save();
+            this.sendCurrentRGBEffect();
+        },
+
         deviceName(device){
             if(!device) return;
             if(device.pid === 58918 && device.vid === 1240){
@@ -134,27 +172,70 @@ export default {
                 return `${device.port_name}`;
             }
         },
+
+        toggleBreathing(event) {
+            const brightness = parseInt(this.brightness * 2.55);
+            this.breathingEnabled = event.target.checked;
+            ConfigStore.set("RGBBreathing", this.breathingEnabled);
+            ConfigStore.save();
+            if(this.breathingEnabled) {
+                RGBController.setEffect('breathing', parseInt(100 - this.speed), brightness, this.selectedColor);
+                return;
+            }
+            RGBController.setEffect('static', 0, brightness, this.selectedColor);
+        },
+
+        sendCurrentRGBEffect() {
+            const brightness = parseInt(this.brightness * 2.55);
+            if(this.currentRGBEffect === "Static" && this.breathingEnabled) {
+                RGBController.setEffect('static', 0, brightness, this.selectedColor);
+                return RGBController.setEffect('breathing', parseInt(100 - this.speed), brightness, this.selectedColor);
+            }
+
+            if(this.currentRGBEffect === "Lightning Storm") return RGBController.setEffect('lightningStorm', 10, brightness, '#fffff');
+            RGBController.setEffect(this.currentRGBEffect.toLowerCase(), parseInt(100 - this.speed), brightness, this.selectedColor);
+        },
+
+        rgbEffectChangeHandler(event){
+            ConfigStore.set("RGBEffect", event.target.value);
+            ConfigStore.save();
+            this.rgbEffectChange(event);
+        },
+
         rgbEffectChange(event) {
+            const brightness = parseInt(this.brightness * 2.55);
             this.currentRGBEffect = event.target.value;
+            console.log(this.currentRGBEffect);
             if(this.currentRGBEffect === 'Off') {
-                RGBController.setEffect('off');
+                RGBController.setEffect('off', 0, brightness, '#000000');
                 return;
             } else if (this.currentRGBEffect === 'Static') {
-                RGBController.setEffect('setColor', 255, 255, 245, 10);       
-            }
+                RGBController.setEffect('static', 0, brightness, this.selectedColor);
+                if(this.breathingEnabled) return RGBController.setEffect('breathing', parseInt(100 - this.speed), brightness, this.selectedColor);
+            } else if (this.currentRGBEffect === 'Rainbow') {
+                RGBController.setEffect('rainbow', parseInt(100 - this.speed), brightness, '#fffff');
+            } else if (this.currentRGBEffect === 'Candle') {
+                RGBController.setEffect('candle', parseInt(100 - this.speed), brightness, '#fffff');
+            } else if (this.currentRGBEffect === 'Lightning Storm') {
+                RGBController.setEffect('lightningStorm', 10, brightness, '#fffff');
+            } else if (this.currentRGBEffect === 'Perimeter') {
+                RGBController.setEffect('perimeter', (100 - this.speed), brightness, '#fffff');
+            } 
         },
 
         colorChange(event) {
+        const brightness = parseInt(this.brightness * 2.55);
         const currentTime = Date.now();
 
         if (currentTime - this.lastExecutionTime >= 100) {
-            const color = event.target.value;
-            const r = parseInt(color.substr(1, 2), 16);
-            const g = parseInt(color.substr(3, 2), 16);
-            const b = parseInt(color.substr(5, 2), 16);
-            RGBController.setEffect('setColor', r, g, b, 10);
-
+            this.selectedColor = event.target.value;
+            
             this.lastExecutionTime = currentTime;
+
+            RGBController.setEffect('static', 0, brightness, this.selectedColor);
+            if(this.breathingEnabled) return RGBController.setEffect('breathing', parseInt(100 - this.speed), brightness, this.selectedColor);
+            ConfigStore.set("RGBColor", this.selectedColor);
+            ConfigStore.save();
         }
     },
 
@@ -164,6 +245,13 @@ export default {
         // },
 
         deviceSelected() {
+            if(this.currentDevice === "disconnect") {
+                Decker.disconnect();
+                this.currentDevice = null;
+                ConfigStore.set("comPort", null);
+                ConfigStore.save();
+                return;
+            }
             ConfigStore.set("comPort", this.currentDevice.port_name);
             ConfigStore.save();
             Decker.init(this.currentDevice.port_name);
@@ -190,13 +278,28 @@ export default {
         
 
     },
-    mounted() {
+    async mounted() {
         this.getDevices();
+        this.selectedColor = await ConfigStore.get("RGBColor") ?? "#f0f0f0";
+        this.speed = await ConfigStore.get("RGBSpeed") ?? 10;
+        this.currentRGBEffect = await ConfigStore.get("RGBEffect") ?? "Static";
+        this.breathingEnabled = await ConfigStore.get("RGBBreathing") ?? false;
+        this.brightness = await ConfigStore.get("RGBBrightness") ?? 100;
 
         this.comPortInterval = setInterval(() => {
-            if(this.connectionState) return;
+            if(this.connectionState && !this.modalOpen) return;
             this.getDevices();
         }, 1000);
+
+        EventBus.on('connectionChange', dataObject => {
+            const { connected } = dataObject;
+            if(connected) {
+                this.sendCurrentRGBEffect();                
+                return;
+            }
+        });
+
+        if(this.connectionState) this.sendCurrentRGBEffect(); // Dot X was just opened and device is connected, send current RGB effect
     },
 }
 </script>
