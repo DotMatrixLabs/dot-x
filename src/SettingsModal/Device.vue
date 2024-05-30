@@ -44,6 +44,10 @@
                     <span class="shrink-0 pt-1">Speed: </span>
                     <input @change="speedChanged" v-model="speed" type="range" class="bg-gray-700 rounded-xl px-0.5 mr-2" />
                 </div>
+                <div class="flex flex-row w-full justify-between mt-2">
+                    <span class="shrink-0 pt-1">Brightness: </span>
+                    <input @change="brightnessChanged" v-model="brightness" type="range" class="bg-gray-700 rounded-xl px-0.5 mr-2" />
+                </div>
             </div>
             <div class="flex flex-col w-full items-center mt-3">
                 <span class="shrink-0 pt-1 font-bold">Device Info: </span>
@@ -106,6 +110,7 @@ export default {
             speed: 10,
             breathingEnabled: false,
             selectedColor: "#f0f0f0",
+            brightness: 100,
         }
     },
 
@@ -142,12 +147,19 @@ export default {
         },
 
         speedChanged(event) {
+            const brightness = parseInt(this.brightness * 2.55);
             ConfigStore.set("RGBSpeed", this.speed);
             ConfigStore.save();
             if(this.currentRGBEffect === 'Static' && this.breathingEnabled) {
-                return RGBController.setEffect('breathing', parseInt(100 - this.speed), 255, this.selectedColor);
+                return RGBController.setEffect('breathing', parseInt(100 - this.speed), brightness, this.selectedColor);
             }
-            RGBController.setEffect(this.currentRGBEffect.toLowerCase(), parseInt(100 - this.speed), 255, this.selectedColor);
+            RGBController.setEffect(this.currentRGBEffect.toLowerCase(), parseInt(100 - this.speed), brightness, this.selectedColor);
+        },
+
+        brightnessChanged(event) {
+            ConfigStore.set("RGBBrightness", this.brightness);
+            ConfigStore.save();
+            this.sendCurrentRGBEffect();
         },
 
         deviceName(device){
@@ -162,24 +174,26 @@ export default {
         },
 
         toggleBreathing(event) {
+            const brightness = parseInt(this.brightness * 2.55);
             this.breathingEnabled = event.target.checked;
             ConfigStore.set("RGBBreathing", this.breathingEnabled);
             ConfigStore.save();
             if(this.breathingEnabled) {
-                RGBController.setEffect('breathing', parseInt(100 - this.speed), 255, this.selectedColor);
+                RGBController.setEffect('breathing', parseInt(100 - this.speed), brightness, this.selectedColor);
                 return;
             }
-            RGBController.setEffect('static', 0, 255, this.selectedColor);
+            RGBController.setEffect('static', 0, brightness, this.selectedColor);
         },
 
         sendCurrentRGBEffect() {
+            const brightness = parseInt(this.brightness * 2.55);
             if(this.currentRGBEffect === "Static" && this.breathingEnabled) {
-                RGBController.setEffect('static', 0, 255, this.selectedColor);
-                return RGBController.setEffect('breathing', parseInt(100 - this.speed), 255, this.selectedColor);
+                RGBController.setEffect('static', 0, brightness, this.selectedColor);
+                return RGBController.setEffect('breathing', parseInt(100 - this.speed), brightness, this.selectedColor);
             }
 
-            if(this.currentRGBEffect === "Lightning Storm") return RGBController.setEffect('lightningStorm', 10, 255, '#fffff');
-            RGBController.setEffect(this.currentRGBEffect.toLowerCase(), parseInt(100 - this.speed), 255, this.selectedColor);
+            if(this.currentRGBEffect === "Lightning Storm") return RGBController.setEffect('lightningStorm', 10, brightness, '#fffff');
+            RGBController.setEffect(this.currentRGBEffect.toLowerCase(), parseInt(100 - this.speed), brightness, this.selectedColor);
         },
 
         rgbEffectChangeHandler(event){
@@ -189,26 +203,28 @@ export default {
         },
 
         rgbEffectChange(event) {
+            const brightness = parseInt(this.brightness * 2.55);
             this.currentRGBEffect = event.target.value;
             console.log(this.currentRGBEffect);
             if(this.currentRGBEffect === 'Off') {
-                RGBController.setEffect('off', 0, 255, '#000000');
+                RGBController.setEffect('off', 0, brightness, '#000000');
                 return;
             } else if (this.currentRGBEffect === 'Static') {
-                RGBController.setEffect('static', 0, 255, this.selectedColor);
-                if(this.breathingEnabled) return RGBController.setEffect('breathing', parseInt(100 - this.speed), 255, this.selectedColor);
+                RGBController.setEffect('static', 0, brightness, this.selectedColor);
+                if(this.breathingEnabled) return RGBController.setEffect('breathing', parseInt(100 - this.speed), brightness, this.selectedColor);
             } else if (this.currentRGBEffect === 'Rainbow') {
-                RGBController.setEffect('rainbow', parseInt(100 - this.speed), 255, '#fffff');
+                RGBController.setEffect('rainbow', parseInt(100 - this.speed), brightness, '#fffff');
             } else if (this.currentRGBEffect === 'Candle') {
-                RGBController.setEffect('candle', parseInt(100 - this.speed), 255, '#fffff');
+                RGBController.setEffect('candle', parseInt(100 - this.speed), brightness, '#fffff');
             } else if (this.currentRGBEffect === 'Lightning Storm') {
-                RGBController.setEffect('lightningStorm', 10, 255, '#fffff');
+                RGBController.setEffect('lightningStorm', 10, brightness, '#fffff');
             } else if (this.currentRGBEffect === 'Perimeter') {
-                RGBController.setEffect('perimeter', (100 - this.speed), 255, '#fffff');
+                RGBController.setEffect('perimeter', (100 - this.speed), brightness, '#fffff');
             } 
         },
 
         colorChange(event) {
+        const brightness = parseInt(this.brightness * 2.55);
         const currentTime = Date.now();
 
         if (currentTime - this.lastExecutionTime >= 100) {
@@ -216,8 +232,8 @@ export default {
             
             this.lastExecutionTime = currentTime;
 
-            RGBController.setEffect('static', 0, 255, this.selectedColor);
-            if(this.breathingEnabled) return RGBController.setEffect('breathing', parseInt(100 - this.speed), 255, this.selectedColor);
+            RGBController.setEffect('static', 0, brightness, this.selectedColor);
+            if(this.breathingEnabled) return RGBController.setEffect('breathing', parseInt(100 - this.speed), brightness, this.selectedColor);
             ConfigStore.set("RGBColor", this.selectedColor);
             ConfigStore.save();
         }
@@ -268,6 +284,7 @@ export default {
         this.speed = await ConfigStore.get("RGBSpeed") ?? 10;
         this.currentRGBEffect = await ConfigStore.get("RGBEffect") ?? "Static";
         this.breathingEnabled = await ConfigStore.get("RGBBreathing") ?? false;
+        this.brightness = await ConfigStore.get("RGBBrightness") ?? 100;
 
         this.comPortInterval = setInterval(() => {
             if(this.connectionState && !this.modalOpen) return;
