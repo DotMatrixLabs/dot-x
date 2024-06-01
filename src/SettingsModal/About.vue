@@ -6,15 +6,22 @@
         </div>
         <div class="flex flex-row w-full justify-between px-2 mt-4">
             <span class="my-auto">Read the docs</span>
-            <button class="btn btn-sm">Docs</button>
+            <a href="https://docs.dotmatrixlabs.com/" target="_blank" rel="noopener noreferrer">
+                <button class="btn btn-sm">Docs</button>
+            </a>
         </div>
         <div class="flex flex-row w-full justify-between px-2 mt-4">
             <span class="my-auto">Give feedback</span>
-            <button class="btn btn-sm">Feedback</button>
+            <a href="https://dotmatrixlabs.sleekplan.app/" target="_blank" rel="noopener noreferrer">
+                <button class="btn btn-sm">Feedback</button>
+            </a>
+
         </div>
         <div class="flex flex-row w-full justify-between px-2 mt-4">
             <span class="my-auto">Join our Discord</span>
-            <button class="btn btn-sm">Join<i class="fab fa-discord fa-lg"></i></button>
+            <a href="https://discord.gg/XJ7rw7sFtC" target="_blank" rel="noopener noreferrer">
+                <button class="btn btn-sm">Join<i class="fab fa-discord fa-lg"></i></button>
+            </a>
         </div>
         <div class="flex flex-col w-full justify-center px-2 mb-4 absolute bottom-0 left-1/2 -translate-x-1/2">
             <a href="https://dotmatrixlabs.com" target="_blank" rel="noopener noreferrer" class="mb-2 text-sm hover:underline opacity-80 text-center first-letter:">Made by DotMatrixLabs</a>
