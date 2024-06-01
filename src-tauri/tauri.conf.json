@@ -17,6 +17,9 @@
   },
   "tauri": {
     "bundle": {
+      "resources": [
+        "licenses/*"
+      ],
       "active": true,
       "identifier": "com.dot-x.dev",
       "targets": "all",

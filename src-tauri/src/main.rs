@@ -3,13 +3,14 @@
 
 
 use log::{info, trace, error};
-use serde_json::Value;
+use serde_json::{json, Value};
 use tauri::AppHandle;
 use tauri::{ Manager, Window };
 use windows_volume_control::AudioController;
 use windows_volume_control::CoinitMode;
 use tauri_plugin_autostart::MacosLauncher;
 use midir::{MidiOutput};
+use std::collections::HashMap;
 use std::fmt;
 mod decker;
 mod midi;
@@ -265,12 +266,19 @@ fn set_application_volume(name: &str, volume: f32) -> Result<(), Error> {
 
 
 #[tauri::command]
-fn connect_decker(window: Window, port_name: &str) -> Result<(), Error> {
-  decker::initialize_decker(window, port_name)?;
+fn connect_decker(window: Window, port_name: &str, inverted: bool) -> Result<(), Error> {
+  println!("Connecting Decker at port: {}, inverted: {}", port_name, inverted);
+  decker::initialize_decker(window, port_name, inverted)?;
   info!("Decker connected at {}", port_name);
   Ok(())
 }
 
+#[tauri::command]
+fn disconnect_decker() -> Result<(), Error> {
+  decker::disconnect_decker();
+  info!("Decker disconnected");
+  Ok(())
+}
 
 
 fn build_menu() -> SystemTrayMenu {
@@ -305,7 +313,7 @@ fn start_aptabase_heartbeat(app: tauri::AppHandle) {
   thread::spawn(move || {
     loop {
       app.track_event("app_heartbeat💓", None);
-      thread::sleep(Duration::from_secs(3 * 60 * 60));//heartbeat every 3 hours
+      thread::sleep(Duration::from_secs(1 * 60 * 59));//heartbeat every hour (I'm concerned exactly 1 hour will make a new session, so I'm doing 59 minutes - you got a problem with that? That's what I thought.)
     }
   });
 }
@@ -329,7 +337,7 @@ fn main() {
     let _guard = sentry_tauri::minidump::init(&client);
 
       tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![get_installed_apps, get_all_session_names, set_application_volume, connect_decker, decker::get_devices, decker::send_decker_command, get_available_midi_output_port_names, attach_midi_device, detach_midi_device, get_active_app_process_path])
+        .invoke_handler(tauri::generate_handler![get_installed_apps, get_all_session_names, set_application_volume, connect_decker, decker::get_devices, decker::send_decker_command, get_available_midi_output_port_names, attach_midi_device, detach_midi_device, get_active_app_process_path, disconnect_decker ])
         .plugin(tauri_plugin_aptabase::Builder::new("A-EU-7429874879").build()) // 👈 this is where you enter your App Key
         .plugin(tauri_plugin_log::Builder::default().build())
         .plugin(sentry_tauri::plugin())
@@ -384,7 +392,12 @@ fn main() {
         })
         .setup(|app| {
           start_aptabase_heartbeat(app.handle().clone());
-          app.track_event("app_started", None);
+          let mut props_map = HashMap::new();
+          props_map.insert("slider_amount".to_string(), Value::String("5".to_string()));
+      
+          // Convert the HashMap to a serde_json::Value
+          let props_value = json!(props_map);
+          app.track_event("app_started", Some(props_value));
           app.flush_events_blocking();
           let window = app.get_window("main").unwrap();
           #[cfg(any(windows, target_os = "macos"))]
