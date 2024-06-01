@@ -36,10 +36,14 @@
       ],
       "windows": {
         "nsis": {
-          "license": "license.txt"
+          "license": "license.txt",
+          "installerIcon": "./icons/icon.ico"
         },
         "wix": {
-          "license": "license.txt"
+          "license": "license.txt",
+          "bannerPath": "./icons/WixInstallerBanner.bmp",
+          "dialogImagePath": "./icons/WixInstaller.bmp"
+
         }
       }
     },
