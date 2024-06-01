@@ -15,13 +15,16 @@ TABLE OF CONTENTS
 7. WARRANTY
 8. PRODUCT CLAIMS
 9. CONTACT INFORMATION
-10. TERMINATION
-11. APPLICABLE LAW
-12. MISCELLANEOUS
+10. LIMITATION OF LIABILITY
+11. DISPUTE RESOLUTION
+12. TERMINATION
+13. APPLICABLE LAW
+14. MISCELLANEOUS
 
 THE APPLICATION
 DotMatrixLabs Dot X ('Licensed Application') is a piece of software created to serve as an interface between the Decker physical volume mixer and computer programs and devices. It is used to manipulate sound volumes for programs and devices.
 The Licensed Application is not tailored to comply with industry-specific regulations (Health Insurance Portability and Accountability Act (HIPAA), Federal Information Security Management Act (FISMA), etc.), so if your interactions would be subjected to such laws, you may not use this Licensed Application. You may not use the Licensed Application in a way that would violate the Gramm-Leach-Bliley Act (GLBA).
+
 SCOPE OF LICENCE
 2.1 This licence will also govern any updates of the Licensed Application provided by Licensor that replace, repair, and/or supplement the first Licensed Application, unless a separate licence is provided for such update, in which case the terms of that new licence will govern.
 2.2 You may not share or make the Licensed Application available to third parties (unless to the degree allowed by Frogbyte AS's prior written consent), sell, rent, lend, lease or otherwise redistribute the Licensed Application.
@@ -36,6 +39,7 @@ TECHNICAL REQUIREMENTS
 NO MAINTENANCE OR SUPPORT
 4.1 Frogbyte AS is not obligated, expressed or implied, to provide any maintenance, technical or other support for the Licensed Application.
 4.2 Frogbyte AS and the End-User acknowledge that the Services have no obligation whatsoever to furnish any maintenance and support services with respect to the Licensed Application.
+
 USER-GENERATED CONTRIBUTIONS
 The Licensed Application does not offer users to submit or post content. We may provide you with the opportunity to create, submit, post, display, transmit, perform, publish, distribute, or broadcast content and materials to us or in the Licensed Application, including but not limited to text, writings, video, audio, photographs, graphics, comments, suggestions, or personal information or other material (collectively, 'Contributions'). Contributions may be viewable by other users of the Licensed Application and through third-party websites or applications. As such, any Contributions you transmit may be treated in accordance with the Licensed Application Privacy Policy. When you create or make available any Contributions, you thereby represent and warrant that:
 1 . The creation, distribution, transmission, public display, or performance, and the accessing, downloading, or copying of your Contributions do not and will not infringe the proprietary rights, including but not limited to the copyright, patent, trademark, trade secret, or moral rights of any third party.
@@ -57,21 +61,35 @@ CONTRIBUTION LICENCE
 You agree that we may access, store, process, and use any information and personal data that you provide following the terms of the Privacy Policy and your choices (including settings).
 By submitting suggestions of other feedback regarding the Licensed Application, you agree that we can use and share such feedback for any purpose without compensation to you.
 We do not assert any ownership over your Contributions. You retain full ownership of all of your Contributions and any intellectual property rights or other proprietary rights associated with your Contributions. We are not liable for any statements or representations in your Contributions provided by you in any area in the Licensed Application. You are solely responsible for your Contributions to the Licensed Application and you expressly agree to exonerate us from any and all responsibility and to refrain from any legal action against us regarding your Contributions.
+
 WARRANTY
 7.1 Licensor warrants that the Licensed Application is free of spyware, trojan horses, viruses, or any other malware at the time of Your download. Licensor warrants that the Licensed Application works as described in the user documentation.
 7.2 No warranty is provided for the Licensed Application that is not executable on the device, that has been unauthorisedly modified, handled inappropriately or culpably, combined or installed with inappropriate hardware or software, used with inappropriate accessories, regardless if by Yourself or by third parties, or if there are any other reasons outside of Frogbyte AS's sphere of influence that affect the executability of the Licensed Application.
+
 PRODUCT CLAIMS
 Frogbyte AS and the End-User acknowledge that Frogbyte AS, and not the Services, is responsible for addressing any claims of the End-User or any third party relating to the Licensed Application or the End-User's possession and/or use of that Licensed Application, including, but not limited to:
 (i) product liability claims;
 (ii) any claim that the Licensed Application fails to conform to any applicable legal or regulatory requirement.
+
 CONTACT INFORMATION
 For general inquiries, complaints, questions or claims concerning the Licensed Application, please contact:
 post@frogbyte.io
-
+
+LIMITATION OF LIABILITY
+
+10.1 To the fullest extent permitted by applicable law, in no event shall Frogbyte AS or its affiliates, licensors, or suppliers be liable for any indirect, incidental, special, consequential, or punitive damages, or any loss of profits or revenues, whether incurred directly or indirectly, or any loss of data, use, goodwill, or other intangible losses, resulting from (i) your use or inability to use the Licensed Application; (ii) any unauthorized access to or use of our servers and/or any personal information stored therein; (iii) any interruption or cessation of transmission to or from the Licensed Application; (iv) any bugs, viruses, trojan horses, or the like that may be transmitted to or through the Licensed Application by any third party; (v) any errors or omissions in any content or for any loss or damage incurred as a result of the use of any content posted, emailed, transmitted, or otherwise made available through the Licensed Application; and/or (vi) the defamatory, offensive, or illegal conduct of any third party. In no event shall Frogbyte AS's aggregate liability for all claims relating to the Licensed Application exceed the amount paid by you to Frogbyte AS for the Licensed Application.
+
+DISPUTE RESOLUTION
+11.1 Any disputes arising out of or relating to this Licence Agreement or the Licensed Application shall be resolved through good faith negotiations between the parties. If the dispute cannot be resolved through negotiations, it shall be submitted to mediation before a mutually agreed-upon mediator. If mediation fails, the dispute shall be settled by binding arbitration conducted in Norway, in accordance with the rules of the Norwegian Arbitration Act. The decision of the arbitrator shall be final and binding upon the parties.
+
+By incorporating these suggestions, the EULA can provide clearer protections and expectations for both the Licensor and the End-User.
+
 TERMINATION
 The licence is valid until terminated by Frogbyte AS or by You. Your rights under this licence will terminate automatically and without notice from Frogbyte AS if You fail to adhere to any term(s) of this licence. Upon Licence termination, You shall stop all use of the Licensed Application, and destroy all copies, full or partial, of the Licensed Application.
+
 APPLICABLE LAW
 This Licence Agreement is governed by the laws of Norway excluding its conflicts of law rules.
+
 MISCELLANEOUS
 12.1 If any of the terms of this agreement should be or become invalid, the validity of the remaining provisions shall not be affected. Invalid terms will be replaced by valid ones formulated in a way that will achieve the primary purpose.
 12.2 Collateral agreements, changes and amendments are only valid if laid down in writing. The preceding clause can only be waived in writing.
