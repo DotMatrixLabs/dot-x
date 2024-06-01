@@ -17,9 +17,6 @@
   },
   "tauri": {
     "bundle": {
-      "resources": [
-        "licenses/*"
-      ],
       "active": true,
       "identifier": "com.dot-x.dev",
       "targets": "all",
@@ -29,7 +26,26 @@
         "icons/128x128@2x.png",
         "icons/icon.icns",
         "icons/icon.ico"
-      ]
+      ],
+      "copyright": "Copyright © 2024 Frogbyte AS",
+      "category": "Utility",
+      "shortDescription": "Desktop app for DotMatrixLabs products",
+      "longDescription": "Dot X is a desktop app for managing products made by DotMatrixLabs, as well as other compatible devices. More info at https://dotmatrixlabs.com",
+      "resources": [
+        "licenses/*"
+      ],
+      "windows": {
+        "nsis": {
+          "license": "licenses/EULA.txt",
+          "installerIcon": "./icons/icon.ico"
+        },
+        "wix": {
+          "license": "licenses/EULA.txt",
+          "bannerPath": "./icons/WixInstallerBanner.bmp",
+          "dialogImagePath": "./icons/WixInstaller.bmp"
+
+        }
+      }
     },
     "security": {
       "csp": null
