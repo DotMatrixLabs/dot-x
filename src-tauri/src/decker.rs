@@ -1,4 +1,5 @@
-use std::{thread::{self}, time::Duration, sync::{mpsc, Mutex}};
+use std::{thread::{self}, time::Duration, sync::{Arc, mpsc, Mutex}};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::io::{self, Cursor, Read};
 use log::{error, warn, info};
 use serde::{Serialize, Deserialize};
@@ -66,15 +67,25 @@ impl Serialize for SliderData {
     }
 }
 
-fn deserialize_slider_data(data: &[u8]) -> std::result::Result<SliderData, Box<dyn std::error::Error>> {
+fn deserialize_slider_data(data: &[u8], inverted: bool) -> std::result::Result<SliderData, Box<dyn std::error::Error>> {
     // Create a cursor for the data source
     let cursor = Cursor::new(data);
 
     // Deserialize MessagePack data to the SliderData struct
     let mut deserializer = Deserializer::new(cursor);
     let slider_data: SliderData = Deserialize::deserialize(&mut deserializer)?;
-    
-    Ok(slider_data)
+    // println!("Inverted: {:?}", inverted);
+    if inverted {
+        Ok(SliderData {
+            slider1: 1023 - slider_data.slider1,
+            slider2: 1023 - slider_data.slider2,
+            slider3: 1023 - slider_data.slider3,
+            slider4: 1023 - slider_data.slider4,
+            slider5: 1023 - slider_data.slider5,
+        })
+    } else {
+        Ok(slider_data)
+    }
 }
 
 
@@ -152,8 +163,19 @@ pub fn get_devices() -> Vec<Device> {
 }
 
 static SENDER: Mutex<Option<mpsc::Sender<String>>> = Mutex::new(None);
+static SHOULD_RUN: AtomicBool = AtomicBool::new(true);
 
-pub fn initialize_decker(window: Window, port_name: &str) -> std::result::Result<(), std::io::Error> {
+pub fn kill_decker_thread() {
+    SHOULD_RUN.store(false, Ordering::Relaxed);
+    thread::sleep(Duration::from_millis(250));
+    start_background_thread();
+}
+
+pub fn start_background_thread() {
+    SHOULD_RUN.store(true, Ordering::Relaxed);
+}
+
+pub fn initialize_decker(window: Window, port_name: &str, inverted: bool) -> std::result::Result<(), std::io::Error> {
     let baud_rate: u32 = 115_200;
 
     // Check if the connection is already open and close it if it is.
@@ -162,9 +184,7 @@ pub fn initialize_decker(window: Window, port_name: &str) -> std::result::Result
             if port_info.port_name == port_name {
                 eprintln!("Port \"{}\" is already open. Closing it...", port_name);
                 warn!("Port \"{}\" is already open. Closing it...", port_name);
-                if let Ok(port) = serialport::new(port_name, baud_rate).timeout(Duration::from_millis(20)).open() {
-                    std::mem::drop(port);
-                }
+                kill_decker_thread();
             }
         }
     }
@@ -182,9 +202,18 @@ pub fn initialize_decker(window: Window, port_name: &str) -> std::result::Result
                 let mut serial_buf: Vec<u8> = vec![0; 100];
                 window.emit("connection-change", Payload { message: "connected".to_string() }).unwrap();
                 loop {
+                    if(!SHOULD_RUN.load(Ordering::Relaxed)) {
+                        break;
+                    }
                     match rx.try_recv() {
                         Ok(command) => {
                             println!("Received: {:?}", command);
+                            if command == "disconnect" {
+                                window.emit("connection-change", Payload { message: "disconnected".to_string() }).unwrap();
+                                std::mem::drop(port); // Drop the port to close it
+                                info!("Disconnected");
+                                panic!("Disconnected");
+                            }
                             match serialize_decker_data(&command) {
                                 Ok(serialized_data) => {
                                     match port.write(serialized_data.as_slice()) {
@@ -212,7 +241,7 @@ pub fn initialize_decker(window: Window, port_name: &str) -> std::result::Result
                             let received: Vec<u8> = serial_buf[..t].to_vec();
                             let messagepack_data = received;
 
-                            match deserialize_slider_data(&messagepack_data) {
+                            match deserialize_slider_data(&messagepack_data, inverted) {
                                 Ok(slider_data) => {
                                     let json_data = serde_json::to_string(&slider_data).unwrap();
                                     unsafe { decker::slider_values = slider_data }
@@ -248,6 +277,15 @@ pub fn initialize_decker(window: Window, port_name: &str) -> std::result::Result
     }
 }
 
+pub fn disconnect_decker() {
+    let sender = SENDER.lock().unwrap();
+    if let Some(sender) = sender.as_ref() {
+        sender.send("disconnect".to_owned()).unwrap();
+    } else {
+        eprintln!("Sender not initialized. Make sure to initialize it before calling send_decker_command.");
+    }
+}
+
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Command {
     pub command: String,
@@ -256,9 +294,10 @@ pub struct Command {
 
 #[derive(Serialize, Deserialize)]
 pub struct Options {
-    r: i32,
-    g: i32,
-    b: i32
+    effect: String,
+    color: String,
+    speed: i32,
+    brightness: i32,
 }
 
 #[tauri::command]
