@@ -8,7 +8,7 @@
   },
   "package": {
     "productName": "Dot X",
-    "version": "1.0.6"
+    "version": "1.0.7"
   },
   "plugins": {
     "shell": {
@@ -26,7 +26,22 @@
         "icons/128x128@2x.png",
         "icons/icon.icns",
         "icons/icon.ico"
-      ]
+      ],
+      "copyright": "Copyright © 2024 Frogbyte AS",
+      "category": "Utility",
+      "shortDescription": "Desktop app for DotMatrixLabs products",
+      "longDescription": "Dot X is a desktop app for managing products made by DotMatrixLabs, as well as other compatible devices. More info at https://dotmatrixlabs.com",
+      "resources": [
+        "license.txt"
+      ],
+      "windows": {
+        "nsis": {
+          "license": "license.txt"
+        },
+        "wix": {
+          "license": "license.txt"
+        }
+      }
     },
     "security": {
       "csp": null
