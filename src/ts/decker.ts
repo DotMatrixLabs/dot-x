@@ -4,16 +4,21 @@ import { useDeckerStore } from "../store/deckerStore.ts";
 import SystemVolumeController from "./volumeControl.ts";
 import ConfigStore from './config.ts';
 import appsToControl from './appsToControl.ts';
-
+import { trackEvent } from "@aptabase/tauri";
+import EventBus from '../js/eventBus.js';
 class Decker {
     private comPort: string = "";
     private initiated: boolean;
     // private debug: boolean;
     public sliders: Array<number> = [];
+    sliderListenerDetatcher: any;
+    MIDIListenerDetatcher: any;
 
     constructor() {
         this.comPort = "";
         this.initiated = false;
+        this.sliderListenerDetatcher = null;
+        this.MIDIListenerDetatcher = null;
     }
 
     private async initClass() {
@@ -22,9 +27,11 @@ class Decker {
             if(event.payload.message === "connected"){
                 deckerStore.setConnected(true);
                 this.updateSliders();
+                EventBus.emit('connectionChange', {connected: true});
             } else if (event.payload.message === "disconnected"){
                 this.handleSliderDisconnect();
                 deckerStore.setConnected(false);
+                EventBus.emit('connectionChange', {connected: false});
             }
         })
     }
@@ -98,8 +105,9 @@ class Decker {
         this.comPort = comPort;
 
         console.log("Connecting to Decker...", comPort)
-
-        await invoke('connect_decker', { portName: comPort }).then(async () => {
+        const inverted = await ConfigStore.get("invertedSliders");
+        console.log({inverted});
+        await invoke('connect_decker', { portName: comPort, inverted: inverted ?? false }).then(async () => {
             console.log("Decker Connected!")
             deckerStore.setConnected(true);
             if(await ConfigStore.get("midiEnabled")) this.attachMidiDevice(await ConfigStore.get("midiOutputPortNumber"));
@@ -111,7 +119,7 @@ class Decker {
 
 
         
-        const unlisten = await listen('slider-change', (event: any) => {
+        this.sliderListenerDetatcher = await listen('slider-change', (event: any) => {
             deckerStore.setConnected(true);
             // Split event.payload.message on comma and add it to sliders array
             const jsonString = event.payload.message;
@@ -122,7 +130,7 @@ class Decker {
             // console.log(this.sliders);
         });
 
-        const detachListener = await listen('midi_detached', async () => {
+        this.MIDIListenerDetatcher = await listen('midi_detached', async () => {
             console.log("[Midi.rs backend]: Midi was detached");
             const midiEnabled = await ConfigStore.get("midiEnabled");
             const midiOutputPortNumber = await ConfigStore.get("midiOutputPortNumber");
@@ -131,14 +139,19 @@ class Decker {
             this.attachMidiDevice(midiOutputPortNumber);
         });
 
-        console.log(unlisten)
-        console.log(detachListener)
 
         // setTimeout(() => {
         //     emit('slider-change', { value: 10 });
         //     console.log('emittd');
         // }, 2500);
     }
+
+    public async disconnect() {
+        await invoke('disconnect_decker');
+        this.sliderListenerDetatcher();
+        this.MIDIListenerDetatcher();
+    }
+
 
     
     public async getDevices() {
@@ -194,6 +207,7 @@ class Decker {
         if(midiConfiguration?.length === 0) midiConfiguration = [];
         console.log("Attaching MIDI with MIDI Configuration:");
         console.log(midiConfiguration);
+        trackEvent("midi_attached🔊") // An event with no properties
         return await invoke('attach_midi_device', { outputName, outputPort, midiSliders, midiConfiguration });
     }
 
