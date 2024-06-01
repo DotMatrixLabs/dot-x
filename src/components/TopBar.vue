@@ -10,11 +10,16 @@
       <img v-if="colorScheme === 'dark'" class="object-cover h-6" src="../assets/DotX-darkmode.png">
       <img v-else class="object-cover h-6" src="../assets/DotX-lightmode.png">
 
-      <h1 class="text-base-content">Decker</h1>
+      <!-- <h1 class="text-base-content">Decker</h1> -->
       <div>
         <i :class="connectionStatus ? 'text-green-400' : 'text-red-400'">●</i>
         <span class="text-sm text-base-content mx-2 capitalize">{{ connectionStatus ? 'Connected' : 'Disconnected' }}</span>
       </div>
+
+      <a class="opacity-70 hover:opacity-100 transition-opacity" href="https://discord.gg/kkFEKucs3q" target="_blank" rel="noopener noreferrer">
+        <i class="fab fa-discord"></i>
+      </a>
+
     </div>
     <div class="flex flex-row justify-center top-0">
       <button title="Settings" @click="$emit('settings-toggled')" class="mx-8 btn btn-ghost rounded-md p-2">
