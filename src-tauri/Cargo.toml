@@ -1,6 +1,6 @@
 [package]
 name = "dot_x"
-version = "1.0.7"
+version = "1.0.8"
 description = "Dot X"
 authors = ["you"]
 license = ""
