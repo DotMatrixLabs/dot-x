@@ -29,8 +29,20 @@
         "licenseUrl": "https://github.com/evanw/esbuild",
         "parents": "dot-x"
     },
-    "@fortawesome/fontawesome-free@6.4.2": {
+    "@fortawesome/fontawesome-common-types@6.5.2": {
+        "licenses": "MIT",
+        "repository": "https://github.com/FortAwesome/Font-Awesome",
+        "licenseUrl": "https://github.com/FortAwesome/Font-Awesome/raw/master/LICENSE.txt",
+        "parents": "dot-x"
+    },
+    "@fortawesome/fontawesome-free@6.5.2": {
         "licenses": "(CC-BY-4.0 AND OFL-1.1 AND MIT)",
+        "repository": "https://github.com/FortAwesome/Font-Awesome",
+        "licenseUrl": "https://github.com/FortAwesome/Font-Awesome/raw/master/LICENSE.txt",
+        "parents": "dot-x"
+    },
+    "@fortawesome/free-brands-svg-icons@6.5.2": {
+        "licenses": "(CC-BY-4.0 AND MIT)",
         "repository": "https://github.com/FortAwesome/Font-Awesome",
         "licenseUrl": "https://github.com/FortAwesome/Font-Awesome/raw/master/LICENSE.txt",
         "parents": "dot-x"
@@ -197,11 +209,11 @@
         "licenseUrl": "https://github.com/tauri-apps/tauri/raw/master/LICENSE_APACHE-2.0",
         "parents": "dot-x"
     },
-    "@tauri-apps/cli-win32-x64-msvc@1.5.14": {
+    "@tauri-apps/cli-win32-x64-msvc@1.5.6": {
         "licenses": "MIT",
         "parents": "dot-x"
     },
-    "@tauri-apps/cli@1.5.14": {
+    "@tauri-apps/cli@1.5.6": {
         "licenses": "Apache-2.0 OR MIT",
         "repository": "https://github.com/tauri-apps/tauri",
         "licenseUrl": "https://github.com/tauri-apps/tauri/raw/master/LICENSE_APACHE-2.0",
