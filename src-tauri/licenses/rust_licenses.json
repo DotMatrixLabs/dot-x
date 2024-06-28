@@ -1099,7 +1099,7 @@
   },
   {
     "name": "dot_x",
-    "version": "1.0.7",
+    "version": "1.0.8",
     "authors": "you",
     "repository": "",
     "license": "",
@@ -2700,6 +2700,15 @@
     "description": "Single assignment cells and lazy values."
   },
   {
+    "name": "open",
+    "version": "3.2.0",
+    "authors": "Sebastian Thiel <byronimo@gmail.com>",
+    "repository": "https://github.com/Byron/open-rs",
+    "license": "MIT",
+    "license_file": null,
+    "description": "Open a path or URL using the program configured on the system"
+  },
+  {
     "name": "openssl",
     "version": "0.10.61",
     "authors": "Steven Fackler <sfackler@gmail.com>",
@@ -2824,6 +2833,15 @@
     "license": "Apache-2.0 OR MIT",
     "license_file": null,
     "description": "Macros for all your token pasting needs"
+  },
+  {
+    "name": "pathdiff",
+    "version": "0.2.1",
+    "authors": "Manish Goregaokar <manishsmail@gmail.com>",
+    "repository": "https://github.com/Manishearth/pathdiff",
+    "license": "Apache-2.0 OR MIT",
+    "license_file": null,
+    "description": "Library for diffing paths to obtain relative paths"
   },
   {
     "name": "percent-encoding",
@@ -4903,6 +4921,15 @@
     "license": "Apache-2.0 OR MIT",
     "license_file": null,
     "description": "The interface macro for the windows crate"
+  },
+  {
+    "name": "windows-sys",
+    "version": "0.42.0",
+    "authors": "Microsoft",
+    "repository": "https://github.com/microsoft/windows-rs",
+    "license": "Apache-2.0 OR MIT",
+    "license_file": null,
+    "description": "Rust for Windows"
   },
   {
     "name": "windows-sys",
