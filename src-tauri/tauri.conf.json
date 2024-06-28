@@ -8,7 +8,7 @@
   },
   "package": {
     "productName": "Dot X",
-    "version": "1.0.7"
+    "version": "1.0.8"
   },
   "plugins": {
     "shell": {
@@ -35,6 +35,9 @@
         "licenses/*"
       ],
       "windows": {
+        "certificateThumbprint": "6d5ed22f2dbd07b9e2a1a31003f5635310492f41",
+        "digestAlgorithm": "sha256",
+        "timestampUrl": "http://time.certum.pl",
         "nsis": {
           "license": "licenses/EULA.txt",
           "installerIcon": "./icons/icon.ico"
