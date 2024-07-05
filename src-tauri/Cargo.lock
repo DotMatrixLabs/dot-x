@@ -1375,6 +1375,7 @@ dependencies = [
  "midir",
  "once_cell",
  "rmp-serde",
+ "rustc_version",
  "sentry-tauri",
  "serde",
  "serde_json",
