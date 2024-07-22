@@ -347,6 +347,8 @@ fn main() {
           Some(vec!["--hidden"]),
         ))
         .plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
+          let window = app.get_window("main").unwrap();
+          window.show().unwrap();
           show_notification("Dot X", "Dot X is already running");
         }))
         .system_tray(SystemTray::new().with_menu(tray_menu))
