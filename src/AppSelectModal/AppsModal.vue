@@ -39,6 +39,7 @@ import Programs from "./Programs.vue"
 import SystemUtilitiesSelector from "./SystemUtilitiesSelector.vue"
 import Midi from "./Midi.vue"
 import config from "../ts/config";
+import Settings from "./Settings.vue";
 
 // import { useMicrophoneStore } from "../store/microphoneStore";
 
@@ -53,7 +54,8 @@ export default {
   components: {
     Programs,
     SystemUtilitiesSelector,
-    Midi
+    Midi,
+    Settings
   },
 
   name: "SettingsModal",
@@ -70,7 +72,8 @@ export default {
       tabs: [
         { name: 'Programs', component: 'Programs', isActive: true },
         { name: 'System Utilities', component: 'SystemUtilitiesSelector'},
-        { name: 'Midi', component: 'Midi', hide: true}
+        { name: 'Midi', component: 'Midi', hide: true},
+        { name: 'Settings', component: 'Settings'}
       ],
       midiEnabledGlobal: false,
     };
