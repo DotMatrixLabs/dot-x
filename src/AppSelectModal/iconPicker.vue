@@ -1,15 +1,15 @@
 <template>
     <div class="flex flex-row gap-6">
         <div class="join">
-            <button @click="modalOpen = true" class="btn btn-sm join-item">
+            <button @click="modalOpen = true" class="btn join-item">
                 <span v-if="!selectedIcon"> <i class="fa-solid fa-smile"></i> <span class="mx-2"> Select</span></span>
-                <span :key="selectedIcon" v-else><i class="fa-md" :class="selectedIcon" /> <span class="mx-2"> Change</span></span>
+                <span :key="selectedIcon" v-else><i class="fa-lg" :class="selectedIcon" /> <span class="mx-2"> Change</span></span>
             </button>
-            <button @click="selectIcon('')" class="btn btn-sm join-item"><i class="fa-solid fa-xmark"></i></button>
+            <button @click="selectIcon('')" class="btn join-item"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div :class="modalOpen ? 'modal-open' : ''" class="modal h-full w-full">
             <div class="modal-box overflow-hidden w-full max-w-xl h-3/4">
-            <button @click="modalOpen = false" class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+            <button @click="modalOpen = false" class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"><i class="fa-solid fa-xmark"/></button>
             <div class="w-full flex justify-center gap-4">
                 <label class="text text-lg font-bold">Select Icon</label>
                 <input class="input input-bordered input-sm w-32 max-w-xs mx-2 capitalize truncate justify-end" v-model="search" placeholder="Search an icon">
