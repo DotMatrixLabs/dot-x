@@ -1479,7 +1479,6 @@
     { "title": "fas fa-neuter", "searchTerms": [] },
     { "title": "fas fa-newspaper", "searchTerms": ["press", "article"] },
     { "title": "far fa-newspaper", "searchTerms": ["press", "article"] },
-    { "title": "fab fa-nintendo-switch", "searchTerms": [] },
     { "title": "fab fa-node", "searchTerms": [] },
     { "title": "fab fa-node-js", "searchTerms": [] },
     { "title": "fab fa-npm", "searchTerms": [] },
