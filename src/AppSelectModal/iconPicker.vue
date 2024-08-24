@@ -2,8 +2,8 @@
     <div class="flex flex-row gap-6">
         <div class="join">
             <button @click="modalOpen = true" class="btn join-item">
-                <span v-if="!selectedIcon"> <i class="fa-solid fa-smile"></i> <span class="mx-2"> Select</span></span>
-                <span :key="selectedIcon" v-else><i class="fa-lg" :class="selectedIcon" /> <span class="mx-2"> Change</span></span>
+                <span v-if="!currentSelectedIcon"> <i class="fa-solid fa-smile"></i> <span class="mx-2"> Select</span></span>
+                <span :key="currentSelectedIcon" v-else><i class="fa-lg" :class="currentSelectedIcon" /> <span class="mx-2"> Change</span></span>
             </button>
             <button @click="selectIcon('')" class="btn join-item"><i class="fa-solid fa-xmark"></i></button>
         </div>
@@ -16,9 +16,9 @@
             </div>
             <transition name="icon-preview-fade">
                 <div class="mt-3">
-                    <RecycleScroller class="w-full h-48 px-4 overflow-y-scroll" gridItems="9" :items="iconsFiltered" item-size="52" key-field="title" prerender="0"
+                    <RecycleScroller class="w-full h-48 px-4 overflow-y-scroll" :gridItems="9" :items="iconsFiltered" :item-size="52" key-field="title" :prerender="0"
                     v-slot="{ item }">
-                        <div @click="selectIcon(item?.title)" :class="selectedIcon == item?.title ? 'bg-primary hover:opacity-70' : 'hover:bg-gray-800'" :key="item?.title" :title="item?.title" class=" transition-all active:scale-105 m-1 cursor-pointer h-12 w-12 p-2 flex flex-col justify-center items-center rounded-md">
+                        <div @click="selectIcon(item?.title)" :class="currentSelectedIcon == item?.title ? 'bg-primary hover:opacity-70' : 'hover:bg-gray-800'" :key="item?.title" :title="item?.title" class=" transition-all active:scale-105 m-1 cursor-pointer h-12 w-12 p-2 flex flex-col justify-center items-center rounded-md">
                             <i class="fa-2xl" :class="item?.title" />
                         </div>
                     </RecycleScroller>
@@ -37,9 +37,16 @@ export default {
     data() {
         return {
             search: '',
-            selectedIcon: '',
-            modalOpen: false
+            modalOpen: false,
+            currentSelectedIcon: ''
         };
+    },
+    props: {
+        selectedIcon: {
+            type: String,
+            required: false,
+            default: ''
+        }
     },
     computed: {
         iconsFiltered(){
@@ -51,14 +58,17 @@ export default {
     methods: {
         selectIcon(icon) {
             console.log(icon);
-            console.log(this.selectedIcon);
-            if(icon === this.selectedIcon) icon = '';
-            this.selectedIcon = '';
-            this.selectedIcon = icon;
-            console.log(this.selectedIcon);
+            console.log(this.currentSelectedIcon);
+            if(icon === this.currentSelectedIcon) icon = '';
+            this.currentSelectedIcon = '';
+            this.currentSelectedIcon = icon;
+            console.log(this.currentSelectedIcon);
             this.$emit('icon-selected', icon);
             this.modalOpen = false;
         }
+    },
+    mounted() {
+        this.currentSelectedIcon = this.selectedIcon;
     }
 };
 </script>

@@ -42,6 +42,26 @@ class ChannelSettings {
     async getAllChannelSettings(): Promise<any> {
         return await this.store.values();
     }
+
+    async updateChannelSettings(channelId: number, key: string, value: any): Promise<any> {
+        console.log("updateChannelSettings", channelId, key, value);
+        //first get the current settings object for the channel
+        let currentSettings = await this.getChannelSettings(channelId);
+        //merge the current settings with the new settings
+        let updatedSettings = _.merge(currentSettings, {[key]: value});
+        //save the updated settings
+        const channel = channelId.toString();
+        await this.store.set(channel, updatedSettings);
+        //save the store
+        await this.store.save();
+        //return the updated settings
+        return updatedSettings;
+    }
+
+    async getChannelSettings(channelId: number): Promise<any> {
+        const ID = channelId.toString();
+        return await this.store.get(ID);
+    }
 }
 
 export default new ChannelSettings();
