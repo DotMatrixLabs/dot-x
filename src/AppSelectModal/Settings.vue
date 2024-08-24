@@ -26,7 +26,6 @@
             <div v-else class="flex flex-row w-full justify-between px-2 ">
                 <span class="my-auto">Icon: </span>
                 <iconPicker />
-                <input type="dropdown" class="input input-bordered input-sm max-w-xs w-2/3 mx-2 capitalize truncate"/>
             </div>
         </div>
     </div>
