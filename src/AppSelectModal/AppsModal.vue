@@ -1,6 +1,8 @@
 <template>
   <div :class="modalOpen ? 'modal-open' : ''" class="modal h-full w-full">
     <div class="modal-box overflow-hidden w-full max-w-xl h-2/3">
+      <button @click="modalOpen = false" class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"><i class="fa-solid fa-xmark"/></button>
+
       <h1 class="font-bold text-lg text-center">Apps</h1>
       <div class="w-full">
         <ul class="menu rounded-box menu-compact p-2 flex flex-row w-full justify-center gap-2">
@@ -20,9 +22,6 @@
         </div>
       </div>
 
-    </div>
-    <div class="modal-action fixed bottom-5 left-1/2 transform -translate-x-1/2">
-      <button @click="$emit('close')" class="btn mx-auto">Close</button>
     </div>
   </div>
 </template>
