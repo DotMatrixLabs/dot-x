@@ -1,5 +1,6 @@
 <template>
     <div class="w-2/3 m-auto">
+        <Alert ref="alert" />
         <div class="divider label-text">Channel label</div>
         <div class="flex flex-col justify-start items-center w-full h-full overflow-y-auto py-2 px-1 mt-2">
             <div class="flex flex-row w-full justify-between px-2 mb-8">
@@ -54,6 +55,8 @@ import channelSettings from "../ts/channelSettings.ts";
 import iconPicker from "./iconPicker.vue";
 import { open } from '@tauri-apps/api/dialog';
 import { copyFileToAppdata, getImageFile, getImageSize } from '../ts/helpers.ts';
+import Alert from "../components/Alert.vue";
+
 
 export default {
     data() {
@@ -76,8 +79,9 @@ export default {
     },
 
     components: {
-        iconPicker
-    },
+    iconPicker,
+    Alert
+},
 
     methods: {
         async getChannelSettings() {
@@ -113,7 +117,7 @@ export default {
                 getImageSize(result).then(size => {
                     console.log(size);
                     if(size.width > 100 || size.height > 50) {
-                        alert('Image needs to be max 100x50px');
+                        this.$refs.alert.openAlert('Image too big', 'Image can not be larger than 100x50px. Please resize the image and try again.');
                         return;
                     }
                     this.copyToLocalFolder(result);
