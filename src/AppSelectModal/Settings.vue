@@ -85,9 +85,7 @@ export default {
 
     methods: {
         async getChannelSettings() {
-            console.log('getting channel settings');
             const newSettings = await channelSettings.getChannelSettings(this.currentSliderID);
-            console.log(newSettings);
             this.settings = {...this.settings, ...newSettings};
         },
 
@@ -99,10 +97,8 @@ export default {
         },
 
         inputChange(key, value){
-            console.table("InputChange", key, value);
             channelSettings.updateChannelSettings(this.currentSliderID, key, value).then(newSettings => {
             });
-            console.log('input changed');
         },
         requestFile() {
             open({
@@ -115,7 +111,6 @@ export default {
                 }]
             }).then(result => {
                 getImageSize(result).then(size => {
-                    console.log(size);
                     if(size.width > 100 || size.height > 50) {
                         this.$refs.alert.openAlert('Image too big', 'Image can not be larger than 100x50px. Please resize the image and try again.');
                         return;
@@ -128,7 +123,6 @@ export default {
         async getImage() {
             const imagePath = this.settings.labelImage;
             if(imagePath === '') return;
-            console.log(imagePath);
             return await getImageFile(imagePath)
         },
 
