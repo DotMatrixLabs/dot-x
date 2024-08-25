@@ -36,12 +36,12 @@
             <div v-else-if="settings.selectedLabelType === 'image'" class="flex flex-row justify-between w-full px-2 ">
                 <span class="my-auto label-text mt-1">Image: </span>
                 <div class="flex flex-col items-center justify-center">
-                        <button @click="requestFile" class="rounded-full w-24 h-12 bg-gray-500 dark:bg-gray-400 border-0 bg-opacity-40 dark:bg-opacity-30 dark:ring-opacity-50 btn">
-                            <img class="object-cover max-h-12 p-1" v-if="imageSrc" :src="imageSrc"/>
-                            <span v-else>Select</span>
-                        </button>
-                        <button class="btn btn-xs btn-ghost mt-1">Remove</button>
-                        <!-- TODO: Delete image from appdata when clicking remove -->
+                    <button @click="requestFile" class="rounded-full w-24 h-12 bg-gray-500 dark:bg-gray-400 border-0 bg-opacity-40 dark:bg-opacity-30 dark:ring-opacity-50 px-0 btn">
+                        <img class="object-cover max-h-12 p-0.5" v-if="imageSrc" :src="imageSrc"/>
+                        <span v-else>Select</span>
+                    </button>
+                    <button :disabled="!imageSrc" class="btn btn-xs btn-ghost mt-1">Remove</button>
+                    <!-- TODO: Delete image from appdata when clicking remove -->
                     <label class="label-text mt-1 text-center">Image needs to be max 32x46px</label>
                 </div>
             </div>
@@ -104,10 +104,11 @@ export default {
             open({
                 multiple: false,
                 directory: false,
-                filter: {
+                filters: [{
                     name: 'Images',
+                    title: 'Select channel icon',
                     extensions: ['png']
-                }
+                }]
             }).then(result => {
                 this.copyToLocalFolder(result);
                 console.log(result);
