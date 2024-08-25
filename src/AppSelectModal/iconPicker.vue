@@ -57,12 +57,9 @@ export default {
     },
     methods: {
         selectIcon(icon) {
-            console.log(icon);
-            console.log(this.currentSelectedIcon);
             if(icon === this.currentSelectedIcon) icon = '';
             this.currentSelectedIcon = '';
             this.currentSelectedIcon = icon;
-            console.log(this.currentSelectedIcon);
             this.$emit('icon-selected', icon);
             this.modalOpen = false;
         }
