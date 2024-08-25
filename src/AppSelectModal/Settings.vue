@@ -41,9 +41,9 @@
                         <img class="object-cover max-h-12 p-0.5" v-if="imageSrc" :src="imageSrc"/>
                         <span v-else>Select</span>
                     </button>
-                    <button :disabled="!imageSrc" class="btn btn-xs btn-ghost mt-1">Remove</button>
+                    <button @click="removeFile" :disabled="!imageSrc" class="btn btn-xs btn-ghost mt-1">Remove</button>
                     <!-- TODO: Delete image from appdata when clicking remove -->
-                    <label class="label-text mt-1 text-center">Image needs to be max 100x50px</label>
+                    <label class="label-text mt-1 text-center">Image can not be larger than 100x50px</label>
                 </div>
             </div>
         </div>
@@ -54,7 +54,7 @@
 import channelSettings from "../ts/channelSettings.ts";
 import iconPicker from "./iconPicker.vue";
 import { open } from '@tauri-apps/api/dialog';
-import { copyFileToAppdata, getImageFile, getImageSize } from '../ts/helpers.ts';
+import { copyFileToAppdata, getImageFile, getImageSize, removeFileFromAppdata } from '../ts/helpers.ts';
 import Alert from "../components/Alert.vue";
 
 
@@ -97,8 +97,7 @@ export default {
         },
 
         inputChange(key, value){
-            channelSettings.updateChannelSettings(this.currentSliderID, key, value).then(newSettings => {
-            });
+            channelSettings.updateChannelSettings(this.currentSliderID, key, value)
         },
         requestFile() {
             open({
@@ -115,9 +114,16 @@ export default {
                         this.$refs.alert.openAlert('Image too big', 'Image can not be larger than 100x50px. Please resize the image and try again.');
                         return;
                     }
+                    //if the image is smaller than 100x50px we can copy it to the local folder (appdata) and update the settings
                     this.copyToLocalFolder(result);
                 });
             });
+        },
+
+        removeFile() {
+            removeFileFromAppdata(this.settings.labelImage);
+            this.inputChange('labelImage', '');
+            this.imageSrc = '';
         },
 
         async getImage() {
@@ -126,6 +132,7 @@ export default {
             return await getImageFile(imagePath)
         },
 
+        //TODO move to helpers
         convertUint8ArrayToBase64(uint8Array) {
             let binary = '';
             const len = uint8Array.byteLength;
@@ -141,6 +148,7 @@ export default {
         },
 
         copyToLocalFolder(filePath) {
+            console.log( `channel-${this.currentSliderID}.png`);
             copyFileToAppdata(filePath, 'channelIcons', `channel-${this.currentSliderID}.png`).then(newPath => {
                 this.inputChange('labelImage', newPath);
                 this.loadImage();
