@@ -1,4 +1,4 @@
-import { createDir, copyFile, BaseDirectory, readBinaryFile } from '@tauri-apps/api/fs';
+import { createDir, copyFile, BaseDirectory, readBinaryFile, removeFile } from '@tauri-apps/api/fs';
 import {imageDimensionsFromData} from 'image-dimensions';
 
 export async function copyFileToAppdata(filePath: string, folderName: string, fileName?: string) {
@@ -10,6 +10,11 @@ export async function copyFileToAppdata(filePath: string, folderName: string, fi
     await copyFile(filePath, `${folderName}/${fileName}`, { dir: BaseDirectory.AppData });
     // Return the path to the copied file
     return `${folderName}/${fileName}`;
+}
+
+export async function removeFileFromAppdata(filePath: string) {
+    // Delete the file from the `$APPDATA` directory
+    await removeFile(filePath, { dir: BaseDirectory.AppData });
 }
 
 export async function getImageFile(filePath: string) {
@@ -25,7 +30,5 @@ export async function getImageSize(filePath: string) {
     const dimensions = imageDimensionsFromData(file);
     // Return the dimensions of the image
     return dimensions;
-
-
 }
     
