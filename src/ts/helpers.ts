@@ -17,11 +17,25 @@ export async function removeFileFromAppdata(filePath: string) {
     await removeFile(filePath, { dir: BaseDirectory.AppData });
 }
 
-export async function getImageFile(filePath: string) {
+export async function getImage(filePath: string) {
+    if(filePath === "" || !filePath) return;
     // Read the file as binary
-    const file = await readBinaryFile(filePath, { dir: BaseDirectory.AppData });
+    const imageFile = await readBinaryFile(filePath, { dir: BaseDirectory.AppData });
+    // Convert the binary file to a base64 string
+    const base64String = convertUint8ArrayToBase64(imageFile);
+    // Return the base64 image
+    
     // Return the binary file
-    return file;
+    return `data:image/png;base64,${base64String}`;
+}
+
+function convertUint8ArrayToBase64(uint8Array: Uint8Array) {
+    let binary = '';
+    const len = uint8Array.byteLength;
+    for (let i = 0; i < len; i++) {
+        binary += String.fromCharCode(uint8Array[i]);
+    }
+    return window.btoa(binary);
 }
 
 export async function getImageSize(filePath: string) {

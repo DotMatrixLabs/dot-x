@@ -1,7 +1,7 @@
 <template>
     <div class="w-2/3 m-auto">
         <Alert ref="alert" />
-        <div class="divider label-text">Channel label</div>
+        <div class="divider label-text">Channel label {{ currentSliderID }}</div>
         <div class="flex flex-col justify-start items-center w-full h-full overflow-y-auto py-2 px-1 mt-2">
             <div class="flex flex-row w-full justify-between px-2 mb-8">
                 <span class="mt-4 label-text">Label Type: </span>
@@ -42,7 +42,7 @@
                         <span v-else>Select</span>
                     </button>
                     <button @click="removeFile" :disabled="!imageSrc" class="btn btn-xs btn-ghost mt-1">Remove</button>
-                    <!-- TODO: Delete image from appdata when clicking remove -->
+                    <!-- TODO: Delete image from AppData when clicking remove -->
                     <label class="label-text mt-1 text-center">Image can not be larger than 100x50px</label>
                 </div>
             </div>
@@ -54,7 +54,7 @@
 import channelSettings from "../ts/channelSettings.ts";
 import iconPicker from "./iconPicker.vue";
 import { open } from '@tauri-apps/api/dialog';
-import { copyFileToAppdata, getImageFile, getImageSize, removeFileFromAppdata } from '../ts/helpers.ts';
+import { copyFileToAppdata, getImage, getImageSize, removeFileFromAppdata } from '../ts/helpers.ts';
 import Alert from "../components/Alert.vue";
 
 
@@ -68,6 +68,13 @@ export default {
                 labelImage: ''
             },
             imageSrc: ''
+        }
+    },
+
+    watch: {
+        currentSliderID() {
+            this.getChannelSettings();
+            this.loadImage();
         }
     },
 
@@ -92,14 +99,14 @@ export default {
         selectLabelType(type){
             if(type === this.settings.selectedLabelType) type = '';
             this.settings.selectedLabelType = type;
-            if(type === 'image') this.getImage();
+            if(type === 'image') this.loadImage();
             this.inputChange('selectedLabelType', type);
         },
 
         inputChange(key, value){
             channelSettings.updateChannelSettings(this.currentSliderID, key, value)
         },
-        requestFile() {
+        async requestFile() {
             open({
                 multiple: false,
                 directory: false,
@@ -115,9 +122,16 @@ export default {
                         return;
                     }
                     //if the image is smaller than 100x50px we can copy it to the local folder (appdata) and update the settings
-                    this.copyToLocalFolder(result);
+                    this.copyAndSaveFile(result);
                 });
             });
+        },
+
+        async copyAndSaveFile(filePath){
+            const newPath = await copyFileToAppdata(filePath, 'channelIcons', `channel-${this.currentSliderID}.png`)
+            //update the settings with the new path to channelSettings.json
+            this.inputChange('labelImage', newPath);
+            this.loadImage(newPath);
         },
 
         removeFile() {
@@ -126,35 +140,11 @@ export default {
             this.imageSrc = '';
         },
 
-        async getImage() {
-            const imagePath = this.settings.labelImage;
-            if(imagePath === '') return;
-            return await getImageFile(imagePath)
-        },
-
-        //TODO move to helpers
-        convertUint8ArrayToBase64(uint8Array) {
-            let binary = '';
-            const len = uint8Array.byteLength;
-            for (let i = 0; i < len; i++) {
-                binary += String.fromCharCode(uint8Array[i]);
-            }
-            return window.btoa(binary);
-        },
-        async loadImage() {
-            const uint8Array = await this.getImage();
-            const base64String = this.convertUint8ArrayToBase64(uint8Array);
-            this.imageSrc = `data:image/png;base64,${base64String}`;
-        },
-
-        copyToLocalFolder(filePath) {
-            console.log( `channel-${this.currentSliderID}.png`);
-            copyFileToAppdata(filePath, 'channelIcons', `channel-${this.currentSliderID}.png`).then(newPath => {
-                this.inputChange('labelImage', newPath);
-                this.loadImage();
-            });
-        },
-
+        async loadImage(filePath = this.settings.labelImage) {
+            console.log(filePath);
+            if(!filePath || filePath === "") return;
+            this.imageSrc  = await getImage(filePath);
+        }
     }, 
     mounted() {
         this.getChannelSettings(this.currentSliderID).then(() => {
