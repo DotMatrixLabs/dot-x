@@ -42,7 +42,7 @@
                     </button>
                     <button :disabled="!imageSrc" class="btn btn-xs btn-ghost mt-1">Remove</button>
                     <!-- TODO: Delete image from appdata when clicking remove -->
-                    <label class="label-text mt-1 text-center">Image needs to be max 32x46px</label>
+                    <label class="label-text mt-1 text-center">Image needs to be max 100x50px</label>
                 </div>
             </div>
         </div>
@@ -53,7 +53,7 @@
 import channelSettings from "../ts/channelSettings.ts";
 import iconPicker from "./iconPicker.vue";
 import { open } from '@tauri-apps/api/dialog';
-import { copyFileToAppdata, getImageFile } from '../ts/helpers.ts';
+import { copyFileToAppdata, getImageFile, getImageSize } from '../ts/helpers.ts';
 
 export default {
     data() {
@@ -110,8 +110,14 @@ export default {
                     extensions: ['png']
                 }]
             }).then(result => {
-                this.copyToLocalFolder(result);
-                console.log(result);
+                getImageSize(result).then(size => {
+                    console.log(size);
+                    if(size.width > 100 || size.height > 50) {
+                        alert('Image needs to be max 100x50px');
+                        return;
+                    }
+                    this.copyToLocalFolder(result);
+                });
             });
         },
 
