@@ -34,12 +34,14 @@
                 <iconPicker :selectedIcon="settings.labelIcon" @icon-selected="inputChange('labelIcon', $event)"/>
             </div>
             <div v-else-if="settings.selectedLabelType === 'image'" class="flex flex-row justify-between w-full px-2 ">
-                <span class="my-auto label-text">Image: </span>
+                <span class="my-auto label-text mt-1">Image: </span>
                 <div class="flex flex-col items-center justify-center">
                         <button @click="requestFile" class="rounded-full w-24 h-12 bg-gray-500 dark:bg-gray-400 border-0 bg-opacity-40 dark:bg-opacity-30 dark:ring-opacity-50 btn">
-                            Select
+                            <img class="object-cover max-h-12 p-1" v-if="imageSrc" :src="imageSrc"/>
+                            <span v-else>Select</span>
                         </button>
                         <button class="btn btn-xs btn-ghost mt-1">Remove</button>
+                        <!-- TODO: Delete image from appdata when clicking remove -->
                     <label class="label-text mt-1 text-center">Image needs to be max 32x46px</label>
                 </div>
             </div>
@@ -51,7 +53,7 @@
 import channelSettings from "../ts/channelSettings.ts";
 import iconPicker from "./iconPicker.vue";
 import { open } from '@tauri-apps/api/dialog';
-import { copyFileToAppdata } from '../ts/helpers.ts';
+import { copyFileToAppdata, getImageFile } from '../ts/helpers.ts';
 
 export default {
     data() {
@@ -62,7 +64,7 @@ export default {
                 labelIcon: '',
                 labelImage: ''
             },
-            
+            imageSrc: ''
         }
     },
 
@@ -88,6 +90,7 @@ export default {
         selectLabelType(type){
             if(type === this.settings.selectedLabelType) type = '';
             this.settings.selectedLabelType = type;
+            if(type === 'image') this.getImage();
             this.inputChange('selectedLabelType', type);
         },
 
@@ -110,15 +113,40 @@ export default {
                 console.log(result);
             });
         },
+
+        async getImage() {
+            const imagePath = this.settings.labelImage;
+            if(imagePath === '') return;
+            console.log(imagePath);
+            return await getImageFile(imagePath)
+        },
+
+        convertUint8ArrayToBase64(uint8Array) {
+            let binary = '';
+            const len = uint8Array.byteLength;
+            for (let i = 0; i < len; i++) {
+                binary += String.fromCharCode(uint8Array[i]);
+            }
+            return window.btoa(binary);
+        },
+        async loadImage() {
+            const uint8Array = await this.getImage();
+            const base64String = this.convertUint8ArrayToBase64(uint8Array);
+            this.imageSrc = `data:image/png;base64,${base64String}`;
+        },
+
         copyToLocalFolder(filePath) {
             copyFileToAppdata(filePath, 'channelIcons', `channel-${this.currentSliderID}.png`).then(newPath => {
                 this.inputChange('labelImage', newPath);
+                this.loadImage();
             });
         },
 
     }, 
     mounted() {
-        this.getChannelSettings(this.currentSliderID);
+        this.getChannelSettings(this.currentSliderID).then(() => {
+            this.loadImage();
+        });
     }
 
     

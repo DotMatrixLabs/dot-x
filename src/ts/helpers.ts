@@ -1,4 +1,4 @@
-import { createDir, copyFile, BaseDirectory } from '@tauri-apps/api/fs';
+import { createDir, copyFile, BaseDirectory, readBinaryFile } from '@tauri-apps/api/fs';
 
 export async function copyFileToAppdata(filePath: string, folderName: string, fileName?: string) {
     if(!fileName) fileName = filePath.split("/").pop();
@@ -10,3 +10,11 @@ export async function copyFileToAppdata(filePath: string, folderName: string, fi
     // Return the path to the copied file
     return `${folderName}/${fileName}`;
 }
+
+export async function getImageFile(filePath: string) {
+    // Read the file as binary
+    const file = await readBinaryFile(filePath, { dir: BaseDirectory.AppData });
+    // Return the binary file
+    return file;
+}
+    
