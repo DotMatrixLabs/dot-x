@@ -1,11 +1,11 @@
 <template>
-    <div class="flex flex-row gap-6">
-        <div class="join">
-            <button @click="modalOpen = true" class="btn join-item">
-                <span v-if="!currentSelectedIcon"> <i class="fa-solid fa-smile"></i> <span class="mx-2"> Select</span></span>
-                <span :key="currentSelectedIcon" v-else><i class="fa-lg" :class="currentSelectedIcon" /> <span class="mx-2"> Change</span></span>
+    <div class="flex flex-row w-full justify-center">
+        <div class="flex flex-col items-center justify-center">
+            <button @click="modalOpen = true" class="rounded-full w-24 h-12 bg-gray-500 dark:bg-gray-400 border-0 bg-opacity-40 dark:bg-opacity-30 dark:ring-opacity-50 px-0 btn">
+                <span v-if="!currentSelectedIcon">Select</span>
+                <span :key="currentSelectedIcon" v-else><i class="fa-xl" :class="currentSelectedIcon" /></span>
             </button>
-            <button @click="selectIcon('')" class="btn join-item"><i class="fa-solid fa-xmark"></i></button>
+            <button @click="selectIcon('')" :disabled="!currentSelectedIcon" class="btn btn-xs btn-ghost mt-1">Remove</button>
         </div>
         <div :class="modalOpen ? 'modal-open' : ''" class="modal h-full w-full">
             <div class="modal-box overflow-hidden w-full max-w-xl h-3/4">
