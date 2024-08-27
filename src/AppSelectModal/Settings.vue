@@ -1,40 +1,40 @@
 <template>
     <div class="w-2/3 m-auto">
         <Alert ref="alert" />
-        <div class="divider label-text">Channel label {{ currentSliderID }}</div>
+        <div class="divider label-text">Channel label</div>
         <div class="flex flex-col justify-start items-center w-full h-full overflow-y-auto py-2 px-1 mt-2">
             <div class="flex flex-row w-full justify-between px-2 mb-8">
                 <span class="mt-4 label-text">Label Type: </span>
                 <div class="flex flex-row gap-2">
                     <div class="flex flex-col justify-center items-center">
-                        <button @click="selectLabelType('text')" :class="settings.selectedLabelType === 'text' ? 'btn-primary' : ''" class="btn btn-circle mx-2">
+                        <button @click="selectLabelType('text')" :class="settings?.selectedLabelType === 'text' ? 'btn-primary' : ''" class="btn btn-circle mx-2">
                             <i class="fa-lg fa-solid fa-align-left"></i>
                         </button>
                         <span class="text-base-content text-xs text-center capitalize my-0.5">Text</span>
                     </div>
                     <div class="flex flex-col justify-center items-center">
-                        <button @click="selectLabelType('icon')" :class="settings.selectedLabelType === 'icon' ? 'btn-primary' : ''" class="btn btn-circle mx-2 ">
+                        <button @click="selectLabelType('icon')" :class="settings?.selectedLabelType === 'icon' ? 'btn-primary' : ''" class="btn btn-circle mx-2 ">
                             <i class="fa-lg fa-solid fa-icons"></i>                        
                         </button>
                         <span class="text-base-content text-xs text-center capitalize my-0.5">Icon</span>
                     </div>
                     <div class="flex flex-col justify-center items-center">
-                        <button @click="selectLabelType('image')" :class="settings.selectedLabelType === 'image' ? 'btn-primary' : ''" class="btn btn-circle mx-2 ">
+                        <button @click="selectLabelType('image')" :class="settings?.selectedLabelType === 'image' ? 'btn-primary' : ''" class="btn btn-circle mx-2 ">
                             <i class="fa-lg fa-solid fa-image"></i>                        
                         </button>
                         <span class="text-base-content text-xs text-center capitalize my-0.5">Image</span>
                     </div>
                 </div>
             </div>
-            <div v-if="settings.selectedLabelType === 'text'" class="flex flex-row w-full justify-between px-2 ">
+            <div v-if="settings?.selectedLabelType === 'text'" class="flex flex-row w-full justify-between px-2 ">
                 <span class="my-auto label-text">Text: </span>
                 <input :value="settings.labelText" @change="inputChange('labelText', $event.target.value)" type="text" placeholder="Channel name.." class="input input-bordered max-w-xs w-2/3 mx-2 capitalize truncate"/>
             </div>
-            <div v-else-if="settings.selectedLabelType === 'icon'" class="flex flex-row w-full justify-between px-2 ">
+            <div v-else-if="settings?.selectedLabelType === 'icon'" class="flex flex-row w-full justify-between px-2 ">
                 <span class="my-auto label-text">Icon: </span>
                 <iconPicker :selectedIcon="settings.labelIcon" @icon-selected="inputChange('labelIcon', $event)"/>
             </div>
-            <div v-else-if="settings.selectedLabelType === 'image'" class="flex flex-row justify-between w-full px-2 ">
+            <div v-else-if="settings?.selectedLabelType === 'image'" class="flex flex-row justify-between w-full px-2 ">
                 <span class="my-auto label-text mt-1">Image: </span>
                 <div class="flex flex-col items-center justify-center">
                     <button @click="requestFile" class="rounded-full w-24 h-12 bg-gray-500 dark:bg-gray-400 border-0 bg-opacity-40 dark:bg-opacity-30 dark:ring-opacity-50 px-0 btn">
@@ -99,13 +99,14 @@ export default {
         async getChannelSettings() {
             console.log("Getting channel settings for slider: ", this.currentSliderID);
             const newSettings = await channelSettings.getChannelSettings(this.currentSliderID);
-            this.settings = {...this.settings, ...newSettings}; //this messes up the reactivity:(((
+            if(!newSettings) return;
+            this.settings = newSettings;
         },
 
         selectLabelType(type){
-            if(type === this.settings.selectedLabelType) type = '';
-            this.settings.selectedLabelType = type;
+            if(type === this.settings?.selectedLabelType) type = '';
             if(type === 'image') this.loadImage();
+            this.settings.selectedLabelType = type;
             this.inputChange('selectedLabelType', type);
         },
 
@@ -146,7 +147,7 @@ export default {
             this.imageSrc = '';
         },
 
-        async loadImage(filePath = this.settings.labelImage) {
+        async loadImage(filePath = this.settings?.labelImage) {
             if(!filePath || filePath === "") return;
             this.imageSrc  = await getImage(filePath);
         }
