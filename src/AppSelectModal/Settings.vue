@@ -111,7 +111,6 @@ export default {
 
     methods: {
         async getChannelSettings() {
-            console.log("Getting channel settings for slider: ", this.currentSliderID);
             const newSettings = await channelSettings.getChannelSettings(this.currentSliderID);
             if(!newSettings) return;
             this.settings = newSettings;
@@ -119,14 +118,16 @@ export default {
 
         selectLabelType(type){
             if(type === this.settings?.selectedLabelType) type = '';
-            if(type === 'image') this.loadImage();
             this.settings.selectedLabelType = type;
+            if(type === 'image') this.loadImage();
             this.inputChange('selectedLabelType', type);
         },
 
         inputChange(key, value){
-            channelSettings.updateChannelSettings(this.currentSliderID, key, value)
+            channelSettings.updateChannelSettings(this.currentSliderID, key, value);
+            this.settings[key] = value;
         },
+
         async requestFile() {
             open({
                 multiple: false,
