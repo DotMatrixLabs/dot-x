@@ -31,7 +31,7 @@
 
 <script>
 
-import { icons } from './iconlist.json';
+import { icons } from '../assets/iconlist.json';
 
 export default {
     data() {
