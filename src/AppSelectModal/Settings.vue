@@ -28,13 +28,15 @@
             </div>
             <div v-if="settings?.selectedLabelType === 'text'" class="flex flex-row w-full justify-between px-2 ">
                 <span class="my-auto label-text w-24 mr-3 mt-1">Text: </span>
-                <input :value="settings.labelText" @change="inputChange('labelText', $event.target.value)" type="text" placeholder="Channel name.." class="input input-bordered max-w-xs w-2/3 mx-2 capitalize truncate"/>
+                <div class="w-full flex flex-col justify-center items-center">
+                    <input v-model="settings.labelText" :class="labelTextInputTextSize" maxlength="12" @change="inputChange('labelText', $event.target.value)" type="text" placeholder="Enter name" class="input rounded-full w-24 h-12 bg-gray-500 dark:bg-gray-400 border-0 bg-opacity-40 dark:bg-opacity-30 dark:ring-opacity-50 px-0 cursor-text btn"/>
+                </div>
             </div>
             <div v-else-if="settings?.selectedLabelType === 'icon'" class="flex flex-row w-full justify-between px-2 ">
                 <span class="my-auto label-text mt-1 w-24 mr-3">Icon: </span>
                 <iconPicker :selectedIcon="settings.labelIcon" @icon-selected="inputChange('labelIcon', $event)"/>
             </div>
-            <div v-else-if="settings?.selectedLabelType === 'image'" class="flex flex-row  w-full  justify-between px-2 ">
+            <div v-else-if="settings?.selectedLabelType === 'image'" class="flex flex-row w-full justify-between px-2 ">
                 <span class="my-auto label-text mt-1 w-12">Image: </span>
                 <div class="flex flex-col items-center justify-center">
                     <button @click="requestFile" class="rounded-full w-24 h-12 bg-gray-500 dark:bg-gray-400 border-0 bg-opacity-40 dark:bg-opacity-30 dark:ring-opacity-50 px-0 btn">
@@ -67,7 +69,7 @@ export default {
                 labelIcon: '',
                 labelImage: ''
             },
-            imageSrc: ''
+            imageSrc: '',
         }
     },
 
@@ -91,9 +93,20 @@ export default {
     },
 
     components: {
-    IconPicker,
-    Alert
-},
+        IconPicker,
+        Alert
+    },
+
+    computed: {
+        labelTextInputTextSize(){
+            const textLength = this.settings?.labelText.length;
+            if(textLength === 0) return 'text-xs';
+            if(textLength > 8) return 'text-xs';
+            if(textLength > 6) return 'text-sm';
+            if(textLength > 4) return 'text-base';
+            return 'text-xl';
+        }
+    },
 
     methods: {
         async getChannelSettings() {
