@@ -52,7 +52,7 @@
 
 <script>
 import channelSettings from "../ts/channelSettings.ts";
-import iconPicker from "./iconPicker.vue";
+import IconPicker from "../components/IconPicker.vue";
 import { open } from '@tauri-apps/api/dialog';
 import { copyFileToAppdata, getImage, getImageSize, removeFileFromAppdata } from '../ts/helpers.ts';
 import Alert from "../components/Alert.vue";
@@ -71,10 +71,15 @@ export default {
         }
     },
 
+    // detect if the current slider id has changed
     watch: {
-        currentSliderID() {
-            this.getChannelSettings();
-            this.loadImage();
+        currentSliderID: {
+            handler: function() {
+                this.getChannelSettings(this.currentSliderID).then(() => {
+                    this.loadImage();
+                });
+            },
+            immediate: true
         }
     },
 
@@ -86,14 +91,15 @@ export default {
     },
 
     components: {
-    iconPicker,
+    IconPicker,
     Alert
 },
 
     methods: {
         async getChannelSettings() {
+            console.log("Getting channel settings for slider: ", this.currentSliderID);
             const newSettings = await channelSettings.getChannelSettings(this.currentSliderID);
-            this.settings = {...this.settings, ...newSettings};
+            this.settings = {...this.settings, ...newSettings}; //this messes up the reactivity:(((
         },
 
         selectLabelType(type){
@@ -141,7 +147,6 @@ export default {
         },
 
         async loadImage(filePath = this.settings.labelImage) {
-            console.log(filePath);
             if(!filePath || filePath === "") return;
             this.imageSrc  = await getImage(filePath);
         }
