@@ -27,15 +27,15 @@
                 </div>
             </div>
             <div v-if="settings?.selectedLabelType === 'text'" class="flex flex-row w-full justify-between px-2 ">
-                <span class="my-auto label-text">Text: </span>
+                <span class="my-auto label-text w-24 mr-3 mt-1">Text: </span>
                 <input :value="settings.labelText" @change="inputChange('labelText', $event.target.value)" type="text" placeholder="Channel name.." class="input input-bordered max-w-xs w-2/3 mx-2 capitalize truncate"/>
             </div>
             <div v-else-if="settings?.selectedLabelType === 'icon'" class="flex flex-row w-full justify-between px-2 ">
-                <span class="my-auto label-text">Icon: </span>
+                <span class="my-auto label-text mt-1 w-24 mr-3">Icon: </span>
                 <iconPicker :selectedIcon="settings.labelIcon" @icon-selected="inputChange('labelIcon', $event)"/>
             </div>
-            <div v-else-if="settings?.selectedLabelType === 'image'" class="flex flex-row justify-between w-full px-2 ">
-                <span class="my-auto label-text mt-1">Image: </span>
+            <div v-else-if="settings?.selectedLabelType === 'image'" class="flex flex-row  w-full  justify-between px-2 ">
+                <span class="my-auto label-text mt-1 w-12">Image: </span>
                 <div class="flex flex-col items-center justify-center">
                     <button @click="requestFile" class="rounded-full w-24 h-12 bg-gray-500 dark:bg-gray-400 border-0 bg-opacity-40 dark:bg-opacity-30 dark:ring-opacity-50 px-0 btn">
                         <img class="object-cover max-h-12 p-0.5" v-if="imageSrc" :src="imageSrc"/>
