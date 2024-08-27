@@ -3,7 +3,7 @@
     <div class="modal-box overflow-hidden w-full max-w-xl h-2/3">
       <button @click="modalOpen = false" class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"><i class="fa-solid fa-xmark"/></button>
 
-      <h1 class="font-bold text-lg text-center">Apps</h1>
+      <h1 class="font-bold text-lg text-center">Apps - Channel {{ currentSliderID + 1 }}</h1>
       <div class="w-full">
         <ul class="menu rounded-box menu-compact p-2 flex flex-row w-full justify-center gap-2">
           <template v-for="tab in tabs" :key="tab">
