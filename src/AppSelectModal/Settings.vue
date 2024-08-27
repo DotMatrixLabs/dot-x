@@ -104,7 +104,8 @@ export default {
             if(textLength > 8) return 'text-xs';
             if(textLength > 6) return 'text-sm';
             if(textLength > 4) return 'text-base';
-            return 'text-xl';
+            if(textLength > 2) return 'text-xl';
+            return 'text-2xl';
         }
     },
 
