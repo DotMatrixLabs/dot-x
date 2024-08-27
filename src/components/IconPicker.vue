@@ -3,7 +3,7 @@
         <div class="flex flex-col items-center justify-center">
             <button @click="modalOpen = true" class="rounded-full w-24 h-12 bg-gray-500 dark:bg-gray-400 border-0 bg-opacity-40 dark:bg-opacity-30 dark:ring-opacity-50 px-0 btn">
                 <span v-if="!currentSelectedIcon">Select</span>
-                <span :key="currentSelectedIcon" v-else><i class="fa-xl" :class="currentSelectedIcon" /></span>
+                <span :key="currentSelectedIcon" v-else><i class="fa-2xl" :class="currentSelectedIcon" /></span>
             </button>
             <button @click="selectIcon('')" :disabled="!currentSelectedIcon" class="btn btn-xs btn-ghost mt-1">Remove</button>
         </div>
