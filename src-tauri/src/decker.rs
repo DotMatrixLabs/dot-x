@@ -197,8 +197,6 @@ pub fn initialize_decker(window: Window, port_name: &str, inverted: bool) -> std
         Ok(mut port) => {
             println!("Connected to \"{}\"", port_name);
             info!("Connected to \"{}\"", port_name);
-            port.write_data_terminal_ready(true).unwrap();
-
             let (tx, rx): (mpsc::Sender<String>, mpsc::Receiver<String>) = mpsc::channel();            // Spawn a thread to handle incoming data
             thread::spawn(move || {
                 let mut serial_buf: Vec<u8> = vec![0; 100];
