@@ -11,7 +11,9 @@
 
           <button @click="$emit('app-click', index)"
             class="m-auto rounded-full w-24 h-12 bg-gray-500 dark:bg-gray-400 border-0 bg-opacity-40 dark:bg-opacity-30 dark:ring-opacity-50 mt-12 btn mx-1">
-            <span v-if="sliderChannelName(index)" class="text-base-content text-xxs text-center truncate">{{ sliderChannelName(index) }}</span>
+            <div v-if="sliderApps[index]?.apps.length > 0" class="">
+              <ChannelLabel :channel="index" />
+            </div>
             <span v-else><i class="fas fa-add fa-xl"></i></span>
           </button>
         </div>
@@ -29,13 +31,14 @@ import Decker from "./ts/decker.ts";
 import configStore from "./ts/config.ts";
 import { useDeckerStore } from "./store/deckerStore.ts";
 import { invoke } from "@tauri-apps/api/tauri";
+import ChannelLabel from "./components/ChannelLabel.vue";
 
 import { mapState } from "pinia"; 
 
 // const sliderStore = useSliderStore();
 
 export default {
-  components: { Slider },
+  components: { Slider, ChannelLabel },
   props: {
     activeApp: {
       type: Object,
@@ -87,6 +90,8 @@ export default {
     clickTest() {
       invoke('send_decker_command', { command: 'rgb-control', options: { r: 255, g: 255, b: 100 }});
     },
+
+
 
     sliderChannelName(sliderID){
       let apps = this.sliderApps[sliderID]?.apps;

@@ -1,17 +1,20 @@
 import { Store } from "tauri-plugin-store-api";
 import * as _ from "lodash"; // Make sure to import lodash if you haven't already
+import { useDeckerStore } from "../store/deckerStore";
 
 /**
- * Class for managing extra apps and their configurations.
+ * Class for managing channel settings.
  */
 class ChannelSettings {
     private store: Store;
 
     /**
-     * Creates an instance of ExtraApps.
+     * Creates an instance of ChannelSettings.
      */
     constructor() {
         this.store = new Store("channelSettings.json");
+        this.getAllChannelSettings();
+        this.init();
     }
 
     /**
@@ -39,8 +42,20 @@ class ChannelSettings {
         await this.store.save();
     }
 
+    async init() {
+        const channelSettings = await this.getAllChannelSettings();
+        useDeckerStore().setChannelSettings(channelSettings);
+    }
+
     async getAllChannelSettings(): Promise<any> {
-        return await this.store.values();
+        let settingsObject: { [key: string]: any } = {};
+        const keys = await this.store.keys();
+        keys.forEach(async (key) => {
+            const value = await this.store.get(key);
+            settingsObject[key] = value;
+        });
+        
+        return settingsObject;
     }
 
     async updateChannelSettings(channelId: number, key: string, value: any): Promise<any> {
@@ -54,14 +69,29 @@ class ChannelSettings {
         await this.store.set(channel, updatedSettings);
         //save the store
         await this.store.save();
+        //update the deckerStore
+        useDeckerStore().updateChannelSetting(channel, updatedSettings);
         //return the updated settings
         return updatedSettings;
     }
+
 
     async getChannelSettings(channelId: number): Promise<any> {
         const ID = channelId.toString();
         return await this.store.get(ID);
     }
+
+    async onKeyChange(callback: (value: any) => void) {
+        console.log("onKeyChange");
+        await this.store.onChange(this.test);
+        return await this.store.onChange(callback);
+
+    }
+    
+    async test(value: any) {
+        console.log("test", value);
+    }
+
 }
 
 export default new ChannelSettings();

@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import Stats from '../ts/stats.ts';
+import channelSettings from '../ts/channelSettings.ts';
 
 
 export const useDeckerStore = defineStore('decker', {
@@ -7,6 +8,7 @@ export const useDeckerStore = defineStore('decker', {
     sliders: [] as number[],
     prevSliders: [] as number[], //used to detect changes
     connected: false as boolean,
+    channelSettings: {} as any,
   }),
   getters: {
     getSliders: (state) => state.sliders,
@@ -30,5 +32,14 @@ export const useDeckerStore = defineStore('decker', {
     setConnected(status: boolean) {
       this.connected = status;
     },
-  },
+
+    setChannelSettings(settings: any) {
+      this.channelSettings = settings;
+    },
+
+    updateChannelSetting(channelID: string, newSettings = {}) {
+      this.channelSettings[channelID] = newSettings;
+    }
+  }
+
 });
