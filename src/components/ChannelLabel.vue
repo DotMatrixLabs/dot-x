@@ -10,7 +10,7 @@
             <img class="object-cover max-h-12 p-0.5" v-if="imageSrc" :src="imageSrc"/>
         </div>
         <div :key="apps" v-else>
-            <span>{{ standardChannelName }}</span>
+            <span :class="labelTextInputTextSize(standardChannelName)">{{ standardChannelName }}</span>
          </div>
     </div>
 </template>
