@@ -9,6 +9,9 @@
         <div v-else-if="settings?.selectedLabelType === 'image'">
             <img class="object-cover max-h-12 p-0.5" v-if="imageSrc" :src="imageSrc"/>
         </div>
+        <div :key="apps" v-else>
+            <span>{{ standardChannelName }}</span>
+         </div>
     </div>
 </template>
 
@@ -23,17 +26,29 @@ import { getImage } from "../ts/helpers";
             channel: {
                 type: Number,
                 required: true
+            },
+            apps: {
+                type: Array,
+                required: false,
+                default: () => []
             }
         },
         data() {
             return {
                 imageSrc: '',
+                standardChannelName: ''
             }
         },
 
         watch: {
             settings() {
                 this.loadImage(this.settings?.labelImage);
+            },
+            apps: {
+                handler(newApps) {
+                    this.getSliderChannelName(newApps);
+                },
+                deep: true // This ensures deep watching of object properties
             }
         },
 
@@ -55,6 +70,15 @@ import { getImage } from "../ts/helpers";
                 this.imageSrc = await getImage(filePath);
             },
 
+            getSliderChannelName(apps = this.apps){
+                if(!apps) return;
+                //get the number of duplicates in the array - Duplicates have a (1), (2), (3), etc at the end of the name
+                const duplicates = apps.filter((app) => app.match(/\(\d+\)$/));
+                //remove the number and keep the original
+                if((apps.length - duplicates.length) > 1) return this.standardChannelName = `${apps[0]}+${(apps.length - 1) - duplicates.length}`;
+                else return this.standardChannelName = apps[0];
+            },
+
             labelTextInputTextSize(text) {
                 if (!text) return 'text-xs';
                 const textLength = text.length;
@@ -69,6 +93,7 @@ import { getImage } from "../ts/helpers";
 
         mounted() {
             this.loadImage(this.settings?.labelImage);
+            this.getSliderChannelName();
         }
 
     }
