@@ -80,6 +80,7 @@ class ChannelSettings {
 
 
     async getChannelSettings(channelId: number): Promise<any> {
+        if(!channelId) return; 
         const ID = channelId.toString();
         return await this.store.get(ID);
     }
