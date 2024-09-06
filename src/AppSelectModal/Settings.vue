@@ -99,7 +99,7 @@ export default {
 
     computed: {
         labelTextInputTextSize(){
-            const textLength = this.settings?.labelText.length;
+            const textLength = this.settings?.labelText?.length ?? 0;
             if(textLength === 0) return 'text-xs';
             if(textLength > 8) return 'text-xs';
             if(textLength > 6) return 'text-sm';
