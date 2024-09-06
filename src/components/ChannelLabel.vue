@@ -62,8 +62,6 @@ import { getImage } from "../ts/helpers";
             },
         },
 
-
-
         methods: {
             async loadImage(filePath) {
                 if(!filePath || filePath === "") return;
