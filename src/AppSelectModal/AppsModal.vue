@@ -1,7 +1,7 @@
 <template>
   <div :class="modalOpen ? 'modal-open' : ''" class="modal h-full w-full">
     <div class="modal-box overflow-hidden w-full max-w-xl h-2/3 max-h-96">
-      <button @click="modalOpen = false" class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"><i class="fa-solid fa-xmark"/></button>
+      <button @click="$emit('close')" class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"><i class="fa-solid fa-xmark"/></button>
 
       <h1 class="font-bold text-lg text-center">Slider Action - Channel {{ currentSliderID + 1 }}</h1>
       <div class="w-full">
