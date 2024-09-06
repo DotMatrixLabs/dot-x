@@ -42,10 +42,14 @@ class ChannelSettings {
         await this.store.save();
     }
 
+    /**
+     * init is used on startup to get the current settings from the local file, and push them to the pinia store
+     */
     async init() {
         const channelSettings = await this.getAllChannelSettings();
         useDeckerStore().setChannelSettings(channelSettings);
     }
+
 
     async getAllChannelSettings(): Promise<any> {
         let settingsObject: { [key: string]: any } = {};
@@ -80,17 +84,7 @@ class ChannelSettings {
         const ID = channelId.toString();
         return await this.store.get(ID);
     }
-
-    async onKeyChange(callback: (value: any) => void) {
-        console.log("onKeyChange");
-        await this.store.onChange(this.test);
-        return await this.store.onChange(callback);
-
-    }
     
-    async test(value: any) {
-        console.log("test", value);
-    }
 
 }
 
