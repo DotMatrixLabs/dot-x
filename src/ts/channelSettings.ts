@@ -63,7 +63,6 @@ class ChannelSettings {
     }
 
     async updateChannelSettings(channelId: number, key: string, value: any): Promise<any> {
-        console.log("updateChannelSettings", channelId, key, value);
         //first get the current settings object for the channel
         let currentSettings = await this.getChannelSettings(channelId);
         //merge the current settings with the new settings
