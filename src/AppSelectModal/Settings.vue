@@ -45,7 +45,7 @@
                     </button>
                     <button @click="removeFile" :disabled="!imageSrc" class="btn btn-xs btn-ghost mt-1">Remove</button>
                     <!-- TODO: Delete image from AppData when clicking remove -->
-                    <label class="label-text mt-1 text-center">Image can not be larger than 100x50px</label>
+                    <label class="label-text mt-1 text-center">Image cannot be larger than 100x50px</label>
                 </div>
             </div>
         </div>
@@ -140,7 +140,7 @@ export default {
             }).then(result => {
                 getImageSize(result).then(size => {
                     if(size.width > 100 || size.height > 50) {
-                        this.$refs.alert.openAlert('Image too big', 'Image can not be larger than 100x50px. Please resize the image and try again.');
+                        this.$refs.alert.openAlert('Image too big', 'Image cannot be larger than 100x50px. Please resize the image and try again.');
                         return;
                     }
                     //if the image is smaller than 100x50px we can copy it to the local folder (appdata) and update the settings
