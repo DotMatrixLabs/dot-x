@@ -9,6 +9,9 @@
         <div v-else-if="settings?.selectedLabelType === 'image'">
             <img class="object-cover max-h-12 p-0.5" v-if="imageSrc" :src="imageSrc"/>
         </div>
+        <div v-else-if="apps?.length === 0">
+            <span><i class="fas fa-add fa-xl"></i></span>
+        </div>
         <div :key="apps" v-else>
             <span :class="labelTextInputTextSize(standardChannelName)">{{ standardChannelName }}</span>
          </div>
