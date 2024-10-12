@@ -29,20 +29,8 @@
         "licenseUrl": "https://github.com/evanw/esbuild",
         "parents": "dot-x"
     },
-    "@fortawesome/fontawesome-common-types@6.5.2": {
-        "licenses": "MIT",
-        "repository": "https://github.com/FortAwesome/Font-Awesome",
-        "licenseUrl": "https://github.com/FortAwesome/Font-Awesome/raw/master/LICENSE.txt",
-        "parents": "dot-x"
-    },
-    "@fortawesome/fontawesome-free@6.5.2": {
+    "@fortawesome/fontawesome-free@6.6.0": {
         "licenses": "(CC-BY-4.0 AND OFL-1.1 AND MIT)",
-        "repository": "https://github.com/FortAwesome/Font-Awesome",
-        "licenseUrl": "https://github.com/FortAwesome/Font-Awesome/raw/master/LICENSE.txt",
-        "parents": "dot-x"
-    },
-    "@fortawesome/free-brands-svg-icons@6.5.2": {
-        "licenses": "(CC-BY-4.0 AND MIT)",
         "repository": "https://github.com/FortAwesome/Font-Awesome",
         "licenseUrl": "https://github.com/FortAwesome/Font-Awesome/raw/master/LICENSE.txt",
         "parents": "dot-x"
@@ -1185,6 +1173,12 @@
         "licenses": "MIT",
         "repository": "https://github.com/ashtuchkin/iconv-lite",
         "licenseUrl": "https://github.com/ashtuchkin/iconv-lite/raw/master/LICENSE",
+        "parents": "dot-x"
+    },
+    "image-dimensions@2.3.0": {
+        "licenses": "MIT",
+        "repository": "https://github.com/sindresorhus/image-dimensions",
+        "licenseUrl": "https://github.com/sindresorhus/image-dimensions/raw/master/license",
         "parents": "dot-x"
     },
     "indexof@0.0.1": {
