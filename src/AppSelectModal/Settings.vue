@@ -123,8 +123,8 @@ export default {
             this.inputChange('selectedLabelType', type);
         },
 
-        inputChange(key, value){
-            channelSettings.updateChannelSettings(this.currentSliderID, key, value);
+        async inputChange(key, value){
+            await channelSettings.updateChannelSettings(this.currentSliderID, key, value);
             this.settings[key] = value;
         },
 

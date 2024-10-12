@@ -24,6 +24,7 @@ class ChannelSettings {
      */
     async set(key: string, value: any) {
         await this.store.set(key, value);
+        await this.save();
     }
 
     /**
@@ -69,6 +70,7 @@ class ChannelSettings {
         let updatedSettings = _.merge(currentSettings, {[key]: value});
         //save the updated settings
         const channel = channelId.toString();
+
         await this.store.set(channel, updatedSettings);
         //save the store
         await this.store.save();
@@ -78,11 +80,9 @@ class ChannelSettings {
         return updatedSettings;
     }
 
-
     async getChannelSettings(channelId: number): Promise<any> {
-        if(!channelId) return; 
-        const ID = channelId.toString();
-        return await this.store.get(ID);
+        if(channelId === undefined) return; 
+        return await this.store.get(channelId.toString());
     }
     
 
