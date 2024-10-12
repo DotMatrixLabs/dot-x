@@ -11,10 +11,9 @@
 
           <button @click="$emit('app-click', index)"
             class="m-auto rounded-full w-24 h-12 mt-12 mx-1">
-            <div v-if="sliderApps[index]?.apps.length > 0" class="">
+            <div class="">
               <ChannelLabel :key="index" :apps="sliderApps[index]?.apps" :channel="index" />
             </div>
-            <span v-else><i class="fas fa-add fa-xl"></i></span>
           </button>
         </div>
       </template>
