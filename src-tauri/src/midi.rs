@@ -5,6 +5,7 @@ pub mod midi {
     use tauri::Manager;
     use std::error::Error;
     use std::thread;
+    use std::time::Duration;
     pub static mut ENABLED: bool = true;
     pub struct Midi {
         pub name: String,
@@ -141,7 +142,8 @@ pub mod midi {
                             }
                             
                         }
-                        
+                        // Add a small sleep duration to reduce CPU usage
+                        thread::sleep(Duration::from_millis(50));
                     }
                 });
 
