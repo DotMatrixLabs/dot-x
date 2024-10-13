@@ -40,7 +40,7 @@
                 <span class="my-auto label-text mt-1 w-12">Image: </span>
                 <div class="flex flex-col items-center justify-center">
                     <button @click="requestFile" class="rounded-full w-24 h-12 bg-gray-500 dark:bg-gray-400 border-0 bg-opacity-40 dark:bg-opacity-30 dark:ring-opacity-50 px-0 btn">
-                        <img class="object-cover max-h-12 p-0.5" v-if="imageSrc" :src="imageSrc"/>
+                        <img :class="imageClass" v-if="imageSrc" :src="imageSrc" @load="checkImageWidth"/>
                         <span v-else>Select</span>
                     </button>
                     <button @click="removeFile" :disabled="!imageSrc" class="btn btn-xs btn-ghost mt-1">Remove</button>
@@ -70,6 +70,7 @@ export default {
                 labelImage: ''
             },
             imageSrc: '',
+            isImageWide: false
         }
     },
 
@@ -106,6 +107,9 @@ export default {
             if(textLength > 4) return 'text-base';
             if(textLength > 2) return 'text-xl';
             return 'text-2xl';
+        },
+        imageClass() {
+            return this.isImageWide ? 'rounded-full' : 'object-cover max-h-12';
         }
     },
 
@@ -165,6 +169,11 @@ export default {
         async loadImage(filePath = this.settings?.labelImage) {
             if(!filePath || filePath === "") return;
             this.imageSrc  = await getImage(filePath);
+        },
+        
+        checkImageWidth(event) {
+            const img = event.target;
+            this.isImageWide = img.naturalWidth > 80;
         }
     }, 
     mounted() {
