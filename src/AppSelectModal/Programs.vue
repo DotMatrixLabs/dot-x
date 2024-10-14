@@ -149,6 +149,10 @@ export default {
         },
 
         async getActiveApps() {
+            let selectedApps = await SelectedApps.getApps(this.currentSliderID?.toString());
+            if (!selectedApps) {
+                selectedApps = [];
+            }
             let activeApps = await SystemVolumeController.getAllSessionNames();
             activeApps = activeApps.filter((str) => str !== ""); // Remove empty entries
             //check if an app has the same name, and ends in (1), (2), (3), etc and create an array of duplicates
@@ -156,7 +160,15 @@ export default {
             //remove the number and keep the original
             activeApps = activeApps.map((str) => str.replace(/\(\d+\)$/, '').trim());
             activeApps = _.uniqBy(activeApps, item => item.toLowerCase());
-            activeApps = activeApps.map((str) => ({ DisplayName: str, id: str, appType: 'active'}));  
+            activeApps = activeApps.map((str) => ({ DisplayName: str, id: str, appType: 'active'}));
+            selectedApps = selectedApps.map((str) => ({ DisplayName: str, id: str, appType: 'active'}));
+            //add selected apps to the active apps list
+            activeApps = activeApps.concat(selectedApps);
+            activeApps = _.orderBy(
+                activeApps,
+                [(app) => app.DisplayName.toLowerCase()],
+                ["asc"]
+            );
             this.activeApps = activeApps;
         },
 
