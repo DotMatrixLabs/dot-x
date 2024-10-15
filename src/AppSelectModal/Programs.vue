@@ -149,10 +149,6 @@ export default {
         },
 
         async getActiveApps() {
-            let selectedApps = await SelectedApps.getApps(this.currentSliderID?.toString());
-            if (!selectedApps) {
-                selectedApps = [];
-            }
             let activeApps = await SystemVolumeController.getAllSessionNames();
             activeApps = activeApps.filter((str) => str !== ""); // Remove empty entries
             //check if an app has the same name, and ends in (1), (2), (3), etc and create an array of duplicates
@@ -161,14 +157,6 @@ export default {
             activeApps = activeApps.map((str) => str.replace(/\(\d+\)$/, '').trim());
             activeApps = _.uniqBy(activeApps, item => item.toLowerCase());
             activeApps = activeApps.map((str) => ({ DisplayName: str, id: str, appType: 'active'}));
-            selectedApps = selectedApps.map((str) => ({ DisplayName: str, id: str, appType: 'active'}));
-            //add selected apps to the active apps list
-            activeApps = activeApps.concat(selectedApps);
-            activeApps = _.orderBy(
-                activeApps,
-                [(app) => app.DisplayName.toLowerCase()],
-                ["asc"]
-            );
             this.activeApps = activeApps;
         },
 
@@ -199,11 +187,22 @@ export default {
                 await this.getSelectedApps();
                 this.appList.forEach((app, index) => {
                     const selectedApp = this.selectedApps?.find((str) => str === app.DisplayName);
+                    console.log({selectedApp});
                     if(selectedApp) {
                         this.appList.splice(index, 1);
                         this.appList.unshift(app);
                     }
                 })
+
+                //Then add the selected apps that are not in the list to the top of the list
+                this.selectedApps.forEach((selectedApp) => {
+                    const app = this.appList.find((str) => str.DisplayName === selectedApp);
+                    if(!app) {
+                        this.appList.unshift({DisplayName: selectedApp, id: this.appList.length + 1, appType: 'selected'});
+                    }
+                })
+
+
         },
 
         selectSliderApp(app) {
