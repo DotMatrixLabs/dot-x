@@ -251,9 +251,22 @@ class Decker {
         return await invoke('send_decker_command', { command, options });
     }
 
+    /**
+     * Get the device info from the Decker
+     * @returns {Promise<any>} A promise that resolves with the device info.
+     * deviceInfo = {
+     * "firmware_version": "1.0.0",
+     * "serial_number": "A1-B123-0001",
+     * "model": "VM-5SW"
+     * }
+     * @example
+     * const deviceInfo = await Decker.getDeviceInfo();
+     * console.log(deviceInfo);
+     */
+
     public async getDeviceInfo() {
         const command = "get-device-info";
-        //wait for the device info to be updated, wait for max 5 seconds before rejecting the promise
+        //wait for the device info to be updated, clears the listener after 2 seconds
         return new Promise(async (resolve, reject) => {
             const unlisten = await listen('device-info', (event: any) => {
                 const deviceInfo = JSON.parse(event.payload.message);
