@@ -108,6 +108,12 @@ export default {
             activeApps: [],
             showAllApps: false,
             duplicates: [],
+            systemUtilities: [
+                "master",
+                "mic",
+                "unmapped",
+                "activeWindow",
+            ],
         }
     },
 
@@ -193,6 +199,9 @@ export default {
                         this.appList.unshift(app);
                     }
                 })
+
+                //first filter out the system utilities from the selected apps list
+                this.selectedApps = this.selectedApps.filter((str) => !this.systemUtilities.includes(str));
 
                 //Then add the selected apps that are not in the list to the top of the list
                 this.selectedApps.forEach((selectedApp) => {
