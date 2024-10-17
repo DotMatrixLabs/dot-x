@@ -244,7 +244,7 @@ export default {
         //     console.log(this.currentComPort);
         // },
 
-        deviceSelected() {
+        async deviceSelected() {
             if(this.currentDevice === "disconnect") {
                 Decker.disconnect();
                 this.currentDevice = null;
@@ -254,14 +254,13 @@ export default {
             }
             ConfigStore.set("comPort", this.currentDevice.port_name);
             ConfigStore.save();
-            Decker.init(this.currentDevice.port_name);
+            await Decker.init(this.currentDevice.port_name);
         },
 
 
         getDevices() {
             Decker.getDevices().then((devices) => {
                 this.devices = devices;
-                console.log(devices);
                 this.getConnectedDevice();
             });
         },
@@ -291,10 +290,12 @@ export default {
             this.getDevices();
         }, 1000);
 
-        EventBus.on('connectionChange', dataObject => {
+        EventBus.on('connectionChange', async dataObject => {
             const { connected } = dataObject;
             if(connected) {
-                this.sendCurrentRGBEffect();                
+                this.sendCurrentRGBEffect();
+                const deviceInfo = await Decker.getDeviceInfo();
+                console.log("deviceInfo: ", deviceInfo);
                 return;
             }
         });
