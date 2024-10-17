@@ -96,8 +96,8 @@ export default {
             currentDevice: null,
             comPortInterval: null,
             deviceInfoPoints: {
-                model: { name: "Model", value: "VM-5SW" },
                 deviceName: { name: "Device Name", value: "Decker" },
+                model: { name: "Model", value: "VM-5SW" },
                 firmwareVersion: { name: "Firmware", value: "1.0.0" },
                 serialNumber: { name: "Serial Number", value: "123456789" },
                 comPort: { name: "COM Port", value: "COM 2" }
