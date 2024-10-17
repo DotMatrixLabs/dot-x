@@ -251,6 +251,24 @@ class Decker {
         return await invoke('send_decker_command', { command, options });
     }
 
+    public async getDeviceInfo() {
+        const command = "get-device-info";
+        //wait for the device info to be updated, wait for max 5 seconds before rejecting the promise
+        return new Promise(async (resolve, reject) => {
+            const unlisten = await listen('device-info', (event: any) => {
+                const deviceInfo = JSON.parse(event.payload.message);
+                resolve(deviceInfo);
+            });
+
+            invoke('send_decker_command', { command });
+
+            setTimeout(() => {
+                reject("Timeout");
+                unlisten();
+            }, 2000);
+        });
+    }
+
 }
 
 export default (new Decker());
