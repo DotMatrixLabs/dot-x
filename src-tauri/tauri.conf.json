@@ -91,6 +91,15 @@
       },
       "os": {
         "all": true
+      },
+      "dialog": {
+        "all": true
+      },
+      "fs": {
+        "all": true,
+        "scope": [
+          "**"
+         ]
       }
     },
     "cli": {

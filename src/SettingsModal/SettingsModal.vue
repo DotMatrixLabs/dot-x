@@ -1,6 +1,7 @@
 <template>
   <div :class="modalOpen ? 'modal-open' : ''" class="modal h-full w-full">
     <div class="modal-box w-full max-w-xl h-2/3 overflow-hidden">
+      <button @click="modalOpen = false" class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"><i class="fa-solid fa-xmark"/></button>
       <h1 class="font-bold text-lg text-center">Settings</h1>
       <div class="flex flex-row pt-3 h-full">
         <div class="text-left p-4">
