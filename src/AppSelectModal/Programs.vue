@@ -108,6 +108,13 @@ export default {
             activeApps: [],
             showAllApps: false,
             duplicates: [],
+            systemUtilities: [
+                "master",
+                "mic",
+                "unmapped",
+                "activeWindow",
+                "midi"
+            ],
         }
     },
 
@@ -156,7 +163,7 @@ export default {
             //remove the number and keep the original
             activeApps = activeApps.map((str) => str.replace(/\(\d+\)$/, '').trim());
             activeApps = _.uniqBy(activeApps, item => item.toLowerCase());
-            activeApps = activeApps.map((str) => ({ DisplayName: str, id: str, appType: 'active'}));  
+            activeApps = activeApps.map((str) => ({ DisplayName: str, id: str, appType: 'active'}));
             this.activeApps = activeApps;
         },
 
@@ -187,11 +194,25 @@ export default {
                 await this.getSelectedApps();
                 this.appList.forEach((app, index) => {
                     const selectedApp = this.selectedApps?.find((str) => str === app.DisplayName);
+                    console.log({selectedApp});
                     if(selectedApp) {
                         this.appList.splice(index, 1);
                         this.appList.unshift(app);
                     }
                 })
+
+                //first filter out the system utilities from the selected apps list
+                this.selectedApps = this.selectedApps.filter((str) => !this.systemUtilities.includes(str));
+
+                //Then add the selected apps that are not in the list to the top of the list
+                this.selectedApps.forEach((selectedApp) => {
+                    const app = this.appList.find((str) => str.DisplayName === selectedApp);
+                    if(!app) {
+                        this.appList.unshift({DisplayName: selectedApp, id: this.appList.length + 1, appType: 'selected'});
+                    }
+                })
+
+
         },
 
         selectSliderApp(app) {
