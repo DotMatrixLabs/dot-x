@@ -10,9 +10,10 @@
           </div>
 
           <button @click="$emit('app-click', index)"
-            class="m-auto rounded-full w-24 h-12 bg-gray-500 dark:bg-gray-400 border-0 bg-opacity-40 dark:bg-opacity-30 dark:ring-opacity-50 mt-12 btn mx-1">
-            <span v-if="sliderChannelName(index)" class="text-base-content text-xxs text-center truncate">{{ sliderChannelName(index) }}</span>
-            <span v-else><i class="fas fa-add fa-xl"></i></span>
+            class="m-auto rounded-full w-24 h-12 mt-12 mx-1">
+            <div class="">
+              <ChannelLabel :key="index" :apps="sliderApps[index]?.apps" :channel="index" />
+            </div>
           </button>
         </div>
       </template>
@@ -29,13 +30,14 @@ import Decker from "./ts/decker.ts";
 import configStore from "./ts/config.ts";
 import { useDeckerStore } from "./store/deckerStore.ts";
 import { invoke } from "@tauri-apps/api/tauri";
+import ChannelLabel from "./components/ChannelLabel.vue";
 
 import { mapState } from "pinia"; 
 
 // const sliderStore = useSliderStore();
 
 export default {
-  components: { Slider },
+  components: { Slider, ChannelLabel },
   props: {
     activeApp: {
       type: Object,
@@ -86,16 +88,6 @@ export default {
 
     clickTest() {
       invoke('send_decker_command', { command: 'rgb-control', options: { r: 255, g: 255, b: 100 }});
-    },
-
-    sliderChannelName(sliderID){
-      let apps = this.sliderApps[sliderID]?.apps;
-      if(!apps) return;
-      //get the number of duplicates in the array - Duplicates have a (1), (2), (3), etc at the end of the name
-      const duplicates = apps.filter((app) => app.match(/\(\d+\)$/));
-      //remove the number and keep the original
-      if((apps.length - duplicates.length) > 1) return `${apps[0]}+${(apps.length - 1) - duplicates.length}`;
-      else return apps[0];
     },
 
     async getSelectedApps() {

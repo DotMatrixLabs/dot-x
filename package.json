@@ -17,6 +17,7 @@
     "@tauri-apps/api": "^1.5.0",
     "@types/lodash": "^4.14.200",
     "crypto-js": "^4.2.0",
+    "image-dimensions": "^2.3.0",
     "lodash": "^4.17.21",
     "mitt": "^3.0.1",
     "npm-license-crawler": "^0.2.1",

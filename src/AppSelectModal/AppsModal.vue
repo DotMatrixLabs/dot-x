@@ -1,7 +1,9 @@
 <template>
   <div :class="modalOpen ? 'modal-open' : ''" class="modal h-full w-full">
-    <div class="modal-box overflow-hidden w-full max-w-xl h-2/3">
-      <h1 class="font-bold text-lg text-center">Apps</h1>
+    <div class="modal-box overflow-hidden w-full max-w-xl h-2/3 max-h-96">
+      <button @click="closeModal" class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"><i class="fa-solid fa-xmark"/></button>
+
+      <h1 class="font-bold text-lg text-center">Slider Action - Channel {{ currentSliderID + 1 }}</h1>
       <div class="w-full">
         <ul class="menu rounded-box menu-compact p-2 flex flex-row w-full justify-center gap-2">
           <template v-for="tab in tabs" :key="tab">
@@ -21,9 +23,6 @@
       </div>
 
     </div>
-    <div class="modal-action fixed bottom-5 left-1/2 transform -translate-x-1/2">
-      <button @click="$emit('close')" class="btn mx-auto">Close</button>
-    </div>
   </div>
 </template>
 
@@ -39,6 +38,7 @@ import Programs from "./Programs.vue"
 import SystemUtilitiesSelector from "./SystemUtilitiesSelector.vue"
 import Midi from "./Midi.vue"
 import config from "../ts/config";
+import Settings from "./Settings.vue";
 
 // import { useMicrophoneStore } from "../store/microphoneStore";
 
@@ -53,7 +53,8 @@ export default {
   components: {
     Programs,
     SystemUtilitiesSelector,
-    Midi
+    Midi,
+    Settings
   },
 
   name: "SettingsModal",
@@ -70,7 +71,8 @@ export default {
       tabs: [
         { name: 'Programs', component: 'Programs', isActive: true },
         { name: 'System Utilities', component: 'SystemUtilitiesSelector'},
-        { name: 'Midi', component: 'Midi', hide: true}
+        { name: 'Midi', component: 'Midi', hide: true},
+        { name: 'Settings', component: 'Settings'}
       ],
       midiEnabledGlobal: false,
     };
@@ -81,6 +83,11 @@ export default {
       this.tabs.forEach((tab) => {
         tab.isActive = tab == selectedTab;
       });
+    },
+
+    closeModal(){
+      this.$emit('close');
+      this.selectTab(this.tabs[0]);
     },
 
     async getMidiEnabledGlobal() {
