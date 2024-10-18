@@ -98,6 +98,7 @@ export default {
     settingsToggled() {
       this.settingsModalOpen = !this.settingsModalOpen;
     },
+
     appsToggled(id) {
       this.currentSliderID = id;
       this.appsModalOpen = !this.appsModalOpen;
