@@ -7,7 +7,7 @@
         <div class="flex flex-row w-full justify-between px-2 mt-4">
             <span class="my-auto">Read the docs</span>
             <a href="https://docs.dotmatrixlabs.com/" target="_blank" rel="noopener noreferrer">
-                <button class="btn btn-sm">Docs</button>
+                <button class="btn btn-sm">Docs<i class="fa-solid fa-book fa-lg"></i></button>
             </a>
         </div>
         <div class="flex flex-row w-full justify-between px-2 mt-4">
