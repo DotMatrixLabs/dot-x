@@ -113,6 +113,7 @@ export default {
                 "mic",
                 "unmapped",
                 "activeWindow",
+                "midi"
             ],
         }
     },
