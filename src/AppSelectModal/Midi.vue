@@ -22,7 +22,7 @@
                 <span class="label-text">Channel</span>
                 <span v-if="channelInvalidInput" class="label-text-alt text-red-600 text-sm">Must be a valid number 1-16!</span>
             </div>
-            <input v-model.trim="channelInput" @change="setChannel" type="text" placeholder="Channel" class="input input-bordered w-full max-w-xs" />
+            <input v-model.trim="channelInput" @change="setChannel" type="text" placeholder="Channel" class="input input-sm input-bordered w-full max-w-xs" />
         </label>
 
         <label class="form-control w-full max-w-xs">
@@ -30,10 +30,10 @@
                 <span class="label-text">CC Value</span>
                 <span v-if="CCValueInvalidInput" class="label-text-alt text-red-600 text-sm">Must be a valid number 0-127!</span>
             </div>
-            <input v-model.trim="CCValueInput" @change="setCCValue" type="text" placeholder="CC Value" class="input input-bordered w-full max-w-xs" />
+            <input v-model.trim="CCValueInput" @change="setCCValue" type="text" placeholder="CC Value" class="input input-sm input-bordered w-full max-w-xs" />
         </label>
 
-        <div class="flex w-full justify-center px-2 mb-4">
+        <div class="flex w-full justify-center px-2 mt-4 opacity-50">
             <i class="fa-solid fa-book fa-lg mr-2"></i>
             <a href="https://dml.gg/midi" target="_blank" rel="noopener noreferrer" class="mb-2 text-sm hover:underline opacity-80 text-center first-letter:">MIDI documentation</a>
         </div>
