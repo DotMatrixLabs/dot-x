@@ -35,7 +35,7 @@
 
         <div class="flex w-full justify-center px-2 mb-4">
             <i class="fa-solid fa-book fa-lg mr-2"></i>
-            <a href="https://dml.gg/midi" target="_blank" rel="noopener noreferrer" class="mb-2 text-sm hover:underline opacity-80 text-center first-letter:">MIDI Documentation</a>
+            <a href="https://dml.gg/midi" target="_blank" rel="noopener noreferrer" class="mb-2 text-sm hover:underline opacity-80 text-center first-letter:">MIDI documentation</a>
         </div>
     </div>
 </template>
