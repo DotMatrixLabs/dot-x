@@ -32,6 +32,11 @@
             </div>
             <input v-model.trim="CCValueInput" @change="setCCValue" type="text" placeholder="CC Value" class="input input-bordered w-full max-w-xs" />
         </label>
+
+        <div class="flex w-full justify-center px-2 mb-4">
+            <i class="fa-solid fa-book fa-lg mr-2"></i>
+            <a href="https://dml.gg/midi" target="_blank" rel="noopener noreferrer" class="mb-2 text-sm hover:underline opacity-80 text-center first-letter:">MIDI Documentation</a>
+        </div>
     </div>
 </template>
 
