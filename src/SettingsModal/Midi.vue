@@ -15,6 +15,13 @@
                 </option>
             </select>
         </div>
+        <div class="flex flex-row w-full justify-between px-2">
+            <span class="shrink-0 pt-1">MIDI documentation: </span>
+            <div class="flex justify-evenly items-center">
+                <i class="fa-solid fa-book fa-lg mr-2"></i>
+                <a href="https://dml.gg/midi" target="_blank" rel="noopener noreferrer" class="text-md hover:underline text-center first-letter: link link-secondary">dml.gg/midi</a>
+            </div>
+        </div>
     </div>
 </template>
 
