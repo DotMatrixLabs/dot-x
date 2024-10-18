@@ -60,7 +60,7 @@ class SystemVolumeController {
         let apps: string[] | null = await SelectedApps.getApps(channel);
         if(!apps) return;
         if(apps.includes("activeWindow")) {
-            const currentActiveWindow = await this.getActiveWindowSessionName();
+            const currentActiveWindow = await this.getActiveWindowAppName();
             this.setVolume(currentActiveWindow, volume);
         }
         if(apps.includes("unmapped")) {
@@ -90,29 +90,18 @@ class SystemVolumeController {
     }
 
 
-    async getActiveWindowProcessPath(): Promise<string> {
+    async getActiveWindowAppName(): Promise<string> {
         const currentTime = Date.now();
 
         if (currentTime - this.lastActiveWindowExecutionTime >= 500) {
-            const appName: any = invoke('get_active_app_process_path');
+            const appName: any = await invoke('get_active_app_name');
+            console.log('Active window:', appName);
             this.lastActiveWindowExecutionTime = currentTime;
             this.lastActiveWindowExecutionResult = appName;
             return appName;
         } else {
             return this.lastActiveWindowExecutionResult;
         }
-    }
-
-    async getActiveWindowSessionName(): Promise<string> {
-        const appName = await this.getActiveWindowProcessPath();
-        // Split the file path using the path separator
-        const pathSegments = appName.split(/[\\/]/);
-
-        // Get the last segment (file name) and remove the file extension
-        const fileName = pathSegments[pathSegments.length - 1];
-        const fileNameWithoutExt = fileName.replace(/\..+$/, '');
-
-        return fileNameWithoutExt;
     }
 
     /**
