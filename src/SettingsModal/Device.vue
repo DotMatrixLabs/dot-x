@@ -52,11 +52,11 @@
             <div class="flex flex-col w-full items-center mt-3">
                 <span class="shrink-0 pt-1 font-bold">Device Info: </span>
                 <div class="divider mt-0"></div>
-                <div :key="infopoint" v-for="(infopoint, index) in deviceInfoPoints" class="flex flex-row w-2/3 justify-between my-1">
+                <div :key="infopoint" v-for="(infopoint, index) in deviceInfoPoints" class="flex text-sm flex-row w-full justify-between my-1">
                     <span class="text-gray-500">{{infopoint.name}}:</span>
-                    <span class="font-semibold w-1/3 text-center">{{deviceInfo(currentDevice)?.[index] ?? 'N/A'}}</span>
+                    <span :key="currentDevice" class="font-semibold w-1/3 text-center">{{deviceInfo(currentDevice)?.[index] ?? 'N/A'}}</span>
                 </div>
-                <div class=" flex flex-row w-2/3 justify-between my-1">
+                <div class=" flex flex-row w-full justify-between my-1">
                     <span class="text-gray-500">Stats</span>
                     <button @click="statsToggled" class="font-semibold btn btn-sm w-1/3">See</button>
                 </div>
@@ -96,7 +96,8 @@ export default {
             currentDevice: null,
             comPortInterval: null,
             deviceInfoPoints: {
-                model: { name: "Model", value: "Decker 1.0" },
+                deviceName: { name: "Device Name", value: "Decker" },
+                model: { name: "Model", value: "VM-5SW" },
                 firmwareVersion: { name: "Firmware", value: "1.0.0" },
                 serialNumber: { name: "Serial Number", value: "123456789" },
                 comPort: { name: "COM Port", value: "COM 2" }
@@ -111,6 +112,10 @@ export default {
             breathingEnabled: false,
             selectedColor: "#f0f0f0",
             brightness: 100,
+            deviceNames: {
+                'VM-5SW': "Decker",
+            },
+            deviceData: {},
         }
     },
 
@@ -128,13 +133,16 @@ export default {
         },
 
         deviceInfo(device) {
+            device = {...device, ...this.deviceData};
             if(!device) return;
+
             if(device.pid === 58918 && device.vid === 1240){
                 return {
-                    model: "Decker 1.0",
-                    firmwareVersion: "1.0.0",
-                    serialNumber: device.serial_number,
-                    comPort: device.port_name,
+                    model: device?.deviceModel ?? "Unknown",
+                    deviceName: this.deviceNames[device.deviceModel] ?? "Unknown",
+                    firmwareVersion: device?.firmwareVersion,
+                    serialNumber: device?.serialNumber,
+                    comPort: device?.port_name,
                 }
             } else {
                 return {
@@ -166,7 +174,7 @@ export default {
             if(!device) return;
             if(device.pid === 58918 && device.vid === 1240){
                 this.deviceType = "Decker";
-                return `Decker - SN${device.serial_number}`;
+                return `Decker (${device.port_name})`;
             } else {
                 this.deviceType = "Unknown";
                 return `${device.port_name}`;
@@ -244,7 +252,7 @@ export default {
         //     console.log(this.currentComPort);
         // },
 
-        deviceSelected() {
+        async deviceSelected() {
             if(this.currentDevice === "disconnect") {
                 Decker.disconnect();
                 this.currentDevice = null;
@@ -254,14 +262,13 @@ export default {
             }
             ConfigStore.set("comPort", this.currentDevice.port_name);
             ConfigStore.save();
-            Decker.init(this.currentDevice.port_name);
+            await Decker.init(this.currentDevice.port_name);
         },
 
 
         getDevices() {
             Decker.getDevices().then((devices) => {
                 this.devices = devices;
-                console.log(devices);
                 this.getConnectedDevice();
             });
         },
@@ -276,8 +283,19 @@ export default {
             this.currentDevice = device;
         },
         
+        async getDeviceInfo(){
+            if(this.deviceType === 'Unknown') return;
+            try {
+                this.deviceData = await Decker.getDeviceInfo();
+            } catch (error) {
+                console.error("Failed to get device info:", error);
+                // Optionally display a user-friendly message or handle the error accordingly
+            }
+        },
 
     },
+
+
     async mounted() {
         this.getDevices();
         this.selectedColor = await ConfigStore.get("RGBColor") ?? "#f0f0f0";
@@ -291,15 +309,19 @@ export default {
             this.getDevices();
         }, 1000);
 
-        EventBus.on('connectionChange', dataObject => {
+        EventBus.on('connectionChange', async dataObject => {
             const { connected } = dataObject;
             if(connected) {
-                this.sendCurrentRGBEffect();                
+                this.sendCurrentRGBEffect();
+                this.getDeviceInfo();
                 return;
             }
         });
 
-        if(this.connectionState) this.sendCurrentRGBEffect(); // Dot X was just opened and device is connected, send current RGB effect
+        if(this.connectionState) {
+            this.sendCurrentRGBEffect(); // Dot X was just opened and device is connected, send current RGB effect
+            this.getDeviceInfo();
+        }
     },
 }
 </script>
