@@ -262,6 +262,9 @@ pub fn initialize_decker(window: Window, port_name: &str, inverted: bool) -> std
                         }
                         Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
                         Err(e) => {
+                            if let Err(e) = port.write_data_terminal_ready(false) {
+                                error!("Failed to set DTR to false: {}", e);
+                            }
                             window.emit("connection-change", Payload { message: "disconnected".to_string() }).unwrap();
                             std::mem::drop(port); // Drop the port to close it
                             error!("An error occurred while reading serial data: {:?}", e);
