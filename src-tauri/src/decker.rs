@@ -46,9 +46,12 @@ enum MessageData {
 
 #[derive(Debug, Serialize, Deserialize)]
 struct DeviceData {
-    firmwareVersion: String,
-    deviceModel: String,
-    serialNumber: String,
+    #[serde(rename = "firmwareVersion")]
+    firmware_version: String,
+    #[serde(rename = "deviceModel")]
+    device_model: String,
+    #[serde(rename = "serialNumber")]
+    serial_number: String,
 }
 
 #[derive(Debug)]
