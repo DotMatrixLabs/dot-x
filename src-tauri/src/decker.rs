@@ -211,6 +211,7 @@ pub fn initialize_decker(window: Window, port_name: &str, inverted: bool) -> std
                         Ok(command) => {
                             println!("Received: {:?}", command);
                             if command == "disconnect" {
+                                port.write_data_terminal_ready(false).unwrap();
                                 window.emit("connection-change", Payload { message: "disconnected".to_string() }).unwrap();
                                 std::mem::drop(port); // Drop the port to close it
                                 info!("Disconnected");
