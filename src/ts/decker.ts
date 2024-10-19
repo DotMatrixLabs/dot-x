@@ -273,11 +273,13 @@ class Decker {
                 resolve(deviceInfo);
             });
 
-            invoke('send_decker_command', { command });
+            invoke('send_decker_command', { command }).catch(error => {
+                reject(new Error(`Failed to send command: ${error.message}`));
+            });
 
             setTimeout(() => {
-                reject("Timeout");
                 unlisten();
+                reject(new Error("Timeout: Device info not received within 2 seconds"));
             }, 2000);
         });
     }
