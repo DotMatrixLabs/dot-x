@@ -284,6 +284,7 @@ export default {
         },
         
         async getDeviceInfo(){
+            if(this.deviceType === 'Unknown') return;
             this.deviceData = await Decker.getDeviceInfo();            
         },
 
