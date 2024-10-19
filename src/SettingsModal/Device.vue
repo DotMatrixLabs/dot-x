@@ -285,7 +285,12 @@ export default {
         
         async getDeviceInfo(){
             if(this.deviceType === 'Unknown') return;
-            this.deviceData = await Decker.getDeviceInfo();            
+            try {
+                this.deviceData = await Decker.getDeviceInfo();
+            } catch (error) {
+                console.error("Failed to get device info:", error);
+                // Optionally display a user-friendly message or handle the error accordingly
+            }
         },
 
     },
