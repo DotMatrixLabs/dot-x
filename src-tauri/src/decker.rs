@@ -236,6 +236,11 @@ pub fn initialize_decker(window: Window, port_name: &str, inverted: bool) -> std
         Ok(mut port) => {
             println!("Connected to \"{}\"", port_name);
             info!("Connected to \"{}\"", port_name);
+            if let Err(e) = port.write_data_terminal_ready(true) {
+                error!("Failed to set DTR to true: {}", e);
+                return Err(e.into());
+            }
+
             let (tx, rx): (mpsc::Sender<String>, mpsc::Receiver<String>) = mpsc::channel();            // Spawn a thread to handle incoming data
             thread::spawn(move || {
                 let mut serial_buf: Vec<u8> = vec![0; 100];
@@ -248,6 +253,9 @@ pub fn initialize_decker(window: Window, port_name: &str, inverted: bool) -> std
                         Ok(command) => {
                             println!("Received: {:?}", command);
                             if command == "disconnect" {
+                                if let Err(e) = port.write_data_terminal_ready(false) {
+                                    error!("Failed to set DTR to false: {}", e);
+                                }
                                 window.emit("connection-change", Payload { message: "disconnected".to_string() }).unwrap();
                                 std::mem::drop(port); // Drop the port to close it
                                 info!("Disconnected");
@@ -319,6 +327,9 @@ pub fn initialize_decker(window: Window, port_name: &str, inverted: bool) -> std
                         }
                         Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
                         Err(e) => {
+                            if let Err(e) = port.write_data_terminal_ready(false) {
+                                error!("Failed to set DTR to false: {}", e);
+                            }
                             window.emit("connection-change", Payload { message: "disconnected".to_string() }).unwrap();
                             std::mem::drop(port); // Drop the port to close it
                             error!("An error occurred while reading serial data: {:?}", e);
