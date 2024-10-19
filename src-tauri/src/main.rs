@@ -25,9 +25,6 @@ use tauri_plugin_aptabase::EventTracker;
 use std::thread;
 use std::time::Duration;
 
-#[macro_use]
-extern crate serde;
-
 static APP: OnceCell<tauri::AppHandle> = OnceCell::new();
 
 // create the error type that represents all errors possible in our program
