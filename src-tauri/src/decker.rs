@@ -285,14 +285,16 @@ pub fn initialize_decker(window: Window, port_name: &str, inverted: bool) -> std
                                     match data {
                                         DataType::Slider(slider_data) => {
                                             let json_data = match serde_json::to_string(&slider_data) {
-                                                 Ok(json) => json,
-                                                 Err(e) => {
-                                                     error!("Failed to serialize slider data: {}", e);
-                                                     return;
-                                                 }
+                                                Ok(json) => json,
+                                                Err(e) => {
+                                                    error!("Failed to serialize slider data: {}", e);
+                                                    return;
+                                                }
                                              };
                                             unsafe { decker::slider_values = slider_data }
-                                            window.emit("slider-change", Payload { message: json_data }).unwrap();
+                                            if let Err(e) = window.emit("slider-change", Payload { message: json_data }) {
+                                                error!("Failed to emit slider-change event: {}", e);
+                                            }
                                         }
                                         DataType::Device(device_data) => {
                                             let json_data = match serde_json::to_string(&device_data) {
@@ -303,7 +305,9 @@ pub fn initialize_decker(window: Window, port_name: &str, inverted: bool) -> std
                                                 }
                                             };
                                             // Perform tasks specific to DeviceData
-                                            window.emit("device-info", Payload { message: json_data }).unwrap();
+                                            if let Err(e) = window.emit("device-info", Payload { message: json_data }) {
+                                                error!("Failed to emit device-info event: {}", e);
+                                            }
                                         }
                                     }
                                 }
