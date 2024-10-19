@@ -284,12 +284,24 @@ pub fn initialize_decker(window: Window, port_name: &str, inverted: bool) -> std
                                 Ok(data) => {
                                     match data {
                                         DataType::Slider(slider_data) => {
-                                            let json_data = serde_json::to_string(&slider_data).unwrap();
+                                            let json_data = match serde_json::to_string(&slider_data) {
+                                                 Ok(json) => json,
+                                                 Err(e) => {
+                                                     error!("Failed to serialize slider data: {}", e);
+                                                     return;
+                                                 }
+                                             };
                                             unsafe { decker::slider_values = slider_data }
                                             window.emit("slider-change", Payload { message: json_data }).unwrap();
                                         }
                                         DataType::Device(device_data) => {
-                                            let json_data: String = serde_json::to_string(&device_data).unwrap();
+                                            let json_data = match serde_json::to_string(&device_data) {
+                                                Ok(json) => json,
+                                                Err(e) => {
+                                                    error!("Failed to serialize device data: {}", e);
+                                                    return;
+                                                }
+                                            };
                                             // Perform tasks specific to DeviceData
                                             window.emit("device-info", Payload { message: json_data }).unwrap();
                                         }
