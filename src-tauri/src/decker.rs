@@ -324,7 +324,13 @@ pub fn initialize_decker(window: Window, port_name: &str, inverted: bool) -> std
 }
 
 pub fn disconnect_decker() {
-    let sender = SENDER.lock().unwrap();
+    let sender = match SENDER.lock() {
+        Ok(s) => s,
+        Err(e) => {
+            error!("Failed to acquire SENDER lock: {}", e);
+            return;
+        }
+    };
     if let Some(sender) = sender.as_ref() {
         sender.send("disconnect".to_owned()).unwrap();
     } else {
@@ -349,17 +355,31 @@ pub struct Options {
 #[tauri::command]
 pub fn send_decker_command(command: &str, options: Option<Options>) {
     // Serialize the command and options, then send them through the channel
-    let sender = SENDER.lock().unwrap();
+    let sender = match SENDER.lock() {
+        Ok(s) => s,
+        Err(e) => {
+            error!("Failed to acquire SENDER lock: {}", e);
+            return;
+        }
+    };
 
     // Serialize the options using serde
-    let options_str = serde_json::to_string(&options).unwrap();
+     let options_str = match serde_json::to_string(&options) {
+        Ok(s) => s,
+        Err(e) => {
+            error!("Failed to serialize options: {}", e);
+            return;
+        }
+    };
 
     // Concatenate the command and options into a single string
     let payload = format!(r#"{{ "command": "{}", "options": {} }}"#, command, options_str);
     println!("Sending: {}", payload);
     // Send the payload through the global sender
     if let Some(sender) = sender.as_ref() {
-        sender.send(payload).unwrap();
+        if let Err(e) = sender.send(payload) {
+            error!("Failed to send payload: {}", e);
+        }
     } else {
         eprintln!("Sender not initialized. Make sure to initialize it before calling send_decker_command.");
     }
