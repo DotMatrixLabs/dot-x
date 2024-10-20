@@ -30,9 +30,24 @@
                 </option>
             </select>
         </div>
-        <div class="flex flex-row w-full justify-between px-2 mt-4">
+        <div class="flex flex-row w-full justify-between px-2 mt-4 mb-2">
             <span class="my-auto">Inverted sliders: <br></span>
             <input type="checkbox" class="toggle toggle-primary mr-2" :checked="invertedSliders" @change="toggleInvertedSliders" />
+        </div>
+        <div class="divider"><span class="opacity-50">Reset</span></div>
+        <div class="flex flex-row w-full justify-between px-2 mt-2">
+            <div>
+                <label class="my-auto">Reset channel config: <br></label>
+                <label class="text-xs opacity-50">Resets all selected apps and channel labels <br></label>
+            </div>
+            <button class="btn btn-xs btn-error btn-outline" @click="resetChannelSettings">Reset</button>
+        </div>
+        <div class="flex flex-row w-full justify-between px-2 mt-4">
+            <div>
+                <label class="my-auto">Reset to default <br></label>
+                <label class="text-xs opacity-50">Resets all user settings and channels to default <br></label>
+            </div>
+            <button class="btn btn-xs btn-error btn-outline" @click="resetAll">Reset All</button>
         </div>
     </div>
 </template>
@@ -44,6 +59,7 @@ import SystemSettings from "../ts/systemSettings.ts";
 import decker from "../ts/decker.ts";
 import { useDeckerStore } from "../store/deckerStore";
 import { mapState } from "pinia"; 
+import { resetAllSettings, resetChannelSettings } from "../ts/helpers.ts";
 
 export default {
     name: "General",
@@ -65,6 +81,15 @@ export default {
     }),
   },
     methods: {
+
+        async resetAll() {
+            await resetAllSettings();
+        },
+
+       async resetChannelSettings() {
+            await resetChannelSettings();
+        },
+
         // async getTheme() {
         //     this.currentTheme = await ConfigStore.get("theme") || "dark";
         //     document.documentElement.setAttribute("data-theme", this.currentTheme);
