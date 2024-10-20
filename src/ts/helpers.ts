@@ -104,14 +104,4 @@ export async function resetChannelSettings() {
     } catch (error) {
         console.error('Error resetting channel settings:', error);
     }
-} {
-    try {
-        // remove channelSettings and appsToControl from appdata
-        await removeFileFromAppdata('channelSettings.json');
-        await removeFileFromAppdata('selectedApps.json');
-        await removeChannelIcons();
-        await relaunch();
-    } catch (error) {
-        console.error('Error resetting channel settings:', error);
-    }
 }
