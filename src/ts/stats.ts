@@ -43,7 +43,7 @@ class Stats {
         const distanceInCentimeters = this.sliderMovementToCentimeters(distance);
         const centimeters = distanceInCentimeters;
         const meters = distanceInCentimeters / 100;
-        const kilometers = distanceInCentimeters / 10000;
+        const kilometers = distanceInCentimeters / 100000; // 1km = 100000cm
     
         if (kilometers >= 1) {
             return `${kilometers.toFixed(2)}km`;
