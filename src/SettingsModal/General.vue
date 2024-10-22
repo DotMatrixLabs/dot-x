@@ -38,15 +38,15 @@
         <div class="divider"><span class="opacity-50">Reset</span></div>
         <div class="flex flex-row w-full justify-between px-2 mt-2">
             <div>
-                <label class="my-auto">Reset channel config: <br></label>
+                <label class="my-auto">Reset Channel Settings: <br></label>
                 <label class="text-xs opacity-50">Resets all selected apps and channel labels <br></label>
             </div>
             <button class="btn btn-xs btn-error btn-outline" @click="resetChannelSettings">Reset</button>
         </div>
         <div class="flex flex-row w-full justify-between px-2 mt-4">
             <div>
-                <label class="my-auto">Reset to default <br></label>
-                <label class="text-xs opacity-50">Resets all user settings and channels to default <br></label>
+                <label class="my-auto">Reset All Settings <br></label>
+                <label class="text-xs opacity-50">Resets all user settings and channels to their default values<br></label>
             </div>
             <button class="btn btn-xs btn-error btn-outline" @click="resetAll">Reset All</button>
         </div>
@@ -91,7 +91,7 @@ export default {
 
         async resetAll() {
             try {
-                const message = "This will reset all user settings, configured channels, and channel labels back to like it was when the app was first installed";
+                const message = "This will reset all user settings, configured channels, and channel labels back to their default state as when the app was first installed.";
                 await this.$refs.confirmationModal.openConfirmation("Are you sure?", message, "Reset all")
                 await resetAllSettings();
             } catch (error) {
@@ -101,7 +101,7 @@ export default {
 
        async resetChannelSettings() {
             try {
-                const message = "This will reset all items selected on all channels, including custom labels, but keep the other settings and configurations";
+                const message = "This will reset all selected items on all channels, including custom labels, but will keep other settings and configurations.";
                 await this.$refs.confirmationModal.openConfirmation("Are you sure?", message, "Reset channels");
                 await resetChannelSettings();
             } catch (error) {
