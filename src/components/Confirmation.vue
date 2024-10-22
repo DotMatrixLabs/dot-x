@@ -1,14 +1,14 @@
 <template>
-    <div :class="modalOpen ? 'modal-open' : ''" class="modal h-full w-full">
+    <div :class="[modalOpen ? 'modal-open' : '', 'modal h-full w-full']">
         <div class="modal-box">
             <h3 class="font-bold text-lg">{{ confirmationDetails.title }}</h3>
             <p class="py-4">{{ confirmationDetails.message }}
             </p>
             <div class="modal-action">
-                <button for="confirmation-modal" @click="closeConfirmation" :class="cancelButtonStyling" class="btn btn-neutral btn-outline">
+                <button @click="closeConfirmation" :class="cancelButtonStyling" class="btn btn-neutral btn-outline">
                     {{confirmationDetails.cancelButton ?? "Cancel "}}
                 </button>
-                <button for="confirmation-modal" @click="confirm" :class="confirmButtonStyling" class="btn btn-error">
+                <button @click="confirm" :class="confirmButtonStyling" class="btn btn-error">
                     {{confirmationDetails.confirmButton ?? "Confirm "}}
                 </button>
             </div>
@@ -53,14 +53,18 @@ export default {
 
     confirm() {
       this.modalOpen = false;
-      this.resolvePromise();
-      this.resolvePromise = null;
+      if (this.resolvePromise) {
+        this.resolvePromise();
+        this.resolvePromise = null;
+      }
     },
 
     closeConfirmation() {
       this.modalOpen = false;
-      this.rejectPromise("Confirmation cancelled");
-      this.rejectPromise = null; 
+      if (this.rejectPromise) {
+        this.rejectPromise("Confirmation cancelled");
+        this.rejectPromise = null;
+      }
     }
   }
 };
