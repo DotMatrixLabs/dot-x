@@ -5,10 +5,10 @@
             <p class="py-4">{{ confirmationDetails.message }}
             </p>
             <div class="modal-action">
-                <button for="confirmation-modal" @click="closeConfirmation" :class="cancelButtonStyling" class="btn btn-neutral btn-outline">
+                <button @click="closeConfirmation" :class="cancelButtonStyling" class="btn btn-neutral btn-outline">
                     {{confirmationDetails.cancelButton ?? "Cancel "}}
                 </button>
-                <button for="confirmation-modal" @click="confirm" :class="confirmButtonStyling" class="btn btn-error">
+                <button @click="confirm" :class="confirmButtonStyling" class="btn btn-error">
                     {{confirmationDetails.confirmButton ?? "Confirm "}}
                 </button>
             </div>
