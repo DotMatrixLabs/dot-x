@@ -53,14 +53,18 @@ export default {
 
     confirm() {
       this.modalOpen = false;
-      this.resolvePromise();
-      this.resolvePromise = null;
+      if (this.resolvePromise) {
+        this.resolvePromise();
+        this.resolvePromise = null;
+      }
     },
 
     closeConfirmation() {
       this.modalOpen = false;
-      this.rejectPromise("Confirmation cancelled");
-      this.rejectPromise = null; 
+      if (this.rejectPromise) {
+        this.rejectPromise("Confirmation cancelled");
+        this.rejectPromise = null;
+      }
     }
   }
 };
