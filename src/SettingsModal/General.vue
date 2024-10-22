@@ -1,5 +1,6 @@
 <template>
     <div class="flex flex-col justify-start items-center w-full h-full overflow-y-auto">
+        <Confirmation ref="confirmationModal"/>
         <!-- <div class="flex flex-row w-full justify-between px-2">
             <span class="shrink-0 pt-1">Theme: </span>
             <select @change="setTheme" v-model="currentTheme"
@@ -60,9 +61,15 @@ import decker from "../ts/decker.ts";
 import { useDeckerStore } from "../store/deckerStore";
 import { mapState } from "pinia"; 
 import { resetAllSettings, resetChannelSettings } from "../ts/helpers.ts";
+import Confirmation from "../components/Confirmation.vue";
 
 export default {
     name: "General",
+
+    components: {
+        Confirmation
+    },
+
     data() {
         return {
             themes: ["light", "dark"],
@@ -83,11 +90,23 @@ export default {
     methods: {
 
         async resetAll() {
-            await resetAllSettings();
+            try {
+                const message = "This will reset all user settings, configured channels, and channel labels back to like it was when the app was first installed";
+                await this.$refs.confirmationModal.openConfirmation("Are you sure?", message, "Reset all")
+                await resetAllSettings();
+            } catch (error) {
+                console.log(error); 
+            }
         },
 
        async resetChannelSettings() {
-            await resetChannelSettings();
+            try {
+                const message = "This will reset all items selected on all channels, including custom labels, but keep the other settings and configurations";
+                await this.$refs.confirmationModal.openConfirmation("Are you sure?", message, "Reset channels");
+                await resetChannelSettings();
+            } catch (error) {
+                console.log(error);
+            }
         },
 
         // async getTheme() {
