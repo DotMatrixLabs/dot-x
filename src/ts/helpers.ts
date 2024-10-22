@@ -58,10 +58,18 @@ export async function getImageSize(filePath: string) {
  * Asynchronously removes all channel icons from the channelIcons directory in appdata.
  */
 async function removeChannelIcons() {
-    const dir = await readDir('channelIcons', { dir: BaseDirectory.AppData });
-    if(dir.length === 0) return;
-    for (const file of dir) {
-        await removeFile(`channelIcons/${file.name}`, { dir: BaseDirectory.AppData });
+    try {
+        const dir = await readDir('channelIcons', { dir: BaseDirectory.AppData });
+        if(dir.length === 0) return;
+        for (const file of dir) {
+            try {
+                await removeFile(`channelIcons/${file.name}`, { dir: BaseDirectory.AppData });
+            } catch (error) {
+                console.error(`Error removing file ${file.name}:`, error);
+            }
+        }
+    } catch (error) {
+        console.error('Error reading channelIcons directory:', error);
     }
 }
 
