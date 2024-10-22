@@ -13,12 +13,15 @@ export async function copyFileToAppdata(filePath: string, folderName: string, fi
     return `${folderName}/${fileName}`;
 }
 
-export async function removeFileFromAppdata(filePath: string) {
+export async function removeFileFromAppdata(filePaths: string | string[] ) {
+    if(!Array.isArray(filePaths)) filePaths = [filePaths];
     // Delete the file from the `$APPDATA` directory
     // check if the file exists, if not return
-    const existsFile = await exists(filePath, { dir: BaseDirectory.AppData });
-    if(!existsFile) return;
-    await removeFile(filePath, { dir: BaseDirectory.AppData });
+    for (const path of filePaths) {
+        const existsFile = await exists(path, { dir: BaseDirectory.AppData });
+        if(!existsFile) continue;
+        await removeFile(path, { dir: BaseDirectory.AppData });
+    }
 }
 
 export async function getImage(filePath: string) {
@@ -73,10 +76,12 @@ async function removeChannelIcons() {
 export async function resetAllSettings() {
     try {
         // remove all files from appdata
-        await removeFileFromAppdata('channelSettings.json');
-        await removeFileFromAppdata('selectedApps.json');
-        await removeFileFromAppdata('config.json');
-        await removeFileFromAppdata('extraApps.json');
+        await removeFileFromAppdata([
+            'channelSettings.json', 
+            'selectedApps.json', 
+            'config.js', 
+            'extraApps.json'
+        ]);
         await removeChannelIcons();
         await relaunch();
     } catch (error) {
@@ -97,8 +102,10 @@ export async function resetAllSettings() {
 export async function resetChannelSettings() {
     try {
         // remove channelSettings and appsToControl from appdata
-        await removeFileFromAppdata('channelSettings.json');
-        await removeFileFromAppdata('selectedApps.json');
+        await removeFileFromAppdata([
+            'channelSettings.json', 
+            'selectedApps.json'
+        ]);
         await removeChannelIcons();
         await relaunch();
     } catch (error) {
