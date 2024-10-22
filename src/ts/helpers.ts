@@ -18,9 +18,14 @@ export async function removeFileFromAppdata(filePaths: string | string[] ) {
     // Delete the file from the `$APPDATA` directory
     // check if the file exists, if not return
     for (const path of filePaths) {
-        const existsFile = await exists(path, { dir: BaseDirectory.AppData });
-        if(!existsFile) continue;
-        await removeFile(path, { dir: BaseDirectory.AppData });
+        try {
+            const existsFile = await exists(path, { dir: BaseDirectory.AppData });
+            if(!existsFile) continue;
+            await removeFile(path, { dir: BaseDirectory.AppData });
+        } catch(error) {
+            console.error(`Error removing file ${path}:`, error);
+        }
+
     }
 }
 
