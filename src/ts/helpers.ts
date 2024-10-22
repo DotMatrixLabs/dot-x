@@ -92,7 +92,7 @@ export async function resetAllSettings() {
         await removeFileFromAppdata([
             'channelSettings.json', 
             'selectedApps.json', 
-            'config.js', 
+            'config.json', 
             'extraApps.json'
         ]);
         await removeChannelIcons();
