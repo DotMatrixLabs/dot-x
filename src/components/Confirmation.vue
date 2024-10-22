@@ -1,5 +1,5 @@
 <template>
-    <div :class="modalOpen ? 'modal-open' : ''" class="modal h-full w-full">
+    <div :class="[modalOpen ? 'modal-open' : '', 'modal h-full w-full']">
         <div class="modal-box">
             <h3 class="font-bold text-lg">{{ confirmationDetails.title }}</h3>
             <p class="py-4">{{ confirmationDetails.message }}
