@@ -56,7 +56,7 @@ pub mod midi {
         if output_ports.is_empty() {
             error!("No available MIDI output ports.");
         }
-        if(output_ports.len() -1 < midi_output_port as usize) {
+        if output_ports.len() -1 < midi_output_port as usize {
             eprintln!("The selected MIDI port doesn't exist.");
             Err("The selected MIDI port doesn't exist.")?;
         }
@@ -67,7 +67,7 @@ pub mod midi {
             Ok(conn) => {
                 debug!("Connection to {} successful", Midi.name);
                 conn_out = conn;
-                let thread_handle = thread::spawn(move || {
+                let _thread_handle = thread::spawn(move || {
                     debug!("starting midi thread");
                     loop {
                         unsafe { 
@@ -102,11 +102,11 @@ pub mod midi {
                                 if current_slider.checked_sub(2).map_or(false, |result| result > *previous_slider) ||
                                 current_slider.checked_add(2).map_or(false, |result| result < *previous_slider) {
                                     // Check if the slider is MIDI enabled, -1 because the sliders are 1 indexed here, but 0 indexed in the midi_sliders array coming from the frontend
-                                    if(midi_sliders.contains(&(i - 1))){ 
+                                    if midi_sliders.contains(&(i - 1)) { 
                                         // Filter the midi_configuration array to only include the current slider
                                         let CCValueParsed: u8;
                                         let channel: u8;
-                                        if let Some(element) = midi_configuration.get(i as usize - 1) {
+                                        if let Some(_element) = midi_configuration.get(i as usize - 1) {
                                             let filtered_vec: Vec<_> = midi_configuration
                                             .iter()
                                             .enumerate()
@@ -114,7 +114,7 @@ pub mod midi {
                                             .map(|(_, tuple)| tuple.clone())
                                             .collect();
                                             let (channelFromTuple, CCValueFromTuple) = filtered_vec[0].clone(); // The filtered_vec should only contain one element, so we can safely unwrap it I think
-                                            if(channelFromTuple == "") {
+                                            if channelFromTuple == "" {
                                                 trace!("channelFromTuple is empty, setting to default {}", i);
                                                 channel = i as u8;
                                             } else {
@@ -122,7 +122,7 @@ pub mod midi {
                                                 channel = channelFromTuple.parse::<u8>().unwrap();
                                             }
 
-                                            if(CCValueFromTuple == "") {
+                                            if CCValueFromTuple == "" {
                                                 trace!("CCValueFromTuple is empty, setting to default CC value 07");
                                                 CCValueParsed = 7;
                                             } else {
