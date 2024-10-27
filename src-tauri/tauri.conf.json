@@ -29,8 +29,8 @@
       ],
       "copyright": "Copyright © 2024 Frogbyte AS",
       "category": "Utility",
-      "shortDescription": "Desktop app for DotMatrixLabs products",
-      "longDescription": "Dot X is a desktop app for managing products made by DotMatrixLabs, as well as other compatible devices. More info at https://dotmatrixlabs.com",
+      "shortDescription": "Dot X",
+      "longDescription": "Desktop app for DotMatrixLabs products",
       "resources": [
         "licenses/*"
       ],
