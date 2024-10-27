@@ -151,12 +151,6 @@ fn serialize_decker_data(json_string: &str) -> std::result::Result<Vec<u8>, Box<
 //TODO: https://tauri.app/v1/guides/features/events/
 // To subscribe to slider changes in frontend and emit changes from backend when values from sliders update.
 
-pub fn list_ports() {
-    let ports = serialport::available_ports().expect("No ports found!");
-    for p in ports {
-        println!("{}", p.port_name);
-    }
-}
 
 #[derive(serde::Serialize)]
 pub struct USBDevice {
