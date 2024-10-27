@@ -106,11 +106,15 @@ export default {
     },
 
     async connectDecker() {
-      const comPort = await ConfigStore.get("comPort");
-      if (!comPort) {
-        return toast.info("Please select a device in the settings");
+      try {
+        const comPort = await ConfigStore.get("comPort");
+        if (!comPort) {
+          return toast.info("Please select a device in the settings");
+        }
+        Decker.init(comPort);
+      } catch (error) {
+        toast.error("Failed to connect to Device");
       }
-      Decker.init(comPort);
     },
 
     //this disables the built in right click context menu in build mode
