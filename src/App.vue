@@ -127,11 +127,7 @@ export default {
         e.preventDefault();
         return false;
       }, { capture: true })
-
-      document.addEventListener('selectstart', e => {
-        e.preventDefault();
-        return false;
-      }, { capture: true })
+      
     },
 
   },
