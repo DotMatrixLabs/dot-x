@@ -44,7 +44,6 @@
                         <span v-else>Select</span>
                     </button>
                     <button @click="removeFile" :disabled="!imageSrc" class="btn btn-xs btn-ghost mt-1">Remove</button>
-                    <!-- TODO: Delete image from AppData when clicking remove -->
                     <label class="label-text mt-1 text-center">Image cannot be larger than 100x50px</label>
                 </div>
             </div>
