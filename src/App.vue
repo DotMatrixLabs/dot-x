@@ -105,22 +105,40 @@ export default {
       this.$refs.sliderOverview.getSelectedApps();
     },
 
-   async connectDecker(){
-    const comPort = await ConfigStore.get("comPort");
-    if(!comPort) {
-      return toast.info("Please select a device in the settings");
-    }
-    Decker.init(comPort);
-   },
+    async connectDecker() {
+      const comPort = await ConfigStore.get("comPort");
+      if (!comPort) {
+        return toast.info("Please select a device in the settings");
+      }
+      Decker.init(comPort);
+    },
 
-   retryConnection() {
-    if(this.connectionState === true) return toast.info("Decker is already connected");
-    Decker.retryConnection();
-   }
+    retryConnection() {
+      if (this.connectionState === true) return toast.info("Decker is already connected");
+      Decker.retryConnection();
+    },
+
+    //this disables the built in right click context menu in build mode
+    disableContextMenu() {
+      if (window.location.hostname !== 'tauri.localhost') {
+        return;
+      }
+
+      document.addEventListener('contextmenu', e => {
+        e.preventDefault();
+        return false;
+      }, { capture: true })
+
+      document.addEventListener('selectstart', e => {
+        e.preventDefault();
+        return false;
+      }, { capture: true })
+    },
 
   },
 
   mounted() {
+    this.disableContextMenu();
     // this.getTheme();
     this.connectDecker();
     Decker.detectDeviceChanges();
