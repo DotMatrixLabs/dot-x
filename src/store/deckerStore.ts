@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia';
 import Stats from '../ts/stats.ts';
-import channelSettings from '../ts/channelSettings.ts';
 
 
 export const useDeckerStore = defineStore('decker', {
