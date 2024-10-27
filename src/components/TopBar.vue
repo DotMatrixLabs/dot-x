@@ -25,10 +25,10 @@
       <button title="Settings" @click="$emit('settings-toggled')" class="mx-8 btn btn-ghost rounded-md p-2">
         <i class="fas fa-gear fa-lg text-base-content"></i>
       </button>
-      <button title="Minimize" @click="minimize" class="btn btn-ghost">
+      <button title="Minimize" @click="minimize" class="btn btn-ghost cursor-default">
         <i class="fas fa-minus fa-lg text-base-content"></i>
       </button>
-      <button title="Close" @click="close" class="btn btn-ghost text-base-content hover:text-white hover:bg-red-600 ">
+      <button title="Close" @click="close" class="btn btn-ghost text-base-content hover:text-white hover:bg-red-600 cursor-default">
         <i class="fas fa-close fa-lg "></i>
       </button>
     </div>
