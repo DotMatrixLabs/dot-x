@@ -10,7 +10,7 @@
         </div>
         <input v-model="appSearch" type="text" placeholder="Search apps"
             class="input input-bordered input-xs w-2/3 max-w-xs mx-2 capitalize truncate" />
-        <button @click="openHelpModal" class="btn btn-circle btn-xs">
+        <button @click="openHelpModal" class="btn btn-circle btn-xs" title="Help" aria-label="Open help modal">
             <i class="fas fa-info h-3 w-3"></i>
         </button>
     </div>
