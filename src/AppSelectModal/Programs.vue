@@ -105,17 +105,19 @@ export default {
 
         openHelpModal() {
             this.$refs.helpBox.openHelpBox("Add a program", `
-            The list shows all the apps that are currently running on your system.
-            
-            If you want to select an app on your computer that is not currently running, you can show all apps by checking the box at the top of the list.
-            You can also search for apps by typing in the search bar.
+            The list shows all apps currently running on your system.
 
-            Please note that some apps might now show up in the all apps list. You can try opening the app and look for it in the list again.
+            To select an app that isn’t running, check the box at the top of the list to display all apps. You can also use the search bar to find specific apps.
 
-            Some apps like Spotify also needs to be actively playing audio to show up in the list.
+            Please note:
 
-            You can also try to open Dot X in administrator mode if you are having trouble with some apps not showing up in the list.
-            `);
+                - If the app you want to add is not appearing in the list, try relaunching the app and checking the list again.
+
+                - Some apps, like Spotify, need to be actively playing audio to appear.
+
+                - If you’re still having issues, try launching Dot X in administrator mode to ensure all apps are displayed.
+                
+                `);
         },
 
         async appAdded(appsObject) {
