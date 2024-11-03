@@ -123,10 +123,6 @@ export default {
             this.getAllApps();
         },
 
-        removeClicked(name) {
-            console.log("name: ", name);
-        },
-
         async getExtraApps() {
             const extraApps = await ExtraApps.getExtraApps();
             const extraAppsArray = [];
