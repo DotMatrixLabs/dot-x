@@ -239,9 +239,6 @@ fn set_application_volume(name: &str, volume: f32) -> Result<(), Error> {
 
         // Get the current session by name
         let current_sessions = controller.get_sessions_by_name(name.to_string());
-
-        //print number of current sessions
-        println!("Number of current sessions: {}", current_sessions.len());
         
         //if multiple sessions are found, change the volume for all of them
         if !current_sessions.is_empty() {
