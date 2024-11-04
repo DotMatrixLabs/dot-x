@@ -238,11 +238,14 @@ fn set_application_volume(name: &str, volume: f32) -> Result<(), Error> {
         println!("All session names: {:?}", controller.get_all_session_names());
 
         // Get the current session by name
-        let current_session = controller.get_session_by_name(name.to_string());
+        let current_sessions = controller.get_sessions_by_name(name.to_string());
 
-        // Check if the session was found
-        if let Some(session) = current_session {
-            // Set the volume for the current session
+        //print number of current sessions
+        println!("Number of current sessions: {}", current_sessions.len());
+        
+        //if multiple sessions are found, change the volume for all of them
+        if !current_sessions.is_empty() {
+          for session in current_sessions {
             println!("Setting volume for session: {}", name);
             println!("{}", session.getVolume().to_string());
             if volume < 0.01 {
@@ -253,9 +256,10 @@ fn set_application_volume(name: &str, volume: f32) -> Result<(), Error> {
               session.setMute(false);
               session.setVolume(volume);
             }
+          }
         } else {
-            // Handle the case where the session was not found (e.g., return an error)
-            return Err(Error::SessionNotFound);
+          // Handle the case where the session was not found (e.g., return an error)
+          return Err(Error::SessionNotFound);
         }
     }
 
