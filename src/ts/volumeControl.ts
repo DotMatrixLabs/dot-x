@@ -6,11 +6,15 @@ import SelectedApps from './appsToControl';
  */
 class SystemVolumeController {
     private lastActiveWindowExecutionTime: number;
+    private lastSetVolumeExecutionTime: number;
     private lastActiveWindowExecutionResult: any;
+    private lastSetVolumeApp: string;
     
     constructor() {
         this.lastActiveWindowExecutionTime = 0;
         this.lastActiveWindowExecutionResult = "";
+        this.lastSetVolumeExecutionTime = 0;
+        this.lastSetVolumeApp = "";
     }
 
     /**
@@ -44,6 +48,14 @@ class SystemVolumeController {
      */
     async setVolume(name: string, volume: number): Promise<void> {
         try {
+            // debounce the volume change, max 1 change per 50ms to prevent audio glitches, unless volume is less than 1% (which is a mute)
+            const currentTime = Date.now();
+            if (this.lastSetVolumeApp === name && (currentTime - this.lastSetVolumeExecutionTime < 50) && volume > 0.01) {
+                console.log('Volume change debounced, skipping set_volume');
+                return;
+            } 
+            this.lastSetVolumeExecutionTime = currentTime;
+            this.lastSetVolumeApp = name;
             await invoke('set_application_volume', { name, volume });
         } catch (error) {
             console.log(error);
@@ -77,10 +89,10 @@ class SystemVolumeController {
         let sessionNames = await this.getAllSessionNames(true);
         apps = apps.map((str) => str.toLowerCase());
 
-        for (const session of sessionNames) {
+        for (const app of apps) {
+            if (!app) continue;
+            let session = sessionNames.find((session) => session.toLowerCase() === app);
             if (!session) continue;
-            let app = session.toLowerCase();
-            if (!apps.includes(app)) continue;
             try {
                 await this.setVolume(session, volume);
             } catch (e) {
