@@ -50,10 +50,7 @@ class SystemVolumeController {
         try {
             // debounce the volume change, max 1 change per 50ms to prevent audio glitches, unless volume is less than 1% (which is a mute)
             const currentTime = Date.now();
-            if (this.lastSetVolumeApp === name && (currentTime - this.lastSetVolumeExecutionTime < 50) && volume > 0.01) {
-                console.log('Volume change debounced, skipping set_volume');
-                return;
-            } 
+            if (this.lastSetVolumeApp === name && (currentTime - this.lastSetVolumeExecutionTime < 50) && volume > 0.01) return;
             this.lastSetVolumeExecutionTime = currentTime;
             this.lastSetVolumeApp = name;
             await invoke('set_application_volume', { name, volume });
