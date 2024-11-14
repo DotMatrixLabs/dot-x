@@ -120,7 +120,7 @@ export default {
     //this disables the built in right click context menu in build mode
     disableContextMenu() {
       if (window.location.hostname !== 'tauri.localhost') return;
-      document.addEventListener('contextmenu', handlers.contextmenu, { capture: true });
+      document.addEventListener('contextmenu', (event) => event.preventDefault(), { capture: true });
     },
 
   },
