@@ -16,10 +16,10 @@ mod decker;
 mod midi;
 use tauri::{CustomMenuItem, SystemTrayMenu, SystemTrayMenuItem, SystemTray, SystemTrayEvent};
 use tauri::api::notification::Notification;
-use window_vibrancy::{apply_vibrancy, apply_blur, apply_mica, NSVisualEffectMaterial};
+use window_vibrancy::{apply_blur, apply_mica};
 use window_shadows::set_shadow;
 use once_cell::sync::OnceCell;
-use sentry_tauri::sentry;
+
 use active_win_pos_rs::get_active_window;
 use tauri_plugin_aptabase::EventTracker;
 use std::thread;
@@ -89,7 +89,7 @@ fn get_available_midi_output_port_names() -> Result<MidiPortNames, Error> {
   
   let midi_out = match midi_out_result {
       Ok(midi_out) => midi_out,
-      Err(error) => {
+      Err(_error) => {
           // Handle the error here, or return it if you prefer.
           return Err(Error::InitError);
       }  };
@@ -97,15 +97,15 @@ fn get_available_midi_output_port_names() -> Result<MidiPortNames, Error> {
   let output_ports_result = midi::midi::get_available_output_ports();
   let output_ports = match output_ports_result {
       Ok(output_ports) => output_ports,
-      Err(error) => {
+      Err(_error) => {
           // Handle the error here, or return it if you prefer.
           return Err(Error::InitError);
       }  
     };
   
-  for (i, p) in output_ports.iter().enumerate() {
+  for (_i, p) in output_ports.iter().enumerate() {
       let port_name_result = midi_out.port_name(p);
-      let port_name = match port_name_result {
+      let _port_name = match port_name_result {
           Ok(port_name) => available_ports.push(port_name),
           Err(error) => {
               // Handle the error here, or return it if you prefer.
@@ -201,7 +201,7 @@ fn attach_midi_device(output_name: &str, output_port: u32, midi_sliders: Value, 
     let midi_configuration_vec = value_to_object_vec(&midi_configuration).unwrap_or_default();
     let midi_controller = midi::midi::new("Decker", output_port, midi_sliders_vec, midi_configuration_vec); 
     match midi_controller {
-      Ok(midi_controller) => {
+      Ok(_midi_controller) => {
         info!("Midi port {}: Port name: {}", output_port, output_name);
         unsafe { midi::midi::ENABLED = true; }
       }
@@ -347,7 +347,7 @@ fn main() {
           MacosLauncher::LaunchAgent,
           Some(vec!["--hidden"]),
         ))
-        .plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
+        .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
           let window = app.get_window("main").unwrap();
           window.show().unwrap();
           show_notification("Dot X", "Dot X is already running");

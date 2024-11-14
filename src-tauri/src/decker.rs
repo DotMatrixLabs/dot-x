@@ -1,4 +1,4 @@
-use std::{thread::{self}, time::Duration, sync::{Arc, mpsc, Mutex}};
+use std::{thread::{self}, time::Duration, sync::{mpsc, Mutex}};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::io::{self, Cursor, Read};
 use log::{error, warn, info};
@@ -151,12 +151,6 @@ fn serialize_decker_data(json_string: &str) -> std::result::Result<Vec<u8>, Box<
 //TODO: https://tauri.app/v1/guides/features/events/
 // To subscribe to slider changes in frontend and emit changes from backend when values from sliders update.
 
-pub fn list_ports() {
-    let ports = serialport::available_ports().expect("No ports found!");
-    for p in ports {
-        println!("{}", p.port_name);
-    }
-}
 
 #[derive(serde::Serialize)]
 pub struct USBDevice {
@@ -246,7 +240,7 @@ pub fn initialize_decker(window: Window, port_name: &str, inverted: bool) -> std
                 let mut serial_buf: Vec<u8> = vec![0; 100];
                 window.emit("connection-change", Payload { message: "connected".to_string() }).unwrap();
                 loop {
-                    if(!SHOULD_RUN.load(Ordering::Relaxed)) {
+                    if !SHOULD_RUN.load(Ordering::Relaxed) {
                         break;
                     }
                     match rx.try_recv() {

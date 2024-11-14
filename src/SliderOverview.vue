@@ -5,7 +5,7 @@
         <div class="flex flex-col justify-center">
           <Slider :midiEnabledGlobal="midiEnabledGlobal" :midiEnabled="midiEnabled[index]" :class="sliders.length === 0 || connectionState === false ? 'opacity-50' : 'opacity-100'" :slider-val="slider" class="h-full w-full" />
           <div v-if="sliders.length === 0 || connectionState === false" class="p-2 bg-base-200 rounded-md shadow-md ring-1 ring-gray-500 absolute text-center -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2">
-            <h1>Decker not connected</h1>
+            <h1>Device not connected</h1>
           <!-- If MIDI is enabled, show a message to inform that no programs or groups will have their volume applied. Only MIDI messages will work. -->
           </div>
 
