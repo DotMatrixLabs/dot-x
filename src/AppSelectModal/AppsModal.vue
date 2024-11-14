@@ -14,6 +14,7 @@
         </ul>
         <div class="col-span-2 pb-6 pt-2">
           <component
+          v-if="modalOpen"
             :is="currentTab.component"
             :ref="currentTab.component"
             :key="currentTab.name"
