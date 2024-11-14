@@ -2008,7 +2008,6 @@
     },
     { "title": "fas fa-tree", "searchTerms": [] },
     { "title": "fab fa-trello", "searchTerms": [] },
-    { "title": "fab fa-tripadvisor", "searchTerms": [] },
     {
       "title": "fas fa-trophy",
       "searchTerms": ["award", "achievement", "cup", "winner", "game"]

@@ -2,7 +2,7 @@
   <div class="h-screen w-screen flex flex-col pt-12 bg-transparent rounded-xl">
     <SettingsModal :modal-open="settingsModalOpen" @close="settingsToggled" />
     <AppsModal :currentSliderID="currentSliderID" :modal-open="appsModalOpen" @close="appsToggled(null)" />
-    <TopBar :colorScheme="colorScheme" :class="backgroundColorTopBar" @settings-toggled="settingsToggled" @connect-to-board="retryConnection" :connection-status="connectionState" />
+    <TopBar :colorScheme="colorScheme" :class="backgroundColorTopBar" @settings-toggled="settingsToggled" :connection-status="connectionState" />
     <SliderOverview :class="backgroundColor" ref="sliderOverview" :pot-values="potValues" @app-click="appsToggled" />
   </div>
 </template>
@@ -105,22 +105,28 @@ export default {
       this.$refs.sliderOverview.getSelectedApps();
     },
 
-   async connectDecker(){
-    const comPort = await ConfigStore.get("comPort");
-    if(!comPort) {
-      return toast.info("Please select a device in the settings");
-    }
-    Decker.init(comPort);
-   },
+    async connectDecker() {
+      try {
+        const comPort = await ConfigStore.get("comPort");
+        if (!comPort) {
+          return toast.info("Please select a device in the settings");
+        }
+        Decker.init(comPort);
+      } catch (error) {
+        toast.error("Failed to connect to Device");
+      }
+    },
 
-   retryConnection() {
-    if(this.connectionState === true) return toast.info("Decker is already connected");
-    Decker.retryConnection();
-   }
+    //this disables the built in right click context menu in build mode
+    disableContextMenu() {
+      if (window.location.hostname !== 'tauri.localhost') return;
+      document.addEventListener('contextmenu', handlers.contextmenu, { capture: true });
+    },
 
   },
 
   mounted() {
+    this.disableContextMenu();
     // this.getTheme();
     this.connectDecker();
     Decker.detectDeviceChanges();
