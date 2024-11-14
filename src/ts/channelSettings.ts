@@ -55,10 +55,10 @@ class ChannelSettings {
     async getAllChannelSettings(): Promise<any> {
         let settingsObject: { [key: string]: any } = {};
         const keys = await this.store.keys();
-        keys.forEach(async (key) => {
+        await Promise.all(keys.map(async (key) => {
             const value = await this.store.get(key);
             settingsObject[key] = value;
-        });
+        }));
         
         return settingsObject;
     }
