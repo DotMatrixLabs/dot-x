@@ -1,5 +1,6 @@
 <template>
     <div class="flex flex-col justify-start items-center w-full h-full overflow-y-auto">
+        <Confirmation ref="confirmationModal"/>
         <!-- <div class="flex flex-row w-full justify-between px-2">
             <span class="shrink-0 pt-1">Theme: </span>
             <select @change="setTheme" v-model="currentTheme"
@@ -30,9 +31,24 @@
                 </option>
             </select>
         </div>
-        <div class="flex flex-row w-full justify-between px-2 mt-4">
+        <div class="flex flex-row w-full justify-between px-2 mt-4 mb-2">
             <span class="my-auto">Inverted sliders: <br></span>
             <input type="checkbox" class="toggle toggle-primary mr-2" :checked="invertedSliders" @change="toggleInvertedSliders" />
+        </div>
+        <div class="divider"><span class="opacity-50">Reset</span></div>
+        <div class="flex flex-row w-full justify-between px-2 mt-2">
+            <div>
+                <label class="my-auto">Reset Channel Settings: <br></label>
+                <label class="text-xs opacity-50">Resets all selected apps and channel labels <br></label>
+            </div>
+            <button class="btn btn-xs btn-error btn-outline" @click="resetChannelSettings">Reset</button>
+        </div>
+        <div class="flex flex-row w-full justify-between px-2 mt-4">
+            <div>
+                <label class="my-auto">Reset All Settings <br></label>
+                <label class="text-xs opacity-50">Resets all user settings and channels to their default values<br></label>
+            </div>
+            <button class="btn btn-xs btn-error btn-outline" @click="resetAll">Reset All</button>
         </div>
     </div>
 </template>
@@ -44,9 +60,16 @@ import SystemSettings from "../ts/systemSettings.ts";
 import decker from "../ts/decker.ts";
 import { useDeckerStore } from "../store/deckerStore";
 import { mapState } from "pinia"; 
+import { resetAllSettings, resetChannelSettings } from "../ts/helpers.ts";
+import Confirmation from "../components/Confirmation.vue";
 
 export default {
     name: "General",
+
+    components: {
+        Confirmation
+    },
+
     data() {
         return {
             themes: ["light", "dark"],
@@ -65,6 +88,27 @@ export default {
     }),
   },
     methods: {
+
+        async resetAll() {
+            try {
+                const message = "This will reset all user settings, configured channels, and channel labels back to their default state as when the app was first installed.";
+                await this.$refs.confirmationModal.openConfirmation("Are you sure?", message, "Reset all")
+                await resetAllSettings();
+            } catch (error) {
+                console.log(error); 
+            }
+        },
+
+       async resetChannelSettings() {
+            try {
+                const message = "This will reset all selected items on all channels, including custom labels, but will keep other settings and configurations.";
+                await this.$refs.confirmationModal.openConfirmation("Are you sure?", message, "Reset channels");
+                await resetChannelSettings();
+            } catch (error) {
+                console.log(error);
+            }
+        },
+
         // async getTheme() {
         //     this.currentTheme = await ConfigStore.get("theme") || "dark";
         //     document.documentElement.setAttribute("data-theme", this.currentTheme);

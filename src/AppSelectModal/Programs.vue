@@ -1,9 +1,7 @@
 <template>
+    <HelpBox ref="helpBox" class="p-12" />
     <!-- Apps -->
     <div class="flex flex-row m-auto mb-2 justify-center items-center">
-        <ActionModal :modalOpen="actionModalOpen" :modalSettings="modalSettings" @closeModal="actionModalOpen = false"
-          @outputData="appAdded" />
-        <!-- Search not ready yet, disabling for now -->
         <div class="h-full">
             <label class="label cursor-pointer">
                 <span class="text-xs mx-2">All Apps</span> 
@@ -12,8 +10,8 @@
         </div>
         <input v-model="appSearch" type="text" placeholder="Search apps"
             class="input input-bordered input-xs w-2/3 max-w-xs mx-2 capitalize truncate" />
-        <button @click="actionModalOpen = true" class="btn btn-xs">
-            Add app
+        <button @click="openHelpModal" class="btn btn-circle btn-xs btn-primary btn-outline" title="Help" aria-label="Open help modal">
+            <i class="fas fa-info h-3 w-3"></i>
         </button>
     </div>
     <div class="flex flex-col overflow-y-auto overflow-x-hidden h-40 w-full p-4 bg-base-200 rounded-lg relative">
@@ -32,9 +30,6 @@
                     <div class="truncate capitalize cursor-pointer px-2 py-0.5 text-blue w-full text-left mx-2">
                         {{ item.DisplayName.toLowerCase() }}
                     </div>
-                    <button v-if="item.appType === 'custom'" class="mt-1" @click="removeClicked(item.DisplayName)">
-                        <i class="fas fa-xmark m-auto w-4 h-4 p-1 rounded-full hover:bg-gray-500 hover:bg-opacity-30"></i>
-                    </button>
                 </button>
             </RecycleScroller>
         </div>
@@ -42,16 +37,13 @@
 </template>
 
 <script>
-import ActionModal from "../components/ActionModal.vue";
-// import { mapActions, mapState } from "pinia";
+import HelpBox from "../components/HelpBox.vue";
 import _ from "lodash";
 import LoadingSpinner from "../assets/loadingSpinner.vue";
-
 import ExtraApps from "../ts/extraApps.ts";
 import SystemVolumeController from "../ts/volumeControl.ts";
 import SelectedApps from "../ts/appsToControl.ts";
 import { useToast } from "vue-toastification";
-
 
 const toast = useToast();
 
@@ -60,8 +52,8 @@ import { invoke } from "@tauri-apps/api/tauri";
 export default {
 
     components: {
-        ActionModal,
-        LoadingSpinner
+        LoadingSpinner,
+        HelpBox
     },
 
     props: {
@@ -80,29 +72,6 @@ export default {
             appList: [],
             fullAppList: [],
             searchResults: [],
-            actionModalOpen: false,
-            modalSettings: {
-                title: "Manually add program",
-                message:
-                    "Please enter the the whole filename for the app you want to add. Ex: spotify.exe",
-                modalType: "input",
-                inputs: [
-                    {
-                        label: "Display Name",
-                        type: "text",
-                        placeholder: "Display Name",
-                        variableName: "displayName",
-                    },
-                    {
-                        label: "File path",
-                        type: "text",
-                        placeholder: "File path",
-                        variableName: "filePath",
-                    },
-                ],
-                closeButton: "Cancel",
-                confirmButton: "Add",
-            },
             loading: false,
             selectedApps: [""],
             activeApps: [],
@@ -115,6 +84,7 @@ export default {
                 "activeWindow",
                 "midi"
             ],
+            getActiveAppsInterval: null
         }
     },
 
@@ -132,13 +102,27 @@ export default {
     },
 
     methods: {
+
+        openHelpModal() {
+            this.$refs.helpBox.openHelpBox("Add a program", `
+            The list shows all apps currently running on your system.
+
+            To select an app that isn’t running, check the box at the top of the list to display all apps. You can also use the search bar to find specific apps.
+
+            Please note:
+
+                - If the app you want to add is not appearing in the list, try relaunching the app and checking the list again.
+
+                - Some apps, like Spotify, need to be actively playing audio to appear.
+
+                - If you’re still having issues, try launching Dot X in administrator mode to ensure all apps are displayed.
+                
+                `);
+        },
+
         async appAdded(appsObject) {
             await ExtraApps.addExtraApp(appsObject.displayName, appsObject.filePath);
             this.getAllApps();
-        },
-
-        removeClicked(name) {
-            console.log("name: ", name);
         },
 
         async getExtraApps() {
@@ -202,6 +186,7 @@ export default {
                 })
 
                 //first filter out the system utilities from the selected apps list
+                if(!this.selectedApps) return;
                 this.selectedApps = this.selectedApps.filter((str) => !this.systemUtilities.includes(str));
 
                 //Then add the selected apps that are not in the list to the top of the list
@@ -237,11 +222,20 @@ export default {
             this.getActiveApps();
             this.getSelectedApps();
         },
+
+
+    },
+
+    beforeUnmount(){
+        clearInterval(this.getActiveAppsInterval);
     },
 
 
     mounted() {
         this.refreshData();
+        this.getActiveAppsInterval = setInterval(()=> {
+            this.getActiveApps();
+        }, 1000)
     },
 
 

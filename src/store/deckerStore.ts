@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia';
 import Stats from '../ts/stats.ts';
 
-
 export const useDeckerStore = defineStore('decker', {
   state: () => ({
     sliders: [] as number[],
