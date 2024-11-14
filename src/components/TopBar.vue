@@ -11,7 +11,7 @@
         <span class="text-sm text-base-content mx-2 capitalize">{{ connectionStatus ? 'Connected' : 'Disconnected' }}</span>
       </div>
 
-      <a class="opacity-70 hover:opacity-100 transition-opacity" href="https://discord.gg/kkFEKucs3q" target="_blank" rel="noopener noreferrer">
+      <a class="opacity-70 hover:opacity-100 transition-opacity" href="https://dml.gg/discord" target="_blank" rel="noopener noreferrer">
         <i class="fab fa-discord"></i>
       </a>
 
