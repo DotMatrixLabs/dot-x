@@ -1,4 +1,4 @@
-import { Store } from "tauri-plugin-store-api";
+import { Store } from "@tauri-apps/plugin-store";
 import * as _ from "lodash"; // Make sure to import lodash if you haven't already
 import { useDeckerStore } from "../store/deckerStore";
 
