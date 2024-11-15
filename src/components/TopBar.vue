@@ -32,7 +32,8 @@
 
 <script>
 
-import { appWindow } from '@tauri-apps/api/window'
+import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
+const appWindow = getCurrentWebviewWindow()
 
 export default {
   name: 'TopBar',

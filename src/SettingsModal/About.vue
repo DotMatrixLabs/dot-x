@@ -33,7 +33,7 @@
 <script>
 
 import tauriConf from "../../src-tauri/tauri.conf.json";
-import { checkUpdate } from '@tauri-apps/api/updater';
+import { checkUpdate } from '@tauri-apps/plugin-updater';
 
 export default {
     name: "About",

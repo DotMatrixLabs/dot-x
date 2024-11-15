@@ -1,6 +1,6 @@
-import { createDir, copyFile, BaseDirectory, readBinaryFile, removeFile, exists, readDir } from '@tauri-apps/api/fs';
+import { createDir, copyFile, BaseDirectory, readBinaryFile, removeFile, exists, readDir } from '@tauri-apps/plugin-fs';
 import {imageDimensionsFromData} from 'image-dimensions';
-import { relaunch } from '@tauri-apps/api/process';
+import { relaunch } from '@tauri-apps/plugin-process';
 
 export async function copyFileToAppdata(filePath: string, folderName: string, fileName?: string) {
     if(!fileName) fileName = filePath.split("/").pop();

@@ -17,7 +17,7 @@ import ConfigStore from "./ts/config.ts";
 import Decker from "./ts/decker.ts";
 import RGBController from "./ts/RGBController";
 import { useDeckerStore } from "./store/deckerStore.ts";
-import { version } from '@tauri-apps/api/os';
+import { version } from '@tauri-apps/plugin-os';
 
 import { mapState } from "pinia"; 
 
