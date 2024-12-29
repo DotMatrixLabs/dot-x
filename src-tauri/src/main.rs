@@ -25,8 +25,6 @@ use tauri_plugin_aptabase::EventTracker;
 use std::thread;
 use std::time::Duration;
 use sentry_tauri::sentry::{self, ClientInitGuard};
-use std::fs::{OpenOptions, File};
-use std::io::Write;
 use chrono::Local;
 
 static APP: OnceCell<tauri::AppHandle> = OnceCell::new();
