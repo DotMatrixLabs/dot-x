@@ -367,6 +367,10 @@ fn main() {
         } => {
             let window = app.get_window("main").unwrap();
             window.show().unwrap();
+            if window.is_minimized().unwrap() {
+              window.unminimize().unwrap();
+            }
+            window.set_focus().unwrap();
         }
           SystemTrayEvent::MenuItemClick { id, .. } => {
             match id.as_str() {
@@ -386,6 +390,10 @@ fn main() {
                 info!("Showing Dot X");
                 let window = app.get_window("main").unwrap();
                 window.show().unwrap();
+                if window.is_minimized().unwrap() {
+                  window.unminimize().unwrap();
+                }
+                window.set_focus().unwrap();
               }
               _ => {}
             }
