@@ -203,22 +203,22 @@ fn attach_midi_device(output_name: &str, output_port: u32, midi_sliders: Value, 
     let midi_configuration_vec = value_to_object_vec(&midi_configuration).unwrap_or_default();
     let midi_controller = midi::midi::new("Decker", output_port, midi_sliders_vec, midi_configuration_vec); 
     match midi_controller {
-      Ok(_midi_controller) => {
-        info!("Midi port {}: Port name: {}", output_port, output_name);
-        unsafe { midi::midi::ENABLED = true; }
-      }
-      Err(error) => {
-        error!("[attach_midi_device] Dot X Error: {:?}", error);
-        return Err(Error::Connection);
-      }
+        Ok(_midi_controller) => {
+            info!("Midi port {}: Port name: {}", output_port, output_name);
+            midi::midi::ENABLED.store(true, std::sync::atomic::Ordering::SeqCst);
+        }
+        Err(error) => {
+            error!("[attach_midi_device] Dot X Error: {:?}", error);
+            return Err(Error::Connection);
+        }
     }
-  Ok(())
+    Ok(())
 }
 
 #[tauri::command]
 fn detach_midi_device() -> Result<(), Error> {
-  unsafe { midi::midi::ENABLED = false; }
-  Ok(())
+    midi::midi::ENABLED.store(false, std::sync::atomic::Ordering::SeqCst);
+    Ok(())
 }
 
 #[tauri::command]

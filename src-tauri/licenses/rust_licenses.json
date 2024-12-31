@@ -1099,7 +1099,7 @@
   },
   {
     "name": "dot_x",
-    "version": "1.1.0",
+    "version": "1.1.1-1",
     "authors": "you",
     "repository": "",
     "license": "",
@@ -3574,7 +3574,7 @@
   },
   {
     "name": "sentry",
-    "version": "0.32.3",
+    "version": "0.34.0",
     "authors": "Sentry <hello@sentry.io>",
     "repository": "https://github.com/getsentry/sentry-rust",
     "license": "Apache-2.0",
@@ -3583,7 +3583,7 @@
   },
   {
     "name": "sentry-backtrace",
-    "version": "0.32.3",
+    "version": "0.34.0",
     "authors": "Sentry <hello@sentry.io>",
     "repository": "https://github.com/getsentry/sentry-rust",
     "license": "Apache-2.0",
@@ -3592,7 +3592,7 @@
   },
   {
     "name": "sentry-contexts",
-    "version": "0.32.3",
+    "version": "0.34.0",
     "authors": "Sentry <hello@sentry.io>",
     "repository": "https://github.com/getsentry/sentry-rust",
     "license": "Apache-2.0",
@@ -3601,7 +3601,7 @@
   },
   {
     "name": "sentry-core",
-    "version": "0.32.3",
+    "version": "0.34.0",
     "authors": "Sentry <hello@sentry.io>",
     "repository": "https://github.com/getsentry/sentry-rust",
     "license": "Apache-2.0",
@@ -3610,7 +3610,7 @@
   },
   {
     "name": "sentry-debug-images",
-    "version": "0.32.3",
+    "version": "0.34.0",
     "authors": "Sentry <hello@sentry.io>",
     "repository": "https://github.com/getsentry/sentry-rust",
     "license": "Apache-2.0",
@@ -3619,7 +3619,7 @@
   },
   {
     "name": "sentry-panic",
-    "version": "0.32.3",
+    "version": "0.34.0",
     "authors": "Sentry <hello@sentry.io>",
     "repository": "https://github.com/getsentry/sentry-rust",
     "license": "Apache-2.0",
@@ -3628,7 +3628,7 @@
   },
   {
     "name": "sentry-rust-minidump",
-    "version": "0.7.0",
+    "version": "0.8.0",
     "authors": null,
     "repository": "https://github.com/timfish/sentry-rust-minidump",
     "license": "Apache-2.0 OR MIT",
@@ -3637,16 +3637,16 @@
   },
   {
     "name": "sentry-tauri",
-    "version": "0.3.0",
+    "version": "0.3.1",
     "authors": null,
-    "repository": "https://github.com/timfish/sentry-tauri",
+    "repository": "https://github.com/timfish/sentry-tauri/tree/tauri-v1",
     "license": "Apache-2.0 OR MIT",
     "license_file": null,
     "description": "An experimental Tauri Plugin for Sentry"
   },
   {
     "name": "sentry-tracing",
-    "version": "0.32.3",
+    "version": "0.34.0",
     "authors": "Sentry <hello@sentry.io>",
     "repository": "https://github.com/getsentry/sentry-rust",
     "license": "Apache-2.0",
@@ -3655,7 +3655,7 @@
   },
   {
     "name": "sentry-types",
-    "version": "0.32.3",
+    "version": "0.34.0",
     "authors": "Sentry <hello@sentry.io>",
     "repository": "https://github.com/getsentry/sentry-rust",
     "license": "Apache-2.0",
