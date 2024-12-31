@@ -218,6 +218,25 @@ fn handle_disconnect(port: &mut Box<dyn serialport::SerialPort>, window: &Window
     Ok(())
 }
 
+// Add this helper function at the top level
+fn emit_window_event(window: &Window, event: &str, message: &str) -> Result<(), Box<dyn std::error::Error>> {
+    window.emit(event, Payload { message: message.to_string() })?;
+    Ok(())
+}
+
+fn handle_serial_error(error: std::io::Error, window: &Window) -> std::io::Error {
+    match error.kind() {
+        std::io::ErrorKind::TimedOut => error,
+        _ => {
+            error!("Serial port error: {}", error);
+            window.emit("connection-change", Payload { 
+                message: "error".to_string() 
+            }).unwrap_or_else(|e| error!("Failed to emit error: {}", e));
+            error
+        }
+    }
+}
+
 pub fn initialize_decker(window: Window, port_name: &str, inverted: bool) -> std::result::Result<(), std::io::Error> {
     let baud_rate: u32 = 115_200;
 
@@ -248,12 +267,16 @@ pub fn initialize_decker(window: Window, port_name: &str, inverted: bool) -> std
             let (tx, rx): (mpsc::Sender<String>, mpsc::Receiver<String>) = mpsc::channel();            // Spawn a thread to handle incoming data
             thread::spawn(move || {
                 let mut serial_buf: Vec<u8> = vec![0; 100];
-                window.emit("connection-change", Payload { message: "connected".to_string() }).unwrap();
+                
+                // Use the helper function for window events
+                if let Err(e) = emit_window_event(&window, "connection-change", "connected") {
+                    error!("Failed to emit connection event: {}", e);
+                }
                 
                 'thread_loop: loop {
                     if !SHOULD_RUN.load(Ordering::SeqCst) {
-                        if let Err(e) = handle_disconnect(&mut port, &window) {
-                            error!("Error during disconnect: {}", e);
+                        if let Err(e) = emit_window_event(&window, "connection-change", "disconnected") {
+                            error!("Failed to emit disconnect event: {}", e);
                         }
                         break 'thread_loop;
                     }
@@ -289,7 +312,8 @@ pub fn initialize_decker(window: Window, port_name: &str, inverted: bool) -> std
                         Err(_) => {}
                     }
                     
-                    match port.read(serial_buf.as_mut_slice()) {
+                    match port.read(serial_buf.as_mut_slice())
+                        .map_err(|e| handle_serial_error(e, &window)) {
                         Ok(t) => {
                             let received: Vec<u8> = serial_buf[..t].to_vec();
                             let messagepack_data = received;
@@ -305,8 +329,8 @@ pub fn initialize_decker(window: Window, port_name: &str, inverted: bool) -> std
                                                     return;
                                                 }
                                              };
-                                            unsafe { decker::slider_values = slider_data }
-                                            if let Err(e) = window.emit("slider-change", Payload { message: json_data }) {
+                                            unsafe { decker::slider_values = slider_data };
+                                            if let Err(e) = emit_window_event(&window, "slider-change", &json_data) {
                                                 error!("Failed to emit slider-change event: {}", e);
                                             }
                                         }
@@ -319,8 +343,8 @@ pub fn initialize_decker(window: Window, port_name: &str, inverted: bool) -> std
                                                 }
                                             };
                                             // Perform tasks specific to DeviceData
-                                            if let Err(e) = window.emit("device-info", Payload { message: json_data }) {
-                                                error!("Failed to emit device-info event: {}", e);
+                                            if let Err(e) = emit_window_event(&window, "device-info", &json_data) {
+                                                error!("Failed to emit device info: {}", e);
                                             }
                                         }
                                     }
