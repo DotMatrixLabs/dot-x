@@ -2,6 +2,7 @@ use std::{thread::{self}, time::Duration, sync::{mpsc, Mutex}};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::io::{self, Cursor, Read};
 use log::{error, warn, info};
+use sentry_tauri::sentry;
 use serde::{Serialize, Deserialize};
 use serde_json;
 use rmp_serde::{Deserializer, Serializer};
@@ -229,9 +230,13 @@ fn handle_serial_error(error: std::io::Error, window: &Window) -> std::io::Error
         std::io::ErrorKind::TimedOut => error,
         _ => {
             error!("Serial port error: {}", error);
+            sentry_tauri::sentry::capture_error(&error);
             window.emit("connection-change", Payload { 
                 message: "error".to_string() 
-            }).unwrap_or_else(|e| error!("Failed to emit error: {}", e));
+            }).unwrap_or_else(|e| {
+                error!("Failed to emit error: {}", e);
+                sentry_tauri::sentry::capture_error(&e);
+            });
             error
         }
     }
@@ -386,6 +391,7 @@ pub fn disconnect_decker() {
         Ok(s) => s,
         Err(e) => {
             error!("Failed to acquire SENDER lock: {}", e);
+            sentry::capture_error(&e);
             return;
         }
     };
@@ -417,6 +423,7 @@ pub fn send_decker_command(command: &str, options: Option<Options>) {
         Ok(s) => s,
         Err(e) => {
             error!("Failed to acquire SENDER lock: {}", e);
+            sentry::capture_error(&e);
             return;
         }
     };
@@ -426,6 +433,7 @@ pub fn send_decker_command(command: &str, options: Option<Options>) {
         Ok(s) => s,
         Err(e) => {
             error!("Failed to serialize options: {}", e);
+            sentry::capture_error(&e);
             return;
         }
     };
