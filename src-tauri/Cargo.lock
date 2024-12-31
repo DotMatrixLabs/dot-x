@@ -1377,6 +1377,7 @@ dependencies = [
  "log",
  "midir",
  "once_cell",
+ "parking_lot",
  "rmp-serde",
  "rustc_version",
  "sentry-tauri",

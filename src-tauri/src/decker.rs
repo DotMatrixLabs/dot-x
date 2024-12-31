@@ -199,13 +199,23 @@ static SENDER: Mutex<Option<mpsc::Sender<String>>> = Mutex::new(None);
 static SHOULD_RUN: AtomicBool = AtomicBool::new(true);
 
 pub fn kill_decker_thread() {
-    SHOULD_RUN.store(false, Ordering::Relaxed);
+    SHOULD_RUN.store(false, Ordering::SeqCst);
     thread::sleep(Duration::from_millis(250));
     start_background_thread();
 }
 
 pub fn start_background_thread() {
-    SHOULD_RUN.store(true, Ordering::Relaxed);
+    SHOULD_RUN.store(true, Ordering::SeqCst);
+}
+
+// Add a controlled exit for the thread
+fn handle_disconnect(port: &mut Box<dyn serialport::SerialPort>, window: &Window) -> io::Result<()> {
+    if let Err(e) = port.write_data_terminal_ready(false) {
+        error!("Failed to set DTR to false: {}", e);
+    }
+    window.emit("connection-change", Payload { message: "disconnected".to_string() }).unwrap();
+    info!("Disconnected");
+    Ok(())
 }
 
 pub fn initialize_decker(window: Window, port_name: &str, inverted: bool) -> std::result::Result<(), std::io::Error> {
@@ -239,21 +249,23 @@ pub fn initialize_decker(window: Window, port_name: &str, inverted: bool) -> std
             thread::spawn(move || {
                 let mut serial_buf: Vec<u8> = vec![0; 100];
                 window.emit("connection-change", Payload { message: "connected".to_string() }).unwrap();
-                loop {
-                    if !SHOULD_RUN.load(Ordering::Relaxed) {
-                        break;
+                
+                'thread_loop: loop {
+                    if !SHOULD_RUN.load(Ordering::SeqCst) {
+                        if let Err(e) = handle_disconnect(&mut port, &window) {
+                            error!("Error during disconnect: {}", e);
+                        }
+                        break 'thread_loop;
                     }
+
                     match rx.try_recv() {
                         Ok(command) => {
                             println!("Received: {:?}", command);
                             if command == "disconnect" {
-                                if let Err(e) = port.write_data_terminal_ready(false) {
-                                    error!("Failed to set DTR to false: {}", e);
+                                if let Err(e) = handle_disconnect(&mut port, &window) {
+                                    error!("Error during disconnect: {}", e);
                                 }
-                                window.emit("connection-change", Payload { message: "disconnected".to_string() }).unwrap();
-                                std::mem::drop(port); // Drop the port to close it
-                                info!("Disconnected");
-                                panic!("Disconnected");
+                                break 'thread_loop;
                             }
                             match serialize_decker_data(&command) {
                                 Ok(serialized_data) => {
@@ -321,13 +333,11 @@ pub fn initialize_decker(window: Window, port_name: &str, inverted: bool) -> std
                         }
                         Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
                         Err(e) => {
-                            if let Err(e) = port.write_data_terminal_ready(false) {
-                                error!("Failed to set DTR to false: {}", e);
+                            if let Err(e) = handle_disconnect(&mut port, &window) {
+                                error!("Error during disconnect: {}", e);
                             }
-                            window.emit("connection-change", Payload { message: "disconnected".to_string() }).unwrap();
-                            std::mem::drop(port); // Drop the port to close it
                             error!("An error occurred while reading serial data: {:?}", e);
-                            panic!("An error occurred while reading serial data: {:?}", e);
+                            break 'thread_loop;
                         }
                     }
                     thread::sleep(Duration::from_millis(5));
