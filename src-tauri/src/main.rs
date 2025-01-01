@@ -468,7 +468,7 @@ fn main() {
                 let window = app.get_window("main").unwrap();
                 window.hide().unwrap();
                 // This is a test to see if the crash handler works 
-                unsafe { raise_segfault() };
+                // unsafe { raise_segfault() };
 
               }
               "show" => {
