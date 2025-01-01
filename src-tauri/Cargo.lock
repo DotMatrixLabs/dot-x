@@ -1080,9 +1080,9 @@ dependencies = [
 
 [[package]]
 name = "crash-context"
-version = "0.6.1"
+version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b85cef661eeca0c6675116310936972c520ebb0a33ddef16fd7efc957f4c1288"
+checksum = "031ed29858d90cfdf27fe49fae28028a1f20466db97962fa2f4ea34809aeebf3"
 dependencies = [
  "cfg-if",
  "libc",
@@ -1372,6 +1372,7 @@ dependencies = [
  "cargo-license",
  "chrono",
  "clap 4.4.11",
+ "crash-context",
  "crash-handler",
  "env_logger",
  "firmata-rs",
