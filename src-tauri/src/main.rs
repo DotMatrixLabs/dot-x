@@ -26,6 +26,8 @@ use std::thread;
 use std::time::Duration;
 use sentry_tauri::sentry::{self, ClientInitGuard};
 use chrono::Local;
+use crash_handler::{CrashHandler, make_crash_event};
+use std::process::Command;
 
 static APP: OnceCell<tauri::AppHandle> = OnceCell::new();
 
@@ -339,14 +341,42 @@ fn setup_panic_handler(client: ClientInitGuard) {
     }));
 }
 
+fn setup_crash_handler() -> Result<(), Box<dyn std::error::Error>> {
+    let crash_handler = CrashHandler::attach(unsafe {
+        make_crash_event(|_crash_context| {
+            error!("Application crashed!");
+            sentry_tauri::sentry::capture_message(
+                "Application crashed!",
+                sentry_tauri::sentry::Level::Fatal,
+            );
+
+            // Attempt to restart the application
+            if let Ok(exe_path) = std::env::current_exe() {
+                let _ = std::process::Command::new(exe_path)
+                    .arg("--relaunch")
+                    .spawn()
+                    .map_err(|e| error!("Failed to restart application: {}", e));
+            }
+            
+            true.into()
+        })
+    })?;
+
+    Box::leak(Box::new(crash_handler));
+    Ok(())
+}
+
 fn main() {
     let tray_menu = build_menu();
 
     env::set_var("RUST_BACKTRACE", "1"); // Optional: Enable backtraces in release mode
     env_logger::init();
 
+    if let Err(e) = setup_crash_handler() {
+        error!("Failed to setup crash handler: {}", e);
+        sentry_tauri::sentry::capture_error(&e);
+    }
     
-
     let client = sentry_tauri::sentry::init((
         "https://473d7b762855b5baa461a7921a5f95cc@sentry-ingest.frogbyte.io/4",
         sentry_tauri::sentry::ClientOptions {
