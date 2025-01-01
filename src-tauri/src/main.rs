@@ -348,7 +348,6 @@ fn setup_crash_handler() -> Result<(), Box<dyn std::error::Error + Send + Sync>>
             error!("Application crashed - Process: {}, Thread: {}, Exception Code: {:#x}", 
                 crash_context.process_id, crash_context.thread_id, crash_context.exception_code);
             
-            // Extract detailed crash context information
             let crash_info = json!({
                 "process_id": crash_context.process_id,
                 "thread_id": crash_context.thread_id,
@@ -358,14 +357,19 @@ fn setup_crash_handler() -> Result<(), Box<dyn std::error::Error + Send + Sync>>
 
             // Send detailed crash info to Sentry
             sentry_tauri::sentry::capture_event(sentry_tauri::sentry::protocol::Event {
-                message: Some("Application crashed!".into()),
-                level: sentry_tauri::sentry::Level::Fatal,
-                extra: {
-                    let mut map = std::collections::BTreeMap::new();
-                    map.insert("crash_context".into(), crash_info);
-                    map
-                },
-                ..Default::default()
+              message: Some("Application crashed!".into()),
+              level: sentry_tauri::sentry::Level::Fatal,
+              extra: {
+                  let mut map = std::collections::BTreeMap::new();
+                  map.insert("crash_context".into(), crash_info);
+                  map
+              },
+              ..Default::default()
+          });
+
+            // Flush Sentry events before restarting
+            sentry::Hub::current().client().map(|client| {
+                client.flush(Some(std::time::Duration::from_secs(2)))
             });
 
             // Attempt to restart the application
@@ -401,7 +405,7 @@ fn main() {
 
     if let Err(e) = setup_crash_handler() {
         error!("Failed to setup crash handler: {}", e);
-        sentry_tauri::sentry::capture_message(
+        sentry::capture_message(
             "Failed to setup crash handler",
             sentry_tauri::sentry::Level::Fatal,
         );
@@ -412,7 +416,7 @@ fn main() {
         sentry_tauri::sentry::ClientOptions {
             release: sentry_tauri::sentry::release_name!(),
             attach_stacktrace: true,
-            
+            debug: false,
             ..Default::default()
         },
     ));
@@ -422,6 +426,7 @@ fn main() {
     
     // Then set up panic handler
     setup_panic_handler(client);
+
 
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![get_installed_apps, get_all_session_names, set_application_volume, connect_decker, decker::get_devices, decker::send_decker_command, get_available_midi_output_port_names, attach_midi_device, detach_midi_device, get_active_app_name, disconnect_decker ])
@@ -462,12 +467,9 @@ fn main() {
                 trace!("HIDING!");
                 let window = app.get_window("main").unwrap();
                 window.hide().unwrap();
-                
-                // Test crash handling
-                #[cfg(debug_assertions)]
-                unsafe {
-                    raise_segfault();
-                }
+                // This is a test to see if the crash handler works 
+                unsafe { raise_segfault() };
+
               }
               "show" => {
                 info!("Showing Dot X");
