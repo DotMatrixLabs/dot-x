@@ -343,16 +343,33 @@ fn setup_panic_handler(client: ClientInitGuard) {
 
 fn setup_crash_handler() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let crash_handler = CrashHandler::attach(unsafe {
-        make_crash_event(|_crash_context| {
-            error!("Application crashed!");
-            sentry_tauri::sentry::capture_message(
-                "Application crashed!",
-                sentry_tauri::sentry::Level::Fatal,
-            );
+        make_crash_event(|crash_context| {
+            error!("Application crashed - Process: {}, Thread: {}, Exception Code: {:#x}", 
+                crash_context.process_id, crash_context.thread_id, crash_context.exception_code);
+            
+            // Extract detailed crash context information
+            let crash_info = json!({
+                "process_id": crash_context.process_id,
+                "thread_id": crash_context.thread_id,
+                "exception_code": crash_context.exception_code,
+                "exception_pointers": format!("{:?}", crash_context.exception_pointers)
+            });
+
+            // Send detailed crash info to Sentry
+            sentry_tauri::sentry::capture_event(sentry_tauri::sentry::protocol::Event {
+                message: Some("Application crashed!".into()),
+                level: sentry_tauri::sentry::Level::Fatal,
+                extra: {
+                    let mut map = std::collections::BTreeMap::new();
+                    map.insert("crash_context".into(), crash_info);
+                    map
+                },
+                ..Default::default()
+            });
 
             // Attempt to restart the application
             if let Ok(exe_path) = std::env::current_exe() {
-                let _ = std::process::Command::new(exe_path)
+                let _ = Command::new(exe_path)
                     .arg("--relaunch")
                     .spawn()
                     .map_err(|e| error!("Failed to restart application: {}", e));
@@ -385,6 +402,7 @@ fn main() {
         sentry_tauri::sentry::ClientOptions {
             release: sentry_tauri::sentry::release_name!(),
             attach_stacktrace: true,
+            
             ..Default::default()
         },
     ));
