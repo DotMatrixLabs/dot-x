@@ -341,7 +341,7 @@ fn setup_panic_handler(client: ClientInitGuard) {
     }));
 }
 
-fn setup_crash_handler() -> Result<(), Box<dyn std::error::Error>> {
+fn setup_crash_handler() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let crash_handler = CrashHandler::attach(unsafe {
         make_crash_event(|_crash_context| {
             error!("Application crashed!");
@@ -374,7 +374,10 @@ fn main() {
 
     if let Err(e) = setup_crash_handler() {
         error!("Failed to setup crash handler: {}", e);
-        sentry_tauri::sentry::capture_error(&e);
+        sentry_tauri::sentry::capture_message(
+            "Failed to setup crash handler",
+            sentry_tauri::sentry::Level::Fatal,
+        );
     }
     
     let client = sentry_tauri::sentry::init((
