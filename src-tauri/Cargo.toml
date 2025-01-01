@@ -44,6 +44,7 @@ cargo-license = "0.6.1"
 lazy_static = "1.4.0"
 chrono = "0.4"
 parking_lot = "0.12"
+env_logger = "0.11.6"
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem

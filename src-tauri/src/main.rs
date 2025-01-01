@@ -11,7 +11,7 @@ use windows_volume_control::CoinitMode;
 use tauri_plugin_autostart::MacosLauncher;
 use midir::{MidiOutput};
 use std::collections::HashMap;
-use std::fmt;
+use std::{env, fmt};
 mod decker;
 mod midi;
 use tauri::{CustomMenuItem, SystemTrayMenu, SystemTrayMenuItem, SystemTray, SystemTrayEvent};
@@ -341,6 +341,11 @@ fn setup_panic_handler(client: ClientInitGuard) {
 
 fn main() {
     let tray_menu = build_menu();
+
+    env::set_var("RUST_BACKTRACE", "1"); // Optional: Enable backtraces in release mode
+    env_logger::init();
+
+    
 
     let client = sentry_tauri::sentry::init((
         "https://473d7b762855b5baa461a7921a5f95cc@sentry-ingest.frogbyte.io/4",
