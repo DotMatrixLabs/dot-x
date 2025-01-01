@@ -28,6 +28,7 @@ use sentry_tauri::sentry::{self, ClientInitGuard};
 use chrono::Local;
 use crash_handler::{CrashHandler, make_crash_event};
 use std::process::Command;
+use sadness_generator::raise_segfault;
 
 static APP: OnceCell<tauri::AppHandle> = OnceCell::new();
 
@@ -386,8 +387,17 @@ fn setup_crash_handler() -> Result<(), Box<dyn std::error::Error + Send + Sync>>
 fn main() {
     let tray_menu = build_menu();
 
-    env::set_var("RUST_BACKTRACE", "1"); // Optional: Enable backtraces in release mode
-    env_logger::init();
+    env::set_var("RUST_BACKTRACE", "1");
+    
+    // Configure Tauri logger to include terminal output
+    let logger = tauri_plugin_log::Builder::default()
+        .targets([
+            tauri_plugin_log::LogTarget::Stdout, // Add stdout target
+            tauri_plugin_log::LogTarget::LogDir,
+            tauri_plugin_log::LogTarget::Webview
+        ])
+        .level(log::LevelFilter::Info)
+        .build();
 
     if let Err(e) = setup_crash_handler() {
         error!("Failed to setup crash handler: {}", e);
@@ -415,6 +425,7 @@ fn main() {
 
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![get_installed_apps, get_all_session_names, set_application_volume, connect_decker, decker::get_devices, decker::send_decker_command, get_available_midi_output_port_names, attach_midi_device, detach_midi_device, get_active_app_name, disconnect_decker ])
+        .plugin(logger) // Use the configured logger
         .plugin(tauri_plugin_aptabase::Builder::new("A-EU-7429874879").build()) // 👈 this is where you enter your App Key
         .plugin(tauri_plugin_log::Builder::default().build())
         .plugin(sentry_tauri::plugin())
@@ -451,6 +462,12 @@ fn main() {
                 trace!("HIDING!");
                 let window = app.get_window("main").unwrap();
                 window.hide().unwrap();
+                
+                // Test crash handling
+                #[cfg(debug_assertions)]
+                unsafe {
+                    raise_segfault();
+                }
               }
               "show" => {
                 info!("Showing Dot X");
