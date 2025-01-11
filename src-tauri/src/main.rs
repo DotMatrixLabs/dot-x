@@ -349,8 +349,14 @@ fn main() {
         ))
         .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
           let window = app.get_window("main").unwrap();
-          window.show().unwrap();
-          show_notification("Dot X", "Dot X is already running");
+          if window.is_visible().unwrap() == false {
+            window.show().unwrap();
+            show_notification("Dot X", "Dot X is already running");
+          }
+          if window.is_minimized().unwrap() {
+            window.unminimize().unwrap();
+          }
+          window.set_focus().unwrap();
         }))
         .system_tray(SystemTray::new().with_menu(tray_menu))
         .on_system_tray_event(|app, event| match event {
@@ -361,6 +367,10 @@ fn main() {
         } => {
             let window = app.get_window("main").unwrap();
             window.show().unwrap();
+            if window.is_minimized().unwrap() {
+              window.unminimize().unwrap();
+            }
+            window.set_focus().unwrap();
         }
           SystemTrayEvent::MenuItemClick { id, .. } => {
             match id.as_str() {
@@ -380,6 +390,10 @@ fn main() {
                 info!("Showing Dot X");
                 let window = app.get_window("main").unwrap();
                 window.show().unwrap();
+                if window.is_minimized().unwrap() {
+                  window.unminimize().unwrap();
+                }
+                window.set_focus().unwrap();
               }
               _ => {}
             }
