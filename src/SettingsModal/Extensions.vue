@@ -135,7 +135,7 @@ export default {
         },
         async toggleExtension() {
             if (this.selectedExtension) {
-                this.isEnabled = await extensionStore.toggleExtension(this.selectedExtension.name)
+                this.isEnabled = await extensionStore.toggleExtension(this.selectedExtension.id)
             }
         }
     }
