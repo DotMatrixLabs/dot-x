@@ -28,9 +28,9 @@
             </div>
 
             <!-- Content -->
-            <div class="space-y-6">
+            <div class="space-y-6 overflow-y-scroll px-2">
                 <!-- Extension Details -->
-                <div class="space-y-2">
+                <div class="space-y-2 text-left">
                     <p class="label-text">{{ selectedExtension.description }}</p>
                 </div>
 
@@ -44,16 +44,12 @@
                         </label>
                     </div>
                     <div v-for="setting in extensionSettings" :key="setting.id" class="space-y-2">
-                        <label class="label">{{ setting.label }}</label>
                         <component
-                            :is="() => import(`../inputTypes/${setting.type}.vue`)"
+                            :is="getInputComponent(setting.type)"
                             v-bind="setting.props"
                             :value="setting.defaultValue"
                             @input="updateSetting(setting.id, $event)"
                         />
-                        <p v-if="setting.description" class="text-sm text-base-content/60">
-                            {{ setting.description }}
-                        </p>
                     </div>
                 </div>
             </div>
@@ -63,6 +59,7 @@
 
 <script>
 import extensionsList from '../extensions/extensions.json'
+import { defineAsyncComponent } from 'vue'
 
 export default {
     name: "Extensions",
@@ -74,6 +71,9 @@ export default {
         }
     },
     methods: {
+        getInputComponent(type) {
+            return defineAsyncComponent(() => import(`../inputTypes/${type}.vue`))
+        },
         navigateToExtension(extension) {
             this.selectedExtension = extension
             this.loadExtensionSettings(extension.location)
