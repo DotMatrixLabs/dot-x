@@ -1,0 +1,25 @@
+{
+  "settings": [
+    {
+      "id": "apiKey",
+      "type": "input-text",
+      "label": "API Key",
+      "description": "Enter your API key for this extension",
+      "props": {
+        "placeholder": "Enter API key...",
+        "type": "password"
+      },
+      "defaultValue": ""
+    },
+    {
+      "id": "enableFeature",
+      "type": "toggle",
+      "label": "Enable Feature",
+      "description": "Toggle this feature on/off",
+      "props": {
+        "color": "primary"
+      },
+      "defaultValue": false
+    }
+  ]
+}
