@@ -1,8 +1,8 @@
 <template>
   <div class="w-full flex flex-col md:flex-row max-w-sm md:max-w-lg m-auto">
-    <label class="cursor-pointer label w-full mx-2">
+    <label class="cursor-pointer label w-full">
       <span class="label-text">{{ label }}</span>
-      <input @change="emitValue" v-model="inputValue" type="checkbox" class="toggle toggle-accent toggle-lg" />
+      <input @change="emitValue" v-model="inputValue" type="checkbox" class="toggle toggle-accent toggle-sm" />
     </label>
   </div>
 </template>
@@ -37,7 +37,7 @@ export default {
 
   methods: {
     emitValue() {
-      this.$emit('apply', this.inputValue)
+      this.$emit('valueChange', this.inputValue)
     }
   },
 

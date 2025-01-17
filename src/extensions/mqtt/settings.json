@@ -1,24 +1,116 @@
 [
     {
-        "id": "apiKey",
+        "id": "brokerIp",
         "type": "input-text",
-        "description": "Enter your API key for this extension",
         "props": {
-            "placeholder": "Enter API key...",
-            "type": "password",
-            "label": "API Key",
-            "helperText": "Enter your API key for this extension"
+            "label": "Broker IP/Hostname",
+            "helperText": "The IP address or hostname of your MQTT broker",
+            "placeholder": "e.g., 192.168.1.100 or broker.local",
+            "type": "text"
+        },
+        "defaultValue": "localhost"
+    },
+    {
+        "id": "brokerPort",
+        "type": "input-number",
+        "props": {
+            "label": "Broker Port",
+            "helperText": "The port number of your MQTT broker",
+            "placeholder": "1883",
+            "min": 1,
+            "max": 65535
+        },
+        "defaultValue": 1883
+    },
+    {
+        "id": "username",
+        "type": "input-text",
+        "props": {
+            "label": "Username",
+            "helperText": "MQTT broker username (if required)",
+            "placeholder": "Enter username...",
+            "type": "text"
         },
         "defaultValue": ""
     },
     {
-        "id": "enableFeature",
-        "type": "toggle",
-        "label": "Enable Feature",
-        "description": "Toggle this feature on/off",
+        "id": "password",
+        "type": "input-text",
         "props": {
+            "label": "Password",
+            "helperText": "MQTT broker password (if required)",
+            "placeholder": "Enter password...",
+            "type": "password"
+        },
+        "defaultValue": ""
+    },
+    {
+        "id": "topic",
+        "type": "input-text",
+        "props": {
+            "label": "Base Topic",
+            "helperText": "The base MQTT topic for all messages",
+            "placeholder": "e.g., home/assistant",
+            "type": "text"
+        },
+        "defaultValue": "home/assistant"
+    },
+    {
+        "id": "enableHaDiscovery",
+        "type": "input-toggle",
+        "props": {
+            "label": "Enable Home Assistant Discovery",
+            "helperText": "Automatically discover and configure devices in Home Assistant",
             "color": "primary"
         },
         "defaultValue": false
+    },
+    {
+        "id": "haDiscoveryPrefix",
+        "type": "input-text",
+        "props": {
+            "label": "Home Assistant Discovery Prefix",
+            "helperText": "The prefix used for Home Assistant discovery (only if discovery is enabled)",
+            "placeholder": "homeassistant",
+            "type": "text"
+        },
+        "defaultValue": "homeassistant",
+        "dependsOn": {
+            "setting": "enableHaDiscovery",
+            "value": true
+        }
+    },
+    {
+        "id": "clientId",
+        "type": "input-text",
+        "props": {
+            "label": "Client ID",
+            "helperText": "Unique identifier for this MQTT client (leave empty for auto-generated)",
+            "placeholder": "Enter client ID...",
+            "type": "text"
+        },
+        "defaultValue": ""
+    },
+    {
+        "id": "useSSL",
+        "type": "input-toggle",
+        "props": {
+            "label": "Use SSL/TLS",
+            "helperText": "Enable secure connection to the MQTT broker",
+            "color": "primary"
+        },
+        "defaultValue": false
+    },
+    {
+        "id": "keepalive",
+        "type": "input-number",
+        "props": {
+            "label": "Keepalive Interval",
+            "helperText": "How often to send keepalive packets (in seconds)",
+            "placeholder": "60",
+            "min": 1,
+            "max": 3600
+        },
+        "defaultValue": 60
     }
 ]

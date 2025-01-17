@@ -28,28 +28,31 @@
             </div>
 
             <!-- Content -->
-            <div class="space-y-6 overflow-y-scroll px-2">
+            <div class="space-y-6 pb-12 overflow-y-scroll h-full px-2">
                 <!-- Extension Details -->
                 <div class="space-y-2 text-left">
                     <p class="label-text">{{ selectedExtension.description }}</p>
                 </div>
 
                 <!-- Extension Settings -->
-                <div v-if="extensionSettings" class="space-y-4">
+                <div class="space-y-4">
                     <h2 class="text-lg font-semibold">Settings</h2>
-                    <div class="form-control">
-                        <label class="label cursor-pointer">
-                            <span class="label-text">Enable Extension</span>
-                            <input type="checkbox" class="toggle" />
-                        </label>
-                    </div>
-                    <div v-for="setting in extensionSettings" :key="setting.id" class="space-y-2">
+                    <div 
+                        v-for="setting in extensionSettings" 
+                        :key="setting.id" 
+                        class="space-y-2"
+                        v-memo="[getSettingValue(setting), isSettingDisabled(setting)]"
+                    >
                         <component
                             :is="getInputComponent(setting.type)"
                             v-bind="setting.props"
-                            :value="setting.defaultValue"
-                            @input="updateSetting(setting.id, $event)"
+                            :value="getSettingValue(setting)"
+                            :disabled="isSettingDisabled(setting)"
+                            @valueChange="updateSetting(setting.id, $event)"
                         />
+                        <p v-if="setting.props.helperText" class="text-sm text-base-content/60">
+                            {{ setting.props.helperText }}
+                        </p>
                     </div>
                 </div>
             </div>
@@ -67,7 +70,8 @@ export default {
         return {
             extensions: extensionsList,
             selectedExtension: null,
-            extensionSettings: null
+            extensionSettings: null,
+            settingValues: {}
         }
     },
     methods: {
@@ -82,15 +86,28 @@ export default {
             try {
                 // Load settings from a JSON file named after the extension
                 const settings = await import(`../extensions/${extensionName}/settings.json`)
+                console.log(settings)
                 this.extensionSettings = settings.default
             } catch (error) {
                 console.error('Failed to load extension settings:', error)
                 this.extensionSettings = null
             }
         },
+        getSettingValue(setting) {
+            return this.settingValues[setting.id] !== undefined 
+                ? this.settingValues[setting.id] 
+                : setting.defaultValue
+        },
         updateSetting(settingId, value) {
-            // Handle setting updates here
+            this.settingValues[settingId] = value
             console.log('Setting updated:', settingId, value)
+        },
+        isSettingDisabled(setting) {
+            if (!setting.dependsOn) return false
+            
+            const dependentSetting = setting.dependsOn.setting
+            const requiredValue = setting.dependsOn.value
+            return this.getSettingValue({ id: dependentSetting }) !== requiredValue
         }
     }
 }
