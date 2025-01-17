@@ -5,6 +5,7 @@
         "version": "1.0.0",
         "author": "DotMatrixLabs",
         "location": "mqtt",
-        "url": ""
+        "url": "",
+        "configFile": "mqtt-config.json"
     }
 ]

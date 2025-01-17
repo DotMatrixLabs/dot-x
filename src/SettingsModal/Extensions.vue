@@ -24,7 +24,7 @@
                     </svg>
                 </button>
                 <h1 class="flex-1 text-center">{{ selectedExtension.name }}</h1>
-                <div class="w-10"></div> <!-- Spacer to center the title -->
+                <div class="w-10"></div>
             </div>
 
             <!-- Content -->
@@ -37,6 +37,21 @@
                 <!-- Extension Settings -->
                 <div class="space-y-4">
                     <h2 class="text-lg font-semibold">Settings</h2>
+                    
+                    <!-- Enable/Disable Toggle -->
+                    <div class="space-y-2">
+                        <component
+                            :is="getInputComponent('input-toggle')"
+                            :value="isEnabled"
+                            v-bind="{
+                                label: 'Enable Extension',
+                                helperText: 'Enable or disable this extension'
+                            }"
+                            @valueChange="toggleExtension"
+                        />
+                    </div>
+
+                    <!-- Other Settings -->
                     <div 
                         v-for="setting in extensionSettings" 
                         :key="setting.id" 
@@ -63,6 +78,7 @@
 <script>
 import extensionsList from '../extensions/extensions.json'
 import { defineAsyncComponent } from 'vue'
+import extensionStore from '../ts/extensions'
 
 export default {
     name: "Extensions",
@@ -71,26 +87,32 @@ export default {
             extensions: extensionsList,
             selectedExtension: null,
             extensionSettings: null,
-            settingValues: {}
+            settingValues: {},
+            isEnabled: false
         }
     },
     methods: {
         getInputComponent(type) {
             return defineAsyncComponent(() => import(`../inputTypes/${type}.vue`))
         },
-        navigateToExtension(extension) {
+        async navigateToExtension(extension) {
             this.selectedExtension = extension
-            this.loadExtensionSettings(extension.location)
+            await this.loadExtensionSettings(extension)
+            this.isEnabled = await extensionStore.isEnabled(extension.name)
         },
-        async loadExtensionSettings(extensionName) {
+        async loadExtensionSettings(extension) {
             try {
                 // Load settings from a JSON file named after the extension
-                const settings = await import(`../extensions/${extensionName}/settings.json`)
+                const settings = await import(`../extensions/${extension.location}/settings.json`)
                 console.log(settings)
                 this.extensionSettings = settings.default
+
+                const savedValues = await extensionStore.getAllValues(extension.configFile)
+                this.settingValues = savedValues || {}
             } catch (error) {
                 console.error('Failed to load extension settings:', error)
                 this.extensionSettings = null
+                this.settingValues = {}
             }
         },
         getSettingValue(setting) {
@@ -98,9 +120,11 @@ export default {
                 ? this.settingValues[setting.id] 
                 : setting.defaultValue
         },
-        updateSetting(settingId, value) {
+        async updateSetting(settingId, value) {
             this.settingValues[settingId] = value
-            console.log('Setting updated:', settingId, value)
+            if (this.selectedExtension?.configFile) {
+                await extensionStore.set(this.selectedExtension.configFile, settingId, value)
+            }
         },
         isSettingDisabled(setting) {
             if (!setting.dependsOn) return false
@@ -108,6 +132,11 @@ export default {
             const dependentSetting = setting.dependsOn.setting
             const requiredValue = setting.dependsOn.value
             return this.getSettingValue({ id: dependentSetting }) !== requiredValue
+        },
+        async toggleExtension() {
+            if (this.selectedExtension) {
+                this.isEnabled = await extensionStore.toggleExtension(this.selectedExtension.name)
+            }
         }
     }
 }
