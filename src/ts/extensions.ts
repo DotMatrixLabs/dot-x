@@ -3,10 +3,12 @@ import { Store } from "tauri-plugin-store-api";
 class ExtensionStoreManager {
     private stores: Map<string, Store>;
     private stateStore: Store;
+    private activeExtensions: Map<string, any>;
 
     constructor() {
         this.stores = new Map();
-        this.stateStore = new Store("extensions.json");
+        this.stateStore = new Store("extension-states.json");
+        this.activeExtensions = new Map();
     }
 
     private getStore(filename: string): Store {
@@ -79,8 +81,74 @@ class ExtensionStoreManager {
         const newState = !currentState;
         await this.stateStore.set(extensionId, newState);
         await this.stateStore.save();
+        await this.reloadExtension(extensionId);
         return newState;
+    }
+
+    async loadActiveExtensions() {
+        const states = await this.getAllStates();
+        
+        // Clear existing active extensions
+        this.activeExtensions.clear();
+
+        // Load each enabled extension
+        for (const [extensionId, isEnabled] of Object.entries(states)) {
+            if (isEnabled) {
+                try {
+                    const extension = await import(`../extensions/${extensionId}/main.js`);
+                    await extension.init();
+                    this.activeExtensions.set(extensionId, extension);
+                    console.log(`Loaded extension: ${extensionId}`);
+                } catch (error) {
+                    console.error(`Failed to load extension ${extensionId}:`, error);
+                }
+            }
+        }
+    }
+
+    async reloadExtension(extensionId: string) {
+        // Remove existing instance if it exists
+        if (this.activeExtensions.has(extensionId)) {
+            const extension = this.activeExtensions.get(extensionId);
+            if (extension && extension.disconnect) {
+                await extension.disconnect();
+            }
+            this.activeExtensions.delete(extensionId);
+        }
+
+        // If the extension should be enabled, load it
+        const isEnabled = await this.isEnabled(extensionId);
+        if (isEnabled) {
+            try {
+                const extension = await import(`../extensions/${extensionId}/main.js`);
+                await extension.init();
+                this.activeExtensions.set(extensionId, extension);
+                console.log(`Reloaded extension: ${extensionId}`);
+            } catch (error) {
+                console.error(`Failed to reload extension ${extensionId}:`, error);
+            }
+        }
+    }
+
+    // Method to broadcast updates to all active extensions
+    async broadcastToExtensions(method: string, ...args: any[]) {
+        for (const [extensionId, extension] of this.activeExtensions.entries()) {
+            if (extension && typeof extension[method] === 'function') {
+                try {
+                    await extension[method](...args);
+                } catch (error) {
+                    console.error(`Failed to call ${method} on extension ${extensionId}:`, error);
+                }
+            }
+        }
     }
 }
 
-export default new ExtensionStoreManager(); 
+const extensionManager = new ExtensionStoreManager();
+
+// Load active extensions on startup
+extensionManager.loadActiveExtensions().catch(error => {
+    console.error('Failed to load active extensions:', error);
+});
+
+export default extensionManager; 

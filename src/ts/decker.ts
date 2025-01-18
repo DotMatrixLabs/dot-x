@@ -6,10 +6,13 @@ import ConfigStore from './config.ts';
 import appsToControl from './appsToControl.ts';
 import { trackEvent } from "@aptabase/tauri";
 import EventBus from '../js/eventBus.js';
+import extensionManager from './extensions';
+
 class Decker {
     private comPort: string = "";
     private initiated: boolean;
-    // private debug: boolean;
+    private lastUpdate: number;
+    private lastSliders: Array<number>;
     public sliders: Array<number> = [];
     sliderListenerDetatcher: any;
     MIDIListenerDetatcher: any;
@@ -17,6 +20,8 @@ class Decker {
     constructor() {
         this.comPort = "";
         this.initiated = false;
+        this.lastUpdate = 0;
+        this.lastSliders = [];
         this.sliderListenerDetatcher = null;
         this.MIDIListenerDetatcher = null;
     }
@@ -119,7 +124,7 @@ class Decker {
 
 
         
-        this.sliderListenerDetatcher = await listen('slider-change', (event: any) => {
+        this.sliderListenerDetatcher = await listen('slider-change', async (event: any) => {
             deckerStore.setConnected(true);
             // Split event.payload.message on comma and add it to sliders array
             const jsonString = event.payload.message;
@@ -128,6 +133,30 @@ class Decker {
             this.sliders = sliderArray;
             deckerStore.setSliders(this.sliders);
             // console.log(this.sliders);
+
+            // Broadcast to active extensions
+            console.log("Broadcasting to extensions", this.sliders);
+            //map the sliders from 0-1023 to 0-100
+            this.sliders = this.sliders.map((slider) => {
+                return Math.round((slider / 1023) * 100);
+            });
+            // Debounce slider updates
+            const now = Date.now();
+            const valuesChanged = JSON.stringify(this.sliders) !== JSON.stringify(this.lastSliders || []);
+            const timeSinceLastUpdate = now - (this.lastUpdate || 0);
+            
+            if (valuesChanged && timeSinceLastUpdate >= 50) {
+                // Values changed - update after 50ms debounce
+                this.lastUpdate = now;
+                this.lastSliders = [...this.sliders];
+                await invoke('mqtt_publish_values', { values: this.sliders });
+            } else if (!valuesChanged && timeSinceLastUpdate >= 500) {
+                // Values same - update after 500ms debounce
+                this.lastUpdate = now;
+                this.lastSliders = [...this.sliders];
+                await invoke('mqtt_publish_values', { values: this.sliders });
+            }
+            await extensionManager.broadcastToExtensions('updateSliderValues', this.sliders);
         });
 
         this.MIDIListenerDetatcher = await listen('midi_detached', async () => {
@@ -138,6 +167,8 @@ class Decker {
             if(!midiOutputPortNumber) return;
             this.attachMidiDevice(midiOutputPortNumber);
         });
+
+        
 
 
         // setTimeout(() => {

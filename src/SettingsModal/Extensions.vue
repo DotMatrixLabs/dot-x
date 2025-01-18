@@ -69,6 +69,9 @@
                             {{ setting.props.helperText }}
                         </p>
                     </div>
+                    <div class="space-y-2">
+                        <button class="btn btn-success w-full m-auto btn-outline" @click="saveSettings">Save</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -136,6 +139,12 @@ export default {
         async toggleExtension() {
             if (this.selectedExtension) {
                 this.isEnabled = await extensionStore.toggleExtension(this.selectedExtension.id)
+            }
+        },
+
+        async saveSettings() {
+            if (this.selectedExtension) {
+                await extensionStore.reloadExtension(this.selectedExtension.id)
             }
         }
     }
