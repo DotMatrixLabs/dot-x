@@ -336,21 +336,42 @@ extern "system" fn vectored_exception_handler(exception_info: *mut EXCEPTION_POI
         match exception_code {
             EXCEPTION_ACCESS_VIOLATION_CODE => {
                 error!("Access violation detected! Attempting to restart...");
+                sentry_tauri::sentry::capture_message(
+                    "Access violation detected! Attempting to restart...",
+                    sentry_tauri::sentry::Level::Error
+                );
             }
             EXCEPTION_ILLEGAL_INSTRUCTION_CODE => {
                 error!("Illegal instruction detected! Attempting to restart...");
+                sentry_tauri::sentry::capture_message(
+                    "Illegal instruction detected! Attempting to restart...",
+                    sentry_tauri::sentry::Level::Error
+                );
             }
             EXCEPTION_STACK_OVERFLOW_CODE => {
                 error!("Stack overflow detected! Attempting to restart...");
+                sentry_tauri::sentry::capture_message(
+                    "Stack overflow detected! Attempting to restart...",
+                    sentry_tauri::sentry::Level::Error
+                );
             }
             _ => {
                 return 0; // Let other handlers process this
             }
         }
 
-        // Restart the application directly
-        if let Ok(exe_path) = std::env::current_exe() {
-            let _ = Command::new(exe_path)
+        //check if the application is running in the background or foreground and restart accordingly
+        let app_handle = get_app_handle();
+        // print std::env::current_exe()
+        error!("{:?}", std::env::current_exe());
+        let window = app_handle.get_window("main").unwrap();
+        if window.is_minimized().unwrap(){
+            //use the --hidden flag to restart the application in the background
+            let _ = Command::new(std::env::current_exe().unwrap())
+                .spawn();
+        } else {
+            //restart the application in the foreground
+            let _ = Command::new(std::env::current_exe().unwrap())
                 .arg("--hidden")
                 .spawn();
         }
