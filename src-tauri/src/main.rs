@@ -360,21 +360,10 @@ extern "system" fn vectored_exception_handler(exception_info: *mut EXCEPTION_POI
             }
         }
 
-        //check if the application is running in the background or foreground and restart accordingly
-        let app_handle = get_app_handle();
-        // print std::env::current_exe()
-        error!("{:?}", std::env::current_exe());
-        let window = app_handle.get_window("main").unwrap();
-        if window.is_minimized().unwrap(){
-            //use the --hidden flag to restart the application in the background
-            let _ = Command::new(std::env::current_exe().unwrap())
-                .spawn();
-        } else {
-            //restart the application in the foreground
-            let _ = Command::new(std::env::current_exe().unwrap())
-                .arg("--hidden")
-                .spawn();
-        }
+        //restart the application in the foreground
+        let _ = Command::new(std::env::current_exe().unwrap())
+            .arg("--hidden")
+            .spawn();
 
         // Terminate the current instance
         std::process::exit(0);
