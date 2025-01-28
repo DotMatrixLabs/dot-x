@@ -442,11 +442,11 @@ fn main() {
                 trace!("HIDING!");
                 let window = app.get_window("main").unwrap();
                 window.hide().unwrap();
-                unsafe {
-                    // Use volatile read to prevent optimization
-                    let null_ptr: *const i32 = std::ptr::null();
-                    let _value = std::ptr::read_volatile(null_ptr); // This will crash in both dev and prod
-                }
+                // unsafe {
+                //     // Use volatile read to prevent optimization
+                //     let null_ptr: *const i32 = std::ptr::null();
+                //     let _value = std::ptr::read_volatile(null_ptr); // This will crash in both dev and prod
+                // }
                 // unsafe {sadness_generator::raise_stack_overflow();}// This will crash with EXCEPTION_STACK_OVERFLOW
               }
               "show" => {
