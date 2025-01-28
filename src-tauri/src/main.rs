@@ -359,6 +359,8 @@ extern "system" fn vectored_exception_handler(exception_info: *mut EXCEPTION_POI
                 return 0; // Let other handlers process this
             }
         }
+        //give sentry a chance to send the error before we restart
+        std::thread::sleep(std::time::Duration::from_secs(1));
 
         //restart the application in the foreground
         let _ = Command::new(std::env::current_exe().unwrap())
