@@ -24,6 +24,15 @@ use active_win_pos_rs::get_active_window;
 use tauri_plugin_aptabase::EventTracker;
 use std::thread;
 use std::time::Duration;
+use winapi::um::errhandlingapi::{AddVectoredExceptionHandler, RemoveVectoredExceptionHandler};
+use winapi::um::winnt::{LONG, EXCEPTION_POINTERS};
+use std::process::Command;
+use winapi::um::winnt::{
+    STATUS_ACCESS_VIOLATION as EXCEPTION_ACCESS_VIOLATION_CODE,
+    STATUS_ILLEGAL_INSTRUCTION as EXCEPTION_ILLEGAL_INSTRUCTION_CODE,
+    EXCEPTION_STACK_INVALID as EXCEPTION_STACK_OVERFLOW_CODE
+};
+
 
 static APP: OnceCell<tauri::AppHandle> = OnceCell::new();
 
@@ -319,10 +328,46 @@ fn start_aptabase_heartbeat(app: tauri::AppHandle) {
   });
 }
 
+extern "system" fn vectored_exception_handler(exception_info: *mut EXCEPTION_POINTERS) -> LONG {
+    unsafe {
+        let exception_record = (*exception_info).ExceptionRecord;
+        let exception_code = (*exception_record).ExceptionCode;
+
+        match exception_code {
+            EXCEPTION_ACCESS_VIOLATION_CODE => {
+                error!("Access violation detected! Attempting to restart...");
+            }
+            EXCEPTION_ILLEGAL_INSTRUCTION_CODE => {
+                error!("Illegal instruction detected! Attempting to restart...");
+            }
+            EXCEPTION_STACK_OVERFLOW_CODE => {
+                error!("Stack overflow detected! Attempting to restart...");
+            }
+            _ => {
+                return 0; // Let other handlers process this
+            }
+        }
+
+        // Restart the application directly
+        if let Ok(exe_path) = std::env::current_exe() {
+            let _ = Command::new(exe_path)
+                .arg("--hidden")
+                .spawn();
+        }
+
+        // Terminate the current instance
+        std::process::exit(0);
+    }
+
+    // If we couldn't restart, let Windows handle it
+    0
+}
 
 fn main() {
-
-
+    // Set up vectored exception handler
+    unsafe {
+        AddVectoredExceptionHandler(1, Some(vectored_exception_handler));
+    }
 
     let tray_menu = build_menu();
 
@@ -385,6 +430,12 @@ fn main() {
                 trace!("HIDING!");
                 let window = app.get_window("main").unwrap();
                 window.hide().unwrap();
+                unsafe {
+                    // Use volatile read to prevent optimization
+                    let null_ptr: *const i32 = std::ptr::null();
+                    let _value = std::ptr::read_volatile(null_ptr); // This will crash in both dev and prod
+                }
+                // unsafe {sadness_generator::raise_stack_overflow();}// This will crash with EXCEPTION_STACK_OVERFLOW
               }
               "show" => {
                 info!("Showing Dot X");
@@ -455,6 +506,11 @@ fn main() {
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 
+    // Example crash test
+    unsafe {
+        let null_ptr: *const i32 = std::ptr::null();
+        let _value = std::ptr::read_volatile(null_ptr); // This will crash in both dev and prod
+    }
 }
 
 fn get_app_handle() -> &'static AppHandle {

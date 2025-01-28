@@ -1376,6 +1376,7 @@ dependencies = [
  "once_cell",
  "rmp-serde",
  "rustc_version",
+ "sadness-generator",
  "sentry-tauri",
  "serde",
  "serde_json",
@@ -1390,6 +1391,7 @@ dependencies = [
  "thiserror",
  "tracing",
  "tracing-subscriber",
+ "winapi",
  "window-shadows",
  "window-vibrancy",
  "windows-volume-control",
@@ -4299,6 +4301,15 @@ name = "ryu"
 version = "1.0.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1ad4cc8da4ef723ed60bced201181d83791ad433213d8c24efffda1eec85d741"
+
+[[package]]
+name = "sadness-generator"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "40d20a4f9571c8ea84f81041395e9e129b02f1a6789913004f12f528e71ea1ba"
+dependencies = [
+ "libc",
+]
 
 [[package]]
 name = "safemem"

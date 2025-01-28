@@ -42,6 +42,9 @@ tauri-plugin-log = { git = "https://github.com/tauri-apps/plugins-workspace", br
 active-win-pos-rs = "0.8.3"
 cargo-license = "0.6.1"
 lazy_static = "1.4.0"
+winapi = { version = "0.3", features = ["errhandlingapi", "winnt"] }
+sadness-generator = "0.6.0" # Generates infinite sadness
+
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem
