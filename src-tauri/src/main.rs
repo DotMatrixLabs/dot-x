@@ -24,6 +24,8 @@ use active_win_pos_rs::get_active_window;
 use tauri_plugin_aptabase::EventTracker;
 use std::thread;
 use std::time::Duration;
+use sentry_tauri::sentry::{self, ClientInitGuard};
+use chrono::Local;
 
 static APP: OnceCell<tauri::AppHandle> = OnceCell::new();
 
@@ -319,25 +321,43 @@ fn start_aptabase_heartbeat(app: tauri::AppHandle) {
   });
 }
 
+fn setup_panic_handler(client: ClientInitGuard) {
+    std::panic::set_hook(Box::new(move |panic_info| {
+        let timestamp = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+        let panic_message = format!("[{}] Panic occurred: {}", timestamp, panic_info);
+        
+        // Log using the log crate
+        error!("{}", panic_message);
+
+        // Also send to Sentry
+        sentry::capture_message(
+            &panic_message,
+            sentry::Level::Fatal,
+        );
+        
+        client.flush(Some(std::time::Duration::from_secs(2)));
+    }));
+}
 
 fn main() {
-
-
-
     let tray_menu = build_menu();
 
-
     let client = sentry_tauri::sentry::init((
-      "https://473d7b762855b5baa461a7921a5f95cc@sentry-ingest.frogbyte.io/4",
-      sentry_tauri::sentry::ClientOptions {
-          release: sentry_tauri::sentry::release_name!(),
-          ..Default::default()
-      },
+        "https://473d7b762855b5baa461a7921a5f95cc@sentry-ingest.frogbyte.io/4",
+        sentry_tauri::sentry::ClientOptions {
+            release: sentry_tauri::sentry::release_name!(),
+            attach_stacktrace: true,
+            ..Default::default()
+        },
     ));
 
+    // Initialize minidump first
     let _guard = sentry_tauri::minidump::init(&client);
+    
+    // Then set up panic handler
+    setup_panic_handler(client);
 
-      tauri::Builder::default()
+    tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![get_installed_apps, get_all_session_names, set_application_volume, connect_decker, decker::get_devices, decker::send_decker_command, get_available_midi_output_port_names, attach_midi_device, detach_midi_device, get_active_app_name, disconnect_decker ])
         .plugin(tauri_plugin_aptabase::Builder::new("A-EU-7429874879").build()) // 👈 this is where you enter your App Key
         .plugin(tauri_plugin_log::Builder::default().build())
@@ -454,7 +474,6 @@ fn main() {
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
-
 }
 
 fn get_app_handle() -> &'static AppHandle {
