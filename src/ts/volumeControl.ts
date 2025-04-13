@@ -100,7 +100,7 @@ class SystemVolumeController {
                 console.error(e);
             }
         }
-        if (apps.includes("screenbrightness")) {
+        if (apps.includes("screen brightness")) {
             console.log("[ScreenBrightness]: Setting screen brightness to: ", volume);
             const currentTime = Date.now();
         
