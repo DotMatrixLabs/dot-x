@@ -29,7 +29,7 @@ export default {
                 { title: "microphone", icon: "fas fa-lg fa-microphone", id: "mic" },
                 { title: "unmapped", icon: "fas fa-lg fa-question-circle", id: "unmapped"},
                 { title: "active window", icon: "fas fa-lg fa-window-maximize", id: "activeWindow"},
-
+                { title: "screen brightness", icon: "fas fa-lg fa-sun", id: "screenBrightness"},
             ],
             activeDevices: [],
             sessions: [],
