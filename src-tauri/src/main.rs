@@ -267,10 +267,8 @@ fn set_application_volume(name: &str, volume: f32) -> Result<(), Error> {
     Ok(())
 }
 
-/// Set the screen brightness using the provided value brightness and screens array 
 #[tauri::command]
 async fn set_screen_brightness(brightness: f32, screens: Value) -> Result<(), Error> {
-    // Convert the screens array to a Vec<string>
     let screen_names: Vec<String> = screens.as_array()
         .unwrap_or(&Vec::new())
         .iter()
@@ -278,13 +276,6 @@ async fn set_screen_brightness(brightness: f32, screens: Value) -> Result<(), Er
         .collect();
 
     // Set the screen brightness using the provided value
-    // This is a placeholder implementation; you need to replace it with actual code to set the brightness.
-    println!("Setting screen brightness to: {}", brightness);
-    println!("Screen names: {:?}", screen_names);
-    // set_brightness((brightness * 100.0) as u32).unwrap_or_else(|_| {
-    //     error!("Failed to set brightness for screens: {:?}", screen_names);
-    // });
-
     set_brightness((brightness * 100.0) as u32).await;
 
     Ok(())

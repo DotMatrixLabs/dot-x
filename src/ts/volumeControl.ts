@@ -101,7 +101,6 @@ class SystemVolumeController {
             }
         }
         if (apps.includes("screen brightness")) {
-            console.log("[ScreenBrightness]: Setting screen brightness to: ", volume);
             const currentTime = Date.now();
         
             // Store the latest brightness value
@@ -120,7 +119,6 @@ class SystemVolumeController {
         
             // Schedule the last value to be sent after the throttling interval
             this.brightnessTimeoutId = setTimeout(async () => {
-                console.log("Scheduling - Setting screen brightness to: ", this.latestBrightnessValue);
                 this.lastSetVolumeExecutionTime = Date.now();
                 await invoke('set_screen_brightness', { brightness: this.latestBrightnessValue, screens: ["all"] });
             }, 500 - (currentTime - this.lastSetVolumeExecutionTime));
