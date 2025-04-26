@@ -107,7 +107,7 @@ export default {
             this.$refs.helpBox.openHelpBox("Add a program", `
             The list shows all apps currently running on your system.
 
-            To select an app that isn’t running, check the box at the top of the list to display all apps. You can also use the search bar to find specific apps.
+            To select an app that isn't running, check the box at the top of the list to display all apps. You can also use the search bar to find specific apps.
 
             Please note:
 
@@ -115,7 +115,7 @@ export default {
 
                 - Some apps, like Spotify, need to be actively playing audio to appear.
 
-                - If you’re still having issues, try launching Dot X in administrator mode to ensure all apps are displayed.
+                - If you're still having issues, try launching Dot X in administrator mode to ensure all apps are displayed.
                 
                 `);
         },
@@ -141,6 +141,11 @@ export default {
 
         async getActiveApps() {
             let activeApps = await SystemVolumeController.getAllSessionNames();
+            const deviceNames = await SystemVolumeController.getAllDeviceNames();
+            
+            // Filter out device names from active apps
+            activeApps = activeApps.filter(app => !deviceNames.includes(app));
+
             activeApps = activeApps.filter((str) => str !== ""); // Remove empty entries
             //check if an app has the same name, and ends in (1), (2), (3), etc and create an array of duplicates
             this.duplicates = activeApps.filter((str) => str.match(/\(\d+\)$/));

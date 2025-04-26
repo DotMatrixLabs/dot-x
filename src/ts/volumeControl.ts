@@ -26,12 +26,12 @@ class SystemVolumeController {
     }
 
     /**
-     *Gets the names of all audio sessions.
+     * Gets the names of all audio sessions.
      * @param {boolean} includeSystemFeatures - Whether or not to include system features.
      * @returns {Promise<string[]>} A promise that resolves with an array of session names.
      */
     async getAllSessionNames(includeSystemFeatures: boolean | undefined): Promise<string[]> {
-        const systemFeatures = ['master', 'mic', 'system_sounds'];
+        const systemFeatures = ['master', 'output', 'mic', 'system_sounds'];
         const result: string[] = await invoke('get_all_session_names');
 
         // Filter out system features
@@ -40,6 +40,29 @@ class SystemVolumeController {
         return result as string[];
     }
 
+    /**
+     * Gets the names of all audio devices (both input and output).
+     * @returns {Promise<string[]>} A promise that resolves with an array of all device names.
+     */
+    async getAllDeviceNames(): Promise<string[]> {
+        return invoke<string[]>('get_all_device_names');
+    }
+
+    /**
+     * Gets the names of all output audio devices.
+     * @returns {Promise<string[]>} A promise that resolves with an array of output device names.
+     */
+    async getOutputDeviceNames(): Promise<string[]> {
+        return invoke<string[]>('get_output_device_names');
+    }
+
+    /**
+     * Gets the names of all input audio devices.
+     * @returns {Promise<string[]>} A promise that resolves with an array of input device names.
+     */
+    async getInputDeviceNames(): Promise<string[]> {
+        return invoke<string[]>('get_input_device_names');
+    }
 
     /**
      * Sets the volume for a specific application.
@@ -48,12 +71,15 @@ class SystemVolumeController {
      */
     async setVolume(name: string, volume: number): Promise<void> {
         try {
+            // Handle renamed "master" to "output" for backward compatibility
+            const sessionName = name === 'output' ? 'master' : name;
+            
             // debounce the volume change, max 1 change per 50ms to prevent audio glitches, unless volume is less than 1% (which is a mute)
             const currentTime = Date.now();
-            if (this.lastSetVolumeApp === name && (currentTime - this.lastSetVolumeExecutionTime < 50) && volume > 0.01) return;
+            if (this.lastSetVolumeApp === sessionName && (currentTime - this.lastSetVolumeExecutionTime < 50) && volume > 0.01) return;
             this.lastSetVolumeExecutionTime = currentTime;
-            this.lastSetVolumeApp = name;
-            await invoke('set_application_volume', { name, volume });
+            this.lastSetVolumeApp = sessionName;
+            await invoke('set_application_volume', { name: sessionName, volume });
         } catch (error) {
             console.log(error);
         }
@@ -68,6 +94,33 @@ class SystemVolumeController {
         if(Number.isNaN(volume) || !volume) return;
         let apps: string[] | null = await SelectedApps.getApps(channel);
         if(!apps) return;
+        
+        // Check if output is selected and set volume for selected output devices
+        if(apps.includes("output")) {
+            const outputDevices = await SelectedApps.getOutputDevices(channel.toString());
+            if(outputDevices && outputDevices.length > 0) {
+                for(const device of outputDevices) {
+                    await this.setVolume(device, volume);
+                }
+            } else {
+                // If no specific output devices selected, default to master
+                await this.setVolume("output", volume); // Use 'output' for consistency
+            }
+        }
+
+        // Check if mic is selected and set volume/mute for selected input devices
+        if(apps.includes("mic")) {
+            const inputDevices = await SelectedApps.getInputDevices(channel.toString());
+            if(inputDevices && inputDevices.length > 0) {
+                for(const device of inputDevices) {
+                    await this.setVolume(device, volume);
+                }
+            } else {
+                // If no specific input devices selected, default to mic
+                await this.setVolume("mic", volume);
+            }
+        }
+        
         if(apps.includes("activeWindow")) {
             const currentActiveWindow = await this.getActiveWindowAppName();
             this.setVolume(currentActiveWindow, volume);
@@ -88,6 +141,8 @@ class SystemVolumeController {
 
         for (const app of apps) {
             if (!app) continue;
+            // Skip system features already handled above
+            if (app === 'output' || app === 'mic') continue; 
             let session = sessionNames.find((session) => session.toLowerCase() === app);
             if (!session) continue;
             try {

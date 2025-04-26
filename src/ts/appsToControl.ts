@@ -50,7 +50,6 @@ class SelectedApps {
      * Gets all of the mapped apps
      * @returns {Promise<string[] | null>} The apps for the slider, or null if not found.
      */
-
     async getMappedApps(): Promise<string[] | null> {
         let mappedApps: string[] = [];
         //get number of sliders by looking at number of keys in store
@@ -62,6 +61,48 @@ class SelectedApps {
             mappedApps = [...mappedApps, ...apps];
         }
         return mappedApps;
+    }
+
+    /**
+     * Gets the selected output devices for a specific slider.
+     * @param {string} sliderID - The ID of the slider.
+     * @returns {Promise<string[]>} The selected output devices for the slider, or empty array if not found.
+     */
+    async getOutputDevices(sliderID: string): Promise<string[]> {
+        const key = `output_devices_${sliderID}`;
+        return (await this.store.get(key)) || [];
+    }
+
+    /**
+     * Sets the selected output devices for a specific slider.
+     * @param {string} sliderID - The ID of the slider.
+     * @param {string[]} devices - The array of selected output devices.
+     */
+    async setOutputDevices(sliderID: string, devices: string[]): Promise<void> {
+        const key = `output_devices_${sliderID}`;
+        await this.store.set(key, devices);
+        await this.store.save();
+    }
+
+    /**
+     * Gets the selected input devices for a specific slider.
+     * @param {string} sliderID - The ID of the slider.
+     * @returns {Promise<string[]>} The selected input devices for the slider, or empty array if not found.
+     */
+    async getInputDevices(sliderID: string): Promise<string[]> {
+        const key = `input_devices_${sliderID}`;
+        return (await this.store.get(key)) || [];
+    }
+
+    /**
+     * Sets the selected input devices for a specific slider.
+     * @param {string} sliderID - The ID of the slider.
+     * @param {string[]} devices - The array of selected input devices.
+     */
+    async setInputDevices(sliderID: string, devices: string[]): Promise<void> {
+        const key = `input_devices_${sliderID}`;
+        await this.store.set(key, devices);
+        await this.store.save();
     }
 
     /**
