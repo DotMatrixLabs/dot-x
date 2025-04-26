@@ -9,12 +9,16 @@ class SystemVolumeController {
     private lastSetVolumeExecutionTime: number;
     private lastActiveWindowExecutionResult: any;
     private lastSetVolumeApp: string;
-    
+    private brightnessTimeoutId: NodeJS.Timeout | null = null;
+    private latestBrightnessValue: number;
+
     constructor() {
         this.lastActiveWindowExecutionTime = 0;
         this.lastActiveWindowExecutionResult = "";
         this.lastSetVolumeExecutionTime = 0;
         this.lastSetVolumeApp = "";
+        this.brightnessTimeoutId = null;
+        this.latestBrightnessValue = 0;
     }
 
     /**
@@ -150,6 +154,29 @@ class SystemVolumeController {
             } catch (e) {
                 console.error(e);
             }
+        }
+        if (apps.includes("screen brightness")) {
+            const currentTime = Date.now();
+        
+            // Store the latest brightness value
+            this.latestBrightnessValue = volume;
+        
+            // If the throttling interval has passed, send the brightness value immediately
+            if (currentTime - this.lastSetVolumeExecutionTime >= 500) {
+                this.lastSetVolumeExecutionTime = currentTime;
+                await invoke('set_screen_brightness', { brightness: this.latestBrightnessValue, screens: ["all"] });
+            }
+        
+            // Clear the previous timeout if it exists
+            if (this.brightnessTimeoutId) {
+                clearTimeout(this.brightnessTimeoutId);
+            }
+        
+            // Schedule the last value to be sent after the throttling interval
+            this.brightnessTimeoutId = setTimeout(async () => {
+                this.lastSetVolumeExecutionTime = Date.now();
+                await invoke('set_screen_brightness', { brightness: this.latestBrightnessValue, screens: ["all"] });
+            }, 500 - (currentTime - this.lastSetVolumeExecutionTime));
         }
     }
 
