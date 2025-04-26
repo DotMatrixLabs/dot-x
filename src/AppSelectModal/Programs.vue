@@ -141,7 +141,7 @@ export default {
 
         async getActiveApps() {
             let activeApps = await SystemVolumeController.getAllSessionNames();
-            const deviceNames = await SystemVolumeController.getAllDeviceNames();
+            const deviceNames = await SystemVolumeController.getAllDevices();
             
             // Filter out device names from active apps
             activeApps = activeApps.filter(app => !deviceNames.includes(app));
