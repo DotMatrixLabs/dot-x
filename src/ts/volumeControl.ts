@@ -48,24 +48,33 @@ class SystemVolumeController {
      * Gets the names of all audio devices (both input and output).
      * @returns {Promise<string[]>} A promise that resolves with an array of all device names.
      */
-    async getAllDeviceNames(): Promise<string[]> {
-        return invoke<string[]>('get_all_device_names');
+    async getAllDevices(): Promise<string[]> {
+        console.log("getAllDeviceNames");
+        const result = await invoke<string[]>('get_all_audio_devices');
+        console.log(result);
+        return result;
     }
 
     /**
      * Gets the names of all output audio devices.
      * @returns {Promise<string[]>} A promise that resolves with an array of output device names.
      */
-    async getOutputDeviceNames(): Promise<string[]> {
-        return invoke<string[]>('get_output_device_names');
+    async getOutputDevices(): Promise<string[]> {
+        console.log("getOutputDevices");
+        const result = await invoke<string[]>('get_output_devices');
+        console.log(result);
+        return result;
     }
 
     /**
      * Gets the names of all input audio devices.
      * @returns {Promise<string[]>} A promise that resolves with an array of input device names.
      */
-    async getInputDeviceNames(): Promise<string[]> {
-        return invoke<string[]>('get_input_device_names');
+    async getInputDevices(): Promise<string[]> {
+        console.log("getInputDevices");
+        const result = await invoke<string[]>('get_input_devices');
+        console.log(result);
+        return result;
     }
 
     /**
