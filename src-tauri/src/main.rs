@@ -147,6 +147,7 @@ fn get_all_session_names() -> Result<Vec<String>, Error> {
         controller.GetSessions();
         controller.GetDefaultAudioEnpointVolumeControl();
         controller.GetAllProcessSessions();
+        controller.GetAllAudioDevices();
 
         // Collect all session names
         let all_session_names = controller.get_all_session_names();
@@ -358,7 +359,7 @@ fn main() {
     setup_panic_handler(client);
 
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![get_installed_apps, get_all_session_names, set_application_volume, connect_decker, decker::get_devices, decker::send_decker_command, get_available_midi_output_port_names, attach_midi_device, detach_midi_device, get_active_app_name, disconnect_decker ])
+        .invoke_handler(tauri::generate_handler![get_installed_apps, get_all_session_names, set_application_volume, connect_decker, decker::get_devices, decker::send_decker_command, get_available_midi_output_port_names, attach_midi_device, detach_midi_device, get_active_app_name, disconnect_decker, get_all_device_names, get_output_device_names, get_input_device_names ])
         .plugin(tauri_plugin_aptabase::Builder::new("A-EU-7429874879").build()) // 👈 this is where you enter your App Key
         .plugin(tauri_plugin_log::Builder::default().build())
         .plugin(sentry_tauri::plugin())
@@ -478,4 +479,52 @@ fn main() {
 
 fn get_app_handle() -> &'static AppHandle {
   APP.get().expect("AppHandle not initialized")
+}
+
+#[tauri::command]
+fn get_all_device_names() -> Result<Vec<String>, Error> {
+    unsafe {
+        let mut controller = AudioController::init(Some(CoinitMode::ApartmentThreaded));
+        controller.GetSessions();
+        controller.GetDefaultAudioEnpointVolumeControl();
+        controller.GetAllProcessSessions();
+        controller.GetAllAudioDevices(); // This should populate the device list
+
+        // Collect all device names
+        let all_device_names = controller.get_all_device_names();
+
+        Ok(all_device_names)
+    }
+}
+
+#[tauri::command]
+fn get_output_device_names() -> Result<Vec<String>, Error> {
+    unsafe {
+        let mut controller = AudioController::init(Some(CoinitMode::ApartmentThreaded));
+        controller.GetSessions();
+        controller.GetDefaultAudioEnpointVolumeControl();
+        controller.GetAllProcessSessions();
+        controller.GetAllAudioDevices();
+
+        // Collect output device names
+        let output_device_names = controller.get_output_device_names();
+
+        Ok(output_device_names)
+    }
+}
+
+#[tauri::command]
+fn get_input_device_names() -> Result<Vec<String>, Error> {
+    unsafe {
+        let mut controller = AudioController::init(Some(CoinitMode::ApartmentThreaded));
+        controller.GetSessions();
+        controller.GetDefaultAudioEnpointVolumeControl();
+        controller.GetAllProcessSessions();
+        controller.GetAllAudioDevices();
+
+        // Collect input device names
+        let input_device_names = controller.get_input_device_names();
+
+        Ok(input_device_names)
+    }
 }
