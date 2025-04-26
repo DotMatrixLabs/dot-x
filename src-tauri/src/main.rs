@@ -26,6 +26,8 @@ use std::thread;
 use std::time::Duration;
 use sentry_tauri::sentry::{self, ClientInitGuard};
 use chrono::Local;
+use brightness::{Brightness, BrightnessDevice};
+use futures::{TryStreamExt};
 
 static APP: OnceCell<tauri::AppHandle> = OnceCell::new();
 
@@ -266,7 +268,38 @@ fn set_application_volume(name: &str, volume: f32) -> Result<(), Error> {
     Ok(())
 }
 
+#[tauri::command]
+async fn set_screen_brightness(brightness: f32, screens: Value) -> Result<(), Error> {
+    let screen_names: Vec<String> = screens.as_array()
+        .unwrap_or(&Vec::new())
+        .iter()
+        .filter_map(|v| v.as_str().map(|s| s.to_string()))
+        .collect();
 
+    // Set the screen brightness using the provided value
+    set_brightness((brightness * 100.0) as u32).await;
+
+    Ok(())
+}
+
+async fn set_brightness(percentage: u32) {
+  println!("Setting brightness to {}%", percentage);
+  brightness::brightness_devices()
+      .try_for_each(|mut dev| async move {
+          dev.set(percentage).await
+      })
+      .await
+      .unwrap()
+}
+
+async fn show_brightness(dev: &BrightnessDevice) -> Result<(), brightness::Error> {
+  println!(
+      "Brightness of device {} is {}%",
+      dev.device_name().await?,
+      dev.get().await?
+  );
+  Ok(())
+}
 
 
 #[tauri::command]
@@ -359,7 +392,7 @@ fn main() {
     setup_panic_handler(client);
 
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![get_installed_apps, get_all_session_names, set_application_volume, connect_decker, decker::get_devices, decker::send_decker_command, get_available_midi_output_port_names, attach_midi_device, detach_midi_device, get_active_app_name, disconnect_decker, get_all_device_names, get_output_device_names, get_input_device_names ])
+        .invoke_handler(tauri::generate_handler![get_installed_apps, get_all_session_names, set_application_volume, connect_decker, decker::get_devices, decker::send_decker_command, get_available_midi_output_port_names, attach_midi_device, detach_midi_device, get_active_app_name, disconnect_decker, set_screen_brightness, get_all_device_names, get_output_device_names, get_input_device_names ])
         .plugin(tauri_plugin_aptabase::Builder::new("A-EU-7429874879").build()) // 👈 this is where you enter your App Key
         .plugin(tauri_plugin_log::Builder::default().build())
         .plugin(sentry_tauri::plugin())
