@@ -10,10 +10,10 @@
             </div>
         </div>
 
-        <div class="divider">Settings</div>
+        <div v-if="activeUtilities?.includes('output') || activeUtilities?.includes('input')" class="divider label-text">Settings</div>
 
         <!-- Combined device selector -->
-        <div v-for="(selector, type) in deviceSelectors" :key="type" class="w-4/5 m-auto">
+        <div v-show="activeUtilities?.includes(type)" v-for="(selector, type) in deviceSelectors" :key="type" class="w-4/5 m-auto">
             <h3 class="text-base-content text-sm font-semibold mb-2">{{ selector.title }}</h3>
             <div class="dropdown w-full">
                 <div tabindex="0" role="button" class="btn w-full justify-between">
@@ -86,6 +86,31 @@ export default {
         async setActiveUtility(utility) {
             await SelectedApps.toggleApps(this.currentSliderID.toString(), utility);
             this.getActiveUtilities();
+            
+            // If output was just selected, check if we need to auto-select default device
+            if (utility === 'output') {
+                this.selectDefaultOutputDevice();
+            }
+        },
+
+        async selectDefaultOutputDevice() {
+            // Make sure output devices are loaded
+            if (this.deviceSelectors.output.devices.length === 0) {
+                await this.loadOutputDevices();
+            }
+            
+            // Only auto-select if no devices are currently selected
+            if (this.deviceSelectors.output.selectedDevices.length === 0) {
+                // Find the default output device
+                const defaultDevice = this.deviceSelectors.output.devices.find(
+                    device => device.endsWith('(default_output)')
+                );
+                
+                // If found, select it
+                if (defaultDevice) {
+                    await this.toggleDeviceSelection(defaultDevice, 'output');
+                }
+            }
         },
 
         async getActiveUtilities(){
@@ -111,7 +136,6 @@ export default {
         },
 
         async loadOutputDevices() {
-            console.log("loadOutputDevices");
             this.deviceSelectors.output.loading = true;
             try {
                 const devices = await SystemVolumeController.getOutputDevices();
@@ -211,7 +235,9 @@ export default {
                 return device.substring(prefix.length);
             }
             return device;
-        }
+        }, 
+
+        
     },
 
     mounted() {
@@ -219,6 +245,7 @@ export default {
         this.getSessions();
         this.loadOutputDevices();
         this.loadInputDevices();
+
     },
 }
 </script>
