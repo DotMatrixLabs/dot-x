@@ -17,7 +17,7 @@
             <h3 class="text-base-content text-sm font-semibold mb-2">{{ selector.title }}</h3>
             <div class="dropdown w-full">
                 <div tabindex="0" role="button" class="btn w-full justify-between">
-                    <span>{{ selector.selectedDevices.length ? `${selector.selectedDevices.length} device(s) selected` : selector.placeholder }}</span>
+                    <span>{{ selector.selectedDevices.length ? `${selector.selectedDevices.length} ${selector.selectedDevices.length === 1 ? 'device' : 'devices'} selected` : selector.placeholder }}</span>
                     <i class="fas fa-chevron-down"></i>
                 </div>
                 <div tabindex="0" class="dropdown-content z-50 menu p-2 shadow bg-base-200 rounded-box w-full max-h-60 overflow-y-auto">
