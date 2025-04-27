@@ -119,8 +119,6 @@ class SystemVolumeController {
 
         for (const app of apps) {
             if (!app) continue;
-            // Skip system features already handled above
-            if (app === 'output' || app === 'mic') continue; 
             let session = sessionNames.find((session) => session.toLowerCase() === app);
             if (!session) continue;
             try {
