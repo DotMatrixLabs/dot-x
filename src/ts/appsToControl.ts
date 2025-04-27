@@ -15,9 +15,9 @@ class SelectedApps {
     }
 
     /**
-     * Toggles the specified apps for a slider.
+     * Toggles the specified apps or devices for a slider.
      * @param {string} sliderID - The ID of the slider.
-     * @param {string | string[]} appNames - The name or array of names of the app(s) to toggle.
+     * @param {string | string[]} appNames - The name or array of names of the app(s) or device(s) to toggle.
      */
     async toggleApps(sliderID: string, appNames: string | string[]) {
         console.log("toggleApps", sliderID, appNames);
@@ -36,9 +36,9 @@ class SelectedApps {
     }
 
     /**
-     * Gets the apps for a specific slider.
+     * Gets the apps and devices for a specific slider.
      * @param {number} sliderID - The ID of the slider.
-     * @returns {Promise<string[] | null>} The apps for the slider, or null if not found.
+     * @returns {Promise<string[] | null>} The apps and devices for the slider, or null if not found.
      */
     async getApps(sliderID: number): Promise<string[] | null> {
         const sliderIDString = sliderID?.toString();
@@ -61,48 +61,6 @@ class SelectedApps {
             mappedApps = [...mappedApps, ...apps];
         }
         return mappedApps;
-    }
-
-    /**
-     * Gets the selected output devices for a specific slider.
-     * @param {string} sliderID - The ID of the slider.
-     * @returns {Promise<string[]>} The selected output devices for the slider, or empty array if not found.
-     */
-    async getOutputDevices(sliderID: string): Promise<string[]> {
-        const key = `output_devices_${sliderID}`;
-        return (await this.store.get(key)) || [];
-    }
-
-    /**
-     * Sets the selected output devices for a specific slider.
-     * @param {string} sliderID - The ID of the slider.
-     * @param {string[]} devices - The array of selected output devices.
-     */
-    async setOutputDevices(sliderID: string, devices: string[]): Promise<void> {
-        const key = `output_devices_${sliderID}`;
-        await this.store.set(key, devices);
-        await this.store.save();
-    }
-
-    /**
-     * Gets the selected input devices for a specific slider.
-     * @param {string} sliderID - The ID of the slider.
-     * @returns {Promise<string[]>} The selected input devices for the slider, or empty array if not found.
-     */
-    async getInputDevices(sliderID: string): Promise<string[]> {
-        const key = `input_devices_${sliderID}`;
-        return (await this.store.get(key)) || [];
-    }
-
-    /**
-     * Sets the selected input devices for a specific slider.
-     * @param {string} sliderID - The ID of the slider.
-     * @param {string[]} devices - The array of selected input devices.
-     */
-    async setInputDevices(sliderID: string, devices: string[]): Promise<void> {
-        const key = `input_devices_${sliderID}`;
-        await this.store.set(key, devices);
-        await this.store.save();
     }
 
     /**
