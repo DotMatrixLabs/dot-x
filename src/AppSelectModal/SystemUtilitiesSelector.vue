@@ -26,7 +26,7 @@
                     </div>
                     <div v-else>
                         <div v-for="device in selector.devices" :key="device" class="form-control">
-                            <label class="label cursor-pointer justify-start gap-2">
+                            <label class="label cursor-pointer justify-start gap-2 hover:bg-base-300 rounded-md p-1">
                                 <input type="checkbox" class="checkbox checkbox-sm" 
                                     :checked="selector.selectedDevices.includes(device)"
                                     @change="toggleDeviceSelection(device, type)" />
@@ -145,14 +145,12 @@ export default {
             //for backward compatibility map master to output and mic to input
             if (this.activeUtilities?.includes('master')) {
                 // change master to output
-                this.activeUtilities = this.activeUtilities.map(utility => utility === 'master' ? 'output' : utility);
                 this.setActiveUtility('output');
                 SelectedApps.toggleApps(this.currentSliderID?.toString(), 'master');
                 this.selectDefaultOutputDevice();
             }
             if (this.activeUtilities?.includes('mic')) {
                 // change mic to input
-                this.activeUtilities = this.activeUtilities.map(utility => utility === 'mic' ? 'input' : utility);
                 this.setActiveUtility('input');
                 SelectedApps.toggleApps(this.currentSliderID?.toString(), 'mic');
                 this.selectDefaultInputDevice();
