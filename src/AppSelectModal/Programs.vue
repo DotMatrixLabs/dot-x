@@ -82,7 +82,9 @@ export default {
                 "mic",
                 "unmapped",
                 "activeWindow",
-                "midi"
+                "midi",
+                "output",
+                "input"
             ],
             getActiveAppsInterval: null
         }
@@ -193,6 +195,8 @@ export default {
                 //first filter out the system utilities from the selected apps list
                 if(!this.selectedApps) return;
                 this.selectedApps = this.selectedApps.filter((str) => !this.systemUtilities.includes(str));
+                //filter out output and input from the selected apps list - if the selected apps has a prefix of output: or input: then remove it
+                this.selectedApps = this.selectedApps.filter((str) => !str.startsWith('output:') && !str.startsWith('input:'));
 
                 //Then add the selected apps that are not in the list to the top of the list
                 this.selectedApps.forEach((selectedApp) => {
