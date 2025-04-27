@@ -30,7 +30,7 @@
                                 <input type="checkbox" class="checkbox checkbox-sm" 
                                     :checked="selector.selectedDevices.includes(device)"
                                     @change="toggleDeviceSelection(device, type)" />
-                                <span class="label-text">{{ formatDeviceName(device, type === 'input' ? 'input' : undefined) }}</span>
+                                <span class="label-text">{{ formatDeviceName(device, type) }}</span>
                             </label>
                         </div>
                         <div v-if="selector.devices.length === 0" class="p-2 text-center text-sm opacity-70">
@@ -115,7 +115,10 @@ export default {
             this.deviceSelectors.output.loading = true;
             try {
                 const devices = await SystemVolumeController.getOutputDevices();
-                const savedSelections = await SelectedApps.getOutputDevices(this.currentSliderID?.toString());
+                const allApps = await SelectedApps.getApps(this.currentSliderID);
+                
+                // Filter saved devices from all apps
+                const savedSelections = allApps ? allApps.filter(app => app.startsWith('output: ')) : [];
                 
                 // Merge current devices with saved selections that aren't in the current list
                 const mergedDevices = [...devices];
@@ -141,7 +144,10 @@ export default {
             this.deviceSelectors.input.loading = true;
             try {
                 const devices = await SystemVolumeController.getInputDevices();
-                const savedSelections = await SelectedApps.getInputDevices(this.currentSliderID?.toString());
+                const allApps = await SelectedApps.getApps(this.currentSliderID);
+                
+                // Filter saved devices from all apps
+                const savedSelections = allApps ? allApps.filter(app => app.startsWith('input: ')) : [];
                 
                 // Merge current devices with saved selections that aren't in the current list
                 const mergedDevices = [...devices];
@@ -164,25 +170,47 @@ export default {
 
         async toggleDeviceSelection(device, type) {
             const selectedDevices = [...this.deviceSelectors[type].selectedDevices];
-
-
             
+            // This code toggles a device selection in the array
+            // First, find the device in the selected devices array
             const index = selectedDevices.indexOf(device);
+            // If the device is already selected (index > -1), remove it from the array
             if (index > -1) {
                 selectedDevices.splice(index, 1);
             } else {
+                // If the device is not already selected, add it to the array
                 selectedDevices.push(device);
             }
 
             // Update the deviceSelectors object
             this.deviceSelectors[type].selectedDevices = selectedDevices;
 
-            await saveFunction(this.currentSliderID?.toString(), selectedDevices);
+            await this.saveDevices(selectedDevices, type);
+        },
+
+        // Save the selected devices by toggling them with all current selections
+        async saveDevices(devices, type) {
+            const allApps = await SelectedApps.getApps(this.currentSliderID) || [];
+            
+            // Remove all devices of the current type from allApps
+            const prefix = `${type}: `;
+            const filteredApps = allApps.filter(app => !app.startsWith(prefix));
+            
+            // Combine non-device apps with the new device selection
+            const updatedApps = [...filteredApps, ...devices];
+            
+            // Set all apps at once
+            await SelectedApps.toggleApps(this.currentSliderID?.toString(), allApps);
+            await SelectedApps.toggleApps(this.currentSliderID?.toString(), updatedApps);
         },
 
         formatDeviceName(device, type = 'output') {
+            console.log("formatDeviceName", device, type);
             const prefix = type === 'input' ? 'input: ' : 'output: ';
-            return device.replace(prefix, '');
+            if (device.startsWith(prefix)) {
+                return device.substring(prefix.length);
+            }
+            return device;
         }
     },
 
