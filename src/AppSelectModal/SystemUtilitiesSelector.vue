@@ -78,7 +78,8 @@ export default {
                     devices: [],
                     selectedDevices: []
                 }
-            }
+            },
+            deviceUpdateInterval: null,
         }
     },
 
@@ -158,8 +159,10 @@ export default {
             }
         }, 
 
-        async loadOutputDevices() {
-            this.deviceSelectors.output.loading = true;
+        async loadOutputDevices(update = false) {
+            if(!update){
+                this.deviceSelectors.output.loading = true;
+            }
             try {
                 const devices = await SystemVolumeController.getOutputDevices();
                 const allApps = await SelectedApps.getApps(this.currentSliderID);
@@ -175,6 +178,12 @@ export default {
                             mergedDevices.push(device);
                         }
                     });
+
+                    //if there is no change to the device list, don't update the devices
+                    if(JSON.stringify(this.deviceSelectors.output.selectedDevices) === JSON.stringify(savedSelections)){
+                        return;
+                    }
+
                     this.deviceSelectors.output.selectedDevices = savedSelections;
                 }
                 
@@ -186,9 +195,10 @@ export default {
             }
         },
         
-        async loadInputDevices() {
-            console.log("loadInputDevices");
-            this.deviceSelectors.input.loading = true;
+        async loadInputDevices(update = false) {
+            if(!update){
+                this.deviceSelectors.input.loading = true;
+            }
             try {
                 const devices = await SystemVolumeController.getInputDevices();
                 const allApps = await SelectedApps.getApps(this.currentSliderID);
@@ -204,6 +214,12 @@ export default {
                             mergedDevices.push(device);
                         }
                     });
+
+                    //if there is no change to the device list, don't update the devices
+                    if(JSON.stringify(this.deviceSelectors.input.selectedDevices) === JSON.stringify(savedSelections)){
+                        return;
+                    }
+
                     this.deviceSelectors.input.selectedDevices = savedSelections;
                 }
                 
@@ -268,13 +284,43 @@ export default {
             return name;
         }, 
 
+        // Check and update devices based on active utilities
+        updateActiveDevices() {
+            if (this.activeUtilities?.includes('output')) {
+                this.loadOutputDevices(true);
+            }
+            
+            if (this.activeUtilities?.includes('input')) {
+                this.loadInputDevices(true);
+            }
+        },
         
+        // Setup interval for device updates
+        setupDeviceUpdateInterval() {
+            // Clear existing interval if it exists
+            if (this.deviceUpdateInterval) {
+                clearInterval(this.deviceUpdateInterval);
+            }
+            
+            // Create new interval that runs every second
+            this.deviceUpdateInterval = setInterval(() => {
+                this.updateActiveDevices();
+            }, 1000);
+        },
     },
 
     mounted() {
         this.getActiveUtilities();
         this.loadOutputDevices();
         this.loadInputDevices();
+        this.setupDeviceUpdateInterval();
+    },
+    
+    beforeUnmount() {
+        // Clean up interval when component is destroyed
+        if (this.deviceUpdateInterval) {
+            clearInterval(this.deviceUpdateInterval);
+        }
     },
 }
 </script>
