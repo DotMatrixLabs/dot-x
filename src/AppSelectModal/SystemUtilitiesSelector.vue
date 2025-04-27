@@ -87,20 +87,27 @@ export default {
         async setActiveUtility(utility) {
             await SelectedApps.toggleApps(this.currentSliderID.toString(), utility);
             await this.getActiveUtilities();
+
+            console.log("activeUtilities", this.activeUtilities);
             
             // If output was just selected, check if we need to auto-select default device
             if (utility === 'output') {
-                this.selectDefaultOutputDevice();
-                //if output was deselected, remove all devices toggled
-                if(!this.activeUtilities?.includes('output')){  
+                //if output was deselected, remove all devices toggled, else select default device
+                console.log("activeUtilities after selectDefaultOutputDevice", this.activeUtilities);
+                if(!this.activeUtilities.some(item => item === 'output')){  
                     this.removeDevicesToggledApps('output');
+                } else {
+                    console.log("selecting default output device");
+                    this.selectDefaultOutputDevice();
                 }
             }
             // If input was just selected, check if we need to auto-select default device
             else if (utility === 'input') {
-                this.selectDefaultInputDevice();
-                if(!this.activeUtilities?.includes('input')){
+                //if input was deselected, remove all devices toggled, else select default device
+                if(!this.activeUtilities.some(item => item === 'input')){
                     this.removeDevicesToggledApps('input');
+                } else {
+                    this.selectDefaultInputDevice();
                 }
             }
         },
@@ -117,20 +124,19 @@ export default {
         async selectDefaultOutputDevice() {
             // Make sure output devices are loaded
             if (this.deviceSelectors.output.devices.length === 0) {
-                await this.loadOutputDevices();
+                console.log("loading output devices");
+                await this.loadOutputDevices(true);
             }
             
-            // Only auto-select if no devices are currently selected
-            if (this.deviceSelectors.output.selectedDevices.length === 0) {
-                // Find the default output device
-                const defaultDevice = this.deviceSelectors.output.devices.find(
-                    device => device.endsWith('(default_output)')
-                );
-                
-                // If found, select it
-                if (defaultDevice) {
-                    await this.toggleDeviceSelection(defaultDevice, 'output');
-                }
+
+            // Find the default output device
+            const defaultDevice = this.deviceSelectors.output.devices.find(
+                device => device.endsWith('(default_output)')
+            );
+            
+            // If found, select it
+            if (defaultDevice) {
+                await this.toggleDeviceSelection(defaultDevice, 'output');
             }
         },
 
@@ -246,40 +252,11 @@ export default {
         },
 
         async toggleDeviceSelection(device, type) {
-            const selectedDevices = [...this.deviceSelectors[type].selectedDevices];
-            
-            // This code toggles a device selection in the array
-            // First, find the device in the selected devices array
-            const index = selectedDevices.indexOf(device);
-            // If the device is already selected (index > -1), remove it from the array
-            if (index > -1) {
-                selectedDevices.splice(index, 1);
-            } else {
-                // If the device is not already selected, add it to the array
-                selectedDevices.push(device);
-            }
-
-            // Update the deviceSelectors object
-            this.deviceSelectors[type].selectedDevices = selectedDevices;
-
-            await this.saveDevices(selectedDevices, type);
+            await SelectedApps.toggleApps(this.currentSliderID?.toString(), device);
+            await this.loadOutputDevices(true);
+            await this.loadInputDevices(true);
         },
 
-        // Save the selected devices by toggling them with all current selections
-        async saveDevices(devices, type) {
-            const allApps = await SelectedApps.getApps(this.currentSliderID) || [];
-            
-            // Remove all devices of the current type from allApps
-            const prefix = `${type}: `;
-            const filteredApps = allApps.filter(app => !app.startsWith(prefix));
-            
-            // Combine non-device apps with the new device selection
-            const updatedApps = [...filteredApps, ...devices];
-            
-            // Set all apps at once
-            await SelectedApps.toggleApps(this.currentSliderID?.toString(), allApps);
-            await SelectedApps.toggleApps(this.currentSliderID?.toString(), updatedApps);
-        },
 
         formatDeviceName(device, type = 'output') {
             const prefix = type === 'input' ? 'input: ' : 'output: ';
