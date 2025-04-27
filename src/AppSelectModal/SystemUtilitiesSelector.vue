@@ -26,7 +26,7 @@
                     </div>
                     <div v-else>
                         <div v-for="device in selector.devices" :key="device" class="form-control">
-                            <label class="label cursor-pointer justify-start gap-2 hover:bg-base-300 rounded-md p-1">
+                            <label class="label cursor-pointer justify-start gap-2 hover:bg-base-300 rounded-md p-2">
                                 <input type="checkbox" class="checkbox checkbox-sm" 
                                     :checked="selector.selectedDevices.includes(device)"
                                     @change="toggleDeviceSelection(device, type)" />
