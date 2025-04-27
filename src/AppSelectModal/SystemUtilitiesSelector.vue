@@ -140,24 +140,23 @@ export default {
         async getActiveUtilities(){
             if(this.currentSliderID === null) return;
             this.activeUtilities = await SelectedApps.getApps(this.currentSliderID?.toString());
-            
-            // Initialize devices if corresponding system feature is already selected
-            if (this.activeUtilities?.includes('output')) {
-                this.loadOutputDevices();
-            }
-            if (this.activeUtilities?.includes('input')) {
-                this.loadInputDevices();
-            }
-        },
 
-        async getSessions() {
-            const sessionNames = await SystemVolumeController.getAllSessionNames(true);
-            
-            // Map "master" to "output" for backward compatibility
-            this.sessions = sessionNames.map(session => 
-                session === 'master' ? 'output' : session
-            );
-        },
+            //for backward compatibility map master to output and mic to input
+            if (this.activeUtilities?.includes('master')) {
+                // change master to output
+                this.activeUtilities = this.activeUtilities.map(utility => utility === 'master' ? 'output' : utility);
+                this.setActiveUtility('output');
+                SelectedApps.toggleApps(this.currentSliderID?.toString(), 'master');
+                this.selectDefaultOutputDevice();
+            }
+            if (this.activeUtilities?.includes('mic')) {
+                // change mic to input
+                this.activeUtilities = this.activeUtilities.map(utility => utility === 'mic' ? 'input' : utility);
+                this.setActiveUtility('input');
+                SelectedApps.toggleApps(this.currentSliderID?.toString(), 'mic');
+                this.selectDefaultInputDevice();
+            }
+        }, 
 
         async loadOutputDevices() {
             this.deviceSelectors.output.loading = true;
@@ -274,10 +273,8 @@ export default {
 
     mounted() {
         this.getActiveUtilities();
-        this.getSessions();
         this.loadOutputDevices();
         this.loadInputDevices();
-
     },
 }
 </script>
