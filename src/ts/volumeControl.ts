@@ -60,9 +60,7 @@ class SystemVolumeController {
      * @returns {Promise<string[]>} A promise that resolves with an array of output device names.
      */
     async getOutputDevices(): Promise<string[]> {
-        console.log("getOutputDevices");
         const result = await invoke<string[]>('get_output_devices');
-        console.log(result);
         return result;
     }
 
@@ -71,9 +69,7 @@ class SystemVolumeController {
      * @returns {Promise<string[]>} A promise that resolves with an array of input device names.
      */
     async getInputDevices(): Promise<string[]> {
-        console.log("getInputDevices");
         const result = await invoke<string[]>('get_input_devices');
-        console.log(result);
         return result;
     }
 
