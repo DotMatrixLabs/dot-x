@@ -256,7 +256,6 @@ export default {
         },
 
         async toggleDeviceSelection(device, type) {
-            console.log("toggleDeviceSelection", device, type);
             await SelectedApps.toggleApps(this.currentSliderID?.toString(), device);
             await this.loadOutputDevices(true);
             await this.loadInputDevices(true);
