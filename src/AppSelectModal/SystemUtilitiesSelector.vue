@@ -87,7 +87,6 @@ export default {
         async setActiveUtility(utility) {
             await SelectedApps.toggleApps(this.currentSliderID.toString(), utility);
             await this.getActiveUtilities();
-
             
             // If output was just selected, check if we need to auto-select default device
             if (utility === 'output') {
@@ -121,7 +120,6 @@ export default {
             if (this.deviceSelectors.output.devices.length === 0) {
                 await this.loadOutputDevices(true);
             }
-            
 
             // Find the default output device
             const defaultDevice = this.deviceSelectors.output.devices.find(
@@ -139,7 +137,6 @@ export default {
             if (this.deviceSelectors.input.devices.length === 0) {
                 await this.loadInputDevices(true);
             }
-            
 
             // Find the default input device
             const defaultDevice = this.deviceSelectors.input.devices.find(
@@ -151,6 +148,11 @@ export default {
                 await this.toggleDeviceSelection(defaultDevice, 'input');
             }
         },
+
+        //get active utilities - if currentSliderID is null, return
+        //for backward compatibility map master to output and mic to input
+        //if master is active, select output
+        //if mic is active, select input
 
         async getActiveUtilities(){
             if(this.currentSliderID === null) return;
@@ -171,6 +173,7 @@ export default {
             }
         }, 
 
+        //load output devices - if update is true, don't show loading indicator and only update if there is a change to the device list
         async loadOutputDevices(update = false) {
             if(!update){
                 this.deviceSelectors.output.loading = true;
@@ -211,6 +214,7 @@ export default {
             }
         },
         
+        //load input devices - if update is true, don't show loading indicator and only update if there is a change to the device list
         async loadInputDevices(update = false) {
             if(!update){
                 this.deviceSelectors.input.loading = true;
@@ -234,13 +238,11 @@ export default {
                             mergedDevices.push(device);
                         }
                     });
-                    
 
                     //if there is no change to the device list, don't update the devices
                     if(JSON.stringify(this.deviceSelectors.input.selectedDevices) === JSON.stringify(savedSelections) && !update){
                         return;
                     }
-
 
                     this.deviceSelectors.input.selectedDevices = savedSelections;
                 }
@@ -270,7 +272,7 @@ export default {
                 name = name.substring(prefix.length);
             }
             
-            // Remove default output/input suffixes
+            // Remove default output/input suffixes and replace with - Default Output/Input
             name = name.replace(/ \(default_output\)$/, ' - Default Output');
             name = name.replace(/ \(default_input\)$/, ' - Default Input');
             
