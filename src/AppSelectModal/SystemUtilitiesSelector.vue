@@ -88,16 +88,13 @@ export default {
             await SelectedApps.toggleApps(this.currentSliderID.toString(), utility);
             await this.getActiveUtilities();
 
-            console.log("activeUtilities", this.activeUtilities);
             
             // If output was just selected, check if we need to auto-select default device
             if (utility === 'output') {
                 //if output was deselected, remove all devices toggled, else select default device
-                console.log("activeUtilities after selectDefaultOutputDevice", this.activeUtilities);
                 if(!this.activeUtilities.some(item => item === 'output')){  
                     this.removeDevicesToggledApps('output');
                 } else {
-                    console.log("selecting default output device");
                     this.selectDefaultOutputDevice();
                 }
             }
@@ -115,16 +112,13 @@ export default {
         async removeDevicesToggledApps(type){
             const allApps = await SelectedApps.getApps(this.currentSliderID);
             const prefix = `${type}: `;
-            console.log("allApps", allApps);
             const filteredApps = allApps.filter(app => app.startsWith(prefix));
-            console.log("removeDevicesToggledApps", filteredApps);
             await SelectedApps.toggleApps(this.currentSliderID?.toString(), filteredApps);
         },
 
         async selectDefaultOutputDevice() {
             // Make sure output devices are loaded
             if (this.deviceSelectors.output.devices.length === 0) {
-                console.log("loading output devices");
                 await this.loadOutputDevices(true);
             }
             
@@ -143,20 +137,18 @@ export default {
         async selectDefaultInputDevice() {
             // Make sure input devices are loaded
             if (this.deviceSelectors.input.devices.length === 0) {
-                await this.loadInputDevices();
+                await this.loadInputDevices(true);
             }
             
-            // Only auto-select if no devices are currently selected
-            if (this.deviceSelectors.input.selectedDevices.length === 0) {
-                // Find the default input device
-                const defaultDevice = this.deviceSelectors.input.devices.find(
-                    device => device.endsWith('(default_input)')
-                );
-                
-                // If found, select it
-                if (defaultDevice) {
-                    await this.toggleDeviceSelection(defaultDevice, 'input');
-                }
+
+            // Find the default input device
+            const defaultDevice = this.deviceSelectors.input.devices.find(
+                device => device.endsWith('(default_input)')
+            );
+            
+            // If found, select it
+            if (defaultDevice) {
+                await this.toggleDeviceSelection(defaultDevice, 'input');
             }
         },
 
@@ -189,6 +181,10 @@ export default {
                 
                 // Filter saved devices from all apps
                 const savedSelections = allApps ? allApps.filter(app => app.startsWith('output: ')) : [];
+
+                if(savedSelections.length === 0){
+                    this.deviceSelectors.output.selectedDevices = [];
+                }
                 
                 // Merge current devices with saved selections that aren't in the current list
                 const mergedDevices = [...devices];
@@ -200,7 +196,7 @@ export default {
                     });
 
                     //if there is no change to the device list, don't update the devices
-                    if(JSON.stringify(this.deviceSelectors.output.selectedDevices) === JSON.stringify(savedSelections)){
+                    if(JSON.stringify(this.deviceSelectors.output.selectedDevices) === JSON.stringify(savedSelections) && !update){
                         return;
                     }
 
@@ -225,6 +221,10 @@ export default {
                 
                 // Filter saved devices from all apps
                 const savedSelections = allApps ? allApps.filter(app => app.startsWith('input: ')) : [];
+
+                if(savedSelections.length === 0){
+                    this.deviceSelectors.input.selectedDevices = [];
+                }
                 
                 // Merge current devices with saved selections that aren't in the current list
                 const mergedDevices = [...devices];
@@ -234,11 +234,13 @@ export default {
                             mergedDevices.push(device);
                         }
                     });
+                    
 
                     //if there is no change to the device list, don't update the devices
-                    if(JSON.stringify(this.deviceSelectors.input.selectedDevices) === JSON.stringify(savedSelections)){
+                    if(JSON.stringify(this.deviceSelectors.input.selectedDevices) === JSON.stringify(savedSelections) && !update){
                         return;
                     }
+
 
                     this.deviceSelectors.input.selectedDevices = savedSelections;
                 }
@@ -252,6 +254,7 @@ export default {
         },
 
         async toggleDeviceSelection(device, type) {
+            console.log("toggleDeviceSelection", device, type);
             await SelectedApps.toggleApps(this.currentSliderID?.toString(), device);
             await this.loadOutputDevices(true);
             await this.loadInputDevices(true);
