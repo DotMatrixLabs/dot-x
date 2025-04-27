@@ -77,13 +77,13 @@ class SystemVolumeController {
      * @param {number} volume - The volume level to set.
      */
     async setVolume(name: string, volume: number): Promise<void> {
-        try { 
+        try {
             // debounce the volume change, max 1 change per 50ms to prevent audio glitches, unless volume is less than 1% (which is a mute)
             const currentTime = Date.now();
             if (this.lastSetVolumeApp === name && (currentTime - this.lastSetVolumeExecutionTime < 50) && volume > 0.01) return;
             this.lastSetVolumeExecutionTime = currentTime;
             this.lastSetVolumeApp = name;
-            await invoke('set_application_volume', { name: name, volume });
+            await invoke('set_application_volume', { name, volume });
         } catch (error) {
             console.log(error);
         }
