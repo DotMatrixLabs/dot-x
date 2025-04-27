@@ -85,7 +85,7 @@ class SystemVolumeController {
     async setVolume(name: string, volume: number): Promise<void> {
         try {
             // Handle renamed "master" to "output" for backward compatibility
-            const sessionName = name === 'output' ? 'master' : name;
+            const sessionName = name;
             
             // debounce the volume change, max 1 change per 50ms to prevent audio glitches, unless volume is less than 1% (which is a mute)
             const currentTime = Date.now();
@@ -107,32 +107,6 @@ class SystemVolumeController {
         if(Number.isNaN(volume) || !volume) return;
         let apps: string[] | null = await SelectedApps.getApps(channel);
         if(!apps) return;
-        
-        // Check if output is selected and set volume for selected output devices
-        if(apps.includes("output")) {
-            const outputDevices = await SelectedApps.getOutputDevices(channel.toString());
-            if(outputDevices && outputDevices.length > 0) {
-                for(const device of outputDevices) {
-                    await this.setVolume(device, volume);
-                }
-            } else {
-                // If no specific output devices selected, default to master
-                await this.setVolume("output", volume); // Use 'output' for consistency
-            }
-        }
-
-        // Check if mic is selected and set volume/mute for selected input devices
-        if(apps.includes("mic")) {
-            const inputDevices = await SelectedApps.getInputDevices(channel.toString());
-            if(inputDevices && inputDevices.length > 0) {
-                for(const device of inputDevices) {
-                    await this.setVolume(device, volume);
-                }
-            } else {
-                // If no specific input devices selected, default to mic
-                await this.setVolume("mic", volume);
-            }
-        }
         
         if(apps.includes("activeWindow")) {
             const currentActiveWindow = await this.getActiveWindowAppName();
