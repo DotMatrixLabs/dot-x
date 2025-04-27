@@ -255,10 +255,18 @@ export default {
         formatDeviceName(device, type = 'output') {
             console.log("formatDeviceName", device, type);
             const prefix = type === 'input' ? 'input: ' : 'output: ';
-            if (device.startsWith(prefix)) {
-                return device.substring(prefix.length);
+            let name = device;
+            
+            // Remove prefix if present
+            if (name.startsWith(prefix)) {
+                name = name.substring(prefix.length);
             }
-            return device;
+            
+            // Remove default output/input suffixes
+            name = name.replace(/ \(default_output\)$/, ' - Default Output');
+            name = name.replace(/ \(default_input\)$/, ' - Default Input');
+            
+            return name;
         }, 
 
         
