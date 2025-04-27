@@ -35,7 +35,7 @@ class SystemVolumeController {
      * @returns {Promise<string[]>} A promise that resolves with an array of session names.
      */
     async getAllSessionNames(includeSystemFeatures: boolean | undefined): Promise<string[]> {
-        const systemFeatures = ['master', 'output', 'mic', 'system_sounds'];
+        const systemFeatures = ['master', 'output', 'input', 'mic', 'system_sounds'];
         const result: string[] = await invoke('get_all_session_names');
 
         // Filter out system features
