@@ -91,6 +91,10 @@ export default {
             if (utility === 'output') {
                 this.selectDefaultOutputDevice();
             }
+            // If input was just selected, check if we need to auto-select default device
+            else if (utility === 'input') {
+                this.selectDefaultInputDevice();
+            }
         },
 
         async selectDefaultOutputDevice() {
@@ -109,6 +113,26 @@ export default {
                 // If found, select it
                 if (defaultDevice) {
                     await this.toggleDeviceSelection(defaultDevice, 'output');
+                }
+            }
+        },
+
+        async selectDefaultInputDevice() {
+            // Make sure input devices are loaded
+            if (this.deviceSelectors.input.devices.length === 0) {
+                await this.loadInputDevices();
+            }
+            
+            // Only auto-select if no devices are currently selected
+            if (this.deviceSelectors.input.selectedDevices.length === 0) {
+                // Find the default input device
+                const defaultDevice = this.deviceSelectors.input.devices.find(
+                    device => device.endsWith('(default_input)')
+                );
+                
+                // If found, select it
+                if (defaultDevice) {
+                    await this.toggleDeviceSelection(defaultDevice, 'input');
                 }
             }
         },
