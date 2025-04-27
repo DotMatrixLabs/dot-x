@@ -86,16 +86,32 @@ export default {
     methods: {
         async setActiveUtility(utility) {
             await SelectedApps.toggleApps(this.currentSliderID.toString(), utility);
-            this.getActiveUtilities();
+            await this.getActiveUtilities();
             
             // If output was just selected, check if we need to auto-select default device
             if (utility === 'output') {
                 this.selectDefaultOutputDevice();
+                //if output was deselected, remove all devices toggled
+                if(!this.activeUtilities?.includes('output')){  
+                    this.removeDevicesToggledApps('output');
+                }
             }
             // If input was just selected, check if we need to auto-select default device
             else if (utility === 'input') {
                 this.selectDefaultInputDevice();
+                if(!this.activeUtilities?.includes('input')){
+                    this.removeDevicesToggledApps('input');
+                }
             }
+        },
+
+        async removeDevicesToggledApps(type){
+            const allApps = await SelectedApps.getApps(this.currentSliderID);
+            const prefix = `${type}: `;
+            console.log("allApps", allApps);
+            const filteredApps = allApps.filter(app => app.startsWith(prefix));
+            console.log("removeDevicesToggledApps", filteredApps);
+            await SelectedApps.toggleApps(this.currentSliderID?.toString(), filteredApps);
         },
 
         async selectDefaultOutputDevice() {
@@ -266,7 +282,6 @@ export default {
         },
 
         formatDeviceName(device, type = 'output') {
-            console.log("formatDeviceName", device, type);
             const prefix = type === 'input' ? 'input: ' : 'output: ';
             let name = device;
             
