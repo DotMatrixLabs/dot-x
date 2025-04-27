@@ -49,9 +49,7 @@ class SystemVolumeController {
      * @returns {Promise<string[]>} A promise that resolves with an array of all device names.
      */
     async getAllDevices(): Promise<string[]> {
-        console.log("getAllDeviceNames");
         const result = await invoke<string[]>('get_all_audio_devices');
-        console.log(result);
         return result;
     }
 
