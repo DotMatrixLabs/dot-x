@@ -264,6 +264,7 @@ export default {
             } else if (type === 'input') {
                 await this.loadInputDevices(true);
             }
+        },
 
         formatDeviceName(device, type = 'output') {
             const prefix = type === 'input' ? 'input: ' : 'output: ';
