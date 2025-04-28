@@ -161,15 +161,17 @@ export default {
             //for backward compatibility map master to output and mic to input
             if (this.activeUtilities?.includes('master')) {
                 // change master to output
-                this.setActiveUtility('output');
-                SelectedApps.toggleApps(this.currentSliderID?.toString(), 'master');
-                this.selectDefaultOutputDevice();
+                await SelectedApps.toggleApps(this.currentSliderID.toString(), 'output');
+                await SelectedApps.toggleApps(this.currentSliderID?.toString(), 'master');
+                this.activeUtilities = await SelectedApps.getApps(this.currentSliderID?.toString()); 
+                await this.selectDefaultOutputDevice();
             }
             if (this.activeUtilities?.includes('mic')) {
                 // change mic to input
-                this.setActiveUtility('input');
-                SelectedApps.toggleApps(this.currentSliderID?.toString(), 'mic');
-                this.selectDefaultInputDevice();
+                await SelectedApps.toggleApps(this.currentSliderID.toString(), 'input');
+                await SelectedApps.toggleApps(this.currentSliderID?.toString(), 'mic');
+                this.activeUtilities = await SelectedApps.getApps(this.currentSliderID?.toString()); 
+                await this.selectDefaultInputDevice();
             }
         }, 
 
@@ -319,5 +321,5 @@ export default {
 }
 </script>
 
-<style lang="scss" scoped></style>
-<style lang="scss" scoped></style>
+<style lang="scss" scoped>
+</style>
