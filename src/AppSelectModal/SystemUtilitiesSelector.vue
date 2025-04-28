@@ -30,7 +30,7 @@
                                 <input type="checkbox" class="checkbox checkbox-sm" 
                                     :checked="selector.selectedDevices.includes(device)"
                                     @change="toggleDeviceSelection(device, type)" />
-                                <span class="label-text">{{ formatDeviceName(device, type) }}</span>
+                                <span class="label-text" v-html="formatDeviceName(device, type)"></span>
                             </label>
                         </div>
                         <div v-if="selector.devices.length === 0" class="p-2 text-center text-sm opacity-70">
@@ -276,9 +276,9 @@ export default {
                 name = name.substring(prefix.length);
             }
             
-            // Remove default output/input suffixes and replace with - Default Output/Input
-            name = name.replace(/ \(default_output\)$/, ' - Default Output');
-            name = name.replace(/ \(default_input\)$/, ' - Default Input');
+            // Replace default output/input suffixes with bolded text
+            name = name.replace(/ \(default_output\)$/, ' <b>- Default Output</b>');
+            name = name.replace(/ \(default_input\)$/, ' <b>- Default Input</b>');
             
             return name;
         }, 
