@@ -258,10 +258,12 @@ export default {
 
         async toggleDeviceSelection(device, type) {
             await SelectedApps.toggleApps(this.currentSliderID?.toString(), device);
-            await this.loadOutputDevices(true);
-            await this.loadInputDevices(true);
-        },
-
+            
+            if (type === 'output') {
+                await this.loadOutputDevices(true);
+            } else if (type === 'input') {
+                await this.loadInputDevices(true);
+            }
 
         formatDeviceName(device, type = 'output') {
             const prefix = type === 'input' ? 'input: ' : 'output: ';
