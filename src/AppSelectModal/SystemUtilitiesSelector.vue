@@ -201,8 +201,7 @@ export default {
                     });
 
                     //if there is no change to the device list, don't update the devices
-                    if(JSON.stringify(this.deviceSelectors.output.selectedDevices) === JSON.stringify(savedSelections) && !update){
-                        return;
+                    if (this.areArraysEqual(this.deviceSelectors.output.selectedDevices, savedSelections) && !update) {
                     }
 
                     this.deviceSelectors.output.selectedDevices = savedSelections;
