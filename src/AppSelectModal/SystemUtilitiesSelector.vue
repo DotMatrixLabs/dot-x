@@ -114,7 +114,7 @@ export default {
         async setActiveUtility(utility) {
             await SelectedApps.toggleApps(this.currentSliderID.toString(), utility);
             await this.getActiveUtilities();
-            
+
             // If output was just selected, check if we need to auto-select default device
             if (utility === 'output') {
                 //if output was deselected, remove all devices toggled, else select default device
@@ -135,6 +135,8 @@ export default {
                     await this.getActiveUtilities();
                 }
             }
+
+
         },
 
         async removeDevicesToggledApps(type){
@@ -156,7 +158,10 @@ export default {
         async getActiveUtilities(){
             if(this.currentSliderID === null) return;
             this.activeUtilities = await SelectedApps.getApps(this.currentSliderID?.toString());
+        }, 
 
+        async mapMasterToOutput(){
+            await this.getActiveUtilities();
             //for backward compatibility map master to output and mic to input
             //if master is active, select output
             if(this.activeUtilities.includes('master') && !this.activeUtilities.includes('output')){
@@ -168,7 +173,7 @@ export default {
                 await SelectedApps.toggleApps(this.currentSliderID?.toString(), 'input');
                 await this.getActiveUtilities();
             }
-        }, 
+        },
 
         //load output devices - if update is true, don't show loading indicator and only update if there is a change to the device list
         async loadOutputDevices(update = false) {
@@ -306,6 +311,7 @@ export default {
 
     mounted() {
         this.getActiveUtilities();
+        this.mapMasterToOutput();
         this.loadOutputDevices();
         this.loadInputDevices();
         this.setupDeviceUpdateInterval();
