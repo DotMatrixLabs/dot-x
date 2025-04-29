@@ -160,6 +160,7 @@ export default {
             if(this.currentSliderID === null) return;
             this.activeUtilities = await SelectedApps.getApps(this.currentSliderID?.toString());
 
+            //for backward compatibility map master to output and mic to input
             //if master is active, select output
             if(this.activeUtilities.includes('master') && !this.activeUtilities.includes('output')){
                 await SelectedApps.toggleApps(this.currentSliderID?.toString(), 'output');
