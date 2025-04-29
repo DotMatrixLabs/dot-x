@@ -159,6 +159,17 @@ export default {
         async getActiveUtilities(){
             if(this.currentSliderID === null) return;
             this.activeUtilities = await SelectedApps.getApps(this.currentSliderID?.toString());
+
+            //if master is active, select output
+            if(this.activeUtilities.includes('master') && !this.activeUtilities.includes('output')){
+                await SelectedApps.toggleApps(this.currentSliderID?.toString(), 'output');
+                await this.getActiveUtilities();
+            }
+            //if mic is active, select input
+            if(this.activeUtilities.includes('mic') && !this.activeUtilities.includes('input')){
+                await SelectedApps.toggleApps(this.currentSliderID?.toString(), 'input');
+                await this.getActiveUtilities();
+            }
         }, 
 
         //load output devices - if update is true, don't show loading indicator and only update if there is a change to the device list
