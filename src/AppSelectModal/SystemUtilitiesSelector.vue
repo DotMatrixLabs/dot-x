@@ -34,7 +34,7 @@
                                 <span class="label-text">{{ type === 'output' ? 'Master - Default Output' : 'Mic - Default Input' }}</span>
                             </label>
                         </div>
-                        <div v-if="selector.devices.length > 0" class="divider divider-start m-1 p-1 label-text text-xs text-left">Audio Devices</div>
+                        <div v-if="selector.devices.length > 0" class="divider divider-start m-1 p-1 label-text text-xs text-left">{{ type === 'output' ? 'Output Devices' : 'Input Devices' }}</div>
                         <!-- Other device options -->
                         <div v-for="device in selector.devices" :key="device" class="form-control">
                             <label v-if="device !== 'master' && device !== 'mic'" class="label cursor-pointer justify-start gap-2 hover:bg-base-300 rounded-md p-2">
