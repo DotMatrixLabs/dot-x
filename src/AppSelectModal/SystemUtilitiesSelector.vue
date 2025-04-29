@@ -17,16 +17,27 @@
             <h3 class="text-base-content text-sm font-semibold mb-2">{{ selector.title }}</h3>
             <div class="dropdown w-full">
                 <div tabindex="0" role="button" class="btn w-full justify-between">
-                    <span>{{ selector.selectedDevices.length ? `${selector.selectedDevices.length} ${selector.selectedDevices.length === 1 ? 'device' : 'devices'} selected` : selector.placeholder }}</span>
+                    <span>{{ getDeviceDisplayCount(type, selector.selectedDevices) }}</span>
                     <i class="fas fa-chevron-down"></i>
                 </div>
-                <div tabindex="0" class="dropdown-content z-50 menu p-2 shadow bg-base-200 rounded-box w-full max-h-60 overflow-y-auto">
+                <div tabindex="0" class="dropdown-content border-2 border-base-300 z-50 menu p-2 shadow bg-base-200 rounded-xl w-full max-h-60 overflow-y-auto">
                     <div v-if="selector.loading" class="flex justify-center items-center p-4">
                         <span class="loading loading-spinner loading-md"></span>
                     </div>
                     <div v-else>
-                        <div v-for="device in selector.devices" :key="device" class="form-control">
+                        <!-- Master/Mic option -->
+                        <div class="form-control">
                             <label class="label cursor-pointer justify-start gap-2 hover:bg-base-300 rounded-md p-2">
+                                <input type="checkbox" class="checkbox checkbox-sm" 
+                                    :checked="activeUtilities?.includes(type === 'output' ? 'master' : 'mic')"
+                                    @change="setActiveUtility(type === 'output' ? 'master' : 'mic')" />
+                                <span class="label-text">{{ type === 'output' ? 'Master - Default Output' : 'Mic - Default Input' }}</span>
+                            </label>
+                        </div>
+                        <div v-if="selector.devices.length > 0" class="divider divider-start m-1 p-1 label-text text-xs text-left">Audio Devices</div>
+                        <!-- Other device options -->
+                        <div v-for="device in selector.devices" :key="device" class="form-control">
+                            <label v-if="device !== 'master' && device !== 'mic'" class="label cursor-pointer justify-start gap-2 hover:bg-base-300 rounded-md p-2">
                                 <input type="checkbox" class="checkbox checkbox-sm" 
                                     :checked="selector.selectedDevices.includes(device)"
                                     @change="toggleDeviceSelection(device, type)" />
@@ -83,6 +94,25 @@ export default {
         }
     },
 
+    computed: {
+        getDeviceDisplayCount() {
+            return (type, selectedDevices) => {
+                let count = selectedDevices.length;
+
+                console.log(type, selectedDevices);
+                
+                // Add 1 to count if master/mic is selected
+                if (type === 'output' && this.activeUtilities?.includes('master')) {
+                    count += 1;
+                } else if (type === 'input' && this.activeUtilities?.includes('mic')) {
+                    count += 1;
+                }
+                
+                return count ? `${count} ${count === 1 ? 'device' : 'devices'} selected` : this.deviceSelectors[type].placeholder;
+            };
+        }
+    },
+
     methods: {
         async setActiveUtility(utility) {
             await SelectedApps.toggleApps(this.currentSliderID.toString(), utility);
@@ -94,7 +124,8 @@ export default {
                 if(!this.activeUtilities.some(item => item === 'output')){  
                     this.removeDevicesToggledApps('output');
                 } else {
-                    this.selectDefaultOutputDevice();
+                    await SelectedApps.toggleApps(this.currentSliderID.toString(), 'master');
+                    await this.getActiveUtilities();
                 }
             }
             // If input was just selected, check if we need to auto-select default device
@@ -103,7 +134,8 @@ export default {
                 if(!this.activeUtilities.some(item => item === 'input')){
                     this.removeDevicesToggledApps('input');
                 } else {
-                    this.selectDefaultInputDevice();
+                    await SelectedApps.toggleApps(this.currentSliderID.toString(), 'mic');
+                    await this.getActiveUtilities();
                 }
             }
         },
@@ -112,42 +144,12 @@ export default {
             const allApps = await SelectedApps.getApps(this.currentSliderID);
             const prefix = `${type}: `;
             const filteredApps = allApps.filter(app => app.startsWith(prefix));
+            if(this.activeUtilities.includes(type === 'output' ? 'master' : 'mic')){
+                filteredApps.push(type === 'output' ? 'master' : 'mic');
+            }
             await SelectedApps.toggleApps(this.currentSliderID?.toString(), filteredApps);
         },
 
-        async selectDefaultOutputDevice() {
-            // Make sure output devices are loaded
-            if (this.deviceSelectors.output.devices.length === 0) {
-                await this.loadOutputDevices(true);
-            }
-
-            // Find the default output device
-            const defaultDevice = this.deviceSelectors.output.devices.find(
-                device => device.endsWith('(default_output)')
-            );
-            
-            // If found, select it
-            if (defaultDevice) {
-                await this.toggleDeviceSelection(defaultDevice, 'output');
-            }
-        },
-
-        async selectDefaultInputDevice() {
-            // Make sure input devices are loaded
-            if (this.deviceSelectors.input.devices.length === 0) {
-                await this.loadInputDevices(true);
-            }
-
-            // Find the default input device
-            const defaultDevice = this.deviceSelectors.input.devices.find(
-                device => device.endsWith('(default_input)')
-            );
-            
-            // If found, select it
-            if (defaultDevice) {
-                await this.toggleDeviceSelection(defaultDevice, 'input');
-            }
-        },
 
         //get active utilities - if currentSliderID is null, return
         //for backward compatibility map master to output and mic to input
@@ -157,22 +159,6 @@ export default {
         async getActiveUtilities(){
             if(this.currentSliderID === null) return;
             this.activeUtilities = await SelectedApps.getApps(this.currentSliderID?.toString());
-
-            //for backward compatibility map master to output and mic to input
-            if (this.activeUtilities?.includes('master')) {
-                // change master to output
-                await SelectedApps.toggleApps(this.currentSliderID.toString(), 'output');
-                await SelectedApps.toggleApps(this.currentSliderID?.toString(), 'master');
-                this.activeUtilities = await SelectedApps.getApps(this.currentSliderID?.toString()); 
-                await this.selectDefaultOutputDevice();
-            }
-            if (this.activeUtilities?.includes('mic')) {
-                // change mic to input
-                await SelectedApps.toggleApps(this.currentSliderID.toString(), 'input');
-                await SelectedApps.toggleApps(this.currentSliderID?.toString(), 'mic');
-                this.activeUtilities = await SelectedApps.getApps(this.currentSliderID?.toString()); 
-                await this.selectDefaultInputDevice();
-            }
         }, 
 
         //load output devices - if update is true, don't show loading indicator and only update if there is a change to the device list
@@ -306,6 +292,7 @@ export default {
                 this.updateActiveDevices();
             }, 1000);
         },
+
     },
 
     mounted() {
