@@ -97,10 +97,7 @@ export default {
     computed: {
         getDeviceDisplayCount() {
             return (type, selectedDevices) => {
-                let count = selectedDevices.length;
-
-                console.log(type, selectedDevices);
-                
+                let count = selectedDevices.length;                
                 // Add 1 to count if master/mic is selected
                 if (type === 'output' && this.activeUtilities?.includes('master')) {
                     count += 1;
