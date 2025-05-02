@@ -27,11 +27,19 @@
                     <div v-else>
                         <!-- Master/Mic option -->
                         <div class="form-control">
-                            <label class="label cursor-pointer justify-start gap-2 hover:bg-base-300 rounded-md p-2">
-                                <input type="checkbox" class="checkbox checkbox-sm" 
-                                    :checked="activeUtilities?.includes(type === 'output' ? 'master' : 'mic')"
-                                    @change="setActiveUtility(type === 'output' ? 'master' : 'mic')" />
-                                <span class="label-text">{{ type === 'output' ? 'Master - Default Output' : 'Mic - Default Input' }}</span>
+                            <label class="label cursor-pointer justify-between hover:bg-base-300 rounded-md p-2">
+                                <div class="flex items-center gap-2">
+                                    <input type="checkbox" class="checkbox checkbox-sm" 
+                                        :checked="activeUtilities?.includes(type === 'output' ? 'master' : 'mic')"
+                                        @change="setActiveUtility(type === 'output' ? 'master' : 'mic')" />
+                                    <span class="label-text">{{ type === 'output' ? 'Master - Default Output' : 'Mic - Default Input' }}</span>
+                                </div>
+                                <div class="tooltip tooltip-left z-50 before:-translate-y-2" 
+                                    :data-tip="type === 'output' ? 
+                                        'This option follows the default audio output device. If you change your system\'s output device, this will always control the active device.' : 
+                                        'This option follows the default audio input device. If you change your system\'s input device, this will always control the active device.'">
+                                    <i class="fas fa-info-circle text-info text-sm"></i>
+                                </div>
                             </label>
                         </div>
                         <div v-if="selector.devices.length > 0" class="divider divider-start m-1 p-1 label-text text-xs text-left">{{ type === 'output' ? 'Output Devices' : 'Input Devices' }}</div>
