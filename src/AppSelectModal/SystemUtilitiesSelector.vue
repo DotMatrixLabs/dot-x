@@ -1,64 +1,338 @@
 <template>
-    <div class="grid grid-cols-3 w-1/2 m-auto gap-4">
-        <div class="flex flex-col justify-center items-center" v-for="device in devices">
-            <button :disabled="(device.id === 'master' || device.id === 'mic') && !sessions?.includes(device.id)" @click="setActiveDevice(device.id)" class="btn btn-circle"
-                :class="activeDevices?.includes(device.id) ? 'btn-primary' : ''">
-                <i :class="device.icon"></i>
-            </button>
-            <span class="text-base-content text-xs text-center capitalize my-1"> {{ device.title }}</span>
+    <div class="flex flex-col gap-4 w-full h-64 overflow-y-scroll p-2">
+        <div class="grid grid-cols-3 w-1/2 m-auto gap-4">
+            <div class="flex flex-col justify-center items-center" v-for="utility in utilities" :key="utility.id">
+                <button :disabled="(utility.id === 'output' && deviceSelectors.output.devices.length === 0) || (utility.id === 'input' && deviceSelectors.input.devices.length === 0)" @click="setActiveUtility(utility.id)" class="btn btn-circle"
+                    :class="activeUtilities?.includes(utility.id) ? 'btn-primary' : ''">
+                    <i :class="utility.icon"></i>
+                </button>
+                <span class="text-base-content text-xs text-center capitalize my-1"> {{ utility.title }}</span>
+            </div>
+        </div>
+
+        <div v-if="activeUtilities?.includes('output') || activeUtilities?.includes('input')" class="divider label-text">Settings</div>
+
+        <!-- Combined device selector -->
+        <div v-show="activeUtilities?.includes(type)" v-for="(selector, type) in deviceSelectors" :key="type" class="w-4/5 m-auto">
+            <h3 class="text-base-content text-sm font-semibold mb-2">{{ selector.title }}</h3>
+            <div class="dropdown w-full">
+                <div tabindex="0" role="button" class="btn w-full justify-between">
+                    <span>{{ getDeviceDisplayCount(type, selector.selectedDevices) }}</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div tabindex="0" class="dropdown-content border-2 border-base-300 z-50 menu p-2 shadow bg-base-200 rounded-xl w-full max-h-60 overflow-y-auto">
+                    <div v-if="selector.loading" class="flex justify-center items-center p-4">
+                        <span class="loading loading-spinner loading-md"></span>
+                    </div>
+                    <div v-else>
+                        <!-- Master/Mic option -->
+                        <div class="form-control">
+                            <label class="label cursor-pointer justify-between hover:bg-base-300 rounded-md p-2">
+                                <div class="flex items-center gap-2">
+                                    <input type="checkbox" class="checkbox checkbox-sm" 
+                                        :checked="activeUtilities?.includes(type === 'output' ? 'master' : 'mic')"
+                                        @change="setActiveUtility(type === 'output' ? 'master' : 'mic')" />
+                                    <span class="label-text">{{ type === 'output' ? 'Master - Default Output' : 'Mic - Default Input' }}</span>
+                                </div>
+                                <div class="tooltip tooltip-left z-50 before:-translate-y-2" 
+                                    :data-tip="type === 'output' ? 
+                                        'This option follows the default audio output device. If you change your system\'s output device, this will always control the active device.' : 
+                                        'This option follows the default audio input device. If you change your system\'s input device, this will always control the active device.'">
+                                    <i class="fas fa-info-circle text-info text-sm"></i>
+                                </div>
+                            </label>
+                        </div>
+                        <div v-if="selector.devices.length > 0" class="divider divider-start m-1 p-1 label-text text-xs text-left">{{ type === 'output' ? 'Output Devices' : 'Input Devices' }}</div>
+                        <!-- Other device options -->
+                        <div v-for="device in selector.devices" :key="device" class="form-control">
+                            <label v-if="device !== 'master' && device !== 'mic'" class="label cursor-pointer justify-start gap-2 hover:bg-base-300 rounded-md p-2">
+                                <input type="checkbox" class="checkbox checkbox-sm" 
+                                    :checked="selector.selectedDevices.includes(device)"
+                                    @change="toggleDeviceSelection(device, type)" />
+                                <span class="label-text" v-html="formatDeviceName(device, type)"></span>
+                            </label>
+                        </div>
+                        <div v-if="selector.devices.length === 0" class="p-2 text-center text-sm opacity-70">
+                            No {{ type }} devices found
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </template>
 
 <script>
-
-
 import SelectedApps from "../ts/appsToControl.ts";
 import SystemVolumeController from "../ts/volumeControl.ts";
 
 export default {
-
     props: {
         currentSliderID: Number,
     },
 
     data() {
         return {
-            devices: [
-                { title: "master", icon: "fas fa-volume-up fa-lg", id: "master" },
-                { title: "microphone", icon: "fas fa-lg fa-microphone", id: "mic" },
+            utilities: [
+                { title: "output", icon: "fas fa-volume-up fa-lg", id: "output" },
+                { title: "input", icon: "fas fa-lg fa-microphone", id: "input" },
                 { title: "unmapped", icon: "fas fa-lg fa-question-circle", id: "unmapped"},
                 { title: "active window", icon: "fas fa-lg fa-window-maximize", id: "activeWindow"},
                 { title: "screen brightness", icon: "fas fa-lg fa-sun", id: "screen brightness"},
             ],
-            activeDevices: [],
+            activeUtilities: [],
             sessions: [],
+            deviceSelectors: {
+                output: {
+                    title: 'Select Output Devices',
+                    placeholder: 'Select output devices',
+                    loading: false,
+                    devices: [],
+                    selectedDevices: []
+                },
+                input: {
+                    title: 'Select Input Devices',
+                    placeholder: 'Select input devices',
+                    loading: false,
+                    devices: [],
+                    selectedDevices: []
+                }
+            },
+            deviceUpdateInterval: null,
+        }
+    },
+
+    computed: {
+        getDeviceDisplayCount() {
+            return (type, selectedDevices) => {
+                let count = selectedDevices.length;                
+                // Add 1 to count if master/mic is selected
+                if (type === 'output' && this.activeUtilities?.includes('master')) {
+                    count += 1;
+                } else if (type === 'input' && this.activeUtilities?.includes('mic')) {
+                    count += 1;
+                }
+                
+                return count ? `${count} ${count === 1 ? 'device' : 'devices'} selected` : this.deviceSelectors[type].placeholder;
+            };
         }
     },
 
     methods: {
-        async setActiveDevice(device) {
-            await SelectedApps.toggleApps(this.currentSliderID.toString(), device);
-            this.getActiveDevices();
+        async setActiveUtility(utility) {
+            await SelectedApps.toggleApps(this.currentSliderID.toString(), utility);
+            await this.getActiveUtilities();
+
+            // If output was just selected, check if we need to auto-select default device
+            if (utility === 'output') {
+                //if output was deselected, remove all devices toggled, else select default device
+                if(!this.activeUtilities.some(item => item === 'output')){  
+                    this.removeDevicesToggledApps('output');
+                } else {
+                    await SelectedApps.toggleApps(this.currentSliderID.toString(), 'master');
+                    await this.getActiveUtilities();
+                }
+            }
+            // If input was just selected, check if we need to auto-select default device
+            else if (utility === 'input') {
+                //if input was deselected, remove all devices toggled, else select default device
+                if(!this.activeUtilities.some(item => item === 'input')){
+                    this.removeDevicesToggledApps('input');
+                } else {
+                    await SelectedApps.toggleApps(this.currentSliderID.toString(), 'mic');
+                    await this.getActiveUtilities();
+                }
+            }
+
+
         },
 
-        async getActiveDevices(){
+        async removeDevicesToggledApps(type){
+            const allApps = await SelectedApps.getApps(this.currentSliderID);
+            const prefix = `${type}: `;
+            const filteredApps = allApps.filter(app => app.startsWith(prefix));
+            if(this.activeUtilities.includes(type === 'output' ? 'master' : 'mic')){
+                filteredApps.push(type === 'output' ? 'master' : 'mic');
+            }
+            await SelectedApps.toggleApps(this.currentSliderID?.toString(), filteredApps);
+        },
+
+
+        //get active utilities - if currentSliderID is null, return
+        //for backward compatibility map master to output and mic to input
+        //if master is active, select output
+        //if mic is active, select input
+
+        async getActiveUtilities(){
             if(this.currentSliderID === null) return;
-            this.activeDevices = await SelectedApps.getApps(this.currentSliderID?.toString());
+            this.activeUtilities = await SelectedApps.getApps(this.currentSliderID?.toString());
+        }, 
+
+        async mapMasterToOutput(){
+            await this.getActiveUtilities();
+            //for backward compatibility map master to output and mic to input
+            //if master is active, select output
+            if(this.activeUtilities.includes('master') && !this.activeUtilities.includes('output')){
+                await SelectedApps.toggleApps(this.currentSliderID?.toString(), 'output');
+                await this.getActiveUtilities();
+            }
+            //if mic is active, select input
+            if(this.activeUtilities.includes('mic') && !this.activeUtilities.includes('input')){
+                await SelectedApps.toggleApps(this.currentSliderID?.toString(), 'input');
+                await this.getActiveUtilities();
+            }
         },
 
-        async getSessions() {
-            this.sessions = await SystemVolumeController.getAllSessionNames(true);
-        }
+        //load output devices - if update is true, don't show loading indicator and only update if there is a change to the device list
+        async loadOutputDevices(update = false) {
+            if(!update){
+                this.deviceSelectors.output.loading = true;
+            }
+            try {
+                const devices = await SystemVolumeController.getOutputDevices();
+                const allApps = await SelectedApps.getApps(this.currentSliderID);
+                
+                // Filter saved devices from all apps
+                const savedSelections = allApps ? allApps.filter(app => app.startsWith('output: ')) : [];
+
+                if(savedSelections.length === 0){
+                    this.deviceSelectors.output.selectedDevices = [];
+                }
+                
+                // Merge current devices with saved selections that aren't in the current list
+                const mergedDevices = [...devices];
+                if (savedSelections && savedSelections.length) {
+                    savedSelections.forEach(device => {
+                        if (!mergedDevices.includes(device)) {
+                            mergedDevices.push(device);
+                        }
+                    });
+
+                    //if there is no change to the device list, don't update the devices
+                    if (JSON.stringify(this.deviceSelectors.output.selectedDevices) === JSON.stringify(savedSelections) && !update) {
+                        return;
+                    }
+
+                    this.deviceSelectors.output.selectedDevices = savedSelections;
+                }
+                
+                this.deviceSelectors.output.devices = mergedDevices;
+            } catch (error) {
+                console.error("Failed to load output devices:", error);
+            } finally {
+                this.deviceSelectors.output.loading = false;
+            }
+        },
         
+        //load input devices - if update is true, don't show loading indicator and only update if there is a change to the device list
+        async loadInputDevices(update = false) {
+            if(!update){
+                this.deviceSelectors.input.loading = true;
+            }
+            try {
+                const devices = await SystemVolumeController.getInputDevices();
+                const allApps = await SelectedApps.getApps(this.currentSliderID);
+                
+                // Filter saved devices from all apps
+                const savedSelections = allApps ? allApps.filter(app => app.startsWith('input: ')) : [];
+
+                if(savedSelections.length === 0){
+                    this.deviceSelectors.input.selectedDevices = [];
+                }
+                
+                // Merge current devices with saved selections that aren't in the current list
+                const mergedDevices = [...devices];
+                if (savedSelections && savedSelections.length) {
+                    savedSelections.forEach(device => {
+                        if (!mergedDevices.includes(device)) {
+                            mergedDevices.push(device);
+                        }
+                    });
+
+                    //if there is no change to the device list, don't update the devices
+                    if(JSON.stringify(this.deviceSelectors.input.selectedDevices) === JSON.stringify(savedSelections) && !update){
+                        return;
+                    }
+
+                    this.deviceSelectors.input.selectedDevices = savedSelections;
+                }
+                
+                this.deviceSelectors.input.devices = mergedDevices;
+            } catch (error) {
+                console.error("Failed to load input devices:", error);
+            } finally {
+                this.deviceSelectors.input.loading = false;
+            }
+        },
+
+        async toggleDeviceSelection(device, type) {
+            await SelectedApps.toggleApps(this.currentSliderID?.toString(), device);
+            
+            if (type === 'output') {
+                await this.loadOutputDevices(true);
+            } else if (type === 'input') {
+                await this.loadInputDevices(true);
+            }
+        },
+
+        formatDeviceName(device, type = 'output') {
+            const prefix = type === 'input' ? 'input: ' : 'output: ';
+            let name = device;
+            
+            // Remove prefix if present
+            if (name.startsWith(prefix)) {
+                name = name.substring(prefix.length);
+            }
+            
+            // Replace default output/input suffixes with bolded text
+            name = name.replace(/ \(default_output\)$/, ' <b>- Default Output</b>');
+            name = name.replace(/ \(default_input\)$/, ' <b>- Default Input</b>');
+            
+            return name;
+        }, 
+
+        // Check and update devices based on active utilities
+        updateActiveDevices() {
+            if (this.activeUtilities?.includes('output')) {
+                this.loadOutputDevices(true);
+            }
+            
+            if (this.activeUtilities?.includes('input')) {
+                this.loadInputDevices(true);
+            }
+        },
+        
+        // Setup interval for device updates
+        setupDeviceUpdateInterval() {
+            // Clear existing interval if it exists
+            if (this.deviceUpdateInterval) {
+                clearInterval(this.deviceUpdateInterval);
+            }
+            
+            // Create new interval that runs every second
+            this.deviceUpdateInterval = setInterval(() => {
+                this.updateActiveDevices();
+            }, 1000);
+        },
+
     },
 
     mounted() {
-        this.getActiveDevices();
-        this.getSessions();
+        this.getActiveUtilities();
+        this.mapMasterToOutput();
+        this.loadOutputDevices();
+        this.loadInputDevices();
+        this.setupDeviceUpdateInterval();
     },
-
+    
+    beforeUnmount() {
+        // Clean up interval when component is destroyed
+        if (this.deviceUpdateInterval) {
+            clearInterval(this.deviceUpdateInterval);
+        }
+    },
 }
 </script>
 
-<style lang="scss" scoped></style>
+<style lang="scss" scoped>
+</style>
