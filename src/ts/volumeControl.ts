@@ -30,12 +30,12 @@ class SystemVolumeController {
     }
 
     /**
-     *Gets the names of all audio sessions.
+     * Gets the names of all audio sessions.
      * @param {boolean} includeSystemFeatures - Whether or not to include system features.
      * @returns {Promise<string[]>} A promise that resolves with an array of session names.
      */
     async getAllSessionNames(includeSystemFeatures: boolean | undefined): Promise<string[]> {
-        const systemFeatures = ['master', 'mic', 'system_sounds'];
+        const systemFeatures = ['master', 'output', 'input', 'mic', 'system_sounds'];
         const result: string[] = await invoke('get_all_session_names');
 
         // Filter out system features
@@ -44,6 +44,32 @@ class SystemVolumeController {
         return result as string[];
     }
 
+    /**
+     * Gets the names of all audio devices (both input and output).
+     * @returns {Promise<string[]>} A promise that resolves with an array of all device names.
+     */
+    async getAllDevices(): Promise<string[]> {
+        const result = await invoke<string[]>('get_all_audio_devices');
+        return result;
+    }
+
+    /**
+     * Gets the names of all output audio devices.
+     * @returns {Promise<string[]>} A promise that resolves with an array of output device names.
+     */
+    async getOutputDevices(): Promise<string[]> {
+        const result = await invoke<string[]>('get_output_devices');
+        return result;
+    }
+
+    /**
+     * Gets the names of all input audio devices.
+     * @returns {Promise<string[]>} A promise that resolves with an array of input device names.
+     */
+    async getInputDevices(): Promise<string[]> {
+        const result = await invoke<string[]>('get_input_devices');
+        return result;
+    }
 
     /**
      * Sets the volume for a specific application.
@@ -72,6 +98,7 @@ class SystemVolumeController {
         if(Number.isNaN(volume) || !volume) return;
         let apps: string[] | null = await SelectedApps.getApps(channel);
         if(!apps) return;
+        
         if(apps.includes("activeWindow")) {
             const currentActiveWindow = await this.getActiveWindowAppName();
             this.setVolume(currentActiveWindow, volume);
