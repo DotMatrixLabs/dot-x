@@ -106,9 +106,14 @@ class SystemVolumeController {
         if(apps.includes("unmapped")) {
             //get all apps and remove the ones that are already mapped
             apps = await this.getAllSessionNames(false);
-            //remove system features
+            const systemFeatures = ['master', 'output', 'input', 'mic'];
             const mappedApps = await SelectedApps.getMappedApps();
             if(!mappedApps) return;
+            //remove system features
+            apps = apps.filter((app) => !systemFeatures.includes(app));
+            //remove input and output devices
+            apps = apps.filter((app) => !app.toLowerCase().startsWith("input: ") && !app.toLowerCase().startsWith("output: "));
+            //remove mapped apps
             apps = apps.filter((app) => !mappedApps.includes(app));
             const channelApps: string[] | null = await SelectedApps.getApps(channel);
             //add back the apps that are mapped to same channel
