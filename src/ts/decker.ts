@@ -101,6 +101,10 @@ class Decker {
         if(!this.initiated) this.initClass();
         this.initiated = true;
 
+        const newDevices:any = await this.getDevices();
+        const device = newDevices.find((device:any) => device.port_name === comPort);
+        if(device && (device.pid === 58918 && device.vid === 1240)) trackEvent("decker_connected");
+
         const deckerStore = useDeckerStore();
         this.comPort = comPort;
 
