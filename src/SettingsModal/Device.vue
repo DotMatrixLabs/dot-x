@@ -74,7 +74,6 @@ import RGBController from "../ts/RGBController";
 import { mapState } from "pinia";
 import { useDeckerStore } from "../store/deckerStore.ts";
 import EventBus from "../js/eventBus";
-import { trackEvent } from "@aptabase/tauri";
 
 const toast = useToast();
 
@@ -281,7 +280,6 @@ export default {
             const device = this.devices.find((device) => device.port_name === storedDevice);
             if(!device) return;
             if(device.pid === 58918 && device.vid === 1240){
-                trackEvent("decker_connected");
                 this.deviceType = "Decker";
             } else {
                 this.deviceType = "Unknown";
