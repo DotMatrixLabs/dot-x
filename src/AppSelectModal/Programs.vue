@@ -135,9 +135,6 @@ export default {
                     extraAppsArray.push(extraApps[app]);
                 });
             }
-            console.log({
-                extraAppsArray: extraAppsArray,
-            });
             return extraAppsArray;
         },
 
@@ -185,7 +182,6 @@ export default {
                 await this.getSelectedApps();
                 this.appList.forEach((app, index) => {
                     const selectedApp = this.selectedApps?.find((str) => str === app.DisplayName);
-                    console.log({selectedApp});
                     if(selectedApp) {
                         this.appList.splice(index, 1);
                         this.appList.unshift(app);

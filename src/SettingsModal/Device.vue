@@ -136,6 +136,7 @@ export default {
             device = {...device, ...this.deviceData};
             if(!device) return;
 
+
             if(device.pid === 58918 && device.vid === 1240){
                 return {
                     model: device?.deviceModel ?? "Unknown",
@@ -173,10 +174,8 @@ export default {
         deviceName(device){
             if(!device) return;
             if(device.pid === 58918 && device.vid === 1240){
-                this.deviceType = "Decker";
                 return `Decker (${device.port_name})`;
             } else {
-                this.deviceType = "Unknown";
                 return `${device.port_name}`;
             }
         },
@@ -213,7 +212,6 @@ export default {
         rgbEffectChange(event) {
             const brightness = parseInt(this.brightness * 2.55);
             this.currentRGBEffect = event.target.value;
-            console.log(this.currentRGBEffect);
             if(this.currentRGBEffect === 'Off') {
                 RGBController.setEffect('off', 0, brightness, '#000000');
                 return;
@@ -232,25 +230,21 @@ export default {
         },
 
         colorChange(event) {
-        const brightness = parseInt(this.brightness * 2.55);
-        const currentTime = Date.now();
+            const brightness = parseInt(this.brightness * 2.55);
+            const currentTime = Date.now();
 
-        if (currentTime - this.lastExecutionTime >= 100) {
-            this.selectedColor = event.target.value;
-            
-            this.lastExecutionTime = currentTime;
+            if (currentTime - this.lastExecutionTime >= 100) {
+                this.selectedColor = event.target.value;
+                
+                this.lastExecutionTime = currentTime;
 
-            RGBController.setEffect('static', 0, brightness, this.selectedColor);
-            if(this.breathingEnabled) return RGBController.setEffect('breathing', parseInt(100 - this.speed), brightness, this.selectedColor);
-            ConfigStore.set("RGBColor", this.selectedColor);
-            ConfigStore.save();
-        }
-    },
+                RGBController.setEffect('static', 0, brightness, this.selectedColor);
+                if(this.breathingEnabled) return RGBController.setEffect('breathing', parseInt(100 - this.speed), brightness, this.selectedColor);
+                ConfigStore.set("RGBColor", this.selectedColor);
+                ConfigStore.save();
+            }
+        },
 
-        // getSavedComPort() {
-        //     this.currentComPort = store.get("config.comPort");
-        //     console.log(this.currentComPort);
-        // },
 
         async deviceSelected() {
             if(this.currentDevice === "disconnect") {
@@ -259,6 +253,11 @@ export default {
                 ConfigStore.set("comPort", null);
                 ConfigStore.save();
                 return;
+            }
+            if(this.currentDevice.pid === 58918 && this.currentDevice.vid === 1240){
+                this.deviceType = "Decker";
+            } else {
+                this.deviceType = "Unknown";
             }
             ConfigStore.set("comPort", this.currentDevice.port_name);
             ConfigStore.save();
@@ -280,6 +279,11 @@ export default {
             if(!storedDevice) return;
             const device = this.devices.find((device) => device.port_name === storedDevice);
             if(!device) return;
+            if(device.pid === 58918 && device.vid === 1240){
+                this.deviceType = "Decker";
+            } else {
+                this.deviceType = "Unknown";
+            }
             this.currentDevice = device;
         },
         
@@ -321,6 +325,13 @@ export default {
         if(this.connectionState) {
             this.sendCurrentRGBEffect(); // Dot X was just opened and device is connected, send current RGB effect
             this.getDeviceInfo();
+        }
+    },
+
+    beforeUnmount() {
+        if (this.comPortInterval) {
+            clearInterval(this.comPortInterval);
+            this.comPortInterval = null;
         }
     },
 }
