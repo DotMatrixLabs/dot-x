@@ -319,12 +319,21 @@ async fn set_screen_brightness(brightness: f32, screens: Value) -> Result<(), Er
 
 async fn set_brightness(percentage: u32) {
   println!("Setting brightness to {}%", percentage);
-  brightness::brightness_devices()
+  if let Err(e) = brightness::brightness_devices()
       .try_for_each(|mut dev| async move {
-          dev.set(percentage).await
+          if let Err(err) = dev.set(percentage).await {
+              eprintln!(
+                  "Failed to set brightness for device {}: {:?}",
+                  dev.device_name().await.unwrap_or_else(|_| "Unknown".to_string()),
+                  err
+              );
+          }
+          Ok(())
       })
       .await
-      .unwrap()
+  {
+      eprintln!("Error iterating over brightness devices: {:?}", e);
+  }
 }
 
 async fn show_brightness(dev: &BrightnessDevice) -> Result<(), brightness::Error> {
