@@ -160,13 +160,18 @@ class SystemVolumeController {
 
     async getActiveWindowAppName(): Promise<string> {
         const currentTime = Date.now();
-
+    
         if (currentTime - this.lastActiveWindowExecutionTime >= 500) {
-            const appName: any = await invoke('get_active_app_name');
-            console.log('Active window:', appName);
-            this.lastActiveWindowExecutionTime = currentTime;
-            this.lastActiveWindowExecutionResult = appName;
-            return appName;
+            try {
+                const appName: any = await invoke('get_active_app_name');
+                this.lastActiveWindowExecutionTime = currentTime;
+                this.lastActiveWindowExecutionResult = appName;
+                return appName;
+            } catch (error) {
+                console.error('Failed to get active window app name:', error);
+                // Return the last cached result or a default value
+                return this.lastActiveWindowExecutionResult || "Unknown";
+            }
         } else {
             return this.lastActiveWindowExecutionResult;
         }
