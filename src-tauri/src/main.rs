@@ -226,10 +226,16 @@ fn detach_midi_device() -> Result<(), Error> {
 
 #[tauri::command]
 fn get_active_app_name() -> String {
-  let active_window = get_active_window().unwrap();
-  println!("Active window: {:?}", active_window);
-  let active_app_name = active_window.app_name.to_string();
-  active_app_name
+    match get_active_window() {
+        Ok(active_window) => {
+            println!("Active window: {:?}", active_window);
+            active_window.app_name.to_string()
+        }
+        Err(err) => {
+            eprintln!("Failed to get active window: {:?}", err);
+            "Unknown".to_string() // Return a default value if an error occurs
+        }
+    }
 }
 
 #[tauri::command]
@@ -237,7 +243,7 @@ fn set_application_volume(name: &str, volume: f32) -> Result<(), Error> {
     unsafe {
         let controller = get_initialized_audio_controller();
 
-        println!("All session names: {:?}", controller.get_all_session_names());
+        // println!("All session names: {:?}", controller.get_all_session_names());
 
         // Get the current session by name
         let current_sessions = controller.get_sessions_by_name(name.to_string());
@@ -319,12 +325,21 @@ async fn set_screen_brightness(brightness: f32, screens: Value) -> Result<(), Er
 
 async fn set_brightness(percentage: u32) {
   println!("Setting brightness to {}%", percentage);
-  brightness::brightness_devices()
+  if let Err(e) = brightness::brightness_devices()
       .try_for_each(|mut dev| async move {
-          dev.set(percentage).await
+          if let Err(err) = dev.set(percentage).await {
+              eprintln!(
+                  "Failed to set brightness for device {}: {:?}",
+                  dev.device_name().await.unwrap_or_else(|_| "Unknown".to_string()),
+                  err
+              );
+          }
+          Ok(())
       })
       .await
-      .unwrap()
+  {
+      eprintln!("Error iterating over brightness devices: {:?}", e);
+  }
 }
 
 async fn show_brightness(dev: &BrightnessDevice) -> Result<(), brightness::Error> {
