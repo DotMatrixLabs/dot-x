@@ -164,7 +164,6 @@ class SystemVolumeController {
         if (currentTime - this.lastActiveWindowExecutionTime >= 500) {
             try {
                 const appName: any = await invoke('get_active_app_name');
-                console.log('Active window:', appName);
                 this.lastActiveWindowExecutionTime = currentTime;
                 this.lastActiveWindowExecutionResult = appName;
                 return appName;
