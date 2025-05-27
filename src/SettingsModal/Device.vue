@@ -1,6 +1,7 @@
 <template>
     <div class="flex flex-col justify-between items-center h-full w-full overflow-y-auto">
         <StatsPanel v-if="statsModalOpen" :device="currentDevice" :modal-open="statsModalOpen" @close="statsToggled" />
+        <DebugModal v-if="debugModalOpen" :device="currentDevice" :modal-open="debugModalOpen" @close="debugToggled" />
         <!-- Device Selection -->
         <div class="flex flex-row w-full justify-between px-2">
             <span class="shrink-0 pt-1">Device: </span>
@@ -62,6 +63,21 @@
                 </div>
             </div>
         </div>
+
+        <!-- Unknown Device Section -->
+        <div v-if="deviceType === 'Unknown'" :class="connectionState ? '' : 'opacity-40 pointer-events-none'" class="w-full h-full rounded-lg px-2">
+            <div class="flex flex-col w-full items-center mt-3">
+                <div class="flex flex-col w-full items-center space-y-3">
+                    <div class="flex text-sm flex-row w-full justify-between my-1">
+                        <span class="text-gray-500">Debug Console:</span>
+                        <button @click="debugToggled" class="font-semibold btn btn-sm btn-warning w-1/3">
+                            <i class="fa-solid fa-bug mr-1"></i>
+                            Debug
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
@@ -70,6 +86,7 @@ import { useToast } from "vue-toastification";
 import Decker from "../ts/decker.ts";
 import ConfigStore from "../ts/config.ts";
 import StatsPanel from "./StatsPanel.vue";
+import DebugModal from "./DebugModal.vue";
 import RGBController from "../ts/RGBController";
 import { mapState } from "pinia";
 import { useDeckerStore } from "../store/deckerStore.ts";
@@ -84,6 +101,7 @@ export default {
 
     components: {
         StatsPanel,
+        DebugModal,
     },
 
     props: {
@@ -106,6 +124,7 @@ export default {
             RGBEffects: ["Off", "Static", "Rainbow", "Candle", "Lightning Storm", "Perimeter"],
             deviceConnected: true,
             statsModalOpen: false,
+            debugModalOpen: false,
             lastExecutionTime: 0,
             deviceType: "Unknown",
             speed: 10,
@@ -130,6 +149,10 @@ export default {
 
         statsToggled() {
             this.statsModalOpen = !this.statsModalOpen;
+        },
+
+        debugToggled() {
+            this.debugModalOpen = !this.debugModalOpen;
         },
 
         deviceInfo(device) {
