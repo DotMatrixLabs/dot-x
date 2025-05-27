@@ -7,6 +7,7 @@
     "build": "npm run licenses && vue-tsc --noEmit && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
+    "tauri:build:prod": "tauri build && node scripts/rename-build-files.cjs",
     "licenses": "npm run rust-licenses && npm run js-licenses",
     "rust-licenses": "cd src-tauri && cargo license --avoid-dev-deps --avoid-build-deps --json > licenses/rust_licenses.json",
     "js-licenses": "npx npm-license-crawler --json src-tauri/licenses/js_licenses.json"
