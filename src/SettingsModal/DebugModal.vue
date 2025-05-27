@@ -4,26 +4,26 @@
             <button @click="closeModal" class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
             
             <h1 class="font-bold text-lg text-center">Debug Console</h1>
-            <p class="text-sm font-light opacity-50 text-center mb-4">Raw data from the connected device for debugging purposes</p>
+            <p class="text-sm font-light opacity-50 text-center mb-4">All raw data from the connected device, including unrecognized formats</p>
             
-            <!-- Raw Data Toggle - positioned above terminal -->
-            <div class="flex justify-end mb-2">
-                <label class="flex items-center cursor-pointer">
-                    <input 
-                        v-model="showRawData" 
-                        type="checkbox" 
-                        class="checkbox checkbox-primary checkbox-xs mr-1"
-                    />
-                    <span class="text-xs">Raw data</span>
-                </label>
-            </div>
+                            <!-- Raw Data Toggle - positioned above terminal -->
+                <div class="flex justify-end mb-2">
+                    <label class="flex items-center cursor-pointer">
+                        <input 
+                            v-model="showRawData" 
+                            type="checkbox" 
+                            class="checkbox checkbox-primary checkbox-xs mr-1"
+                        />
+                        <span class="text-xs">Show raw bytes</span>
+                    </label>
+                </div>
             
             <!-- Debug Console Area -->
             <div ref="consoleArea" class="flex-1 bg-base-200 rounded-lg p-4 overflow-y-auto font-mono text-xs mb-4">
                 <div v-if="rawData.length === 0" class="text-gray-500">
                     Debug console ready... Raw device data will appear here.
                 </div>
-                <div v-for="(entry, index) in rawData" :key="index" class="mb-1">
+                <div v-for="(entry, index) in filteredRawData" :key="index" class="mb-1">
                     <span class="text-blue-400">[{{ entry.timestamp }}]</span>
                     <span class="text-green-400 ml-2">{{ entry.event }}:</span>
                     <span class="text-white ml-2">{{ entry.data }}</span>
@@ -56,6 +56,7 @@
 
 <script>
 import { listen } from '@tauri-apps/api/event';
+import { invoke } from '@tauri-apps/api/tauri';
 
 export default {
     name: "DebugModal",
@@ -73,36 +74,56 @@ export default {
     
     emits: ['close'],
     
+    computed: {
+        filteredRawData() {
+            if (this.showRawData) {
+                return this.rawData;
+            } else {
+                return this.rawData.filter(entry => entry.event !== 'raw-data');
+            }
+        }
+    },
+    
     data() {
         return {
             isMonitoring: false,
             rawData: [],
+            rawDataListenerDetacher: null,
             sliderListenerDetacher: null,
+            deviceInfoListenerDetacher: null,
             showRawData: false
         }
     },
     
     methods: {
-        closeModal() {
+        async closeModal() {
             this.$emit('close');
-            this.stopMonitoring(); // Stop monitoring when modal is closed
+            await this.stopMonitoring(); // Stop monitoring when modal is closed
         },
         
         async startMonitoring() {
             if (this.isMonitoring) return;
             
             this.isMonitoring = true;
-            this.addLogEntry('system', 'Started monitoring slider data...');
+            this.addLogEntry('system', 'Started monitoring raw device data...');
+            
+            // Enable debug mode in backend
+            try {
+                await invoke('toggle_debug_mode', { enabled: true });
+            } catch (error) {
+                this.addLogEntry('error', `Failed to enable debug mode: ${error.message}`);
+            }
             
             try {
-                this.sliderListenerDetacher = await listen('slider-change', (event) => {
-                    const timestamp = new Date().toLocaleTimeString();
+                // Listen to raw device data
+                this.rawDataListenerDetacher = await listen('raw-device-data', (event) => {
                     const rawMessage = event.payload.message;
-                    
-                    // Log the raw JSON string if enabled
-                    if (this.showRawData) {
-                        this.addLogEntry('slider-change', `Raw: ${rawMessage}`);
-                    }
+                    this.addLogEntry('raw-data', rawMessage);
+                });
+
+                // Also listen to parsed slider data if available
+                this.sliderListenerDetacher = await listen('slider-change', (event) => {
+                    const rawMessage = event.payload.message;
                     
                     try {
                         // Parse and log the parsed data
@@ -113,21 +134,44 @@ export default {
                         this.addLogEntry('error', `Failed to parse JSON: ${parseError.message}`);
                     }
                 });
+
+                // Listen to device info events
+                this.deviceInfoListenerDetacher = await listen('device-info', (event) => {
+                    const rawMessage = event.payload.message;
+                    this.addLogEntry('device-info', `Device Info: ${rawMessage}`);
+                });
             } catch (error) {
                 this.addLogEntry('error', `Failed to start monitoring: ${error.message}`);
                 this.isMonitoring = false;
             }
         },
         
-        stopMonitoring() {
+        async stopMonitoring() {
             if (!this.isMonitoring) return;
             
             this.isMonitoring = false;
-            this.addLogEntry('system', 'Stopped monitoring slider data.');
+            this.addLogEntry('system', 'Stopped monitoring device data.');
+            
+            // Disable debug mode in backend
+            try {
+                await invoke('toggle_debug_mode', { enabled: false });
+            } catch (error) {
+                this.addLogEntry('error', `Failed to disable debug mode: ${error.message}`);
+            }
+            
+            if (this.rawDataListenerDetacher) {
+                this.rawDataListenerDetacher();
+                this.rawDataListenerDetacher = null;
+            }
             
             if (this.sliderListenerDetacher) {
                 this.sliderListenerDetacher();
                 this.sliderListenerDetacher = null;
+            }
+            
+            if (this.deviceInfoListenerDetacher) {
+                this.deviceInfoListenerDetacher();
+                this.deviceInfoListenerDetacher = null;
             }
         },
         
@@ -169,9 +213,9 @@ export default {
         
     },
 
-    beforeUnmount() {
+    async beforeUnmount() {
         document.removeEventListener('keydown', this.handleEscape);
-        this.stopMonitoring(); // Clean up listener when component is destroyed
+        await this.stopMonitoring(); // Clean up listener when component is destroyed
     }
 }
 </script>

@@ -197,6 +197,7 @@ pub fn get_devices() -> Vec<USBDevice> {
 
 static SENDER: Mutex<Option<mpsc::Sender<String>>> = Mutex::new(None);
 static SHOULD_RUN: AtomicBool = AtomicBool::new(true);
+static DEBUG_MODE: AtomicBool = AtomicBool::new(false);
 
 pub fn kill_decker_thread() {
     SHOULD_RUN.store(false, Ordering::Relaxed);
@@ -206,6 +207,12 @@ pub fn kill_decker_thread() {
 
 pub fn start_background_thread() {
     SHOULD_RUN.store(true, Ordering::Relaxed);
+}
+
+#[tauri::command]
+pub fn toggle_debug_mode(enabled: bool) {
+    DEBUG_MODE.store(enabled, Ordering::Relaxed);
+    println!("Debug mode {}", if enabled { "enabled" } else { "disabled" });
 }
 
 pub fn initialize_decker(window: Window, port_name: &str, inverted: bool) -> std::result::Result<(), std::io::Error> {
@@ -280,7 +287,23 @@ pub fn initialize_decker(window: Window, port_name: &str, inverted: bool) -> std
                     match port.read(serial_buf.as_mut_slice()) {
                         Ok(t) => {
                             let received: Vec<u8> = serial_buf[..t].to_vec();
-                            let messagepack_data = received;
+                            let messagepack_data = received.clone();
+
+                            // Emit raw data for debugging purposes only if debug mode is enabled
+                            if DEBUG_MODE.load(Ordering::Relaxed) {
+                                let raw_data_hex = received.iter().map(|b| format!("{:02x}", b)).collect::<Vec<String>>().join(" ");
+                                let raw_data_ascii = received.iter().map(|&b| {
+                                    if b >= 32 && b <= 126 {
+                                        b as char
+                                    } else {
+                                        '.'
+                                    }
+                                }).collect::<String>();
+                                let raw_debug_info = format!("Hex: {} | ASCII: {} | Length: {}", raw_data_hex, raw_data_ascii, received.len());
+                                if let Err(e) = window.emit("raw-device-data", Payload { message: raw_debug_info }) {
+                                    error!("Failed to emit raw-device-data event: {}", e);
+                                }
+                            }
 
                             match deserialize_slider_data(&messagepack_data, inverted) {
                                 Ok(data) => {
