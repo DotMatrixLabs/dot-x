@@ -80,6 +80,11 @@
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDU2QzVDQUYzNDVERjJDNzEKUldSeExOOUY4OHJGVm5PNnZHQlZPRWE4WERodmxBYkpYbzluS2V0czlhZjRqWm5QWkRqNUt5b0cK"
     },
     "allowlist": {
+      "clipboard": {
+        "all": false,
+        "readText": false,
+        "writeText": true
+      },
       "shell": {
         "open": true
       },

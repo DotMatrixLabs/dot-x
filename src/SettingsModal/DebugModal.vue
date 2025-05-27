@@ -6,17 +6,20 @@
             <h1 class="font-bold text-lg text-center">Debug Console</h1>
             <p class="text-sm font-light opacity-50 text-center mb-4">All raw data from the connected device, including unrecognized formats</p>
             
-                            <!-- Raw Data Toggle - positioned above terminal -->
-                <div class="flex justify-end mb-2">
-                    <label class="flex items-center cursor-pointer">
-                        <input 
-                            v-model="showRawData" 
-                            type="checkbox" 
-                            class="checkbox checkbox-primary checkbox-xs mr-1"
-                        />
-                        <span class="text-xs">Show raw bytes</span>
-                    </label>
+                                        <!-- Controls row - status and raw data toggle -->
+            <div class="flex justify-between items-center mb-2">
+                <div class="text-xs text-gray-500">
+                    Status: {{ isMonitoring ? 'Monitoring' : 'Ready' }}
                 </div>
+                <label class="flex items-center cursor-pointer">
+                    <input 
+                        v-model="showRawData" 
+                        type="checkbox" 
+                        class="checkbox checkbox-primary checkbox-xs mr-1"
+                    />
+                    <span class="text-xs">Show raw bytes</span>
+                </label>
+            </div>
             
             <!-- Debug Console Area -->
             <div ref="consoleArea" class="flex-1 bg-base-200 rounded-lg p-4 overflow-y-auto font-mono text-xs mb-4">
@@ -45,9 +48,10 @@
                         <i class="fa-solid fa-trash mr-1"></i>
                         Clear
                     </button>
-                </div>
-                <div class="text-sm text-gray-500">
-                    Status: {{ isMonitoring ? 'Monitoring' : 'Ready' }}
+                    <button @click="copyLastMessages" class="btn btn-sm btn-info btn-outline">
+                        <i class="fa-solid fa-copy mr-1"></i>
+                        Copy
+                    </button>
                 </div>
             </div>
         </div>
@@ -57,6 +61,7 @@
 <script>
 import { listen } from '@tauri-apps/api/event';
 import { invoke } from '@tauri-apps/api/tauri';
+import { writeText } from '@tauri-apps/api/clipboard';
 
 export default {
     name: "DebugModal",
@@ -177,6 +182,38 @@ export default {
         
         clearConsole() {
             this.rawData = [];
+        },
+        
+        async copyLastMessages() {
+            try {
+                // Get the last 20 messages from filteredRawData
+                const lastMessages = this.filteredRawData.slice(-20);
+                
+                if (lastMessages.length === 0) {
+                    this.addLogEntry('system', 'No messages to copy.');
+                    return;
+                }
+                
+                // Format the messages for clipboard
+                const formattedMessages = lastMessages.map(entry => 
+                    `[${entry.timestamp}] ${entry.event}: ${entry.data}`
+                ).join('\n');
+                
+                // Add header with timestamp and device info
+                const header = `Debug Console Export - ${new Date().toLocaleString()}\n` +
+                              `Device: ${this.device?.port_name || 'Unknown'}\n` +
+                              `Messages: ${lastMessages.length}\n` +
+                              `${'='.repeat(50)}\n`;
+                
+                const clipboardContent = header + formattedMessages;
+                
+                // Copy to clipboard
+                await writeText(clipboardContent);
+                
+                this.addLogEntry('system', `Copied ${lastMessages.length} messages to clipboard.`);
+            } catch (error) {
+                this.addLogEntry('error', `Failed to copy to clipboard: ${error.message}`);
+            }
         },
         
         addLogEntry(event, data) {

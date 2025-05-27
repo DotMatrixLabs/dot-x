@@ -70,7 +70,7 @@
                 <div class="flex flex-col w-full items-center space-y-3">
                     <div class="flex text-sm flex-row w-full justify-between my-1">
                         <span class="text-gray-500">Debug Console:</span>
-                        <button @click="debugToggled" class="font-semibold btn btn-sm btn-warning w-1/3">
+                        <button @click="debugToggled" class="font-semibold btn btn-sm btn-outline btn-warning w-1/3">
                             <i class="fa-solid fa-bug mr-1"></i>
                             Debug
                         </button>
