@@ -39,6 +39,7 @@ enum Error {
   SessionNotFound,
   Connection,
   InitError
+  // 
 }
 
 impl fmt::Display for Error {
