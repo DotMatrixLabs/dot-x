@@ -46,6 +46,7 @@ impl fmt::Display for Error {
         match self {
             Error::Io(inner) => write!(f, "IO Error: {}", inner),
             Error::SessionNotFound => write!(f, "Session not found"),
+            // Custom error messages for each variant
             Error::Connection => write!(f, "Decker error"),
             Error::InitError => write!(f, "Initialization error"),
         }
