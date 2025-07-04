@@ -50,6 +50,13 @@
             </div>
             <button class="btn btn-xs btn-error btn-outline" @click="resetAll">Reset All</button>
         </div>
+        <div class="flex flex-row w-full justify-between px-2 mt-4">
+            <div>
+                <label class="my-auto">Extract logs <br></label>
+                <label class="text-xs opacity-50">Extract logs for support ticket<br></label>
+            </div>
+            <button class="btn btn-xs btn-error btn-outline" @click="extractLogs">Export</button>
+        </div>
     </div>
 </template>
 
@@ -97,6 +104,10 @@ export default {
             } catch (error) {
                 console.log(error); 
             }
+        },
+
+        async extractLogs() {
+            console.log('Exporting logs for support ticket...');
         },
 
        async resetChannelSettings() {
