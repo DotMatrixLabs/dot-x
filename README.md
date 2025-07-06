@@ -9,8 +9,8 @@ Desktop interface for DotMatrixLabs Decker physical volume mixer built with Taur
 ## Features
 
 - 🎛️ **Per-app volume control** through physical sliders
-- 🌈 **RGB lighting effects** with customizable patterns
-- 🎵 **MIDI device integration**
+- 🌈 **Control Decker RGB lights**
+- 🎵 **MIDI control** through physical sliders
 - 💡 **Screen brightness adjustment**
 - 🔔 **System tray operation** with auto-start
 - ⬆️ **Automatic updates** with distribution through Anystack.sh
