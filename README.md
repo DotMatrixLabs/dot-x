@@ -10,18 +10,18 @@ Desktop interface for DotMatrixLabs Decker physical volume mixer built with Taur
 
 - 🎛️ **Per-app volume control** through physical sliders
 - 🌈 **RGB lighting effects** with customizable patterns
-- 🎵 **MIDI device integration** for DAW control
+- 🎵 **MIDI device integration**
 - 💡 **Screen brightness adjustment**
 - 🔔 **System tray operation** with auto-start
-- ⬆️ **Automatic updates** with secure distribution
+- ⬆️ **Automatic updates** with distribution through Anystack.sh
 
 ## Installation
 
 ### Prerequisites
 
 - [Node.js](https://nodejs.org/) 18+ and [Yarn](https://yarnpkg.com/)
-- [Rust](https://rustup.rs/) 1.75.0
-- Windows 10/11
+- [Rust](https://rustup.rs/) 1.75.0 - Can not be higher! This is due to Win 7 compatibility
+- Windows 7/10/11
 
 ### Setup
 
@@ -32,7 +32,8 @@ cd dot-x
 
 # Install dependencies
 yarn install
-cd src-tauri && cargo update && cd ..
+cd src-tauri
+cargo
 
 # Start development server
 yarn tauri dev
@@ -44,15 +45,9 @@ yarn tauri dev
 
 ```bash
 yarn tauri dev      # Start development server
-yarn build          # Build for production
+yarn tauri build          # Build for production
 yarn licenses       # Generate license reports
 ```
-
-### Hardware Requirements
-
-- **DotMatrixLabs Decker** volume mixer (PID: 58918, VID: 1240)
-- USB connection for serial communication
-- 5-channel volume control support
 
 ## Tech Stack
 
@@ -96,17 +91,8 @@ Recommended VS Code extensions:
 
 ## Contributing
 
-This is a private internal repository. For development:
-
 1. Create a feature branch
 2. Make your changes
-3. Test with actual Decker hardware
+3. Test with actual hardware
 4. Submit for internal review
 
-## License
-
-Private - Internal use only by Frogbyte AS
-
-## Support
-
-For internal support, contact the development team or check the debug branch: `debug-terminal-for-deej-devices`
