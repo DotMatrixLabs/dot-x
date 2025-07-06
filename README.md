@@ -87,7 +87,6 @@ Recommended VS Code extensions:
 
 - Initial build takes time (Rust compilation + package downloads)
 - Requires exact Rust version 1.75.0: `rustup install 1.75.0 && rustup override set 1.75.0`
-- Windows-specific audio control dependencies
 
 ## Contributing
 
