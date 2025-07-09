@@ -1,6 +1,6 @@
 [package]
 name = "dot_x"
-version = "1.1.0"
+version = "1.2.2"
 description = "Dot X"
 authors = ["you"]
 license = ""
@@ -23,7 +23,7 @@ installed = "0.1.0"
 thiserror = "1.0.49"
 tauri-plugin-store = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v1" }
 tauri-plugin-autostart = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v1" }
-windows-volume-control = { git = "https://github.com/Frogbyte-io/windows-volume-control.git" }
+windows-volume-control = { git = "https://github.com/Frogbyte-io/windows-volume-control.git", branch = "7-add-control-of-spesific-outputinput-devices" }
 #windows-volume-control = { path = "../../windows-volume-control" }
 serialport = "4.2.2"
 firmata-rs = "0.4.1"
@@ -36,12 +36,15 @@ midir = "0.9.1"
 window-vibrancy = "0.4.2"
 window-shadows = "0.2.2"
 once_cell = "1.18.0"
-sentry-tauri = "0.3.0"
+sentry-tauri = "0.3.1"
 log = { version = "^0.4", features = ["max_level_debug", "release_max_level_warn"] }
 tauri-plugin-log = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v1" }
 active-win-pos-rs = "0.8.3"
 cargo-license = "0.6.1"
 lazy_static = "1.4.0"
+chrono = "0.4"
+brightness = "0.5.0"
+futures = "0.3.31"
 rumqttc = "0.24.0"
 tokio = { version = "1.0", features = ["full"] }
 

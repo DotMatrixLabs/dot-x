@@ -197,11 +197,11 @@
         "licenseUrl": "https://github.com/tauri-apps/tauri/raw/master/LICENSE_APACHE-2.0",
         "parents": "dot-x"
     },
-    "@tauri-apps/cli-win32-x64-msvc@1.5.11": {
+    "@tauri-apps/cli-win32-x64-msvc@1.5.6": {
         "licenses": "MIT",
         "parents": "dot-x"
     },
-    "@tauri-apps/cli@1.5.11": {
+    "@tauri-apps/cli@1.5.6": {
         "licenses": "Apache-2.0 OR MIT",
         "repository": "https://github.com/tauri-apps/tauri",
         "licenseUrl": "https://github.com/tauri-apps/tauri/raw/master/LICENSE_APACHE-2.0",

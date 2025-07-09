@@ -477,6 +477,15 @@
     "description": "Binary Object Representation Serializer for Hashing"
   },
   {
+    "name": "brightness",
+    "version": "0.5.0",
+    "authors": "Stephane Raux <stephaneyfx@gmail.com>|Contributors",
+    "repository": "https://github.com/stephaneyfx/brightness.git",
+    "license": "0BSD",
+    "license_file": null,
+    "description": "Get and set display brightness"
+  },
+  {
     "name": "brotli",
     "version": "3.4.0",
     "authors": "Daniel Reiter Horn <danielrh@dropbox.com>|The Brotli Authors",
@@ -1099,7 +1108,7 @@
   },
   {
     "name": "dot_x",
-    "version": "1.1.0",
+    "version": "1.2.1",
     "authors": "you",
     "repository": "",
     "license": "",
@@ -1396,7 +1405,7 @@
   },
   {
     "name": "futures",
-    "version": "0.3.29",
+    "version": "0.3.31",
     "authors": null,
     "repository": "https://github.com/rust-lang/futures-rs",
     "license": "Apache-2.0 OR MIT",
@@ -1405,7 +1414,7 @@
   },
   {
     "name": "futures-channel",
-    "version": "0.3.29",
+    "version": "0.3.31",
     "authors": null,
     "repository": "https://github.com/rust-lang/futures-rs",
     "license": "Apache-2.0 OR MIT",
@@ -1414,7 +1423,7 @@
   },
   {
     "name": "futures-core",
-    "version": "0.3.29",
+    "version": "0.3.31",
     "authors": null,
     "repository": "https://github.com/rust-lang/futures-rs",
     "license": "Apache-2.0 OR MIT",
@@ -1423,7 +1432,7 @@
   },
   {
     "name": "futures-executor",
-    "version": "0.3.29",
+    "version": "0.3.31",
     "authors": null,
     "repository": "https://github.com/rust-lang/futures-rs",
     "license": "Apache-2.0 OR MIT",
@@ -1432,7 +1441,7 @@
   },
   {
     "name": "futures-io",
-    "version": "0.3.29",
+    "version": "0.3.31",
     "authors": null,
     "repository": "https://github.com/rust-lang/futures-rs",
     "license": "Apache-2.0 OR MIT",
@@ -1459,7 +1468,7 @@
   },
   {
     "name": "futures-macro",
-    "version": "0.3.29",
+    "version": "0.3.31",
     "authors": null,
     "repository": "https://github.com/rust-lang/futures-rs",
     "license": "Apache-2.0 OR MIT",
@@ -1468,7 +1477,7 @@
   },
   {
     "name": "futures-sink",
-    "version": "0.3.29",
+    "version": "0.3.31",
     "authors": null,
     "repository": "https://github.com/rust-lang/futures-rs",
     "license": "Apache-2.0 OR MIT",
@@ -1477,7 +1486,7 @@
   },
   {
     "name": "futures-task",
-    "version": "0.3.29",
+    "version": "0.3.31",
     "authors": null,
     "repository": "https://github.com/rust-lang/futures-rs",
     "license": "Apache-2.0 OR MIT",
@@ -1486,7 +1495,7 @@
   },
   {
     "name": "futures-util",
-    "version": "0.3.29",
+    "version": "0.3.31",
     "authors": null,
     "repository": "https://github.com/rust-lang/futures-rs",
     "license": "Apache-2.0 OR MIT",
@@ -2050,6 +2059,15 @@
     "license": "Apache-2.0 OR MIT",
     "license_file": null,
     "description": "Provides types and useful methods for working with IPv4 and IPv6 network addresses, commonly called IP prefixes. The new `IpNet`, `Ipv4Net`, and `Ipv6Net` types build on the existing `IpAddr`, `Ipv4Addr`, and `Ipv6Addr` types already provided in Rust's standard library and align to their design to stay consistent. The module also provides useful traits that extend `Ipv4Addr` and `Ipv6Addr` with methods for `Add`, `Sub`, `BitAnd`, and `BitOr` operations. The module only uses stable feature so it is guaranteed to compile using the stable toolchain."
+  },
+  {
+    "name": "itertools",
+    "version": "0.10.5",
+    "authors": "bluss",
+    "repository": "https://github.com/rust-itertools/itertools",
+    "license": "Apache-2.0 OR MIT",
+    "license_file": null,
+    "description": "Extra iterator adaptors, iterator methods, free functions, and macros."
   },
   {
     "name": "itertools",
@@ -3574,7 +3592,7 @@
   },
   {
     "name": "sentry",
-    "version": "0.32.3",
+    "version": "0.34.0",
     "authors": "Sentry <hello@sentry.io>",
     "repository": "https://github.com/getsentry/sentry-rust",
     "license": "Apache-2.0",
@@ -3583,7 +3601,7 @@
   },
   {
     "name": "sentry-backtrace",
-    "version": "0.32.3",
+    "version": "0.34.0",
     "authors": "Sentry <hello@sentry.io>",
     "repository": "https://github.com/getsentry/sentry-rust",
     "license": "Apache-2.0",
@@ -3592,7 +3610,7 @@
   },
   {
     "name": "sentry-contexts",
-    "version": "0.32.3",
+    "version": "0.34.0",
     "authors": "Sentry <hello@sentry.io>",
     "repository": "https://github.com/getsentry/sentry-rust",
     "license": "Apache-2.0",
@@ -3601,7 +3619,7 @@
   },
   {
     "name": "sentry-core",
-    "version": "0.32.3",
+    "version": "0.34.0",
     "authors": "Sentry <hello@sentry.io>",
     "repository": "https://github.com/getsentry/sentry-rust",
     "license": "Apache-2.0",
@@ -3610,7 +3628,7 @@
   },
   {
     "name": "sentry-debug-images",
-    "version": "0.32.3",
+    "version": "0.34.0",
     "authors": "Sentry <hello@sentry.io>",
     "repository": "https://github.com/getsentry/sentry-rust",
     "license": "Apache-2.0",
@@ -3619,7 +3637,7 @@
   },
   {
     "name": "sentry-panic",
-    "version": "0.32.3",
+    "version": "0.34.0",
     "authors": "Sentry <hello@sentry.io>",
     "repository": "https://github.com/getsentry/sentry-rust",
     "license": "Apache-2.0",
@@ -3628,7 +3646,7 @@
   },
   {
     "name": "sentry-rust-minidump",
-    "version": "0.7.0",
+    "version": "0.8.0",
     "authors": null,
     "repository": "https://github.com/timfish/sentry-rust-minidump",
     "license": "Apache-2.0 OR MIT",
@@ -3637,16 +3655,16 @@
   },
   {
     "name": "sentry-tauri",
-    "version": "0.3.0",
+    "version": "0.3.1",
     "authors": null,
-    "repository": "https://github.com/timfish/sentry-tauri",
+    "repository": "https://github.com/timfish/sentry-tauri/tree/tauri-v1",
     "license": "Apache-2.0 OR MIT",
     "license_file": null,
     "description": "An experimental Tauri Plugin for Sentry"
   },
   {
     "name": "sentry-tracing",
-    "version": "0.32.3",
+    "version": "0.34.0",
     "authors": "Sentry <hello@sentry.io>",
     "repository": "https://github.com/getsentry/sentry-rust",
     "license": "Apache-2.0",
@@ -3655,7 +3673,7 @@
   },
   {
     "name": "sentry-types",
-    "version": "0.32.3",
+    "version": "0.34.0",
     "authors": "Sentry <hello@sentry.io>",
     "repository": "https://github.com/getsentry/sentry-rust",
     "license": "Apache-2.0",
