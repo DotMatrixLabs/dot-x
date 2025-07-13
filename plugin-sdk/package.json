@@ -1,0 +1,13 @@
+{
+  "name": "plugin-sdk",
+  "version": "1.0.0",
+  "description": "SDK for developing dot-x plugins",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "socket.io-client": "^4.7.4"
+  },
+  "devDependencies": {
+    "@types/socket.io-client": "^3.0.0"
+  }
+}
