@@ -1,0 +1,28 @@
+{
+  "id": "system-control",
+  "name": "System Control Plugin",
+  "version": "1.0.0",
+  "description": "Advanced system control plugin demonstrating RGB control, settings, and UI integration",
+  "author": "DotX Team",
+  "dotxVersion": ">=1.0.0",
+  "permissions": [
+    "ui.commands",
+    "ui.toasts",
+    "ui.settings",
+    "ui.actionSelector",
+    "ui.topBar",
+    "system.rgb",
+    "storage.local",
+    "listeners.slider",
+    "listeners.device"
+  ],
+  "main": "main.js",
+  "license": "MIT",
+  "keywords": ["system", "control", "rgb", "settings", "advanced"],
+  "homepage": "https://github.com/dotx/plugin-sdk",
+  "repository": "https://github.com/dotx/plugin-sdk",
+  "engines": {
+    "node": ">=18.0.0",
+    "deno": ">=1.30.0"
+  }
+} 

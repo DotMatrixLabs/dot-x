@@ -1,0 +1,23 @@
+{
+  "id": "hello-world",
+  "name": "Hello World Plugin",
+  "version": "1.0.0",
+  "description": "A simple example plugin that demonstrates basic functionality",
+  "author": "DotX Team",
+  "dotxVersion": ">=1.0.0",
+  "main": "main.ts",
+  "permissions": [
+    "ui.modal",
+    "ui.toasts",
+    "ui.commands",
+    "storage.local"
+  ],
+  "ui": [
+    {
+      "id": "hello-modal",
+      "name": "Hello Modal",
+      "type": "modal",
+      "component": "HelloModal.vue"
+    }
+  ]
+} 

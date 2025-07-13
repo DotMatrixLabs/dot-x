@@ -1,0 +1,20 @@
+{
+  "id": "my-plugin",
+  "name": "My Plugin",
+  "version": "1.0.0",
+  "description": "A basic plugin template",
+  "author": "Your Name",
+  "dotxVersion": ">=1.0.0",
+  "permissions": [
+    "ui.commands",
+    "ui.toasts",
+    "storage.local"
+  ],
+  "main": "main.js",
+  "license": "MIT",
+  "keywords": ["plugin", "template"],
+  "engines": {
+    "node": ">=18.0.0",
+    "deno": ">=1.30.0"
+  }
+} 

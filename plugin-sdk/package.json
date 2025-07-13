@@ -1,0 +1,47 @@
+{
+  "name": "@dotx/plugin-sdk",
+  "version": "1.0.0",
+  "description": "TypeScript SDK for creating DotX plugins",
+  "type": "module",
+  "main": "index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./api": "./api/index.ts",
+    "./types": "./types/index.ts",
+    "./rpc": "./rpc/client.ts",
+    "./ui": "./ui/components.ts",
+    "./runtime": "./runtime/permissions.ts"
+  },
+  "files": [
+    "api/",
+    "types/",
+    "rpc/",
+    "ui/",
+    "runtime/",
+    "examples/",
+    "templates/",
+    "index.ts",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "lint": "deno lint",
+    "fmt": "deno fmt",
+    "check": "deno check --all *.ts **/*.ts"
+  },
+  "keywords": [
+    "dotx",
+    "plugin",
+    "sdk",
+    "typescript",
+    "deno"
+  ],
+  "author": "DotX Team",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "peerDependencies": {
+    "vue": "^3.0.0"
+  }
+} 

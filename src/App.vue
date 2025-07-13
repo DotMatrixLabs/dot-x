@@ -18,6 +18,7 @@ import Decker from "./ts/decker.ts";
 import RGBController from "./ts/RGBController";
 import { useDeckerStore } from "./store/deckerStore.ts";
 import { version } from '@tauri-apps/api/os';
+import pluginManager from "./ts/pluginManager.ts";
 
 import { mapState } from "pinia"; 
 
@@ -123,14 +124,28 @@ export default {
       document.addEventListener('contextmenu', (event) => event.preventDefault(), { capture: true });
     },
 
+    async initializePlugins() {
+      try {
+        console.log('Initializing plugin system...');
+        await pluginManager.initialize();
+        console.log('Plugin system initialized successfully');
+      } catch (error) {
+        console.error('Failed to initialize plugin system:', error);
+        toast.error('Failed to initialize plugin system');
+      }
+    },
+
   },
 
-  mounted() {
+  async mounted() {
     this.disableContextMenu();
     // this.getTheme();
     this.connectDecker();
     Decker.detectDeviceChanges();
     Decker.initMidi();
+
+    // Initialize plugin system
+    await this.initializePlugins();
 
     this.colorScheme = window.matchMedia("(prefers-color-scheme: dark)").matches
       ? "dark"

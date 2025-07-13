@@ -1,0 +1,43 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "lib": ["deno.window", "dom"],
+    "strict": true,
+    "noImplicitAny": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true
+  },
+  "lint": {
+    "rules": {
+      "tags": ["recommended"],
+      "exclude": ["no-explicit-any"]
+    }
+  },
+  "fmt": {
+    "useTabs": false,
+    "lineWidth": 80,
+    "indentWidth": 2,
+    "semiColons": true,
+    "singleQuote": true,
+    "proseWrap": "preserve"
+  },
+  "permissions": {
+    "read": false,
+    "write": false,
+    "net": false,
+    "env": false,
+    "run": false,
+    "ffi": false,
+    "hrtime": false,
+    "sys": false
+  },
+  "imports": {
+    "@plugin-sdk/": "./",
+    "@plugin-sdk/api": "./api/index.ts",
+    "@plugin-sdk/types": "./types/index.ts",
+    "@plugin-sdk/rpc": "./rpc/client.ts",
+    "@plugin-sdk/ui": "./ui/components.ts"
+  }
+} 

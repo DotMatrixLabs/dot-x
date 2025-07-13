@@ -1,0 +1,22 @@
+{
+  "id": "hello-world",
+  "name": "Hello World Plugin",
+  "version": "1.0.0",
+  "description": "A simple hello world plugin that demonstrates basic functionality",
+  "author": "DotX Team",
+  "dotxVersion": ">=1.0.0",
+  "permissions": [
+    "ui.commands",
+    "ui.toasts",
+    "storage.local"
+  ],
+  "main": "main.js",
+  "license": "MIT",
+  "keywords": ["hello", "world", "example", "demo"],
+  "homepage": "https://github.com/dotx/plugin-sdk",
+  "repository": "https://github.com/dotx/plugin-sdk",
+  "engines": {
+    "node": ">=18.0.0",
+    "deno": ">=1.30.0"
+  }
+} 

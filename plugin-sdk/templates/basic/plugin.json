@@ -1,0 +1,16 @@
+{
+  "id": "{{PLUGIN_ID}}",
+  "name": "{{PLUGIN_NAME}}",
+  "version": "1.0.0",
+  "description": "{{PLUGIN_DESCRIPTION}}",
+  "author": "{{PLUGIN_AUTHOR}}",
+  "dotxVersion": ">=1.0.0",
+  "main": "main.ts",
+  "permissions": [
+    "ui.modal",
+    "ui.toasts",
+    "ui.commands",
+    "storage.local"
+  ],
+  "ui": []
+} 

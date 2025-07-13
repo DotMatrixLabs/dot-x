@@ -1,0 +1,30 @@
+{
+  "id": "system-control",
+  "name": "System Control Plugin",
+  "version": "1.0.0",
+  "description": "A comprehensive example plugin that demonstrates all available features",
+  "author": "DotX Team",
+  "dotxVersion": ">=1.0.0",
+  "main": "main.ts",
+  "permissions": [
+    "ui.modal",
+    "ui.toasts",
+    "ui.commands",
+    "ui.settings",
+    "ui.actionSelector",
+    "ui.topBar",
+    "storage.local",
+    "system.audio",
+    "system.rgb",
+    "listeners.slider",
+    "listeners.device"
+  ],
+  "ui": [
+    {
+      "id": "system-control-modal",
+      "name": "System Control Modal",
+      "type": "modal",
+      "component": "SystemControlModal.vue"
+    }
+  ]
+} 
