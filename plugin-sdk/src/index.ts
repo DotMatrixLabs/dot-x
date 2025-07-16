@@ -1,4 +1,5 @@
-export { default as Plugin } from './plugin';
+export { default as Plugin, runPlugin } from './plugin';
+export type { PluginManifest } from './plugin';
 export { APIClient } from './client';
 export type { PluginAPI, APIClientInterface } from './generated/types';
 
