@@ -1,0 +1,9 @@
+{
+  "id": "hello-world",
+  "name": "Hello World",
+  "version": "1.0.0",
+  "description": "A simple hello world plugin",
+  "author": "DotX Team",
+  "dotxVersion": ">=1.0.0",
+  "main": "main.ts"
+}
