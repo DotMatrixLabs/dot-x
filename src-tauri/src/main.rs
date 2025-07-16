@@ -14,6 +14,7 @@ use std::collections::HashMap;
 use std::fmt;
 mod decker;
 mod midi;
+mod plugin_server;
 use tauri::{CustomMenuItem, SystemTrayMenu, SystemTrayMenuItem, SystemTray, SystemTrayEvent};
 use tauri::api::notification::Notification;
 use window_vibrancy::{apply_blur, apply_mica};
@@ -442,11 +443,33 @@ fn main() {
     setup_panic_handler(client);
 
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![get_installed_apps, get_all_session_names, set_application_volume, connect_decker, decker::get_devices, decker::send_decker_command, get_available_midi_output_port_names, attach_midi_device, detach_midi_device, get_active_app_name, disconnect_decker, set_screen_brightness, get_all_audio_devices, get_output_devices, get_input_devices ])
+        .invoke_handler(tauri::generate_handler![
+            get_installed_apps, 
+            get_all_session_names, 
+            set_application_volume, 
+            connect_decker, 
+            decker::get_devices, 
+            decker::send_decker_command, 
+            get_available_midi_output_port_names, 
+            attach_midi_device, 
+            detach_midi_device, 
+            get_active_app_name, 
+            disconnect_decker, 
+            set_screen_brightness, 
+            get_all_audio_devices, 
+            get_output_devices, 
+            get_input_devices,
+            plugin_server::start_plugin_server,
+            plugin_server::stop_plugin_server,
+            plugin_server::send_to_plugin,
+            plugin_server::get_connected_plugins,
+            plugin_server::get_ui_elements
+        ])
         .plugin(tauri_plugin_aptabase::Builder::new("A-EU-7429874879").build()) // 👈 this is where you enter your App Key
         .plugin(tauri_plugin_log::Builder::default().build())
         .plugin(sentry_tauri::plugin())
         .plugin(tauri_plugin_store::Builder::default().build())
+        .plugin(tauri_plugin_websocket::init())
         .plugin(tauri_plugin_autostart::init(
           MacosLauncher::LaunchAgent,
           Some(vec!["--hidden"]),
@@ -531,6 +554,9 @@ fn main() {
         #[cfg(target_os = "windows")]
         apply_mica(&window, None)
         .unwrap_or_else(|_| { let _ = apply_blur(&window, Some((25, 10, 30, 255))); });
+
+        // Initialize plugin server on port 3001
+        let _plugin_server = plugin_server::init_plugin_server(app.handle(), 3001);
 
         // This gets any command line arguments passed to the app
         match app.get_cli_matches() {
