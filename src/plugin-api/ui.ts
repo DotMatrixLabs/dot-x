@@ -2,6 +2,10 @@ import type {
   ApiRequest, 
   ApiResponse
 } from './schema';
+import { usePluginUI } from '../composables/usePluginUI';
+
+// Create a global instance of the plugin UI
+const pluginUI = usePluginUI();
 
 export class UIManager {
   /**
@@ -10,9 +14,11 @@ export class UIManager {
   async showToast(request: ApiRequest): Promise<ApiResponse> {
     console.log('Showing toast:', request.params);
     
-    // Simulate showing a toast notification
-    // In a real implementation, you would integrate with your toast system
-    console.log(`Toast: ${request.params.message} (${request.params.type || 'info'})`);
+    pluginUI.showToast({
+      message: request.params.message,
+      type: request.params.type || 'info',
+      duration: request.params.duration
+    });
     
     return {
       request_id: request.request_id,
@@ -27,17 +33,21 @@ export class UIManager {
   async showModal(request: ApiRequest): Promise<ApiResponse> {
     console.log('Showing modal:', request.params);
     
-    // Simulate showing a modal and getting user input
-    const mockResult = {
-      button: 'confirm',
-      cancelled: false
-    };
-    
-    return {
-      request_id: request.request_id,
-      success: true,
-      data: mockResult
-    };
+    try {
+      const result = await pluginUI.showModal(request.params);
+      
+      return {
+        request_id: request.request_id,
+        success: true,
+        data: result
+      };
+    } catch (error) {
+      return {
+        request_id: request.request_id,
+        success: false,
+        error: `Modal error: ${error}`
+      };
+    }
   }
 
   /**
@@ -46,14 +56,21 @@ export class UIManager {
   async showConfirmation(request: ApiRequest): Promise<ApiResponse> {
     console.log('Showing confirmation:', request.params);
     
-    // Simulate user confirming
-    const confirmed = true;
-    
-    return {
-      request_id: request.request_id,
-      success: true,
-      data: confirmed
-    };
+    try {
+      const confirmed = await pluginUI.showConfirmation(request.params);
+      
+      return {
+        request_id: request.request_id,
+        success: true,
+        data: confirmed
+      };
+    } catch (error) {
+      return {
+        request_id: request.request_id,
+        success: false,
+        error: `Confirmation error: ${error}`
+      };
+    }
   }
 
   /**
@@ -62,10 +79,7 @@ export class UIManager {
   async showAlert(request: ApiRequest): Promise<ApiResponse> {
     console.log('Showing alert:', request.params);
     
-    const { title, message, type } = request.params;
-    
-    // Simulate showing an alert
-    console.log(`Alert [${type || 'info'}]: ${title} - ${message}`);
+    pluginUI.showAlert(request.params);
     
     return {
       request_id: request.request_id,
@@ -75,43 +89,26 @@ export class UIManager {
   }
 
   /**
-   * Handle showNotification API request
-   */
-  async showNotification(request: ApiRequest): Promise<ApiResponse> {
-    console.log('Showing notification:', request.params);
-    
-    const { title, body, icon, actions } = request.params;
-    
-    // Simulate showing a system notification
-    console.log(`Notification: ${title} - ${body}`);
-    
-    return {
-      request_id: request.request_id,
-      success: true,
-      data: { message: 'Notification shown successfully' }
-    };
-  }
-
-  /**
    * Handle showDialog API request
    */
   async showDialog(request: ApiRequest): Promise<ApiResponse> {
     console.log('Showing dialog:', request.params);
     
-    const { title, content, buttons } = request.params;
-    
-    // Simulate showing a custom dialog
-    const mockResult = {
-      button: buttons?.[0]?.label || 'OK',
-      cancelled: false,
-      data: null
-    };
-    
-    return {
-      request_id: request.request_id,
-      success: true,
-      data: mockResult
-    };
+    try {
+      const result = await pluginUI.showDialog(request.params);
+      
+      return {
+        request_id: request.request_id,
+        success: true,
+        data: result
+      };
+    } catch (error) {
+      return {
+        request_id: request.request_id,
+        success: false,
+        error: `Dialog error: ${error}`
+      };
+    }
   }
 
   /**
@@ -120,8 +117,7 @@ export class UIManager {
   async hideModal(request: ApiRequest): Promise<ApiResponse> {
     console.log('Hiding modal:', request.params);
     
-    // Simulate hiding the current modal
-    await new Promise(resolve => setTimeout(resolve, 25));
+    pluginUI.hideModal();
     
     return {
       request_id: request.request_id,
@@ -136,10 +132,7 @@ export class UIManager {
   async updateProgress(request: ApiRequest): Promise<ApiResponse> {
     console.log('Updating progress:', request.params);
     
-    const { value, message } = request.params;
-    
-    // Simulate updating a progress indicator
-    console.log(`Progress: ${value}% - ${message || ''}`);
+    pluginUI.updateProgress(request.params);
     
     return {
       request_id: request.request_id,
@@ -154,18 +147,18 @@ export class UIManager {
   async setTheme(request: ApiRequest): Promise<ApiResponse> {
     console.log('Setting theme:', request.params);
     
-    const { theme } = request.params;
-    
-    // Simulate setting the UI theme
-    console.log(`Theme set to: ${theme}`);
+    pluginUI.setTheme(request.params);
     
     return {
       request_id: request.request_id,
       success: true,
-      data: { message: `Theme set to ${theme}` }
+      data: { message: `Theme set to ${request.params.theme}` }
     };
   }
 }
 
 // Export singleton instance
-export const uiManager = new UIManager(); 
+export const uiManager = new UIManager();
+
+// Also export the composable for direct use in Vue components
+export { pluginUI }; 
