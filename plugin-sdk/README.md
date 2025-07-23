@@ -1,6 +1,24 @@
 # DotX Plugin SDK
 
-This SDK allows you to develop plugins for the DotX application.
+This SDK allows you to develop plugins for the DotX application using Socket.IO with waitForAck pattern for reliable communication.
+
+## Architecture
+
+The plugin system uses Socket.IO for real-time communication between plugins and the DotX application:
+
+```
+Plugin (Socket.IO Client) 
+    ↓ (Socket.IO with waitForAck)
+Plugin Server (Rust + Socket.IO) 
+    ↓ (Tauri Events)
+Frontend (Vue.js)
+```
+
+### Key Features
+- **Reliable Communication**: Uses Socket.IO acknowledgment callbacks (waitForAck) for guaranteed message delivery
+- **Automatic Registration**: Plugins automatically register with the server on connection
+- **Error Handling**: Built-in timeout and error handling for all API requests
+- **Real-time Updates**: Instant communication between plugins and the frontend
 
 ## Getting Started
 
@@ -35,10 +53,10 @@ import Plugin, { runPlugin } from 'plugin-sdk';
 
 export default class MyPlugin extends Plugin {
   async onLoad() {
-    // Plugin initialization code
+    // Plugin initialization code (connection already established)
     console.log('Plugin loaded!');
     
-    // Create settings UI
+    // Create settings UI - waitForAck ensures reliable delivery
     await this.settings.createSettings({
       schema: {
         myField: {
@@ -48,7 +66,7 @@ export default class MyPlugin extends Plugin {
       }
     });
     
-    // Show notification
+    // Show notification - guaranteed delivery with error handling
     await this.ui.showToast({
       message: "Plugin loaded!",
       type: "success"
@@ -69,11 +87,91 @@ if (require.main === module) {
 
 The `runPlugin` utility automatically:
 - Reads plugin metadata from `manifest.json`
-- Displays plugin name, version, description, and author
-- Handles plugin instantiation and lifecycle
-- Keeps the process alive for WebSocket connections
+- Creates PluginInfo and establishes Socket.IO connection
+- **Waits for registration to complete** before calling `onLoad()`
+- Handles plugin registration with waitForAck confirmation
+- Manages plugin instantiation and lifecycle
+- Keeps the process alive for Socket.IO connections
 - Provides graceful shutdown on Ctrl+C
-- Includes error handling and logging
+- Includes comprehensive error handling and logging
+
+### Connection Lifecycle
+
+1. **Connection**: Plugin connects to `http://localhost:3001`
+2. **Registration**: Plugin automatically registers with server
+3. **Confirmation**: Server acknowledges registration via waitForAck
+4. **Ready**: `onLoad()` is called only after successful registration
+5. **API Calls**: All subsequent API calls use waitForAck pattern
+
+## Socket.IO waitForAck Pattern
+
+The plugin system uses Socket.IO's acknowledgment callback pattern for reliable communication:
+
+### Plugin Registration
+When a plugin connects, it automatically registers using waitForAck:
+
+```typescript
+// Automatic registration (handled by SDK)
+socket.emit('register', pluginInfo, (ack) => {
+  if (ack.status === 'success') {
+    console.log('Plugin registered successfully!');
+  }
+});
+```
+
+### API Requests
+All API calls use waitForAck for guaranteed responses:
+
+```typescript
+// API request with 30-second timeout
+socket.emit('api_request', {
+  method: 'settings.setValue',
+  params: { key: 'test', value: 'hello' },
+  request_id: 'unique_id'
+}, (response) => {
+  if (response.success) {
+    console.log('Success:', response.data);
+  } else {
+    console.error('Error:', response.error);
+  }
+});
+```
+
+### Benefits
+- **Guaranteed Delivery**: Acknowledgments ensure messages are received
+- **Error Handling**: Failed requests return detailed error information
+- **Timeout Protection**: 30-second timeout prevents hanging requests
+- **Real-time Feedback**: Immediate response from the application
+- **Connection Reliability**: Automatic reconnection and registration handling
+
+### Error Handling
+
+The SDK provides comprehensive error handling:
+
+```typescript
+export default class MyPlugin extends Plugin {
+  async onLoad() {
+    try {
+      await this.settings.createSettings({
+        schema: { test: { type: "text", label: "Test" } }
+      });
+      console.log("Settings created successfully");
+    } catch (error) {
+      console.error("Failed to create settings:", error.message);
+      // Handle specific error cases:
+      // - "Plugin registration failed" - Server connection issues
+      // - "Request timeout" - API request took too long
+      // - "API request failed" - Server-side error
+    }
+  }
+}
+```
+
+Common error scenarios:
+- **Server not running**: Plugin registration timeout (10 seconds)
+- **Connection lost**: Automatic reconnection attempts
+- **API errors**: Detailed error messages from the server
+- **Request timeout**: 30-second timeout for all API calls
 
 ## Manifest.json Structure
 
