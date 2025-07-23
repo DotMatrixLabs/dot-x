@@ -312,7 +312,7 @@ fn get_input_devices() -> Result<Vec<String>, Error> {
 
 #[tauri::command]
 async fn set_screen_brightness(brightness: f32, screens: Value) -> Result<(), Error> {
-    let screen_names: Vec<String> = screens.as_array()
+    let _screen_names: Vec<String> = screens.as_array()
         .unwrap_or(&Vec::new())
         .iter()
         .filter_map(|v| v.as_str().map(|s| s.to_string()))
@@ -463,13 +463,12 @@ fn main() {
             plugin_server::stop_plugin_server,
             plugin_server::send_to_plugin,
             plugin_server::get_connected_plugins,
-            plugin_server::get_ui_elements
+            plugin_server::send_api_response
         ])
         .plugin(tauri_plugin_aptabase::Builder::new("A-EU-7429874879").build()) // 👈 this is where you enter your App Key
         .plugin(tauri_plugin_log::Builder::default().build())
         .plugin(sentry_tauri::plugin())
         .plugin(tauri_plugin_store::Builder::default().build())
-        .plugin(tauri_plugin_websocket::init())
         .plugin(tauri_plugin_autostart::init(
           MacosLauncher::LaunchAgent,
           Some(vec!["--hidden"]),
@@ -554,9 +553,6 @@ fn main() {
         #[cfg(target_os = "windows")]
         apply_mica(&window, None)
         .unwrap_or_else(|_| { let _ = apply_blur(&window, Some((25, 10, 30, 255))); });
-
-        // Initialize plugin server on port 3001
-        let _plugin_server = plugin_server::init_plugin_server(app.handle(), 3001);
 
         // This gets any command line arguments passed to the app
         match app.get_cli_matches() {

@@ -1,5 +1,5 @@
 // dot-x-plugin/src/plugin.ts
-import { APIClient } from './client';
+import { APIClient, PluginInfo } from './client';
 import type { PluginAPI } from './generated/types';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -17,16 +17,24 @@ export interface PluginManifest {
 export default class Plugin {
   public settings: PluginAPI['settings'];
   public ui: PluginAPI['ui'];
+  private client: APIClient;
   
-  constructor() {
-    const client = new APIClient();
-    this.settings = client.settings;
-    this.ui = client.ui;
+  constructor(pluginInfo: PluginInfo) {
+    this.client = new APIClient(pluginInfo);
+    this.settings = this.client.settings;
+    this.ui = this.client.ui;
+  }
+  
+  // Wait for the plugin to be registered with the server
+  async waitForConnection(): Promise<void> {
+    await this.client.waitForRegistration();
   }
   
   // Plugin lifecycle methods
   async onLoad() {}
-  async onUnload() {}
+  async onUnload() {
+    this.client.disconnect();
+  }
 }
 
 /**
@@ -59,6 +67,7 @@ export async function runPlugin(PluginClass: typeof Plugin) {
   const manifest = readManifest();
   const pluginName = manifest?.name || PluginClass.name || 'Unknown Plugin';
   const version = manifest?.version || '1.0.0';
+  const pluginId = manifest?.id || pluginName.toLowerCase().replace(/\s+/g, '-');
   
   console.log(`Starting ${pluginName} v${version}...`);
   if (manifest?.description) {
@@ -68,9 +77,21 @@ export async function runPlugin(PluginClass: typeof Plugin) {
     console.log(`Author: ${manifest.author}`);
   }
   
-  const plugin = new PluginClass();
+  // Create plugin info for registration
+  const pluginInfo: PluginInfo = {
+    id: pluginId,
+    name: pluginName,
+    version: version,
+    connected_at: new Date().toISOString()
+  };
+  
+  const plugin = new PluginClass(pluginInfo);
   
   try {
+    console.log("Waiting for connection to plugin server...");
+    await plugin.waitForConnection();
+    console.log("Connected to plugin server, initializing plugin...");
+    
     await plugin.onLoad();
     console.log("Plugin loaded successfully!");
   } catch (error) {

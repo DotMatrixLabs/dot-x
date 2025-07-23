@@ -18,8 +18,8 @@ import Decker from "./ts/decker.ts";
 import RGBController from "./ts/RGBController";
 import { useDeckerStore } from "./store/deckerStore.ts";
 import { version } from '@tauri-apps/api/os';
-import { startPluginServer } from "./plugin-api";
-import { mapState } from "pinia"; 
+import PluginAPI from "./plugin-api/pluginAPI";
+import { mapState } from "pinia";
 
 const toast = useToast();
 
@@ -126,7 +126,7 @@ export default {
   },
 
   async mounted() {
-    const server = await startPluginServer();
+    await PluginAPI.initialize();
     console.log("Plugin server started");
     await new Promise(resolve => setTimeout(resolve, 1000));
     this.disableContextMenu();
