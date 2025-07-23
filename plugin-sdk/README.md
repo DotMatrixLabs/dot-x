@@ -18,9 +18,13 @@ Frontend (Vue.js)
 - **Reliable Communication**: Uses Socket.IO acknowledgment callbacks (waitForAck) for guaranteed message delivery
 - **Automatic Registration**: Plugins automatically register with the server on connection
 - **Error Handling**: Built-in timeout and error handling for all API requests
-- **Real-time Updates**: Instant communication between plugins and the frontend
+
 
 ## Getting Started
+
+### Prerequisites
+
+**Important**: The DotX application must be running before starting any plugins. The plugin server is automatically started by the DotX application during startup.
 
 ### Installation
 
@@ -53,10 +57,9 @@ import Plugin, { runPlugin } from 'plugin-sdk';
 
 export default class MyPlugin extends Plugin {
   async onLoad() {
-    // Plugin initialization code (connection already established)
     console.log('Plugin loaded!');
     
-    // Create settings UI - waitForAck ensures reliable delivery
+    // Create settings UI
     await this.settings.createSettings({
       schema: {
         myField: {
@@ -66,7 +69,7 @@ export default class MyPlugin extends Plugin {
       }
     });
     
-    // Show notification - guaranteed delivery with error handling
+    // Show notification
     await this.ui.showToast({
       message: "Plugin loaded!",
       type: "success"
@@ -94,14 +97,38 @@ The `runPlugin` utility automatically:
 - Keeps the process alive for Socket.IO connections
 - Provides graceful shutdown on Ctrl+C
 - Includes comprehensive error handling and logging
+- **Automatically retries failed connections** with detailed error messages
+
+### Connection Configuration
+
+You can customize connection behavior by passing a configuration object:
+
+```typescript
+import Plugin, { runPlugin, ConnectionConfig } from 'plugin-sdk';
+
+const config: ConnectionConfig = {
+  serverUrl: 'http://localhost:3001',  // Default plugin server URL
+  maxRetries: 5,                       // Maximum connection retry attempts
+  retryDelay: 2000,                    // Delay between retry attempts (ms)
+  connectionTimeout: 10000,            // Connection timeout (ms)
+  registrationTimeout: 15000,          // Registration timeout (ms)
+  apiTimeout: 30000                    // API request timeout (ms)
+};
+
+if (require.main === module) {
+  runPlugin(MyPlugin, config);
+}
+```
 
 ### Connection Lifecycle
 
 1. **Connection**: Plugin connects to `http://localhost:3001`
-2. **Registration**: Plugin automatically registers with server
-3. **Confirmation**: Server acknowledges registration via waitForAck
-4. **Ready**: `onLoad()` is called only after successful registration
-5. **API Calls**: All subsequent API calls use waitForAck pattern
+2. **Retry Logic**: If connection fails, automatically retries up to 5 times
+3. **Registration**: Plugin automatically registers with server
+4. **Confirmation**: Server acknowledges registration via waitForAck
+5. **Ready**: `onLoad()` is called only after successful registration
+6. **API Calls**: All subsequent API calls use waitForAck pattern
+7. **Monitoring**: Connection status is continuously monitored
 
 ## Socket.IO waitForAck Pattern
 
@@ -140,13 +167,42 @@ socket.emit('api_request', {
 ### Benefits
 - **Guaranteed Delivery**: Acknowledgments ensure messages are received
 - **Error Handling**: Failed requests return detailed error information
-- **Timeout Protection**: 30-second timeout prevents hanging requests
+- **Timeout Protection**: Configurable timeout prevents hanging requests
 - **Real-time Feedback**: Immediate response from the application
 - **Connection Reliability**: Automatic reconnection and registration handling
 
-### Error Handling
+## Error Handling
 
-The SDK provides comprehensive error handling:
+The SDK provides comprehensive error handling with detailed error messages:
+
+### Common Error Scenarios
+
+#### Connection Refused (ECONNREFUSED)
+This occurs when the DotX application is not running or the plugin server hasn't started.
+
+**Solutions:**
+1. Make sure the DotX application is running
+2. Wait for the application to fully load (the plugin server starts automatically)
+3. Check if another application is using port 3001
+4. Try restarting the DotX application
+
+#### Connection Timeout (ETIMEDOUT)
+This occurs when the connection attempt times out.
+
+**Possible causes:**
+1. Firewall blocking the connection
+2. Server not responding
+3. Network connectivity issues
+
+#### Plugin Registration Failed
+This occurs when the plugin server rejects the registration.
+
+**Possible causes:**
+1. Invalid plugin metadata
+2. Server-side configuration issues
+3. Duplicate plugin IDs
+
+### Error Handling in Your Plugin
 
 ```typescript
 export default class MyPlugin extends Plugin {
@@ -158,20 +214,62 @@ export default class MyPlugin extends Plugin {
       console.log("Settings created successfully");
     } catch (error) {
       console.error("Failed to create settings:", error.message);
+      
       // Handle specific error cases:
-      // - "Plugin registration failed" - Server connection issues
-      // - "Request timeout" - API request took too long
-      // - "API request failed" - Server-side error
+      if (error.message.includes('timeout')) {
+        console.log("Request timed out - the server may be busy");
+      } else if (error.message.includes('registration failed')) {
+        console.log("Plugin registration failed - check plugin configuration");
+      }
     }
+  }
+  
+  // Monitor connection status
+  async checkConnection() {
+    const status = this.getConnectionStatus();
+    const isConnected = this.isConnected();
+    
+    console.log(`Connection status: ${status}, Connected: ${isConnected}`);
   }
 }
 ```
 
-Common error scenarios:
-- **Server not running**: Plugin registration timeout (10 seconds)
-- **Connection lost**: Automatic reconnection attempts
-- **API errors**: Detailed error messages from the server
-- **Request timeout**: 30-second timeout for all API calls
+### Debugging Connection Issues
+
+To debug connection issues, check the plugin output for detailed error messages:
+
+```bash
+node main.js
+```
+
+The plugin will provide step-by-step troubleshooting guidance:
+
+```
+Starting My Plugin v1.0.0...
+Attempting to connect to plugin server at http://localhost:3001...
+Connection failed (attempt 1/5). Retrying in 2000ms...
+Error details: connect ECONNREFUSED 127.0.0.1:3001
+
+Max retry attempts reached. Plugin connection failed.
+Error: Failed to connect to plugin server after 5 attempts.
+
+Possible causes:
+1. The DotX application is not running
+2. The plugin server hasn't been started yet
+3. The server is running on a different port than expected
+
+Solutions:
+1. Make sure the DotX application is running
+2. Wait for the application to fully load
+3. Check if another application is using port 3001
+4. Try restarting the DotX application
+
+Troubleshooting steps:
+1. Make sure the DotX application is running
+2. Wait for the application to fully load
+3. Check if the plugin server is enabled in DotX settings
+4. Verify no other application is using port 3001
+```
 
 ## Manifest.json Structure
 
@@ -296,7 +394,81 @@ const confirmed = await this.ui.showConfirmation({
 });
 ```
 
+### Plugin Status Methods
+
+#### `getConnectionStatus()`
+
+Get the current connection status.
+
+```typescript
+const status = this.getConnectionStatus();
+// Returns: 'connected' | 'connecting' | 'disconnected' | 'destroyed'
+```
+
+#### `isConnected()`
+
+Check if the plugin is connected and ready.
+
+```typescript
+const connected = this.isConnected();
+// Returns: boolean
+```
+
 ## Development
+
+### Testing Plugin Server Connection
+
+Before developing your plugin, you can test if the plugin server is available:
+
+```bash
+# Test connection with default settings
+npm run test-connection
+
+# Test connection with custom URL and timeout
+npx tsx src/test-connection.ts http://localhost:3001 15000
+```
+
+This will:
+- Test connection to the plugin server
+- Verify plugin registration works
+- Provide detailed error messages if connection fails
+
+### Waiting for Plugin Server
+
+You can wait for the plugin server to become available before starting your plugin:
+
+```bash
+# Wait for server with default settings (60 seconds max)
+npm run wait-for-server
+
+# Wait with custom settings
+npx tsx src/wait-for-server.ts http://localhost:3001 30000 1000
+```
+
+Or use it programmatically in your plugin:
+
+```typescript
+import { waitForPluginServer, runPlugin } from 'plugin-sdk';
+
+async function startPlugin() {
+  console.log('Waiting for DotX plugin server...');
+  const serverReady = await waitForPluginServer();
+  
+  if (serverReady) {
+    console.log('Server is ready, starting plugin...');
+    await runPlugin(MyPlugin);
+  } else {
+    console.error('Plugin server not available');
+    process.exit(1);
+  }
+}
+
+if (require.main === module) {
+  startPlugin();
+}
+```
+
+### Regenerating Types
 
 To regenerate types after API changes:
 
@@ -307,3 +479,27 @@ npm run generate-types
 ## Example Plugin
 
 See `plugins/hello-world/` for a complete example with `manifest.json` and `main.ts`.
+
+## Troubleshooting
+
+### Plugin Won't Connect
+
+1. **Verify DotX is running**: Make sure the DotX application is open and fully loaded
+2. **Check port availability**: Ensure no other application is using port 3001
+3. **Plugin server status**: The plugin server starts automatically with DotX
+4. **Firewall settings**: Ensure your firewall allows localhost connections on port 3001
+5. **Plugin permissions**: Make sure your plugin has permission to access network resources
+
+### Plugin Connects but API Calls Fail
+
+1. **Check registration**: Ensure the plugin has successfully registered with the server
+2. **API timeout**: Increase the `apiTimeout` in your connection configuration
+3. **Server logs**: Check the DotX application logs for server-side errors
+4. **Plugin manifest**: Verify your `manifest.json` is valid and complete
+
+### Performance Issues
+
+1. **Connection monitoring**: Disable connection monitoring if not needed
+2. **API batching**: Batch multiple API calls where possible
+3. **Error handling**: Implement proper error handling to avoid retry loops
+4. **Resource cleanup**: Ensure proper cleanup in your `onUnload()` method

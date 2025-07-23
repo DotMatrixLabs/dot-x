@@ -4,13 +4,12 @@ console.log("Hello World!");
 
 export default class HelloWorldPlugin extends Plugin {
   async onLoad() {
-    console.log("Hello World Plugin initializing...");
+    console.log("Hello World Plugin loaded!");
     
     try {
-      // Wait a moment for connection to establish
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const settings = await this.settings.createSettings({
+      // Create settings
+      console.log("Creating settings...");
+      await this.settings.createSettings({
         schema: {
           hello: {
             type: "text",
