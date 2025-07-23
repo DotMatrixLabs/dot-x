@@ -1,6 +1,6 @@
 // dot-x-plugin/src/plugin.ts
-import { APIClient, PluginInfo } from './client';
-import type { PluginAPI } from './generated/types';
+import { APIClient, PluginInfo, ConnectionConfig } from './client';
+import type { PluginAPI } from './types';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -19,20 +19,38 @@ export default class Plugin {
   public ui: PluginAPI['ui'];
   private client: APIClient;
   
-  constructor(pluginInfo: PluginInfo) {
-    this.client = new APIClient(pluginInfo);
+  constructor(pluginInfo: PluginInfo, config?: ConnectionConfig) {
+    this.client = new APIClient(pluginInfo, config);
     this.settings = this.client.settings;
     this.ui = this.client.ui;
   }
   
-  // Wait for the plugin to be registered with the server
-  async waitForConnection(): Promise<void> {
-    await this.client.waitForRegistration();
+  // Get the underlying client for accessing connection methods
+  getClient(): APIClient {
+    return this.client;
+  }
+  
+  // Wait for connection to be established
+  waitForConnection(): Promise<void> {
+    return this.client.waitForConnection();
+  }
+  
+  // Get connection status
+  getConnectionStatus(): string {
+    return this.client.getConnectionStatus();
+  }
+  
+  // Check if connected
+  isConnected(): boolean {
+    return this.client.isConnected();
   }
   
   // Plugin lifecycle methods
-  async onLoad() {}
+  async onLoad() {
+    console.log("Plugin loaded");
+  }
   async onUnload() {
+    console.log("Plugin unloaded");
     this.client.disconnect();
   }
 }
@@ -62,8 +80,9 @@ function readManifest(): PluginManifest | null {
  * }
  * 
  * @param PluginClass The plugin class to instantiate and run
+ * @param config Optional connection configuration
  */
-export async function runPlugin(PluginClass: typeof Plugin) {
+export async function runPlugin(PluginClass: typeof Plugin, config?: ConnectionConfig) {
   const manifest = readManifest();
   const pluginName = manifest?.name || PluginClass.name || 'Unknown Plugin';
   const version = manifest?.version || '1.0.0';
@@ -85,25 +104,30 @@ export async function runPlugin(PluginClass: typeof Plugin) {
     connected_at: new Date().toISOString()
   };
   
-  const plugin = new PluginClass(pluginInfo);
+  let plugin: Plugin;
+  let isShuttingDown = false;
   
   try {
-    console.log("Waiting for connection to plugin server...");
-    await plugin.waitForConnection();
-    console.log("Connected to plugin server, initializing plugin...");
+    plugin = new PluginClass(pluginInfo, config);
     
+    // Wait for connection to be established
+    console.log('Waiting for connection to be established...');
+    await plugin.waitForConnection();
+    
+    console.log('Connection established, calling onLoad...');
     await plugin.onLoad();
-    console.log("Plugin loaded successfully!");
+    console.log(`${pluginName} loaded successfully!`);
+    
   } catch (error) {
-    console.error("Failed to load plugin:", error);
+    console.error(`Failed to start ${pluginName}:`, error.message);
     process.exit(1);
   }
   
-  // Keep the process running to maintain WebSocket connection
-  console.log("Plugin is running. Press Ctrl+C to exit.");
-  
   // Handle graceful shutdown
-  process.on('SIGINT', async () => {
+  const shutdown = async () => {
+    if (isShuttingDown) return;
+    isShuttingDown = true;
+    
     console.log(`\nShutting down ${pluginName}...`);
     try {
       await plugin.onUnload();
@@ -112,5 +136,9 @@ export async function runPlugin(PluginClass: typeof Plugin) {
       console.error("Error during plugin unload:", error);
     }
     process.exit(0);
-  });
+  };
+  
+  process.on('SIGINT', shutdown);
+  process.on('SIGTERM', shutdown);
+  
 }

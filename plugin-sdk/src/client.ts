@@ -1,5 +1,5 @@
 import { io, Socket } from 'socket.io-client';
-import { FlatSettingsSchema, SettingsOptions, TabConfig, UIComponent, ModalButton } from './generated/types';
+import type { SettingsSchema, SettingsOptions, TabConfig, UIComponent, ModalButton } from './types';
 
 export interface PluginInfo {
   id: string;
@@ -21,94 +21,197 @@ export interface ApiResponse {
   error?: string;
 }
 
+export interface ConnectionConfig {
+  serverUrl?: string;
+  maxRetries?: number;
+  retryDelay?: number;
+  connectionTimeout?: number;
+  registrationTimeout?: number;
+  apiTimeout?: number;
+}
+
 export class APIClient {
   private socket: Socket;
   private isRegistered = false;
   private pluginInfo: PluginInfo;
-  private registrationPromise: Promise<void>;
-  private registrationResolve: ((value: void) => void) | null = null;
-  private registrationReject: ((reason: any) => void) | null = null;
+  private config: Required<ConnectionConfig>;
+  private retryCount = 0;
+  private isDestroyed = false;
+  private connectionPromise: Promise<void>;
   
-  constructor(pluginInfo: PluginInfo) {
+  constructor(pluginInfo: PluginInfo, config: ConnectionConfig = {}) {
     this.pluginInfo = pluginInfo;
-    this.registrationPromise = new Promise((resolve, reject) => {
-      this.registrationResolve = resolve;
-      this.registrationReject = reject;
-    });
-    this.socket = io('http://localhost:3001');
-    this.setupEventHandlers();
+    this.config = {
+      serverUrl: config.serverUrl || 'http://localhost:3001',
+      maxRetries: config.maxRetries || 5,
+      retryDelay: config.retryDelay || 2000,
+      connectionTimeout: config.connectionTimeout || 10000,
+      registrationTimeout: config.registrationTimeout || 15000,
+      apiTimeout: config.apiTimeout || 30000
+    };
+    this.connectionPromise = this.initializeConnection();
   }
   
-  private setupEventHandlers() {
-    this.socket.on('connect', () => {
-      console.log('Connected to plugin server');
-      this.register();
-    });
-    
-    this.socket.on('disconnect', () => {
-      console.log('Disconnected from plugin server');
-      this.isRegistered = false;
-    });
-    
-    this.socket.on('error', (error: any) => {
-      console.error('Socket error:', error);
-      if (this.registrationReject) {
-        this.registrationReject(new Error(`Socket connection error: ${error.message || error}`));
-        this.registrationReject = null;
-      }
-    });
-
-    this.socket.on('connect_error', (error: any) => {
-      console.error('Failed to connect to plugin server:', error);
-      if (this.registrationReject) {
-        this.registrationReject(new Error(`Failed to connect to plugin server: ${error.message || error}`));
-        this.registrationReject = null;
-      }
-    });
-
-    // Listen for events from frontend
-    this.socket.on('frontend_event', (data: any) => {
-      console.log('Received event from frontend:', data);
-    });
-    
-    // Add a timeout for registration
-    setTimeout(() => {
-      if (!this.isRegistered && this.registrationReject) {
-        this.registrationReject(new Error('Plugin registration timeout - server may not be running'));
-        this.registrationReject = null;
-      }
-    }, 10000); // 10 second timeout
+  // Expose the connection promise for external waiting
+  waitForConnection(): Promise<void> {
+    return this.connectionPromise;
   }
   
-  private register() {
-    if (this.isRegistered) return;
-    
-    this.socket.emit('register', this.pluginInfo, (ack: any) => {
-      console.log('Registration response:', ack);
-      if (ack.status === 'success') {
-        console.log('Plugin registered successfully!');
-        this.isRegistered = true;
-        if (this.registrationResolve) {
-          this.registrationResolve();
-          this.registrationResolve = null;
-        }
-              } else {
-          console.error('Plugin registration failed:', ack);
-          // Reject the registration promise on failure
-          if (this.registrationReject) {
-            this.registrationReject(new Error(`Plugin registration failed: ${ack.message || 'Unknown error'}`));
-            this.registrationReject = null;
+  private initializeConnection(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const connect = () => {
+        if (this.isDestroyed) return;
+        
+        console.log(`Attempting to connect to plugin server at ${this.config.serverUrl}...`);
+        
+        this.socket = io(this.config.serverUrl, {
+          timeout: this.config.connectionTimeout,
+          forceNew: true,
+          autoConnect: true,
+          reconnection: false // We'll handle reconnection manually
+        });
+        
+        const registrationTimeoutId = setTimeout(() => {
+          if (!this.isRegistered) {
+            const errorMsg = this.retryCount >= this.config.maxRetries 
+              ? `Plugin registration failed after ${this.config.maxRetries} attempts. Make sure the DotX application is running and the plugin server is started.`
+              : 'Plugin registration timeout - server may not be running';
+            reject(new Error(errorMsg));
           }
-        }
+        }, this.config.registrationTimeout);
+        
+        const handleFailure = (error: any) => {
+          if (this.isDestroyed) return;
+
+          // Clean up listeners on the old socket to prevent memory leaks
+          this.socket.off('connect');
+          this.socket.off('disconnect');
+          this.socket.off('error');
+          this.socket.off('connect_error');
+          
+          if (this.retryCount < this.config.maxRetries) {
+            this.retryCount++;
+            console.log(`Connection failed (attempt ${this.retryCount}/${this.config.maxRetries}). Retrying in ${this.config.retryDelay}ms...`);
+            console.log(`Error details: ${error.message || error}`);
+            
+            setTimeout(() => {
+              if (!this.isDestroyed) {
+                this.socket?.disconnect();
+                connect();
+              }
+            }, this.config.retryDelay);
+          } else {
+            clearTimeout(registrationTimeoutId);
+            const errorMessage = this.createDetailedErrorMessage(error);
+            console.error('Max retry attempts reached. Plugin connection failed.');
+            console.error('Error:', errorMessage);
+            reject(new Error(errorMessage));
+          }
+        };
+        
+        this.socket.on('connect', () => {
+          console.log('Connected to plugin server');
+          this.retryCount = 0; // Reset retry count on successful connection
+          
+          this.socket.emit('register', this.pluginInfo, (ack: any) => {
+            clearTimeout(registrationTimeoutId);
+            console.log('Registration response:', ack);
+            if (ack.status === 'success') {
+              console.log('Plugin registered successfully!');
+              this.isRegistered = true;
+              
+              // Set up long-term disconnect handler
+              this.socket.on('disconnect', (reason: string) => {
+                console.log('Disconnected from plugin server:', reason);
+                this.isRegistered = false;
+                if (this.isDestroyed || reason === 'io client disconnect') {
+                  return;
+                }
+                // At this point, the initial connection promise is already resolved.
+                // Reconnection logic will be handled by the client attempting to make new calls.
+                // For now, we just log it. A more robust implementation might use an event emitter
+                // to notify the plugin that the connection was lost.
+                console.log('Connection lost. The plugin will need to be re-initialized.');
+              });
+
+              resolve();
+            } else {
+              console.error('Plugin registration failed:', ack);
+              handleFailure(new Error(`Plugin registration failed: ${ack.message || 'Unknown error'}`));
+            }
+          });
+        });
+        
+        this.socket.on('disconnect', (reason: string) => {
+          console.log('Disconnected from plugin server:', reason);
+          this.isRegistered = false;
+          if (this.isDestroyed || reason === 'io client disconnect') {
+            return;
+          }
+          handleFailure(new Error(`Disconnected: ${reason}`));
+        });
+        
+        this.socket.on('error', (error: any) => {
+          console.error('Socket error:', error);
+          handleFailure(error);
+        });
+        
+        this.socket.on('connect_error', (error: any) => {
+          console.error('Failed to connect to plugin server:', error);
+          handleFailure(error);
+        });
+
+        // Listen for events from frontend
+        this.socket.on('frontend_event', (data: any) => {
+          console.log('Received event from frontend:', data);
+        });
+      };
+
+      connect();
     });
+  }
+  
+  private createDetailedErrorMessage(error: any): string {
+    const baseMessage = `Failed to connect to plugin server after ${this.config.maxRetries} attempts.`;
+    
+    if (error.code === 'ECONNREFUSED' || error.message?.includes('ECONNREFUSED')) {
+      return `${baseMessage}
+      Possible causes:
+      1. Dot X is not running
+      2. The plugin server hasn't been started yet
+      3. The server is running on a different port than expected (${this.config.serverUrl})
+
+      Solutions:
+      1. Make sure Dot X is running
+      2. Wait for the application to fully load (the plugin server starts automatically)
+      3. Check if another application is using port 3001
+      4. Try restarting Dot X
+
+      Technical details: Connection refused (${error.code || 'N/A'})`;
+    }
+    
+    if (error.code === 'ETIMEDOUT' || error.message?.includes('timeout')) {
+      return `${baseMessage}
+      The connection attempt timed out. This usually means:
+      1. A firewall is blocking the connection
+      2. The server is not responding
+      3. Network connectivity issues
+
+      Technical details: Connection timeout (${error.code || 'N/A'})`;
+    }
+    
+    return `${baseMessage}
+      Technical details: ${error.message || error}`;
   }
   
   private async call(method: string, params: any): Promise<any> {
-    // Wait for registration to complete before making API calls
-    await this.registrationPromise;
     
     if (!this.isRegistered) {
       throw new Error('Plugin registration failed');
+    }
+    
+    if (this.isDestroyed) {
+      throw new Error('Plugin client has been destroyed');
     }
     
     const apiRequest: ApiRequest = {
@@ -119,8 +222,8 @@ export class APIClient {
     
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
-        reject(new Error('Request timeout'));
-      }, 30000);
+        reject(new Error(`API request timeout: ${method} took longer than ${this.config.apiTimeout}ms`));
+      }, this.config.apiTimeout);
       
       this.socket.emit('api_request', apiRequest, (response: ApiResponse) => {
         clearTimeout(timeout);
@@ -128,26 +231,34 @@ export class APIClient {
         if (response.success) {
           resolve(response.data);
         } else {
-          reject(new Error(response.error || 'API request failed'));
+          reject(new Error(`API request failed (${method}): ${response.error || 'Unknown error'}`));
         }
       });
     });
   }
-  
-  public async waitForRegistration(): Promise<void> {
-    await this.registrationPromise;
-  }
-  
+
   public disconnect() {
+    this.isDestroyed = true;
     if (this.socket) {
       this.socket.disconnect();
     }
   }
   
+  public isConnected(): boolean {
+    return this.isRegistered && !this.isDestroyed;
+  }
+  
+  public getConnectionStatus(): string {
+    if (this.isDestroyed) return 'destroyed';
+    if (this.isRegistered) return 'connected';
+    if (this.socket?.connected) return 'connecting';
+    return 'disconnected';
+  }
+  
   get settings() {
     return {
       createSettings: (params: {
-        schema: FlatSettingsSchema;
+        schema: SettingsSchema;
         options?: SettingsOptions;
       }) => this.call('settings.createSettings', params),
       setValue: (params: {
