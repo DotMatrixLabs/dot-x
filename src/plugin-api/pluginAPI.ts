@@ -7,6 +7,8 @@ import type {
   SettingsSchema,
   SettingsField 
 } from './schema';
+import { settingsManager } from './settings';
+import { uiManager } from './ui';
 
 export class PluginAPI {
   private static instance: PluginAPI | null = null;
@@ -80,37 +82,41 @@ export class PluginAPI {
     try {
       let response: ApiResponse;
 
-      switch (request.method) {
-        case 'settings.createSettings':
-          response = await this.handleCreateSettings(request);
-          break;
+      // Check if this is a settings method
+      if (request.method.startsWith('settings.')) {
+        const methodName = request.method.split('.')[1];
         
-        case 'settings.setValue':
-          response = await this.handleSetValue(request);
-          break;
-        
-        case 'settings.getValue':
-          response = await this.handleGetValue(request);
-          break;
-        
-        case 'ui.showToast':
-          response = await this.handleShowToast(request);
-          break;
-        
-        case 'ui.showModal':
-          response = await this.handleShowModal(request);
-          break;
-        
-        case 'ui.showConfirmation':
-          response = await this.handleShowConfirmation(request);
-          break;
-        
-        default:
+        // Check if the method exists in settingsManager
+        if (typeof settingsManager[methodName as keyof typeof settingsManager] === 'function') {
+          response = await (settingsManager[methodName as keyof typeof settingsManager] as Function)(request);
+        } else {
           response = {
             request_id: request.request_id,
             success: false,
-            error: `Unknown API method: ${request.method}`
+            error: `Unknown settings method: ${methodName}`
           };
+        }
+      } else if (request.method.startsWith('ui.')) {
+        // Check if this is a UI method
+        const methodName = request.method.split('.')[1];
+        
+        // Check if the method exists in uiManager
+        if (typeof uiManager[methodName as keyof typeof uiManager] === 'function') {
+          response = await (uiManager[methodName as keyof typeof uiManager] as Function)(request);
+        } else {
+          response = {
+            request_id: request.request_id,
+            success: false,
+            error: `Unknown UI method: ${methodName}`
+          };
+        }
+      } else {
+        // Handle other methods with switch case if needed
+        response = {
+          request_id: request.request_id,
+          success: false,
+          error: `Unknown API method: ${request.method}`
+        };
       }
 
       // Send the response back through the Rust backend
@@ -129,130 +135,9 @@ export class PluginAPI {
     }
   }
 
-  /**
-   * Handle createSettings API request
-   */
-  private async handleCreateSettings(request: ApiRequest): Promise<ApiResponse> {
-    console.log('Creating settings for plugin:', request.params);
-    
-    const params = request.params as CreateSettingsParams;
-    
-    // Validate the schema
-    if (!params.schema || typeof params.schema !== 'object') {
-      return {
-        request_id: request.request_id,
-        success: false,
-        error: 'Invalid schema: schema must be an object'
-      };
-    }
 
-    // Simulate processing the settings creation
-    const settingsId = `settings_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
-    // Log the schema for testing
-    console.log('Settings schema received:', JSON.stringify(params.schema, null, 2));
-    console.log('Settings options received:', JSON.stringify(params.options, null, 2));
-    
-    // Simulate some async work (e.g., creating UI, validating fields)
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    // Simulate success response
-    const successData = {
-      success: true,
-      settingsId: settingsId,
-      message: 'Settings created successfully'
-    };
 
-    return {
-      request_id: request.request_id,
-      success: true,
-      data: successData
-    };
-  }
 
-  /**
-   * Handle setValue API request
-   */
-  private async handleSetValue(request: ApiRequest): Promise<ApiResponse> {
-    console.log('Setting value:', request.params);
-    
-    // Simulate setting a value
-    await new Promise(resolve => setTimeout(resolve, 50));
-    
-    return {
-      request_id: request.request_id,
-      success: true,
-      data: { message: 'Value set successfully' }
-    };
-  }
-
-  /**
-   * Handle getValue API request
-   */
-  private async handleGetValue(request: ApiRequest): Promise<ApiResponse> {
-    console.log('Getting value for key:', request.params.key);
-    
-    // Simulate getting a value
-    const mockValue = `mock_value_for_${request.params.key}`;
-    
-    return {
-      request_id: request.request_id,
-      success: true,
-      data: mockValue
-    };
-  }
-
-  /**
-   * Handle showToast API request
-   */
-  private async handleShowToast(request: ApiRequest): Promise<ApiResponse> {
-    console.log('Showing toast:', request.params);
-    
-    // Simulate showing a toast notification
-    // In a real implementation, you would integrate with your toast system
-    console.log(`Toast: ${request.params.message} (${request.params.type || 'info'})`);
-    
-    return {
-      request_id: request.request_id,
-      success: true,
-      data: { message: 'Toast shown successfully' }
-    };
-  }
-
-  /**
-   * Handle showModal API request
-   */
-  private async handleShowModal(request: ApiRequest): Promise<ApiResponse> {
-    console.log('Showing modal:', request.params);
-    
-    // Simulate showing a modal and getting user input
-    const mockResult = {
-      button: 'confirm',
-      cancelled: false
-    };
-    
-    return {
-      request_id: request.request_id,
-      success: true,
-      data: mockResult
-    };
-  }
-
-  /**
-   * Handle showConfirmation API request
-   */
-  private async handleShowConfirmation(request: ApiRequest): Promise<ApiResponse> {
-    console.log('Showing confirmation:', request.params);
-    
-    // Simulate user confirming
-    const confirmed = true;
-    
-    return {
-      request_id: request.request_id,
-      success: true,
-      data: confirmed
-    };
-  }
 
   /**
    * Send API response back to plugin through Rust backend
@@ -266,66 +151,6 @@ export class PluginAPI {
     }
   }
 
-  /**
-   * Test method to simulate a createSettings request manually
-   */
-  public async testCreateSettings() {
-    console.log('Testing createSettings method...');
-    
-    const mockRequest: ApiRequest = {
-      method: 'settings.createSettings',
-      params: {
-        schema: {
-          myText: {
-            type: "text",
-            label: "Text Input",
-            placeholder: "Enter text here",
-            default: "Hello World"
-          },
-          myBoolean: {
-            type: "boolean", 
-            label: "Enable Feature",
-            default: true
-          },
-          mySelect: {
-            type: "select",
-            label: "Choose Option",
-            options: [
-              { value: "option1", label: "Option 1" },
-              { value: "option2", label: "Option 2" }
-            ],
-            default: "option1"
-          },
-          myNumber: {
-            type: "number",
-            label: "Number Input",
-            min: 0,
-            max: 100,
-            default: 50
-          }
-        },
-        options: {
-          defaultTab: "general",
-          showTabIcons: true,
-          tabPosition: "top",
-          autoSave: true,
-          tabs: {
-            general: {
-              title: "General",
-              icon: "⚙️"
-            },
-            advanced: {
-              title: "Advanced",
-              icon: "🔧"
-            }
-          }
-        }
-      },
-      request_id: 'req_1753301317785_3ds4mx2o9'
-    };
-
-    await this.handleApiRequest(mockRequest);
-  }
 }
 
 // Export as default for clean imports
