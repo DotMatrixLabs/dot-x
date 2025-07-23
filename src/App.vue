@@ -4,6 +4,9 @@
     <AppsModal :currentSliderID="currentSliderID" :modal-open="appsModalOpen" @close="appsToggled(null)" />
     <TopBar :colorScheme="colorScheme" :class="backgroundColorTopBar" @settings-toggled="settingsToggled" :connection-status="connectionState" />
     <SliderOverview :class="backgroundColor" ref="sliderOverview" :pot-values="potValues" @app-click="appsToggled" />
+    
+    <!-- Plugin UI Components -->
+    <Plugin />
   </div>
 </template>
 
@@ -12,6 +15,7 @@ import TopBar from "./components/TopBar.vue";
 import SettingsModal from "./SettingsModal/SettingsModal.vue";
 import AppsModal from "./AppSelectModal/AppsModal.vue";
 import SliderOverview from "./SliderOverview.vue";
+import Plugin from "./components/Plugin.vue";
 import { useToast } from "vue-toastification";
 import ConfigStore from "./ts/config.ts";
 import Decker from "./ts/decker.ts";
@@ -24,7 +28,7 @@ import { mapState } from "pinia";
 const toast = useToast();
 
 export default {
-  components: { TopBar, SettingsModal, SliderOverview, AppsModal },
+  components: { TopBar, SettingsModal, SliderOverview, AppsModal, Plugin },
   name: "App",
 
   data() {
@@ -128,6 +132,7 @@ export default {
   async mounted() {
     await PluginAPI.initialize();
     console.log("Plugin server started");
+    
     await new Promise(resolve => setTimeout(resolve, 1000));
     this.disableContextMenu();
     // this.getTheme();
@@ -149,6 +154,10 @@ export default {
       this.colorScheme = event.matches ? "dark" : "light";
       document.documentElement.setAttribute("data-theme", this.colorScheme);
     });
+  },
+
+  beforeUnmount() {
+    // Plugin UI cleanup is handled automatically
   },
 };
 </script>
