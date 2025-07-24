@@ -15,7 +15,7 @@ import TopBar from "./components/TopBar.vue";
 import SettingsModal from "./SettingsModal/SettingsModal.vue";
 import AppsModal from "./AppSelectModal/AppsModal.vue";
 import SliderOverview from "./SliderOverview.vue";
-import Plugin from "./components/Plugin.vue";
+import Plugin from "./Plugins/Plugin.vue";
 import { useToast } from "vue-toastification";
 import ConfigStore from "./ts/config.ts";
 import Decker from "./ts/decker.ts";
