@@ -20,22 +20,47 @@ export interface ApiResponse {
   error?: string;
 }
 
-export interface SettingsField {
-  type: 'text' | 'boolean' | 'select' | 'number' | 'password' | 'textarea' | 'color' | 'file';
+type BaseSettingsField = {
   label: string;
   tab?: string;
   section?: string;
   default?: any;
   placeholder?: string;
   required?: boolean;
-  options?: Array<{ value: any; label: string }>;
-  min?: number;
-  max?: number;
-  condition?: () => boolean;
-  validation?: (value: any) => string | null;
   description?: string;
   help?: string;
+};
+
+export interface TextField extends BaseSettingsField {
+  type: 'text' | 'password' | 'textarea' | 'color' | 'file' | 'number';
+  options?: never;
 }
+
+export interface BooleanField extends BaseSettingsField {
+  type: 'boolean';
+  options?: never;
+}
+
+export interface SelectField extends BaseSettingsField {
+  type: 'select';
+  options: Array<{ value: any; label: string }>;
+}
+
+export interface ButtonField extends BaseSettingsField {
+  type: 'button';
+  text?: string;
+  style?: 'primary' | 'secondary' | 'danger';
+  onClick: () => void;
+  actionId?: string;
+}
+
+export type SettingsField =
+  | TextField
+  | BooleanField
+  | SelectField
+  | ButtonField;
+
+export type SettingsSchema = Record<string, SettingsField>;
 
 export interface TabConfig {
   title: string;
@@ -272,8 +297,6 @@ export interface PluginAPI {
     }) => Promise<void>;
   };
 }
-
-export type SettingsSchema = Record<string, SettingsField>;
 
 export type SystemEvent = 
   | 'theme-changed'
