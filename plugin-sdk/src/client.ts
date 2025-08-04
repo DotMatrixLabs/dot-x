@@ -36,6 +36,8 @@ export class APIClient {
   private pluginInfo: PluginInfo;
   private config: Required<ConnectionConfig>;
   private retryCount = 0;
+  // Registry for settings action callbacks (e.g., button clicks)
+  private actionCallbacks = new Map<string, () => void>();
   private isDestroyed = false;
   private connectionPromise: Promise<void>;
   
@@ -119,6 +121,18 @@ export class APIClient {
             if (ack.status === 'success') {
               console.log('Plugin registered successfully!');
               this.isRegistered = true;
+              
+              // Listen for settings action events (e.g., button clicks)
+              this.socket.on('settings.action', (data: { actionId: string }) => {
+                const cb = this.actionCallbacks.get(data.actionId);
+                if (cb) {
+                  try {
+                    cb();
+                  } catch (err) {
+                    console.error('Error executing settings action callback:', err);
+                  }
+                }
+              });
               
               // Set up long-term disconnect handler
               this.socket.on('disconnect', (reason: string) => {
@@ -242,6 +256,7 @@ export class APIClient {
     if (this.socket) {
       this.socket.disconnect();
     }
+    this.actionCallbacks.clear();
   }
   
   public isConnected(): boolean {
@@ -257,7 +272,24 @@ export class APIClient {
   
   get settings() {
     return {
-      createSettings: (params: CreateSettingsParams) => this.call('settings.createSettings', params),
+      createSettings: async (params: CreateSettingsParams) => {
+        // Prepare schema by stripping out function callbacks and replacing with actionIds
+        const processedSchema: SettingsSchema = {} as any;
+        Object.entries(params.schema).forEach(([key, field]) => {
+          const newField: any = { ...field };
+          if (newField.type === 'button' && typeof newField.onClick === 'function') {
+            const actionId = `action_${key}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+            // Store callback locally
+            this.actionCallbacks.set(actionId, newField.onClick);
+            // Replace function with actionId for transport
+            newField.actionId = actionId;
+            delete newField.onClick;
+          }
+          processedSchema[key] = newField;
+        });
+        const res = await this.call('settings.createSettings', { ...params, schema: processedSchema });
+        return res;
+      },
       setValue: (params: { key: string; value: any; }) => this.call('settings.setValue', params),
       getValue: (params: { key: string; }) => this.call('settings.getValue', params),
       setVisibility: (params: { key: string; visible: boolean; }) => this.call('settings.setVisibility', params),

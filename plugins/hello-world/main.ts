@@ -7,9 +7,26 @@ export default class HelloWorldPlugin extends Plugin {
     console.log("Hello World Plugin loaded!");
     
     try {
-      this.testToast();
+      // Create settings with a button
+      await this.settings.createSettings({
+        schema: {
+          demoButton: {
+            type: 'button',
+            label: 'Show Toast',
+            text: 'Click me',
+            style: 'primary',
+            onClick: () => {
+              this.ui.showToast({
+                message: 'Button clicked!',
+                type: 'success',
+                duration: 3000
+              });
+            }
+          }
+        }
+      });
       
-      console.log("Plugin loaded successfully!");
+      console.log("Plugin settings created successfully!");
       
     } catch (error) {
       console.error("Error during plugin initialization:", error);
