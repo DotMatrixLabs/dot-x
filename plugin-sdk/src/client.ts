@@ -1,5 +1,5 @@
 import { io, Socket } from 'socket.io-client';
-import type { SettingsSchema, SettingsOptions, TabConfig, UIComponent, ModalButton } from './types';
+import type { SettingsSchema, SettingsOptions, TabConfig, ToastParams, CreateSettingsParams, UIComponent, ModalButton } from './types';
 
 export interface PluginInfo {
   id: string;
@@ -257,73 +257,63 @@ export class APIClient {
   
   get settings() {
     return {
-      createSettings: (params: {
-        schema: SettingsSchema;
-        options?: SettingsOptions;
-      }) => this.call('settings.createSettings', params),
-      setValue: (params: {
-        key: string;
-        value: any;
-      }) => this.call('settings.setValue', params),
-      getValue: (params: {
-        key: string;
-      }) => this.call('settings.getValue', params),
-      setVisibility: (params: {
-        key: string;
-        visible: boolean;
-      }) => this.call('settings.setVisibility', params),
-      setError: (params: {
-        key: string;
-        error: string | null;
-      }) => this.call('settings.setError', params),
-      setEnabled: (params: {
-        key: string;
-        enabled: boolean;
-      }) => this.call('settings.setEnabled', params),
-      setActiveTab: (params: {
-        tabKey: string;
-      }) => this.call('settings.setActiveTab', params),
-      addTab: (params: {
-        tabKey: string;
-        config: TabConfig;
-      }) => this.call('settings.addTab', params),
-      removeTab: (params: {
-        tabKey: string;
-      }) => this.call('settings.removeTab', params),
-      setTabVisibility: (params: {
-        tabKey: string;
-        visible: boolean;
-      }) => this.call('settings.setTabVisibility', params),
-      saveData: (params: {
-        key: string;
-        value: any;
-      }) => this.call('settings.saveData', params),
+      createSettings: (params: CreateSettingsParams) => this.call('settings.createSettings', params),
+      setValue: (params: { key: string; value: any; }) => this.call('settings.setValue', params),
+      getValue: (params: { key: string; }) => this.call('settings.getValue', params),
+      setVisibility: (params: { key: string; visible: boolean; }) => this.call('settings.setVisibility', params),
+      setError: (params: { key: string; error: string | null; }) => this.call('settings.setError', params),
+      setEnabled: (params: { key: string; enabled: boolean; }) => this.call('settings.setEnabled', params),
+      setActiveTab: (params: { tabKey: string; }) => this.call('settings.setActiveTab', params),
+      addTab: (params: { tabKey: string; config: TabConfig; }) => this.call('settings.addTab', params),
+      removeTab: (params: { tabKey: string; }) => this.call('settings.removeTab', params),
+      setTabVisibility: (params: { tabKey: string; visible: boolean; }) => this.call('settings.setTabVisibility', params),
+      saveData: (params: { key: string; value: any; }) => this.call('settings.saveData', params),
+      // setValue: (params: {
+      //   key: string;
+      //   value: any;
+      // }) => this.call('settings.setValue', params),
+      // getValue: (params: {
+      //   key: string;
+      // }) => this.call('settings.getValue', params),
+      // setVisibility: (params: {
+      //   key: string;
+      //   visible: boolean;
+      // }) => this.call('settings.setVisibility', params),
+      // setError: (params: {
+      //   key: string;
+      //   error: string | null;
+      // }) => this.call('settings.setError', params),
+      // setEnabled: (params: {
+      //   key: string;
+      //   enabled: boolean;
+      // }) => this.call('settings.setEnabled', params),
+      // setActiveTab: (params: {
+      //   tabKey: string;
+      // }) => this.call('settings.setActiveTab', params),
+      // addTab: (params: {
+      //   tabKey: string;
+      //   config: TabConfig;
+      // }) => this.call('settings.addTab', params),
+      // removeTab: (params: {
+      //   tabKey: string;
+      // }) => this.call('settings.removeTab', params),
+      // setTabVisibility: (params: {
+      //   tabKey: string;
+      //   visible: boolean;
+      // }) => this.call('settings.setTabVisibility', params),
+      // saveData: (params: {
+      //   key: string;
+      //   value: any;
+      // }) => this.call('settings.saveData', params),
 
     };
   }
   
   get ui() {
     return {
-      showToast: (params: {
-        message: string;
-        type?: 'info' | 'success' | 'warning' | 'error';
-        duration?: number;
-      }) => this.call('ui.showToast', params),
-      showModal: (params: {
-        title: string;
-        content: string | UIComponent;
-        size?: 'small' | 'medium' | 'large' | 'fullscreen';
-        buttons?: ModalButton[];
-        closable?: boolean;
-      }) => this.call('ui.showModal', params),  
-      showConfirmation: (params: {
-        title: string;
-        message: string;
-        confirmText?: string;
-        cancelText?: string;
-        type?: 'info' | 'warning' | 'danger';
-      }) => this.call('ui.showConfirmation', params), 
-
+      showToast: (params: ToastParams) => this.call('ui.showToast', params),
+      showModal: (params: { title: string; content: string | UIComponent; size?: 'small' | 'medium' | 'large' | 'fullscreen'; buttons?: ModalButton[]; closable?: boolean; }) => this.call('ui.showModal', params),
+      showConfirmation: (params: { title: string; message: string; confirmText?: string; cancelText?: string; type?: 'info' | 'warning' | 'danger'; }) => this.call('ui.showConfirmation', params),
     };
   }
 }

@@ -187,22 +187,8 @@ export interface PluginAPI {
       type?: 'info' | 'success' | 'warning' | 'error';
       duration?: number;
     }) => Promise<void>;
-    
-    showModal: (params: {
-      title: string;
-      content: string | UIComponent;
-      size?: 'small' | 'medium' | 'large' | 'fullscreen';
-      buttons?: ModalButton[];
-      closable?: boolean;
-    }) => Promise<ModalResult>;
-    
-    showConfirmation: (params: {
-      title: string;
-      message: string;
-      confirmText?: string;
-      cancelText?: string;
-      type?: 'info' | 'warning' | 'danger';
-    }) => Promise<boolean>;
+
+
   };
 
   // Plugin Management (pluginId automatically injected)
