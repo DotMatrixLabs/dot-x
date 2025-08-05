@@ -11,10 +11,16 @@
                 {{ tab }}
               </a>
             </li>
+            <label class="label-text text-xs mt-4 ml-4">Plugins</label>
+            <li class="py-0.5" v-for="plugin in plugins" :key="plugin.id">
+              <a @click="selectTab(plugin.name)" :class="{ active: activeTab === plugin.name }">
+                {{ plugin.name }}
+              </a>
+            </li>
           </ul>
         </div>
         <div class="col-span-2 w-full px-6 py-3 ">
-          <component :modalOpen="modalOpen" :is="activeTab" :key="activeTab" />
+          <component :modalOpen="modalOpen" :is="activeTab" :key="activeTab" :plugin="activePlugin" @openSettings="openSettings" />
         </div>
       </div>
     </div>
@@ -27,6 +33,9 @@ import General from "./General.vue";
 import Device from "./Device.vue";
 import Midi from "./Midi.vue";
 import Plugins from "./Plugins.vue";
+import PluginSettings from "./PluginSettings.vue";
+import { mapState } from "pinia";
+import { useStore } from "../store/store";
 
 export default {
   name: "SettingsModal",
@@ -39,6 +48,7 @@ export default {
     Midi,
     Device,
     Plugins,
+    PluginSettings,
   },
 
   props: {
@@ -48,14 +58,24 @@ export default {
   data() {
     return {
       tabs: ['Device', 'General', 'Plugins', 'Midi', 'About'],
-      activeTab: "Device"
+      activeTab: "Device",
+      plugins: [],
+      activePlugin: null,
     };
+  },
+
+  computed: {
+    ...mapState(useStore, ['activePlugins']),
   },
 
   methods: {
     selectTab(selectedTab) {
       this.activeTab = selectedTab
     },
+    openSettings(plugin) {
+      this.activeTab = "PluginSettings"
+      this.activePlugin = plugin
+    }
   },
 
 };
