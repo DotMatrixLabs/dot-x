@@ -13,6 +13,15 @@ import { uiManager } from './ui';
 export class PluginAPI {
   private static instance: PluginAPI | null = null;
   private isInitialized = false;
+  // --- SETTINGS helpers ---
+  async emitSettingsAction(actionId: string) {
+    try {
+      await emit('plugin/settings_action', { actionId });
+      console.log('Emitted settings_action', actionId);
+    } catch (err) {
+      console.error('Failed to emit settings_action', err);
+    }
+  }
   private serverPort = 3001;
 
   private constructor() {
