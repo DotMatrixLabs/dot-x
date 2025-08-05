@@ -17,11 +17,11 @@
 			<div class="flex flex-row justify-between">
 				<h3 class="">Installed plugins: </h3>
 				<div class="">
-					<button class="mx-1 btn btn-ghost btn-square btn-sm">
-						r
+					<button title="Reload plugins" class="mx-1 btn btn-ghost btn-square btn-sm" @click="reloadPlugins">
+						<i class="fa-solid fa-rotate-right"></i>
 					</button>
-					<button class="mx-1 btn btn-ghost btn-square btn-sm">
-						b
+					<button title="Open Plugin Folder" class="mx-1 btn btn-ghost btn-square btn-sm">
+						<i class="fa-solid fa-folder-open"></i>
 					</button>
 				</div>
 
@@ -42,11 +42,11 @@
 						<!-- Actions -->
 						<div class="flex items-center gap-3 my-auto">
 							<!-- Settings -->
-							<button class="btn btn-ghost btn-square btn-sm" @click="openSettings(plugin)" title="Settings">
-								D
+							<button title="Delete plugin" class="btn btn-ghost btn-square btn-sm" @click="deletePlugin(plugin)">
+								<i class="fa-solid fa-trash"></i>
 							</button>
-							<button class="btn btn-ghost btn-square btn-sm" @click="openSettings(plugin)" title="Settings">
-								S
+							<button title="Settings" class="btn btn-ghost btn-square btn-sm" @click="openSettings(plugin)">
+								<i class="fa-solid fa-gear"></i>
 							</button>
 							<!-- Enable / Disable -->
 							<input type="checkbox" class="toggle toggle-primary" v-model="plugin.enabled"
@@ -64,6 +64,9 @@
 </template>
 
 <script>
+import { useStore } from '../store/store';
+import { mapState } from "pinia";
+
 export default {
 	name: "Plugins",
 
@@ -81,17 +84,28 @@ export default {
 			],
 		};
 	},
+	computed: {
+		...mapState(useStore, ['activePlugins']),
+	},
 
 	methods: {
+		reloadPlugins() {
+			// TODO: Implement reload logic
+		},
+		deletePlugin(plugin) {
+			// TODO: Implement delete logic
+		},
 		togglePlugin(plugin) {
 			// TODO: Implement enable/disable logic
 		},
 		openSettings(plugin) {
+			this.$emit('openSettings', plugin);
 			// TODO: Open plugin settings
 		},
 		installNewPlugin() {
 			// TODO: Handle installation of new plugins
 		},
+		
 	},
 };
 </script>
