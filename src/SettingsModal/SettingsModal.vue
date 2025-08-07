@@ -1,19 +1,20 @@
 <template>
   <div :class="modalOpen ? 'modal-open' : ''" class="modal h-full w-full">
-    <div class="modal-box w-full h-4/5 px-0 max-w-2xl max-h-[35rem] overflow-hidden">
+    <div class="modal-box w-full h-4/5 px-0 max-w-2xl max-h-[35rem] overflow-hidden relative rounded-md">
+      <div class="absolute left-0 top-0 bottom-0 w-32 bg-gray-800/10 pointer-events-none border-r border-black/10"></div>
       <button @click="$emit('close')" class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"><i class="fa-solid fa-xmark"/></button>
       <h1 class="font-bold text-lg text-center">Settings</h1>
       <div class="flex flex-row pt-3 h-full">
-        <div class="text-left p-2">
-          <ul class="menu rounded-box menu-compact p-2">
+        <div class="text-left h-full w-40">
+          <ul class="menu rounded-box menu-compact w-full py-2">
             <li class="py-0.5" v-for="tab in tabs" :key="tab">
-              <a @click="selectTab(tab)" :class="{ active: activeTab === tab }">
+              <a @click="selectTab(tab)" class="p-2" :class="{ active: activeTab === tab }">
                 {{ tab }}
               </a>
             </li>
-            <label class="label-text text-xs mt-4 ml-4">Plugins</label>
+            <label v-if="enabledPluginTabs.length > 0" class="label-text text-xs mt-4 ml-2">Plugins</label>
             <li class="py-0.5" v-for="plugin in enabledPluginTabs" :key="plugin.id">
-              <a @click="openSettings(plugin)" :class="{ active: activeTab === 'PluginSettings' && activePlugin?.id === plugin.id }">
+              <a @click="openSettings(plugin)" class="p-2" :class="{ active: activeTab === 'PluginSettings' && activePlugin?.id === plugin.id }">
                 {{ plugin.name }}
               </a>
             </li>
