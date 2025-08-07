@@ -20,7 +20,7 @@
 					<button title="Reload plugins" class="mx-1 btn btn-ghost btn-square btn-sm" @click="reloadPlugins">
 						<i class="fa-solid fa-rotate-right"></i>
 					</button>
-					<button title="Open Plugin Folder" class="mx-1 btn btn-ghost btn-square btn-sm">
+                    <button title="Open Plugin Folder" class="mx-1 btn btn-ghost btn-square btn-sm" @click="openPluginFolder">
 						<i class="fa-solid fa-folder-open"></i>
 					</button>
 				</div>
@@ -100,9 +100,16 @@ export default {
 			this.$emit('openSettings', plugin);
 			// TODO: Open plugin settings
 		},
-		installNewPlugin() {
+        installNewPlugin() {
 			// TODO: Handle installation of new plugins
 		},
+        async openPluginFolder() {
+            try {
+                await invoke('open_plugins_folder');
+            } catch (e) {
+                console.error('Failed to open plugins folder', e);
+            }
+        },
         async fetchPlugins() {
 			try {
                 const installed = await invoke('list_installed_plugins');

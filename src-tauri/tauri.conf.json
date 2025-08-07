@@ -86,7 +86,7 @@
     },
     "allowlist": {
       "shell": {
-        "open": true
+        "all": true
       },
       "notification": {
         "all": true
