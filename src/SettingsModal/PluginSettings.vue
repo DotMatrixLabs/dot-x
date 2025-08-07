@@ -10,6 +10,8 @@
 </template>
 
 <script>
+import { PluginAPI } from '../plugin-api/pluginAPI';
+
     export default {
         name: "PluginSettings",
         props: {
@@ -20,6 +22,14 @@
         },
         data() {
             return {
+            }
+        },
+        methods: {
+            async getPluginSettings() {
+                console.log("Getting plugin settings for", this.plugin.id);
+                const settings = await PluginAPI.getPluginSettings(this.plugin.id);
+                this.pluginSettings = settings;
+                console.log(this.pluginSettings);
             }
         }
     }
