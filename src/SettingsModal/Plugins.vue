@@ -74,10 +74,10 @@ export default {
 		return {
 			plugins: [
 				{
-					id: 'example-plugin',
-					name: 'Example Plugin',
+					id: 'hello-world',
+					name: 'Hello World',
 					version: '1.0.0',
-					author: 'Jane Doe',
+					author: 'Ananords',
 					description: 'An example plugin description.',
 					enabled: true
 				}
