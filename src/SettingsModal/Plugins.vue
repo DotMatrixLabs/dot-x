@@ -66,37 +66,35 @@
 <script>
 import { useStore } from '../store/store';
 import { mapState } from "pinia";
+import { invoke } from "@tauri-apps/api/tauri";
 
 export default {
 	name: "Plugins",
 
 	data() {
 		return {
-			plugins: [
-				{
-					id: 'hello-world',
-					name: 'Hello World',
-					version: '1.0.0',
-					author: 'Ananords',
-					description: 'An example plugin description.',
-					enabled: true
-				}
-			],
+			plugins: [],
 		};
 	},
 	computed: {
-		...mapState(useStore, ['activePlugins']),
+		...mapState(useStore, ['activePlugins', 'enabledPlugins']),
 	},
 
 	methods: {
-		reloadPlugins() {
-			// TODO: Implement reload logic
+		async reloadPlugins() {
+			await this.fetchPlugins();
+			await this.loadEnabledState();
 		},
 		deletePlugin(plugin) {
 			// TODO: Implement delete logic
 		},
-		togglePlugin(plugin) {
-			// TODO: Implement enable/disable logic
+		async togglePlugin(plugin) {
+			const store = useStore();
+			if (plugin.enabled) {
+				await store.enablePluginId(plugin.id);
+			} else {
+				await store.disablePluginId(plugin.id);
+			}
 		},
 		openSettings(plugin) {
 			this.$emit('openSettings', plugin);
@@ -105,7 +103,37 @@ export default {
 		installNewPlugin() {
 			// TODO: Handle installation of new plugins
 		},
+		async fetchPlugins() {
+			try {
+				const connected = await invoke('get_connected_plugins');
+				if (Array.isArray(connected)) {
+					this.plugins = connected.map((p) => ({
+						id: p.id,
+						name: p.name || p.id,
+						version: p.version,
+						// author/description might not be available from backend yet
+						author: p.author,
+						description: p.description,
+						enabled: false,
+					}));
+				}
+			} catch (e) {
+				console.error('Failed to fetch connected plugins', e);
+			}
+		},
+		async loadEnabledState() {
+			const store = useStore();
+			await store.loadEnabledPlugins?.();
+			this.plugins = this.plugins.map(p => ({
+				...p,
+				enabled: store.isPluginEnabled ? store.isPluginEnabled(p.id) : this.enabledPlugins.has(p.id)
+			}));
+		}
 		
+	},
+
+	mounted() {
+		this.fetchPlugins().then(() => this.loadEnabledState());
 	},
 };
 </script>
