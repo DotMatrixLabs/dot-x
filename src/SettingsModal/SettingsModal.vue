@@ -90,18 +90,19 @@ export default {
   methods: {
     async fetchPlugins() {
       try {
-        const connected = await invoke('get_connected_plugins');
-        if (Array.isArray(connected)) {
-          this.plugins = connected.map((p) => ({
-            id: p.id,
-            name: p.name || p.id,
-            version: p.version,
-            author: p.author,
-            description: p.description,
+        const installed = await invoke('list_installed_plugins');
+        if (Array.isArray(installed)) {
+          this.plugins = installed.map((manifest) => ({
+            id: manifest.id,
+            name: manifest.name || manifest.id,
+            version: manifest.version,
+            author: manifest.author,
+            description: manifest.description,
+            manifest,
           }));
         }
       } catch (e) {
-        console.error('Failed to fetch connected plugins', e);
+        console.error('Failed to list installed plugins', e);
       }
     },
     selectTab(selectedTab) {
