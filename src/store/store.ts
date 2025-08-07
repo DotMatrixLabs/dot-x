@@ -2,23 +2,24 @@ import { defineStore } from "pinia";
 
 export const useStore = defineStore('store', {
     state: () => ({
-        activePlugins: [] as any[],
+        activePlugins: new Set<string>(),
     }),
     getters: {
         getActivePlugins: (state) => state.activePlugins,
     },
     actions: {
-        setActivePlugins(plugins: any) {
-            this.activePlugins = plugins;
+        setActivePlugins(plugins: string[]) {
+            this.activePlugins = new Set(plugins);
         },
-        addActivePlugin(plugin: any) {
-            this.activePlugins.push(plugin);
+        addActivePlugin(plugin: string) {
+            console.log("Adding active plugin", plugin);
+            this.activePlugins.add(plugin);
         },
-        removeActivePlugin(plugin: any) {
-            this.activePlugins = this.activePlugins.filter((p) => p !== plugin);
+        removeActivePlugin(plugin: string) {
+            this.activePlugins.delete(plugin);
         },
         getActivePlugins() {
-            return this.activePlugins;
+            return Array.from(this.activePlugins);
         }
     }
 })

@@ -9,6 +9,8 @@ import type {
 } from './schema';
 import { settingsManager } from './settings';
 import { uiManager } from './ui';
+import { useStore } from '../store/store';
+import { mapState } from "pinia";
 
 export class PluginAPI {
   private static instance: PluginAPI | null = null;
@@ -57,9 +59,10 @@ export class PluginAPI {
   }
 
   setupEventHandlers() {
-    // TODO: Implement event handlers
+    // TODO: Implement event handlers for events from frontend
   }
 
+  // Events from plugins
   setupTauriEventListeners() {
     listen('plugin/api_request', (event) => {
       console.log('Received API request:', event.payload);
@@ -75,9 +78,13 @@ export class PluginAPI {
       console.log('Received API event:', event.payload);
     });
     listen('plugin/connected', (event) => {
+      const pluginID = (event.payload as { id: string }).id;
+      useStore().addActivePlugin(pluginID);
       console.log('Received connected event:', event.payload);
     });
     listen('plugin/disconnected', (event) => {
+      const pluginID = (event.payload as { id: string }).id;
+      useStore().removeActivePlugin(pluginID);
       console.log('Received disconnected event:', event.payload);
     });
   }
@@ -144,10 +151,6 @@ export class PluginAPI {
     }
   }
 
-
-
-
-
   /**
    * Send API response back to plugin through Rust backend
    */
@@ -158,6 +161,24 @@ export class PluginAPI {
     } catch (error) {
       console.error('Failed to send API response:', error);
     }
+  }
+
+
+  private async sendToPlugin(pluginId: string, event: any) {
+    try {
+      await invoke('send_to_plugin', { pluginId, event });
+      console.log('Plugin event sent successfully:', event);
+    } catch (err) {
+      console.error('Failed to send plugin event:', err);
+    }
+  }
+
+
+  public async getPluginSettings(pluginId: string) {
+    const settings = await this.sendToPlugin(pluginId, {
+      type: 'get_plugin_settings'
+    });
+    return settings;
   }
 
 }
