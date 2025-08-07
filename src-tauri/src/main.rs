@@ -5,6 +5,7 @@
 use log::{info, trace, error};
 use serde_json::{json, Value};
 use tauri::AppHandle;
+use tauri::api::shell;
 use std::fs;
 use std::path::PathBuf;
 use tauri::{ Manager, Window };
@@ -152,6 +153,19 @@ fn list_installed_plugins(app_handle: AppHandle) -> Result<Vec<serde_json::Value
   }
 
   Ok(results)
+}
+
+#[tauri::command]
+fn get_plugins_folder(app_handle: AppHandle) -> Result<String, String> {
+  let plugins_dir = resolve_plugins_dir(&app_handle).ok_or_else(|| "Plugins directory not found".to_string())?;
+  Ok(plugins_dir.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+fn open_plugins_folder(app_handle: AppHandle) -> Result<(), String> {
+  let plugins_dir = resolve_plugins_dir(&app_handle).ok_or_else(|| "Plugins directory not found".to_string())?;
+  shell::open(&app_handle.shell_scope(), plugins_dir.to_string_lossy().to_string(), None)
+    .map_err(|e| e.to_string())
 }
 
 
@@ -535,7 +549,9 @@ fn main() {
             plugin_server::send_to_plugin,
             plugin_server::get_connected_plugins,
             plugin_server::send_api_response,
-            list_installed_plugins
+            list_installed_plugins,
+            get_plugins_folder,
+            open_plugins_folder
         ])
         .plugin(tauri_plugin_aptabase::Builder::new("A-EU-7429874879").build()) // 👈 this is where you enter your App Key
         .plugin(tauri_plugin_log::Builder::default().build())
