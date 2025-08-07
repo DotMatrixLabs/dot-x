@@ -5,6 +5,8 @@
 use log::{info, trace, error};
 use serde_json::{json, Value};
 use tauri::AppHandle;
+use std::fs;
+use std::path::PathBuf;
 use tauri::{ Manager, Window };
 use windows_volume_control::AudioController;
 use windows_volume_control::CoinitMode;
@@ -83,6 +85,75 @@ struct Payload {
 struct MidiPortNames {
   names: Vec<String>,
 }
+fn resolve_plugins_dir(app_handle: &AppHandle) -> Option<PathBuf> {
+  // Try resources path (bundled)
+  if let Some(p) = app_handle.path_resolver().resolve_resource("../plugins") {
+    if p.exists() { return Some(p); }
+  }
+  if let Some(p) = app_handle.path_resolver().resolve_resource("plugins") {
+    if p.exists() { return Some(p); }
+  }
+  // Try working dir variants (dev)
+  if let Ok(cwd) = std::env::current_dir() {
+    let candidate = cwd.join("plugins");
+    if candidate.exists() { return Some(candidate); }
+    let candidate = cwd.join("..\\plugins");
+    if candidate.exists() { return Some(candidate); }
+  }
+  None
+}
+
+#[tauri::command]
+fn list_installed_plugins(app_handle: AppHandle) -> Result<Vec<serde_json::Value>, String> {
+  let plugins_dir = resolve_plugins_dir(&app_handle).ok_or_else(|| "Plugins directory not found".to_string())?;
+  let mut results: Vec<serde_json::Value> = Vec::new();
+
+  let read_dir = fs::read_dir(&plugins_dir).map_err(|e| format!("Failed to read plugins dir: {}", e))?;
+  for entry_result in read_dir {
+    let entry = match entry_result { Ok(e) => e, Err(_) => continue };
+    let metadata = match entry.metadata() { Ok(m) => m, Err(_) => continue };
+    if !metadata.is_dir() { continue; }
+
+    let folder_path = entry.path();
+    let manifest_path = folder_path.join("manifest.json");
+    let main_js_path = folder_path.join("main.js");
+    if !manifest_path.exists() { continue; }
+    if !main_js_path.exists() { continue; }
+
+    // Read manifest.json
+    let manifest_str = match fs::read_to_string(&manifest_path) {
+      Ok(s) => s,
+      Err(_) => continue,
+    };
+    let mut manifest_json: serde_json::Value = match serde_json::from_str(&manifest_str) {
+      Ok(v) => v,
+      Err(_) => continue,
+    };
+
+    // Ensure an id exists; fallback to folder name
+    if manifest_json.get("id").and_then(|v| v.as_str()).is_none() {
+      if let Some(obj) = manifest_json.as_object_mut() {
+        obj.insert(
+          "id".to_string(),
+          serde_json::Value::String(entry.file_name().to_string_lossy().to_string()),
+        );
+      }
+    }
+
+    // Include a hint that main.js exists and folder path if needed later
+    if let Some(obj) = manifest_json.as_object_mut() {
+      obj.insert(
+        "_hasMainJs".to_string(),
+        serde_json::Value::Bool(main_js_path.exists()),
+      );
+    }
+
+    results.push(manifest_json);
+  }
+
+  Ok(results)
+}
+
 
 
 #[tauri::command]
@@ -463,7 +534,8 @@ fn main() {
             plugin_server::stop_plugin_server,
             plugin_server::send_to_plugin,
             plugin_server::get_connected_plugins,
-            plugin_server::send_api_response
+            plugin_server::send_api_response,
+            list_installed_plugins
         ])
         .plugin(tauri_plugin_aptabase::Builder::new("A-EU-7429874879").build()) // 👈 this is where you enter your App Key
         .plugin(tauri_plugin_log::Builder::default().build())
