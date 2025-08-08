@@ -2,11 +2,8 @@
   <div class="flex flex-col gap-4 w-full">
     <PluginHeader v-if="plugin" :plugin="plugin" />
 
-    <div class="card bg-secondary rounded-box shadow-sm">
-      <div class="card-body p-4 gap-2">
-        <h3 class="card-title text-base">Plugin-specific settings</h3>
-        <p class="label-text">Settings UI for this plugin will appear here.</p>
-      </div>
+    <div class="flex flex-col gap-2">
+      <h3 class="text-base">Plugin Settings</h3>
     </div>
   </div>
   
