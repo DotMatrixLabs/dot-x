@@ -91,15 +91,9 @@ export default {
     async fetchPlugins() {
       try {
         const installed = await invoke('list_installed_plugins');
+        console.log(installed);
         if (Array.isArray(installed)) {
-          this.plugins = installed.map((manifest) => ({
-            id: manifest.id,
-            name: manifest.name || manifest.id,
-            version: manifest.version,
-            author: manifest.author,
-            description: manifest.description,
-            manifest,
-          }));
+          this.plugins = installed;
         }
       } catch (e) {
         console.error('Failed to list installed plugins', e);
