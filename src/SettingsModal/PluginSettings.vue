@@ -1,19 +1,23 @@
 <template>
-    <div>
-        <h1>Plugin Settings</h1>
-        <p>Plugin Name: {{ plugin.name }}</p>
-        <p>Plugin Version: {{ plugin.version }}</p>
-        <p>Plugin Author: {{ plugin.author }}</p>
-        <p>Plugin Description: {{ plugin.description }}</p>
-        <p>Plugin Enabled: {{ plugin.enabled }}</p>
+  <div class="flex flex-col gap-4 w-full">
+    <PluginHeader v-if="plugin" :plugin="plugin" />
+
+    <div class="card bg-secondary rounded-box shadow-sm">
+      <div class="card-body p-4 gap-2">
+        <h3 class="card-title text-base">Plugin-specific settings</h3>
+        <p class="label-text">Settings UI for this plugin will appear here.</p>
+      </div>
     </div>
+  </div>
+  
 </template>
 
 <script>
-import { PluginAPI } from '../plugin-api/pluginAPI';
+import PluginHeader from './PluginHeader.vue';
 
     export default {
         name: "PluginSettings",
+        components: { PluginHeader },
         props: {
             plugin: {
                 type: Object,
@@ -25,12 +29,7 @@ import { PluginAPI } from '../plugin-api/pluginAPI';
             }
         },
         methods: {
-            async getPluginSettings() {
-                console.log("Getting plugin settings for", this.plugin.id);
-                const settings = await PluginAPI.getPluginSettings(this.plugin.id);
-                this.pluginSettings = settings;
-                console.log(this.pluginSettings);
-            }
+            
         }
     }
 </script>
