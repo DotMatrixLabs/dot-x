@@ -10,18 +10,17 @@
         <p class="label-text text-xs mt-1" v-if="author">
           by <span class="font-medium">{{ author }}</span>
         </p>
-        <p class="text-sm mt-2 whitespace-pre-wrap" v-if="longDescription">{{ longDescription }}</p>
         
-        <div class="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
+        <!-- <div class="mt-2 mb-2 grid grid-cols-1 md:grid-cols-2 gap-2">
           <div class="form-control md:col-span-2" v-if="permissions && permissions.length">
             <label class="label">
               <span class="label-text text-xs">Permissions</span>
             </label>
             <div class="flex flex-wrap gap-2 w-full">
-              <div v-for="perm in permissions" :key="perm" class="badge badge-outline badge-sm">{{ perm }}</div>
+              <div v-for="perm in permissions" :key="perm" class="badge badge-outline badge-sm opacity-70">{{ perm }}</div>
             </div>
           </div>
-        </div>
+        </div> -->
       </div>
 
       <div class="shrink-0 flex items-center gap-1">
@@ -41,7 +40,7 @@
 
     <!-- Bottom actions row: up to 4 custom links -->
     <div class="flex flex-nowrap items-center gap-2 mt-2 overflow-x-auto pb-1">
-      <a v-for="(link, idx) in limitedLinks" :key="idx" :href="link.url" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-xs flex-shrink-0">
+      <a v-for="(link, idx) in limitedLinks" :key="idx" :href="link.url" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-xs flex-shrink-0">
         <i :class="[link.icon || 'fa-solid fa-link', 'mr-1']" /> {{ link.title || 'Link' }}
       </a>
     </div>
@@ -133,6 +132,8 @@ export default {
     marketplaceHref() {
       return this.marketplaceUrl || '#';
     },
+
+    
     limitedLinks() {
       const raw = this.manifest.links;
       if (!raw) return [];
