@@ -2,15 +2,11 @@ import { invoke } from '@tauri-apps/api/tauri';
 import { emit, listen } from '@tauri-apps/api/event';
 import type { 
   ApiRequest, 
-  ApiResponse, 
-  CreateSettingsParams, 
-  SettingsSchema,
-  SettingsField 
+  ApiResponse
 } from './schema';
 import { settingsManager } from './settings';
 import { uiManager } from './ui';
 import { useStore } from '../store/store';
-import { mapState } from "pinia";
 
 export class PluginAPI {
   private static instance: PluginAPI | null = null;
@@ -164,20 +160,61 @@ export class PluginAPI {
   }
 
 
-  private async sendToPlugin(pluginId: string, event: any) {
+  private async sendToPlugin(pluginId: string, event: string, data: any = {}) {
+    console.log('Sending event to plugin:', pluginId, event, data);
     try {
-      await invoke('send_to_plugin', { pluginId, event });
-      console.log('Plugin event sent successfully:', event);
+      const result = await invoke('send_to_plugin', { pluginId, event, data });
+      console.log('Plugin event sent successfully:', event, result);
+      return result;
     } catch (err) {
       console.error('Failed to send plugin event:', err);
+      throw err;
     }
+  }
+
+  // Generic request/response helper for plugin communications using a single request topic and method
+  private async requestPlugin<T = any>(pluginId: string, method: string, params: any = {}, timeoutMs = 15000): Promise<T> {
+    const requestId = `req_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const data = { method, params, request_id: requestId };
+
+    const responsePromise = new Promise<T>((resolve, reject) => {
+      let unlisten: (() => void) | null = null;
+      const timeoutId = setTimeout(() => {
+        if (unlisten) unlisten();
+        reject(new Error(`Timed out waiting for plugin response for ${method}`));
+      }, timeoutMs);
+
+      listen('plugin/response', (eventObj) => {
+        try {
+          const payload = eventObj.payload as any;
+          const response = payload?.response ?? payload;
+          if (!response) return;
+          if (response.request_id && response.request_id !== requestId) return;
+          if (response.method && response.method !== method) return;
+          clearTimeout(timeoutId);
+          if (unlisten) unlisten();
+          if (response.success) {
+            resolve(response.data as T);
+          } else {
+            reject(new Error(response.error || 'Plugin request failed'));
+          }
+        } catch {
+          // keep waiting
+        }
+      }).then((fn) => {
+        unlisten = fn;
+      });
+    });
+
+    await this.sendToPlugin(pluginId, 'plugin.request', data);
+    return responsePromise;
   }
 
 
   public async getPluginSettings(pluginId: string) {
-    const settings = await this.sendToPlugin(pluginId, {
-      type: 'get_plugin_settings'
-    });
+    console.log('Getting plugin settings for plugin:', pluginId);
+    const settings = await this.requestPlugin(pluginId, 'get_plugin_settings');
+    console.log('Plugin settings received:', settings);
     return settings;
   }
 
