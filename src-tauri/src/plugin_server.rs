@@ -6,6 +6,7 @@ use tauri::{Manager, AppHandle};
 use log::{info, error, debug};
 use socketioxide::{SocketIo, extract::{SocketRef, Data, AckSender}};
 use serde_json::Value;
+use futures_util::{pin_mut, StreamExt};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PluginInfo {
@@ -91,11 +92,13 @@ impl PluginServer {
                     let app_handle = app_handle.clone();
                     let socket_id = socket.id.to_string();
                     
-                    move |_socket: SocketRef, Data::<PluginInfo>(plugin_info), ack: AckSender| {
+                    move |socket_ref: SocketRef, Data::<PluginInfo>(plugin_info), ack: AckSender| {
                         let connections = Arc::clone(&connections);
                         let app_handle = app_handle.clone();
                         let socket_id = socket_id.clone();
-                        
+                        // Join a room named by plugin_id so io.to(plugin_id) works
+                        let _ = socket_ref.join(plugin_info.id.clone());
+
                         tokio::spawn(async move {
                             info!("Plugin registered: {} ({})", plugin_info.name, plugin_info.id);
                             
@@ -111,10 +114,12 @@ impl PluginServer {
                             let _ = app_handle.emit_all("plugin/connected", &plugin_info);
                             
                             // Send acknowledgment
-                            let _ = ack.send(serde_json::json!({
+                            let ack_payload = serde_json::json!({
                                 "status": "success",
                                 "message": "Plugin registered successfully"
-                            }));
+                            });
+                            // Note: ack is moved into this task; keep signature as-is so we can send it here
+                            let _ = ack.send(&ack_payload);
                         });
                     }
                 });
@@ -201,6 +206,7 @@ impl PluginServer {
                                     .find(|(_, conn)| conn.socket_id == socket_id)
                                     .map(|(id, _)| id.clone())
                             };
+                            // Forward to frontend for visibility/back-compat
                             let payload = serde_json::json!({
                                 "plugin_id": plugin_id,
                                 "response": response
@@ -277,6 +283,7 @@ impl PluginServer {
         // Clear pending requests
         let mut pending_requests = self.pending_requests.write().await;
         pending_requests.clear();
+        // no additional pending maps to clear
         
         info!("Plugin Socket.IO server stopped");
         let _ = self.app_handle.emit_all("plugin_server/stopped", serde_json::json!({}));
@@ -301,15 +308,70 @@ impl PluginServer {
         let connections = self.connections.read().await;
         if let Some(connection) = connections.get(plugin_id) {
             if let Some(io) = &self.io {
-                println!("Sending event to plugin: {} {} {:?}", plugin_id, event, data);
                 let event_string = event.to_string();
-                io.to(connection.socket_id.clone()).emit(event_string, data).map_err(|e| e.to_string())?;
+                println!("Sending event to plugin: {} {} {:?}", plugin_id, event_string, data);
+                io.to(plugin_id.to_string())
+                .emit(event_string, &data)
+                .await
+                .map_err(|e| e.to_string())?;
                 Ok(())
             } else {
                 Err("Socket.IO server not initialized".to_string())
             }
         } else {
             Err(format!("Plugin {} not connected", plugin_id))
+        }
+    }
+
+    
+
+    pub async fn send_to_plugin_with_ack(&self, plugin_id: &str, event: &str, data: Value, timeout_ms: u64) -> Result<ApiResponse, String> {
+        // Resolve connection and io handle
+        let connections = self.connections.read().await;
+        let keys: Vec<_> = connections.keys().cloned().collect();
+        println!("Connections: {:?}", keys);
+        let connection = connections.get(plugin_id)
+            .ok_or_else(|| format!("Plugin {} not connected", plugin_id))?;
+        println!("Connection socket_id: {:?}", connection.socket_id);
+        println!("Sending event to plugin with ack: {} {} {:?}", plugin_id, event, data);
+        let io = self.io.as_ref().ok_or_else(|| "Socket.IO server not initialized".to_string())?;
+        println!("io: {:?}", io);
+
+        // Emit a test message and wait for an acknowledgment with the timeout specified in the global config
+        let event_string = event.to_string();
+        let payload = data.clone();
+        match io
+            .to(plugin_id.to_string())
+            .emit_with_ack(event_string, &payload)
+            .await
+        {
+            Ok(ack_stream) => {
+                pin_mut!(ack_stream);
+                let ack_result = tokio::time::timeout(
+                    std::time::Duration::from_millis(timeout_ms),
+                    ack_stream.next(),
+                )
+                .await;
+
+                match ack_result {
+                    Ok(Some((_sid, Ok(value)))) => {
+                        let response = ApiResponse {
+                            request_id: "".to_string(),
+                            success: true,
+                            data: Some(value),
+                            error: None,
+                        };
+                        Ok(response)
+                    }
+                    Ok(Some((_sid, Err(e)))) => Err(e.to_string()),
+                    Ok(None) => Err("Ack stream closed".to_string()),
+                    Err(_) => Err("Request timeout".to_string()),
+                }
+            }
+            Err(err) => {
+                println!("Ack error {:?}", err);
+                Err(err.to_string())
+            }
         }
     }
 }
@@ -413,3 +475,14 @@ pub async fn send_to_plugin(plugin_id: String, event: String, data: Value) -> Re
         Err("Plugin server not initialized".to_string())
     }
 } 
+
+#[tauri::command]
+pub async fn send_to_plugin_with_ack(plugin_id: String, event: String, data: Value, timeout_ms: Option<u64>) -> Result<ApiResponse, String> {
+    let timeout = timeout_ms.unwrap_or(15_000);
+    if let Some(server_arc) = get_plugin_server() {
+        let server = server_arc.read().await;
+        server.send_to_plugin_with_ack(&plugin_id, &event, data, timeout).await
+    } else {
+        Err("Plugin server not initialized".to_string())
+    }
+}

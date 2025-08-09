@@ -173,47 +173,27 @@ export class PluginAPI {
   }
 
   // Generic request/response helper for plugin communications using a single request topic and method
-  private async requestPlugin<T = any>(pluginId: string, method: string, params: any = {}, timeoutMs = 15000): Promise<T> {
+  private async pluginRequest<T = any>(pluginId: string, method: string, params: any = {}, timeoutMs = 15000): Promise<T> {
     const requestId = `req_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const data = { method, params, request_id: requestId };
 
-    const responsePromise = new Promise<T>((resolve, reject) => {
-      let unlisten: (() => void) | null = null;
-      const timeoutId = setTimeout(() => {
-        if (unlisten) unlisten();
-        reject(new Error(`Timed out waiting for plugin response for ${method}`));
-      }, timeoutMs);
+    const response = await invoke('send_to_plugin_with_ack', {
+      pluginId,
+      event: 'plugin.request',
+      data,
+      timeoutMs,
+    }) as ApiResponse;
 
-      listen('plugin/response', (eventObj) => {
-        try {
-          const payload = eventObj.payload as any;
-          const response = payload?.response ?? payload;
-          if (!response) return;
-          if (response.request_id && response.request_id !== requestId) return;
-          if (response.method && response.method !== method) return;
-          clearTimeout(timeoutId);
-          if (unlisten) unlisten();
-          if (response.success) {
-            resolve(response.data as T);
-          } else {
-            reject(new Error(response.error || 'Plugin request failed'));
-          }
-        } catch {
-          // keep waiting
-        }
-      }).then((fn) => {
-        unlisten = fn;
-      });
-    });
-
-    await this.sendToPlugin(pluginId, 'plugin.request', data);
-    return responsePromise;
+    if (!response.success) {
+      throw new Error(response.error || 'Plugin request failed');
+    }
+    return response.data as T;
   }
 
 
   public async getPluginSettings(pluginId: string) {
     console.log('Getting plugin settings for plugin:', pluginId);
-    const settings = await this.requestPlugin(pluginId, 'get_plugin_settings');
+    const settings = await this.pluginRequest(pluginId, 'get_plugin_settings');
     console.log('Plugin settings received:', settings);
     return settings;
   }
