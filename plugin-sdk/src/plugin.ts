@@ -1,6 +1,8 @@
 // dot-x-plugin/src/plugin.ts
 import { APIClient, PluginInfo, ConnectionConfig } from './client';
-import type { PluginAPI } from './types';
+import type { PluginAPI, PluginSettingsResponse } from './types';
+import { SettingsBuilder } from './ui';
+import type { SettingsSections } from './types';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -22,7 +24,8 @@ export default class Plugin {
   constructor(pluginInfo: PluginInfo, config?: ConnectionConfig) {
     this.client = new APIClient(pluginInfo, config);
     this.settings = this.client.settings;
-    this.ui = this.client.ui;
+    // Expose minimal UI API currently supported
+    this.ui = this.client.ui as any;
   }
   
   // Get the underlying client for accessing connection methods
@@ -34,6 +37,24 @@ export default class Plugin {
   waitForConnection(): Promise<void> {
     return this.client.waitForConnection();
   }
+
+  // Convenience: build and register settings in one go
+  async createSettingsPage(buildFn: (builder: SettingsBuilder) => void): Promise<PluginSettingsResponse> {
+    // Build once, persist schema for get_plugin_settings, and create settings in host
+    const builder = new SettingsBuilder();
+    buildFn(builder);
+    const sectioned = builder.build();
+    this.client.setSectionedSchema(sectioned);
+    return this.settings.createSettings({ schema: sectioned });
+  }
+
+  // Expose sectioned UI for get_plugin_settings or other consumers if desired
+  buildSettingsSchema(buildFn: (builder: SettingsBuilder) => void): SettingsSections {
+    const builder = new SettingsBuilder();
+    buildFn(builder);
+    return builder.build();
+  }
+ 
   
   // Get connection status
   getConnectionStatus(): string {

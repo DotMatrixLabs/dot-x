@@ -7,23 +7,32 @@ export default class HelloWorldPlugin extends Plugin {
     console.log("Hello World Plugin loaded!");
     
     try {
-      // Create settings with a button
-      await this.settings.createSettings({
-        schema: {
-          demoButton: {
-            type: 'button',
-            label: 'Show Toast',
-            text: 'Click me',
-            style: 'primary',
-            onClick: () => {
-              this.ui.showToast({
-                message: 'Button clicked!',
-                type: 'success',
-                duration: 3000
-              });
-            }
-          }
-        }
+      // Create a sectioned settings page using the imperative builder
+      await this.createSettingsPage((s) => {
+        s.addSection('General');
+
+        const greeting = s.addText('greeting')
+          .setLabel('Greeting')
+          .setPlaceholder('Enter greeting')
+          .setValue('Hello DotX!')
+          .setDesc('This greeting is used by the plugin when needed.')
+          .onChange((value) => {
+            console.log('Greeting changed:', value);
+            demoButton.setTitle('Log Message: ' + value);
+          });
+
+        const demoButton = s.addButton('demoButton')
+          .setTitle('Log Message')
+          .setOnClick(() => {
+            console.log('Button clicked!');
+            greeting.setValue('Button clicked!');
+          });
+
+        s.addSection('Advanced');
+        const debug = s.addText('debug')
+          .setLabel('Debug Flag')
+          .setPlaceholder('true/false')
+          .setValue('false');
       });
       
       console.log("Plugin settings created successfully!");
@@ -36,18 +45,6 @@ export default class HelloWorldPlugin extends Plugin {
   async onUnload() {
     console.log("Hello World Plugin shutting down...");
   }
-
-  /**
-   * Example method to show a toast from the plugin.
-   */
-  testToast() {
-    this.ui.showToast({
-      message: "Hello World",
-      type: "success",
-      duration: 3000
-    });
-  }
-
   
 }
 
