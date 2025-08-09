@@ -194,8 +194,8 @@ export class PluginAPI {
   public async getPluginSettings(pluginId: string) {
     console.log('Getting plugin settings for plugin:', pluginId);
     const settings = await this.pluginRequest(pluginId, 'get_plugin_settings');
-    console.log('Plugin settings received:', settings);
-    return settings;
+    console.log('Plugin settings received:', settings.data);
+    return settings.data;
   }
 
 }
