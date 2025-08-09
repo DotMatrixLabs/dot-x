@@ -1,5 +1,5 @@
 import { io, Socket } from 'socket.io-client';
-import type { SettingsSchema, SettingsOptions, TabConfig, ToastParams, CreateSettingsParams, UIComponent, ModalButton } from './types';
+import type { SettingsSections, CreateSettingsParams, ToastParams } from './types';
 
 export interface PluginInfo {
   id: string;
@@ -36,10 +36,11 @@ export class APIClient {
   private pluginInfo: PluginInfo;
   private config: Required<ConnectionConfig>;
   private retryCount = 0;
-  // Registry for settings action callbacks (e.g., button clicks)
-  private actionCallbacks = new Map<string, () => void>();
+  // Registry for settings action callbacks (e.g., button clicks, text onChange)
+  private actionCallbacks = new Map<string, (value?: any) => void>();
   private isDestroyed = false;
   private connectionPromise: Promise<void>;
+  private settingsSchema?: SettingsSections;
   
   constructor(pluginInfo: PluginInfo, config: ConnectionConfig = {}) {
     this.pluginInfo = pluginInfo;
@@ -122,16 +123,26 @@ export class APIClient {
               console.log('Plugin registered successfully!');
               this.isRegistered = true;
               
-              // Listen for settings action events (e.g., button clicks)
-              this.socket.on('settings.action', (data: { actionId: string }) => {
+              // Listen for settings action events (e.g., button clicks, text onChange)
+              this.socket.on('settings.action', (data: { actionId: string; value?: any }) => {
                 const cb = this.actionCallbacks.get(data.actionId);
                 if (cb) {
                   try {
-                    cb();
+                    cb(data.value);
                   } catch (err) {
                     console.error('Error executing settings action callback:', err);
                   }
                 }
+              });
+
+              // Respond to get_plugin_settings requests from the app
+              this.socket.on('get_plugin_settings', (data: { request_id?: string }, ack?: (resp: any) => void) => {
+                const payload = this.settingsSchema;
+                const response = payload
+                  ? { success: true, data: payload, request_id: data?.request_id }
+                  : { success: false, error: 'Settings not initialized', request_id: data?.request_id };
+                if (typeof ack === 'function') ack(response);
+                else this.socket.emit('plugin_settings_response', response);
               });
               
               // Set up long-term disconnect handler
@@ -175,10 +186,7 @@ export class APIClient {
           handleFailure(error);
         });
 
-        // Listen for events from frontend
-        this.socket.on('frontend_event', (data: any) => {
-          console.log('Received event from frontend:', data);
-        });
+        // No additional listeners required for the simplified settings API
       };
 
       connect();
@@ -273,79 +281,50 @@ export class APIClient {
   get settings() {
     return {
       createSettings: async (params: CreateSettingsParams) => {
-        // Prepare schema by stripping out function callbacks and replacing with actionIds
-        const processedSchema: SettingsSchema = {} as any;
-        Object.entries(params.schema).forEach(([key, field]) => {
-          const newField: any = { ...field };
-          if (newField.type === 'button' && typeof newField.onClick === 'function') {
-            const actionId = `action_${key}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
-            // Store callback locally
-            this.actionCallbacks.set(actionId, newField.onClick);
-            // Replace function with actionId for transport
-            newField.actionId = actionId;
-            delete newField.onClick;
-          }
-          processedSchema[key] = newField;
-        });
-        const res = await this.call('settings.createSettings', { ...params, schema: processedSchema });
+        const processed = this.prepareSectionedSchemaWithActionIds(params.schema as any);
+        // Persist the processed schema for future get_plugin_settings
+        this.settingsSchema = processed;
+        const res = await this.call('settings.createSettings', { schema: processed });
         return res;
       },
-      setValue: (params: { key: string; value: any; }) => this.call('settings.setValue', params),
-      getValue: (params: { key: string; }) => this.call('settings.getValue', params),
-      setVisibility: (params: { key: string; visible: boolean; }) => this.call('settings.setVisibility', params),
-      setError: (params: { key: string; error: string | null; }) => this.call('settings.setError', params),
-      setEnabled: (params: { key: string; enabled: boolean; }) => this.call('settings.setEnabled', params),
-      setActiveTab: (params: { tabKey: string; }) => this.call('settings.setActiveTab', params),
-      addTab: (params: { tabKey: string; config: TabConfig; }) => this.call('settings.addTab', params),
-      removeTab: (params: { tabKey: string; }) => this.call('settings.removeTab', params),
-      setTabVisibility: (params: { tabKey: string; visible: boolean; }) => this.call('settings.setTabVisibility', params),
-      saveData: (params: { key: string; value: any; }) => this.call('settings.saveData', params),
-      // setValue: (params: {
-      //   key: string;
-      //   value: any;
-      // }) => this.call('settings.setValue', params),
-      // getValue: (params: {
-      //   key: string;
-      // }) => this.call('settings.getValue', params),
-      // setVisibility: (params: {
-      //   key: string;
-      //   visible: boolean;
-      // }) => this.call('settings.setVisibility', params),
-      // setError: (params: {
-      //   key: string;
-      //   error: string | null;
-      // }) => this.call('settings.setError', params),
-      // setEnabled: (params: {
-      //   key: string;
-      //   enabled: boolean;
-      // }) => this.call('settings.setEnabled', params),
-      // setActiveTab: (params: {
-      //   tabKey: string;
-      // }) => this.call('settings.setActiveTab', params),
-      // addTab: (params: {
-      //   tabKey: string;
-      //   config: TabConfig;
-      // }) => this.call('settings.addTab', params),
-      // removeTab: (params: {
-      //   tabKey: string;
-      // }) => this.call('settings.removeTab', params),
-      // setTabVisibility: (params: {
-      //   tabKey: string;
-      //   visible: boolean;
-      // }) => this.call('settings.setTabVisibility', params),
-      // saveData: (params: {
-      //   key: string;
-      //   value: any;
-      // }) => this.call('settings.saveData', params),
-
     };
   }
   
   get ui() {
     return {
       showToast: (params: ToastParams) => this.call('ui.showToast', params),
-      showModal: (params: { title: string; content: string | UIComponent; size?: 'small' | 'medium' | 'large' | 'fullscreen'; buttons?: ModalButton[]; closable?: boolean; }) => this.call('ui.showModal', params),
-      showConfirmation: (params: { title: string; message: string; confirmText?: string; cancelText?: string; type?: 'info' | 'warning' | 'danger'; }) => this.call('ui.showConfirmation', params),
     };
   }
+  
+  // Public utility to prepare a schema by replacing callbacks with actionIds
+  // and registering the callbacks locally so the app can invoke them.
+  public prepareSectionedSchemaWithActionIds(sectioned: SettingsSections): SettingsSections {
+    return {
+      sections: sectioned.sections.map((sec) => ({
+        title: sec.title,
+        components: sec.components.map((comp) => {
+          const newComp: any = { ...comp };
+          if (newComp.type === 'button' && typeof newComp.onClick === 'function') {
+            const actionId = `action_${newComp.key}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+            this.actionCallbacks.set(actionId, newComp.onClick);
+            newComp.actionId = actionId;
+            delete newComp.onClick;
+          }
+          if (newComp.type !== 'button' && typeof newComp.onChange === 'function') {
+            const changeId = `change_${newComp.key}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+            this.actionCallbacks.set(changeId, newComp.onChange);
+            newComp.onChangeActionId = changeId;
+            delete newComp.onChange;
+          }
+          return newComp;
+        })
+      }))
+    };
+  }
+
+  // Store the latest sectioned schema explicitly (used by get_plugin_settings)
+  public setSectionedSchema(schema: SettingsSections) {
+    this.settingsSchema = this.prepareSectionedSchemaWithActionIds(schema);
+  }
+
 }
