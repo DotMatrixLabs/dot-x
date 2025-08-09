@@ -1,5 +1,4 @@
 export { default as Plugin, runPlugin } from './plugin';
-export type { PluginManifest } from './plugin';
 export { APIClient } from './client';
 export type { ConnectionConfig, PluginInfo } from './client';
 export { SettingsBuilder, createSettingsBuilder } from './ui';

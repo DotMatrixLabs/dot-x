@@ -547,6 +547,7 @@ fn main() {
             plugin_server::start_plugin_server,
             plugin_server::stop_plugin_server,
             plugin_server::send_to_plugin,
+            plugin_server::send_to_plugin_with_ack,
             plugin_server::get_connected_plugins,
             plugin_server::send_api_response,
             list_installed_plugins,
