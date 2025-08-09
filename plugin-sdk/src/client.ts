@@ -45,7 +45,7 @@ export class APIClient {
   constructor(pluginInfo: PluginInfo, config: ConnectionConfig = {}) {
     this.pluginInfo = pluginInfo;
     this.config = {
-      serverUrl: config.serverUrl || 'http://localhost:3001',
+      serverUrl: config.serverUrl || 'http://127.0.0.1:3001',
       maxRetries: config.maxRetries || 5,
       retryDelay: config.retryDelay || 2000,
       connectionTimeout: config.connectionTimeout || 10000,
@@ -71,7 +71,42 @@ export class APIClient {
           timeout: this.config.connectionTimeout,
           forceNew: true,
           autoConnect: true,
-          reconnection: false // We'll handle reconnection manually
+          reconnection: true
+        });
+        
+        // Attach core listeners as early as possible to avoid races where
+        // the app emits events immediately after registration.
+        // These listeners are idempotent per-socket instance.
+        this.socket.on('settings.action', (data: { actionId: string; value?: any }) => {
+          const cb = this.actionCallbacks.get(data.actionId);
+          if (cb) {
+            try {
+              cb(data.value);
+            } catch (err) {
+              console.error('Error executing settings action callback:', err);
+            }
+          }
+        });
+
+        // Generic request handler from app: single topic with method routing
+        this.socket.on('plugin.request', (data: { method: string; params?: any; request_id?: string }, ack?: (resp: any) => void) => {
+          console.log('Received plugin request:', data);
+          const { method, request_id } = data || {};
+          let resp: any = { success: false, error: 'Unknown method', request_id, method };
+
+          if (method === 'get_plugin_settings') {
+            const payload = this.settingsSchema;
+            resp = payload
+              ? { success: true, data: payload, request_id, method }
+              : { success: false, error: 'Settings not initialized', request_id, method };
+          }
+
+          if (typeof ack === 'function') ack(resp);
+          else this.socket.emit('plugin.response', resp);
+        });
+
+        this.socket.onAny((eventName, ...args) => {
+          console.log(`Received event: ${eventName} with arguments:`, args);
         });
         
         const registrationTimeoutId = setTimeout(() => {
@@ -122,53 +157,6 @@ export class APIClient {
             if (ack.status === 'success') {
               console.log('Plugin registered successfully!!');
               this.isRegistered = true;
-              
-              // Listen for settings action events (e.g., button clicks, text onChange)
-              this.socket.on('settings.action', (data: { actionId: string; value?: any }) => {
-                const cb = this.actionCallbacks.get(data.actionId);
-                if (cb) {
-                  try {
-                    cb(data.value);
-                  } catch (err) {
-                    console.error('Error executing settings action callback:', err);
-                  }
-                }
-              });
-
-              this.socket.onAny((eventName, ...args) => {
-                console.log(`Received event: ${eventName} with arguments:`, args);
-              });
-
-              // Generic request handler from app: single topic with method routing
-              this.socket.on('plugin.request', (data: { method: string; params?: any; request_id?: string }, ack?: (resp: any) => void) => {
-                console.log('Received plugin request:', data);
-                const { method, request_id } = data || {};
-                let resp: any = { success: false, error: 'Unknown method', request_id, method };
-
-                if (method === 'get_plugin_settings') {
-                  const payload = this.settingsSchema;
-                  resp = payload
-                    ? { success: true, data: payload, request_id, method }
-                    : { success: false, error: 'Settings not initialized', request_id, method };
-                }
-
-                if (typeof ack === 'function') ack(resp);
-                else this.socket.emit('plugin.response', resp);
-              });
-              
-              // Set up long-term disconnect handler
-              this.socket.on('disconnect', (reason: string) => {
-                console.log('Disconnected from plugin server:', reason);
-                this.isRegistered = false;
-                if (this.isDestroyed || reason === 'io client disconnect') {
-                  return;
-                }
-                // At this point, the initial connection promise is already resolved.
-                // Reconnection logic will be handled by the client attempting to make new calls.
-                // For now, we just log it. A more robust implementation might use an event emitter
-                // to notify the plugin that the connection was lost.
-                console.log('Connection lost. The plugin will need to be re-initialized.');
-              });
 
               resolve();
             } else {
