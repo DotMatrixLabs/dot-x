@@ -120,7 +120,7 @@ export class APIClient {
             clearTimeout(registrationTimeoutId);
             console.log('Registration response:', ack);
             if (ack.status === 'success') {
-              console.log('Plugin registered successfully!');
+              console.log('Plugin registered successfully!!');
               this.isRegistered = true;
               
               // Listen for settings action events (e.g., button clicks, text onChange)
@@ -135,14 +135,25 @@ export class APIClient {
                 }
               });
 
-              // Respond to get_plugin_settings requests from the app
-              this.socket.on('get_plugin_settings', (data: { request_id?: string }, ack?: (resp: any) => void) => {
-                const payload = this.settingsSchema;
-                const response = payload
-                  ? { success: true, data: payload, request_id: data?.request_id }
-                  : { success: false, error: 'Settings not initialized', request_id: data?.request_id };
-                if (typeof ack === 'function') ack(response);
-                else this.socket.emit('plugin_settings_response', response);
+              this.socket.onAny((eventName, ...args) => {
+                console.log(`Received event: ${eventName} with arguments:`, args);
+              });
+
+              // Generic request handler from app: single topic with method routing
+              this.socket.on('plugin.request', (data: { method: string; params?: any; request_id?: string }, ack?: (resp: any) => void) => {
+                console.log('Received plugin request:', data);
+                const { method, request_id } = data || {};
+                let resp: any = { success: false, error: 'Unknown method', request_id, method };
+
+                if (method === 'get_plugin_settings') {
+                  const payload = this.settingsSchema;
+                  resp = payload
+                    ? { success: true, data: payload, request_id, method }
+                    : { success: false, error: 'Settings not initialized', request_id, method };
+                }
+
+                if (typeof ack === 'function') ack(resp);
+                else this.socket.emit('plugin.response', resp);
               });
               
               // Set up long-term disconnect handler
@@ -280,13 +291,6 @@ export class APIClient {
   
   get settings() {
     return {
-      createSettings: async (params: CreateSettingsParams) => {
-        const processed = this.prepareSectionedSchemaWithActionIds(params.schema as any);
-        // Persist the processed schema for future get_plugin_settings
-        this.settingsSchema = processed;
-        const res = await this.call('settings.createSettings', { schema: processed });
-        return res;
-      },
     };
   }
   

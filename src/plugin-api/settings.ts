@@ -1,52 +1,9 @@
 import type { 
   ApiRequest, 
   ApiResponse, 
-  CreateSettingsParams, 
-  SettingsSchema,
-  SettingsField 
 } from './schema';
 
 export class SettingsManager {
-  /**
-   * Handle createSettings API request
-   */
-  async createSettings(request: ApiRequest): Promise<ApiResponse> {
-    console.log('Creating settings for plugin:', request.params);
-    
-    const params = request.params as CreateSettingsParams;
-    
-    // Validate the schema
-    if (!params.schema || typeof params.schema !== 'object') {
-      return {
-        request_id: request.request_id,
-        success: false,
-        error: 'Invalid schema: schema must be an object'
-      };
-    }
-
-    // Simulate processing the settings creation
-    const settingsId = `settings_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
-    // Log the schema for testing
-    console.log('Settings schema received:', JSON.stringify(params.schema, null, 2));
-    console.log('Settings options received:', JSON.stringify(params.options, null, 2));
-    
-    // Simulate some async work (e.g., creating UI, validating fields)
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    // Simulate success response
-    const successData = {
-      success: true,
-      settingsId: settingsId,
-      message: 'Settings created successfully'
-    };
-
-    return {
-      request_id: request.request_id,
-      success: true,
-      data: successData
-    };
-  }
 
   /**
    * Handle setValue API request
