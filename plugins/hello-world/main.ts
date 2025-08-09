@@ -29,10 +29,18 @@ export default class HelloWorldPlugin extends Plugin {
           });
 
         s.addSection('Advanced');
+        
         const debug = s.addText('debug')
           .setLabel('Debug Flag')
           .setPlaceholder('true/false')
-          .setValue('false');
+          .setValue('false')
+          .onChange((value) => {
+            console.log('Debug flag changed:', value);
+            this.ui.showToast({
+              message: 'Debug flag changed to: ' + value,
+              type: 'info',
+            });
+          });
       });
       
       console.log("Plugin settings created successfully!");
