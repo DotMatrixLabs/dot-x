@@ -1,30 +1,20 @@
 // dot-x-plugin/src/plugin.ts
 import { APIClient, PluginInfo, ConnectionConfig } from './client';
-import type { PluginAPI, PluginSettingsResponse } from './types';
+import type { PluginAPI } from './types';
 import { SettingsBuilder } from './ui';
 import type { SettingsSections } from './types';
 import * as fs from 'fs';
 import * as path from 'path';
 
-export interface PluginManifest {
-  id: string;
-  name: string;
-  version: string;
-  description?: string;
-  author?: string;
-  dotxVersion?: string;
-  main: string;
-}
 
 export default class Plugin {
-  public settings: PluginAPI['settings'];
+  // public settings: PluginAPI['settings'];
   public ui: PluginAPI['ui'];
   private client: APIClient;
   
   constructor(pluginInfo: PluginInfo, config?: ConnectionConfig) {
     this.client = new APIClient(pluginInfo, config);
-    this.settings = this.client.settings;
-    // Expose minimal UI API currently supported
+    // this.settings = this.client.settings;
     this.ui = this.client.ui as any;
   }
   
@@ -39,13 +29,12 @@ export default class Plugin {
   }
 
   // Convenience: build and register settings in one go
-  async createSettingsPage(buildFn: (builder: SettingsBuilder) => void): Promise<PluginSettingsResponse> {
+  async createSettingsPage(buildFn: (builder: SettingsBuilder) => void): Promise<void> {
     // Build once, persist schema for get_plugin_settings, and create settings in host
     const builder = new SettingsBuilder();
     buildFn(builder);
     const sectioned = builder.build();
     this.client.setSectionedSchema(sectioned);
-    return this.settings.createSettings({ schema: sectioned });
   }
 
   // Expose sectioned UI for get_plugin_settings or other consumers if desired
@@ -79,7 +68,7 @@ export default class Plugin {
 /**
  * Reads the manifest.json file from the current working directory
  */
-function readManifest(): PluginManifest | null {
+function readManifest() {
   try {
     const manifestPath = path.join(process.cwd(), 'manifest.json');
     if (fs.existsSync(manifestPath)) {

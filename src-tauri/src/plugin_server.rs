@@ -185,6 +185,31 @@ impl PluginServer {
                     }
                 });
 
+                // Forward generic plugin responses to the frontend
+                socket.on("plugin.response", {
+                    let connections = Arc::clone(&connections);
+                    let app_handle = app_handle.clone();
+                    move |socket: SocketRef, Data::<Value>(response), _ack: AckSender| {
+                        let connections = Arc::clone(&connections);
+                        let app_handle = app_handle.clone();
+                        let socket_id = socket.id.to_string();
+                        tokio::spawn(async move {
+                            // Find plugin_id by socket_id
+                            let plugin_id = {
+                                let connections_lock = connections.read().await;
+                                connections_lock.iter()
+                                    .find(|(_, conn)| conn.socket_id == socket_id)
+                                    .map(|(id, _)| id.clone())
+                            };
+                            let payload = serde_json::json!({
+                                "plugin_id": plugin_id,
+                                "response": response
+                            });
+                            let _ = app_handle.emit_all("plugin/response", &payload);
+                        });
+                    }
+                });
+
                 // Handle disconnect
                 socket.on_disconnect({
                     let connections = Arc::clone(&connections);
@@ -206,9 +231,9 @@ impl PluginServer {
                                 connections_lock.remove(&plugin_id);
                                 info!("Plugin disconnected: {}", plugin_id);
                                 
-                                // Emit to frontend
+                                // Emit to frontend with consistent payload shape
                                 let _ = app_handle.emit_all("plugin/disconnected", serde_json::json!({
-                                    "plugin_id": plugin_id
+                                    "id": plugin_id
                                 }));
                             }
                         });
@@ -276,6 +301,7 @@ impl PluginServer {
         let connections = self.connections.read().await;
         if let Some(connection) = connections.get(plugin_id) {
             if let Some(io) = &self.io {
+                println!("Sending event to plugin: {} {} {:?}", plugin_id, event, data);
                 let event_string = event.to_string();
                 io.to(connection.socket_id.clone()).emit(event_string, data).map_err(|e| e.to_string())?;
                 Ok(())

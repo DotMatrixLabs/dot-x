@@ -4,6 +4,7 @@
 
     <div class="flex flex-col gap-2">
       <h3 class="text-base">Plugin Settings</h3>
+      {{ settings }}
     </div>
   </div>
   
@@ -11,6 +12,7 @@
 
 <script>
 import PluginHeader from './PluginHeader.vue';
+import pluginAPI from '../plugin-api/pluginAPI';
 
     export default {
         name: "PluginSettings",
@@ -23,10 +25,20 @@ import PluginHeader from './PluginHeader.vue';
         },
         data() {
             return {
+                settings: {}
             }
         },
         methods: {
+
+          async loadSettings() {
+            const settings = await pluginAPI.getPluginSettings(this.plugin.id);
+            console.log('Settings:', settings);
+            this.settings = settings;
+          }
             
+        },
+        mounted() {
+            this.loadSettings();
         }
     }
 </script>
