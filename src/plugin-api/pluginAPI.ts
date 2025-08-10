@@ -160,20 +160,8 @@ export class PluginAPI {
   }
 
 
-  private async sendToPlugin(pluginId: string, event: string, data: any = {}) {
-    console.log('Sending event to plugin:', pluginId, event, data);
-    try {
-      const result = await invoke('send_to_plugin', { pluginId, event, data });
-      console.log('Plugin event sent successfully:', event, result);
-      return result;
-    } catch (err) {
-      console.error('Failed to send plugin event:', err);
-      throw err;
-    }
-  }
-
   // Generic request/response helper for plugin communications using a single request topic and method
-  private async pluginRequest<T = any>(pluginId: string, method: string, params: any = {}, timeoutMs = 15000): Promise<T> {
+  private async pluginRequest<T = any>(pluginId: string, method: string, params: any = {}): Promise<T> {
     const requestId = `req_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const data = { method, params, request_id: requestId };
 
@@ -181,7 +169,6 @@ export class PluginAPI {
       pluginId,
       event: 'plugin.request',
       data,
-      timeoutMs,
     }) as ApiResponse;
 
     if (!response.success) {
@@ -194,7 +181,7 @@ export class PluginAPI {
   public async getPluginSettings(pluginId: string) {
     console.log('Getting plugin settings for plugin:', pluginId);
     const settings = await this.pluginRequest(pluginId, 'get_plugin_settings');
-    console.log('Plugin settings received:', settings.data);
+    console.log('Plugin settings received:', settings);
     return settings.data;
   }
 
