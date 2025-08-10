@@ -1,7 +1,14 @@
 pub mod midi {
     use crate::{decker, get_app_handle};
     use log::{debug, error, info, trace};
-    use midir::{MidiOutput, MidiOutputConnection, MidiOutputPort};
+    use midir::{MidiOutput, MidiOutputConne                            }
+                            
+                        }
+                        // Use a longer sleep interval (>15.6ms) to prevent Windows from keeping 
+                        // the high-resolution timer active, which blocks system sleep.
+                        // 100ms is sufficient for MIDI control changes and reduces CPU usage.
+                        thread::sleep(Duration::from_millis(100));
+                    } MidiOutputPort};
     use tauri::Manager;
     use std::error::Error;
     use std::thread;
@@ -69,16 +76,43 @@ pub mod midi {
                 conn_out = conn;
                 let _thread_handle = thread::spawn(move || {
                     debug!("starting midi thread");
+                    let mut loop_counter = 0u32;
+                    let mut last_values = [0u32; 5]; // Cache to track changes more efficiently
+                    
                     loop {
                         unsafe { 
-                            if !ENABLED {
+                            // Check for shutdown signal every few iterations to be more responsive
+                            if loop_counter % 10 == 0 && !ENABLED {
                                 debug!("detaching midi thread");
                                 let app_handle = get_app_handle();
                                 app_handle.emit_all("midi_detached", {});
                                 conn_out.close();
                                 break;
                             }
-                            // println!("Current slider values: {:?}", decker::decker::slider_values); 
+                            loop_counter = loop_counter.wrapping_add(1);
+                            loop_counter = loop_counter.wrapping_add(1);
+                            
+                            // Get current slider values
+                            let current_values = [
+                                decker::decker::slider_values.slider1,
+                                decker::decker::slider_values.slider2,
+                                decker::decker::slider_values.slider3,
+                                decker::decker::slider_values.slider4,
+                                decker::decker::slider_values.slider5,
+                            ];
+                            
+                            // Check if any values have changed significantly before processing
+                            let mut has_changes = false;
+                            for i in 0..5 {
+                                if current_values[i].abs_diff(last_values[i]) > 2 {
+                                    has_changes = true;
+                                    break;
+                                }
+                            }
+                            
+                            // Only process MIDI updates if there are actual changes
+                            if has_changes {
+                                // println!("Current slider values: {:?}", decker::decker::slider_values); 
                             for i in 1..=5 {
                                 let current_slider = match i {
                                     1 => decker::decker::slider_values.slider1,
@@ -141,9 +175,15 @@ pub mod midi {
                                 }
                             }
                             
+                            // Update cached values after processing
+                            last_values = current_values;
+                            }
+                            
                         }
-                        // Add a small sleep duration to reduce CPU usage
-                        thread::sleep(Duration::from_millis(50));
+                        // Use a longer sleep interval (>15.6ms) to prevent Windows from keeping 
+                        // the high-resolution timer active, which blocks system sleep.
+                        // 100ms is sufficient for MIDI control changes and reduces CPU usage.
+                        thread::sleep(Duration::from_millis(100));
                     }
                 });
 
