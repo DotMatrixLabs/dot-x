@@ -223,7 +223,7 @@ pub fn initialize_decker(window: Window, port_name: &str, inverted: bool) -> std
     }
 
     let port = serialport::new(port_name, baud_rate)
-        .timeout(Duration::from_millis(100))  // Use longer timeout for more efficient blocking reads
+        .timeout(Duration::from_millis(20))
         .open();
 
     match port {
@@ -238,14 +238,11 @@ pub fn initialize_decker(window: Window, port_name: &str, inverted: bool) -> std
             let (tx, rx): (mpsc::Sender<String>, mpsc::Receiver<String>) = mpsc::channel();            // Spawn a thread to handle incoming data
             thread::spawn(move || {
                 let mut serial_buf: Vec<u8> = vec![0; 100];
-                let mut loop_counter = 0u32;
                 window.emit("connection-change", Payload { message: "connected".to_string() }).unwrap();
                 loop {
-                    // Check for shutdown signal every few iterations to be more responsive
-                    if loop_counter % 5 == 0 && !SHOULD_RUN.load(Ordering::Relaxed) {
+                    if !SHOULD_RUN.load(Ordering::Relaxed) {
                         break;
                     }
-                    loop_counter = loop_counter.wrapping_add(1);
                     match rx.try_recv() {
                         Ok(command) => {
                             println!("Received: {:?}", command);
@@ -333,10 +330,7 @@ pub fn initialize_decker(window: Window, port_name: &str, inverted: bool) -> std
                             panic!("An error occurred while reading serial data: {:?}", e);
                         }
                     }
-                    
-                    // Use a longer sleep interval (>15.6ms) to prevent Windows from keeping 
-                    // the high-resolution timer active, which blocks system sleep
-                    thread::sleep(Duration::from_millis(20));
+                    thread::sleep(Duration::from_millis(5));
                 }
             });
 
