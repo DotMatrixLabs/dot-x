@@ -35,7 +35,7 @@
         "licenses/*"
       ],
       "windows": {
-        "certificateThumbprint": "6d5ed22f2dbd07b9e2a1a31003f5635310492f41",
+        "certificateThumbprint": "ca2e93b1a72064b5c3ecdef2481044859fbe241b",
         "digestAlgorithm": "sha256",
         "timestampUrl": "http://time.certum.pl",
         "nsis": {
