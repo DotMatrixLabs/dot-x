@@ -116,6 +116,7 @@ import { resolveComponent as resolveUi, componentRegistry } from '../uikit/regis
                 click: async () => {
                   try {
                     if (comp.actionId) {
+                      console.log('Emitting button action:', comp.actionId);
                       await pluginAPI.emitSettingsAction(comp.actionId);
                     }
                   } catch (e) {

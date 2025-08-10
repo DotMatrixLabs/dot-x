@@ -306,7 +306,7 @@ impl PluginServer {
 
     pub async fn send_to_plugin(&self, plugin_id: &str, event: &str, data: Value) -> Result<(), String> {
         let connections = self.connections.read().await;
-        if let Some(connection) = connections.get(plugin_id) {
+        if let Some(_connection) = connections.get(plugin_id) {
             if let Some(io) = &self.io {
                 let event_string = event.to_string();
                 println!("Sending event to plugin: {} {} {:?}", plugin_id, event_string, data);
@@ -325,19 +325,15 @@ impl PluginServer {
 
     
 
-    pub async fn send_to_plugin_with_ack(&self, plugin_id: &str, event: &str, data: Value, timeout_ms: u64) -> Result<ApiResponse, String> {
-        // Resolve connection and io handle
+    pub async fn send_to_plugin_with_ack(&self, plugin_id: &str, event: &str, data: Value) -> Result<ApiResponse, String> {
+        // Ensure the plugin is connected and the server is initialized
         let connections = self.connections.read().await;
-        let keys: Vec<_> = connections.keys().cloned().collect();
-        println!("Connections: {:?}", keys);
-        let connection = connections.get(plugin_id)
-            .ok_or_else(|| format!("Plugin {} not connected", plugin_id))?;
-        println!("Connection socket_id: {:?}", connection.socket_id);
-        println!("Sending event to plugin with ack: {} {} {:?}", plugin_id, event, data);
+        if !connections.contains_key(plugin_id) {
+            return Err(format!("Plugin {} not connected", plugin_id));
+        }
         let io = self.io.as_ref().ok_or_else(|| "Socket.IO server not initialized".to_string())?;
-        println!("io: {:?}", io);
 
-        // Emit a test message and wait for an acknowledgment with the timeout specified in the global config
+        // Emit and await the acknowledgment using Socket.IO's default timeout
         let event_string = event.to_string();
         let payload = data.clone();
         match io
@@ -347,25 +343,15 @@ impl PluginServer {
         {
             Ok(ack_stream) => {
                 pin_mut!(ack_stream);
-                let ack_result = tokio::time::timeout(
-                    std::time::Duration::from_millis(timeout_ms),
-                    ack_stream.next(),
-                )
-                .await;
-
-                match ack_result {
-                    Ok(Some((_sid, Ok(value)))) => {
-                        let response = ApiResponse {
-                            request_id: "".to_string(),
-                            success: true,
-                            data: Some(value),
-                            error: None,
-                        };
-                        Ok(response)
-                    }
-                    Ok(Some((_sid, Err(e)))) => Err(e.to_string()),
-                    Ok(None) => Err("Ack stream closed".to_string()),
-                    Err(_) => Err("Request timeout".to_string()),
+                match ack_stream.next().await {
+                    Some((_sid, Ok(value))) => Ok(ApiResponse {
+                        request_id: "".to_string(),
+                        success: true,
+                        data: Some(value),
+                        error: None,
+                    }),
+                    Some((_sid, Err(e))) => Err(e.to_string()),
+                    None => Err("Ack stream closed".to_string()),
                 }
             }
             Err(err) => {
@@ -477,11 +463,10 @@ pub async fn send_to_plugin(plugin_id: String, event: String, data: Value) -> Re
 } 
 
 #[tauri::command]
-pub async fn send_to_plugin_with_ack(plugin_id: String, event: String, data: Value, timeout_ms: Option<u64>) -> Result<ApiResponse, String> {
-    let timeout = timeout_ms.unwrap_or(15_000);
+pub async fn send_to_plugin_with_ack(plugin_id: String, event: String, data: Value) -> Result<ApiResponse, String> {
     if let Some(server_arc) = get_plugin_server() {
         let server = server_arc.read().await;
-        server.send_to_plugin_with_ack(&plugin_id, &event, data, timeout).await
+        server.send_to_plugin_with_ack(&plugin_id, &event, data).await
     } else {
         Err("Plugin server not initialized".to_string())
     }
