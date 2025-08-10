@@ -330,7 +330,9 @@ pub fn initialize_decker(window: Window, port_name: &str, inverted: bool) -> std
                             panic!("An error occurred while reading serial data: {:?}", e);
                         }
                     }
-                    thread::sleep(Duration::from_millis(5));
+                    // Use a sleep interval >15.6ms to prevent Windows from keeping 
+                    // the high-resolution timer active, which blocks system sleep
+                    thread::sleep(Duration::from_millis(20));
                 }
             });
 
