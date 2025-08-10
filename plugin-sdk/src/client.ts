@@ -88,21 +88,20 @@ export class APIClient {
           }
         });
 
-        // Generic request handler from app: single topic with method routing
-        this.socket.on('plugin.request', (data: { method: string; params?: any; request_id?: string }, ack?: (resp: any) => void) => {
+        // Request handler from app: single topic with method routing
+        this.socket.on('plugin.request', (data: { method: string; params?: any; request_id?: string }, ack: (response: any) => void) => {
           console.log('Received plugin request:', data);
           const { method, request_id } = data || {};
-          let resp: any = { success: false, error: 'Unknown method', request_id, method };
+          let response: any = { success: false, error: 'Unknown method', request_id, method };
 
           if (method === 'get_plugin_settings') {
             const payload = this.settingsSchema;
-            resp = payload
+            response = payload
               ? { success: true, data: payload, request_id, method }
               : { success: false, error: 'Settings not initialized', request_id, method };
           }
 
-          if (typeof ack === 'function') ack(resp);
-          else this.socket.emit('plugin.response', resp);
+          ack(response);
         });
 
         this.socket.onAny((eventName, ...args) => {
