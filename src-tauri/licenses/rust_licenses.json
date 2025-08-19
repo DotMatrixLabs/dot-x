@@ -1108,7 +1108,7 @@
   },
   {
     "name": "dot_x",
-    "version": "1.2.1",
+    "version": "1.2.3-2",
     "authors": "you",
     "repository": "",
     "license": "",
@@ -3141,6 +3141,15 @@
     "description": "Data structures and parsing for the linux procfs pseudo-filesystem"
   },
   {
+    "name": "psp",
+    "version": "0.1.0",
+    "authors": null,
+    "repository": null,
+    "license": null,
+    "license_file": null,
+    "description": "Cross-platform power state events plugin"
+  },
+  {
     "name": "ptr_meta",
     "version": "0.1.4",
     "authors": "David Koloski <djkoloski@gmail.com>",
@@ -4320,6 +4329,15 @@
     "description": "An event-driven, non-blocking I/O platform for writing asynchronous I/O backed applications."
   },
   {
+    "name": "tokio-macros",
+    "version": "2.2.0",
+    "authors": "Tokio Contributors <team@tokio.rs>",
+    "repository": "https://github.com/tokio-rs/tokio",
+    "license": "MIT",
+    "license_file": null,
+    "description": "Tokio's proc macros."
+  },
+  {
     "name": "tokio-native-tls",
     "version": "0.3.1",
     "authors": "Tokio Contributors <team@tokio.rs>",
@@ -4896,6 +4914,24 @@
     "description": "Rust for Windows"
   },
   {
+    "name": "windows",
+    "version": "0.61.3",
+    "authors": "Microsoft",
+    "repository": "https://github.com/microsoft/windows-rs",
+    "license": "Apache-2.0 OR MIT",
+    "license_file": null,
+    "description": "Rust for Windows"
+  },
+  {
+    "name": "windows-collections",
+    "version": "0.2.0",
+    "authors": null,
+    "repository": "https://github.com/microsoft/windows-rs",
+    "license": "Apache-2.0 OR MIT",
+    "license_file": null,
+    "description": "Windows collection types"
+  },
+  {
     "name": "windows-core",
     "version": "0.51.1",
     "authors": "Microsoft",
@@ -4912,6 +4948,24 @@
     "license": "Apache-2.0 OR MIT",
     "license_file": null,
     "description": "Rust for Windows"
+  },
+  {
+    "name": "windows-core",
+    "version": "0.61.2",
+    "authors": "Microsoft",
+    "repository": "https://github.com/microsoft/windows-rs",
+    "license": "Apache-2.0 OR MIT",
+    "license_file": null,
+    "description": "Core type support for COM and Windows"
+  },
+  {
+    "name": "windows-future",
+    "version": "0.2.1",
+    "authors": null,
+    "repository": "https://github.com/microsoft/windows-rs",
+    "license": "Apache-2.0 OR MIT",
+    "license_file": null,
+    "description": "Windows async types"
   },
   {
     "name": "windows-implement",
@@ -4932,6 +4986,15 @@
     "description": "The implement macro for the windows crate"
   },
   {
+    "name": "windows-implement",
+    "version": "0.60.0",
+    "authors": "Microsoft",
+    "repository": "https://github.com/microsoft/windows-rs",
+    "license": "Apache-2.0 OR MIT",
+    "license_file": null,
+    "description": "The implement macro for the windows crate"
+  },
+  {
     "name": "windows-interface",
     "version": "0.44.0",
     "authors": "Microsoft",
@@ -4939,6 +5002,51 @@
     "license": "Apache-2.0 OR MIT",
     "license_file": null,
     "description": "The interface macro for the windows crate"
+  },
+  {
+    "name": "windows-interface",
+    "version": "0.59.1",
+    "authors": "Microsoft",
+    "repository": "https://github.com/microsoft/windows-rs",
+    "license": "Apache-2.0 OR MIT",
+    "license_file": null,
+    "description": "The interface macro for the windows crate"
+  },
+  {
+    "name": "windows-link",
+    "version": "0.1.3",
+    "authors": "Microsoft",
+    "repository": "https://github.com/microsoft/windows-rs",
+    "license": "Apache-2.0 OR MIT",
+    "license_file": null,
+    "description": "Linking for Windows"
+  },
+  {
+    "name": "windows-numerics",
+    "version": "0.2.0",
+    "authors": null,
+    "repository": "https://github.com/microsoft/windows-rs",
+    "license": "Apache-2.0 OR MIT",
+    "license_file": null,
+    "description": "Windows numeric types"
+  },
+  {
+    "name": "windows-result",
+    "version": "0.3.4",
+    "authors": "Microsoft",
+    "repository": "https://github.com/microsoft/windows-rs",
+    "license": "Apache-2.0 OR MIT",
+    "license_file": null,
+    "description": "Windows error handling"
+  },
+  {
+    "name": "windows-strings",
+    "version": "0.4.2",
+    "authors": "Microsoft",
+    "repository": "https://github.com/microsoft/windows-rs",
+    "license": "Apache-2.0 OR MIT",
+    "license_file": null,
+    "description": "Windows string types"
   },
   {
     "name": "windows-sys",
@@ -5002,6 +5110,15 @@
     "license": "Apache-2.0 OR MIT",
     "license_file": null,
     "description": "Import libs for Windows"
+  },
+  {
+    "name": "windows-threading",
+    "version": "0.1.0",
+    "authors": "Microsoft",
+    "repository": "https://github.com/microsoft/windows-rs",
+    "license": "Apache-2.0 OR MIT",
+    "license_file": null,
+    "description": "Windows threading"
   },
   {
     "name": "windows-tokens",
