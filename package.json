@@ -11,7 +11,8 @@
     "rust-licenses": "cd src-tauri && cargo license --avoid-dev-deps --avoid-build-deps --json > licenses/rust_licenses.json",
     "js-licenses": "npx npm-license-crawler --json src-tauri/licenses/js_licenses.json",
     "bump": "node tools/bump-version.mjs",
-    "folder": "node tools/folder.mjs"
+    "folder": "node tools/folder.mjs",
+    "fix-name": "node tools/fix-name.mjs"
   },
   "dependencies": {
     "@aptabase/tauri": "^0.4.1",
