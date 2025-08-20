@@ -60,10 +60,17 @@ function renameBuildFiles(rootDir) {
 
 	// Open the build folder in Windows Explorer
 	try {
-		const normalized = msiDir.replace(/\//g, '\\\\');
+		const normalized = msiDir.replace(/\//g, '\\');
 		execSync(`cmd /c start "" "${normalized}"`, { stdio: 'ignore', windowsHide: true });
 	} catch {
-		// Non-fatal if opening fails
+	// Open the build folder in Windows Explorer (only on Windows)
+	if (process.platform === 'win32') {
+		try {
+			const normalized = msiDir.replace(/\//g, '\\\\');
+			execSync(`cmd /c start "" "${normalized}"`, { stdio: 'ignore', windowsHide: true });
+		} catch {
+			// Non-fatal if opening fails
+		}
 	}
 }
 
