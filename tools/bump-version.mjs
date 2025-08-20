@@ -10,7 +10,11 @@ const TAURI_CONF = resolve(ROOT, 'src-tauri', 'tauri.conf.json');
  */
 function parseVersion(versionString) {
   const [core, prerelease = null] = versionString.split('-', 2);
-  const [majorStr, minorStr, patchStr] = core.split('.');
+  const parts = core.split('.');
+  if (parts.length !== 3) {
+    throw new Error(`Invalid version format (expected major.minor.patch): ${versionString}`);
+  }
+  const [majorStr, minorStr, patchStr] = parts;
   const major = Number(majorStr);
   const minor = Number(minorStr);
   const patch = Number(patchStr);
