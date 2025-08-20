@@ -2,10 +2,18 @@
 
 import { execSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
 
-// Absolute paths as requested
-const BUILD_PATH = 'D:/dot-x/src-tauri/target/release/bundle/msi';
-const APPDATA_PATH = 'C:/Users/ananords/AppData/Roaming/com.dot-x.dev';
+// Dynamic paths using environment variables
+function getBuildPath() {
+  return path.resolve(process.cwd(), 'src-tauri', 'target', 'release', 'bundle', 'msi');
+}
+
+function getAppDataPath() {
+  const appData = process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming');
+  return path.join(appData, 'com.dot-x.dev');
+}
 
 function openFolder(targetPath) {
   const normalized = targetPath.replace(/\//g, '\\');
@@ -23,19 +31,21 @@ function main() {
   }
 
   if (hasBuild) {
-    if (!existsSync(BUILD_PATH)) {
-      console.error(`Build folder does not exist: ${BUILD_PATH}`);
+    const buildPath = getBuildPath();
+    if (!existsSync(buildPath)) {
+      console.error(`Build folder does not exist: ${buildPath}`);
       process.exit(1);
     }
-    openFolder(BUILD_PATH);
+    openFolder(buildPath);
     return;
   }
 
-  if (!existsSync(APPDATA_PATH)) {
-    console.error(`AppData folder does not exist: ${APPDATA_PATH}`);
+  const appDataPath = getAppDataPath();
+  if (!existsSync(appDataPath)) {
+    console.error(`AppData folder does not exist: ${appDataPath}`);
     process.exit(1);
   }
-  openFolder(APPDATA_PATH);
+  openFolder(appDataPath);
 }
 
 main();
