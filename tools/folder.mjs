@@ -17,7 +17,18 @@ function getAppDataPath() {
 
 function openFolder(targetPath) {
   const normalized = targetPath.replace(/\//g, '\\');
-  execSync(`cmd /c start "" "${normalized}"`, { stdio: 'ignore', windowsHide: true });
+  const platform = os.platform();
+  if (platform === 'win32') {
+    const normalized = targetPath.replace(/\//g, '\\');
+    execSync(`cmd /c start "" "${normalized}"`, { stdio: 'ignore', windowsHide: true });
+  } else if (platform === 'darwin') {
+    execSync(`open "${targetPath}"`, { stdio: 'ignore' });
+  } else if (platform === 'linux') {
+    execSync(`xdg-open "${targetPath}"`, { stdio: 'ignore' });
+  } else {
+    console.error(`Unsupported platform: ${platform}`);
+    process.exit(1);
+  }
 }
 
 function main() {
