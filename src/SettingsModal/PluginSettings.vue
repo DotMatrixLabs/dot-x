@@ -28,7 +28,7 @@
 <script>
 import PluginHeader from './PluginHeader.vue';
 import pluginAPI from '../plugin-api/pluginAPI';
-import { resolveComponent as resolveUi, componentRegistry } from '../uikit/registry';
+import { resolveComponent as resolveUi, componentRegistry } from '../components/fields/registry';
 
     export default {
         name: "PluginSettings",
@@ -60,8 +60,12 @@ import { resolveComponent as resolveUi, componentRegistry } from '../uikit/regis
               this.settings.sections.forEach(section => {
                 if (Array.isArray(section.components)) {
                   section.components.forEach(comp => {
-                    if (comp && comp.key && comp.type === 'text') {
-                      map[comp.key] = comp.default ?? '';
+                    if (comp && comp.key) {
+                      // Initialize known value-carrying types
+                      const valueTypes = ['text', 'number', 'select', 'number_select', 'toggle', 'password', 'password_pin'];
+                      if (valueTypes.includes(comp.type)) {
+                        map[comp.key] = comp.default ?? '';
+                      }
                     }
                   });
                 }
@@ -76,31 +80,58 @@ import { resolveComponent as resolveUi, componentRegistry } from '../uikit/regis
 
           buildComponentProps(comp) {
             const common = {};
-            if (comp.type === 'text') {
+            if (comp.type === 'text' || comp.type === 'number') {
               return {
                 ...common,
-                modelValue: this.formValues[comp.key],
+                value: this.formValues[comp.key],
                 label: comp.label,
                 description: comp.description,
                 placeholder: comp.placeholder,
+              };
+            }
+            if (comp.type === 'select') {
+              return {
+                ...common,
+                value: this.formValues[comp.key],
+                label: comp.label,
+                options: comp.options || [],
+              };
+            }
+            if (comp.type === 'number_select') {
+              return {
+                ...common,
+                label: comp.label,
+                value: this.formValues[comp.key],
+                max: comp.max,
+                min: comp.min,
+                step: comp.step,
+                unit: comp.unit,
+              };
+            }
+            if (comp.type === 'toggle') {
+              return {
+                ...common,
+                label: comp.label,
+                value: !!this.formValues[comp.key],
               };
             }
             if (comp.type === 'button') {
               return {
                 ...common,
                 label: comp.label || 'Action',
+                buttonTitle: comp.label || 'Action',
+                buttonType: comp.style || 'primary',
+                valueToSend: comp.valueToSend,
               };
             }
             return common;
           },
 
           buildComponentListeners(comp) {
-            if (comp.type === 'text') {
+            if (comp.type === 'text' || comp.type === 'number') {
               return {
-                'update:modelValue': (val) => {
+                apply: async (val) => {
                   this.formValues[comp.key] = val;
-                },
-                change: async () => {
                   try {
                     if (comp.onChangeActionId) {
                       await pluginAPI.emitSettingsAction(comp.onChangeActionId);
@@ -111,12 +142,25 @@ import { resolveComponent as resolveUi, componentRegistry } from '../uikit/regis
                 },
               };
             }
+            if (comp.type === 'select' || comp.type === 'number_select') {
+              return {
+                apply: (val) => {
+                  this.formValues[comp.key] = val;
+                },
+              };
+            }
+            if (comp.type === 'toggle') {
+              return {
+                apply: (val) => {
+                  this.formValues[comp.key] = !!val;
+                },
+              };
+            }
             if (comp.type === 'button') {
               return {
-                click: async () => {
+                apply: async () => {
                   try {
                     if (comp.actionId) {
-                      console.log('Emitting button action:', comp.actionId);
                       await pluginAPI.emitSettingsAction(comp.actionId);
                     }
                   } catch (e) {
