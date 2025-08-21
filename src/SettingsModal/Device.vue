@@ -49,6 +49,17 @@
                     <input @change="brightnessChanged" v-model="brightness" type="range" class="bg-gray-700 rounded-xl px-0.5 mr-2" />
                 </div>
             </div>
+
+            <!-- Suspend LED Dimming Toggle -->
+            <div class="flex flex-col w-full mt-4">
+                <div class="flex justify-between items-center w-full">
+                    <div class="flex flex-col">
+                        <span class="shrink-0 font-medium">Dim LEDs on Sleep</span>
+                        <span class="text-sm text-gray-500">Automatically dim LEDs when computer sleeps</span>
+                    </div>
+                    <input @change="suspendDimToggled" type="checkbox" class="toggle toggle-primary" :checked="suspendDimEnabled"/>
+                </div>
+            </div>
             <div class="flex flex-col w-full items-center mt-3">
                 <span class="shrink-0 pt-1 font-bold">Device Info: </span>
                 <div class="divider mt-0"></div>
@@ -112,6 +123,7 @@ export default {
             breathingEnabled: false,
             selectedColor: "#f0f0f0",
             brightness: 100,
+            suspendDimEnabled: true,
             deviceNames: {
                 'VM-5SW': "Decker",
             },
@@ -235,7 +247,7 @@ export default {
 
             if (currentTime - this.lastExecutionTime >= 100) {
                 this.selectedColor = event.target.value;
-                
+
                 this.lastExecutionTime = currentTime;
 
                 RGBController.setEffect('static', 0, brightness, this.selectedColor);
@@ -243,6 +255,12 @@ export default {
                 ConfigStore.set("RGBColor", this.selectedColor);
                 ConfigStore.save();
             }
+        },
+
+        suspendDimToggled(event) {
+            this.suspendDimEnabled = event.target.checked;
+            ConfigStore.set("suspendDimEnabled", this.suspendDimEnabled);
+            ConfigStore.save();
         },
 
 
@@ -307,6 +325,7 @@ export default {
         this.currentRGBEffect = await ConfigStore.get("RGBEffect") ?? "Static";
         this.breathingEnabled = await ConfigStore.get("RGBBreathing") ?? false;
         this.brightness = await ConfigStore.get("RGBBrightness") ?? 100;
+        this.suspendDimEnabled = await ConfigStore.get("suspendDimEnabled") ?? true;
 
         this.comPortInterval = setInterval(() => {
             if(this.connectionState && !this.modalOpen) return;
