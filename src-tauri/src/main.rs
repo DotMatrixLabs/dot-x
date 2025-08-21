@@ -14,12 +14,12 @@ use std::collections::HashMap;
 use std::fmt;
 mod decker;
 mod midi;
+mod power_monitor;
 use tauri::{CustomMenuItem, SystemTrayMenu, SystemTrayMenuItem, SystemTray, SystemTrayEvent};
 use tauri::api::notification::Notification;
 use window_vibrancy::{apply_blur, apply_mica};
 use window_shadows::set_shadow;
 use once_cell::sync::OnceCell;
-use psp::monitor::PowerMonitor;
 
 use active_win_pos_rs::get_active_window;
 use tauri_plugin_aptabase::EventTracker;
@@ -29,10 +29,9 @@ use sentry_tauri::sentry::{self, ClientInitGuard};
 use chrono::Local;
 use brightness::{Brightness, BrightnessDevice};
 use futures::{TryStreamExt};
-use std::sync::atomic::{AtomicU64, Ordering};
+
 
 static APP: OnceCell<tauri::AppHandle> = OnceCell::new();
-static COMPUTER_SLEEPING_GEN: AtomicU64 = AtomicU64::new(0);
 
 // create the error type that represents all errors possible in our program
 #[derive(Debug, thiserror::Error)]
@@ -371,6 +370,8 @@ fn disconnect_decker() -> Result<(), Error> {
 }
 
 
+
+
 fn build_menu() -> SystemTrayMenu {
   let menuitem_quit = CustomMenuItem::new("quit".to_string(), "Quit");
   let menuitem_show = CustomMenuItem::new("show".to_string(), "Show");
@@ -426,20 +427,7 @@ fn setup_panic_handler(client: ClientInitGuard) {
     }));
 }
 
-fn schedule_sleep_flag_auto_reset(timeout_ms: u64) {
-    let generation = COMPUTER_SLEEPING_GEN.fetch_add(1, Ordering::SeqCst) + 1;
-    std::thread::spawn(move || {
-        std::thread::sleep(std::time::Duration::from_millis(timeout_ms));
-        if COMPUTER_SLEEPING_GEN.load(Ordering::SeqCst) == generation {
-            unsafe {
-                if crate::decker::COMPUTER_SLEEPING {
-                    crate::decker::COMPUTER_SLEEPING = false;
-                    log::warn!("psp: Auto-reset COMPUTER_SLEEPING after {} ms", timeout_ms);
-                }
-            }
-        }
-    });
-}
+
 
 fn main() {
     let tray_menu = build_menu();
@@ -531,45 +519,7 @@ fn main() {
         })
         .setup(|app| {
           {
-            let mut pm = Box::new(PowerMonitor::new());
-            let rx = pm.event_receiver();
-            if let Err(e) = pm.start_listening() {
-              log::error!("psp: failed to start listener: {e}");
-            } else {
-              // Keep monitor alive for the lifetime of the app
-              let _leak = Box::leak(pm);
-              std::thread::spawn(move || {
-                loop {
-                  match rx.recv() {
-                    Ok(event) => {
-                      let ev = format!("{:?}", event);
-                      if ev.contains("Suspend") {
-                        log::warn!("psp: Suspend detected; dimming LEDs and disconnecting devices");
-                        unsafe { crate::decker::COMPUTER_SLEEPING = true; }
-                        schedule_sleep_flag_auto_reset(5000);
-                        crate::decker::set_device_brightness(0);
-                        crate::decker::disconnect_decker();
-                      } else if ev.contains("Resume") {
-                        log::warn!("psp: Resume detected");
-                        unsafe { crate::decker::COMPUTER_SLEEPING = false; }
-                      } else if ev.contains("ScreenLocked") {
-                        log::warn!("psp: Screen locked; dimming LEDs and disconnecting devices");
-                        // unsafe { crate::decker::COMPUTER_SLEEPING = true; }
-                        // schedule_sleep_flag_auto_reset(5000);
-                        // crate::decker::set_device_brightness(0);
-                        // crate::decker::disconnect_decker();
-                      } else if ev.contains("ScreenUnlocked") {
-                        unsafe { crate::decker::COMPUTER_SLEEPING = false; }
-                        log::warn!("psp: Screen unlocked");
-                      } else {
-                        log::warn!("psp: event: {}", ev);
-                      }
-                    }
-                    Err(_) => break,
-                  }
-                }
-              });
-            }
+            power_monitor::setup_power_monitoring();
           }
           start_aptabase_heartbeat(app.handle().clone());
           let mut props_map = HashMap::new();
@@ -621,5 +571,19 @@ fn main() {
 
 fn get_app_handle() -> &'static AppHandle {
   APP.get().expect("AppHandle not initialized")
+}
+
+fn get_suspend_dim_enabled() -> bool {
+  let app_handle = get_app_handle();
+  let store = app_handle.store("config.json");
+
+  match store.get("suspendDimEnabled") {
+    Some(value) => {
+      // The value from the store is a serde_json::Value
+      // We need to convert it to a boolean
+      value.as_bool().unwrap_or(true) // Default to true if not a boolean
+    },
+    None => true, // Default to true if not found
+  }
 }
 
