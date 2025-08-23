@@ -134,7 +134,7 @@ import { resolveComponent as resolveUi, componentRegistry } from '../components/
                   this.formValues[comp.key] = val;
                   try {
                     if (comp.onChangeActionId) {
-                      await pluginAPI.emitSettingsAction(comp.onChangeActionId);
+                      await pluginAPI.emitAction(this.plugin.id, comp.onChangeActionId, { value: val });
                     }
                   } catch (e) {
                     console.error('Failed to emit onChange action:', e);
@@ -161,7 +161,7 @@ import { resolveComponent as resolveUi, componentRegistry } from '../components/
                 apply: async () => {
                   try {
                     if (comp.actionId) {
-                      await pluginAPI.emitSettingsAction(comp.actionId);
+                      await pluginAPI.emitAction(this.plugin.id, comp.actionId);
                     }
                   } catch (e) {
                     console.error('Failed to emit button action:', e);

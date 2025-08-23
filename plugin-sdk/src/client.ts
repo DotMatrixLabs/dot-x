@@ -77,13 +77,15 @@ export class APIClient {
         // Attach core listeners as early as possible to avoid races where
         // the app emits events immediately after registration.
         // These listeners are idempotent per-socket instance.
-        this.socket.on('settings.action', (data: { actionId: string; value?: any }) => {
-          const cb = this.actionCallbacks.get(data.actionId);
+        this.socket.on('plugin.action', (data: { action: string; params?: any }) => {
+          console.log('Received action!', data);
+          const cb = this.actionCallbacks.get(data.action);
           if (cb) {
+            console.log('Received action', data.action, data.params);
             try {
-              cb(data.value);
+              cb(data.params);
             } catch (err) {
-              console.error('Error executing settings action callback:', err);
+              console.error('Error executing action callback:', err);
             }
           }
         });
