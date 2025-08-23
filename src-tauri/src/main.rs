@@ -7,6 +7,7 @@ use serde_json::{json, Value};
 use tauri::AppHandle;
 use tauri::api::shell;
 use std::fs;
+use std::fs::File;
 use std::path::PathBuf;
 use tauri::{ Manager, Window };
 use windows_volume_control::AudioController;
@@ -18,6 +19,7 @@ use std::fmt;
 mod decker;
 mod midi;
 mod plugin_server;
+mod plugin_runtime;
 use tauri::{CustomMenuItem, SystemTrayMenu, SystemTrayMenuItem, SystemTray, SystemTrayEvent};
 use tauri::api::notification::Notification;
 use window_vibrancy::{apply_blur, apply_mica};
@@ -509,6 +511,70 @@ fn setup_panic_handler(client: ClientInitGuard) {
     }));
 }
 
+fn find_executable_recursive(base: &std::path::Path, name: &str) -> Option<std::path::PathBuf> {
+  if let Ok(mut entries) = fs::read_dir(base) {
+    while let Some(Ok(entry)) = entries.next() {
+      let p = entry.path();
+      if p.is_dir() {
+        if let Some(found) = find_executable_recursive(&p, name) { return Some(found); }
+      } else if let Some(fname) = p.file_name() {
+        if fname.eq_ignore_ascii_case(name) { return Some(p); }
+      }
+    }
+  }
+  None
+}
+
+fn ensure_deno_extracted(app: &tauri::AppHandle) -> Result<std::path::PathBuf, String> {
+  let data_dir = app.path_resolver().app_data_dir().ok_or_else(|| "App data dir not available".to_string())?;
+  let deno_dir = data_dir.join("deno");
+  let exe_name = if cfg!(target_os = "windows") { "deno.exe" } else { "deno" };
+  let deno_exe_default = deno_dir.join(exe_name);
+  if deno_exe_default.exists() {
+    return Ok(deno_exe_default);
+  }
+
+  if let Some(found) = find_executable_recursive(&deno_dir, exe_name) { return Ok(found); }
+
+  fs::create_dir_all(&deno_dir).map_err(|e| format!("Failed to create deno dir: {}", e))?;
+
+  #[cfg(target_os = "windows")]
+  let archive_rel = "resources/deno/deno-x86_64-pc-windows-msvc.zip";
+  #[cfg(not(target_os = "windows"))]
+  let archive_rel = "resources/deno/unsupported-platform"; // placeholder
+
+  let archive_path = app
+    .path_resolver()
+    .resolve_resource(archive_rel)
+    .ok_or_else(|| format!("Bundled Deno archive not found at {}", archive_rel))?;
+
+  if cfg!(target_os = "windows") {
+    let file = File::open(&archive_path).map_err(|e| format!("Failed to open Deno zip: {}", e))?;
+    let mut zip = zip::ZipArchive::new(file).map_err(|e| format!("Failed to read Deno zip: {}", e))?;
+    for i in 0..zip.len() {
+      let mut zipped_file = zip.by_index(i).map_err(|e| format!("Zip entry error: {}", e))?;
+      let entry_path = match zipped_file.enclosed_name() { Some(p) => p.to_owned(), None => continue };
+      let out_path = deno_dir.join(entry_path);
+      if zipped_file.is_dir() {
+        fs::create_dir_all(&out_path).map_err(|e| format!("Create dir failed: {}", e))?;
+      } else {
+        if let Some(parent) = out_path.parent() { fs::create_dir_all(parent).map_err(|e| format!("Create dir failed: {}", e))?; }
+        let mut outfile = File::create(&out_path).map_err(|e| format!("Create file failed: {}", e))?;
+        std::io::copy(&mut zipped_file, &mut outfile).map_err(|e| format!("Write file failed: {}", e))?;
+      }
+    }
+  } else {
+    return Err("Bundled Deno not available for this platform".to_string());
+  }
+
+  if deno_exe_default.exists() {
+    return Ok(deno_exe_default);
+  }
+  if let Some(found) = find_executable_recursive(&deno_dir, exe_name) { return Ok(found); }
+
+  Err("Deno executable not found after extraction".to_string())
+}
+
 fn main() {
     let tray_menu = build_menu();
 
@@ -550,6 +616,10 @@ fn main() {
             plugin_server::send_to_plugin_with_ack,
             plugin_server::get_connected_plugins,
             plugin_server::send_api_response,
+            plugin_runtime::start_plugin,
+            plugin_runtime::stop_plugin,
+            plugin_runtime::restart_plugin,
+            plugin_runtime::start_enabled_plugins,
             list_installed_plugins,
             get_plugins_folder,
             open_plugins_folder
@@ -663,8 +733,20 @@ fn main() {
 
         info!("Starting Dot X with version {:?}", sentry_tauri::sentry::release_name!());
 
-      
+        
+        match ensure_deno_extracted(&app.handle()) {
+          Ok(p) => {
+            std::env::set_var("DOTX_DENO_PATH", p.to_string_lossy().to_string());
+            info!("Deno ready at {}", p.display());
+          },
+          Err(e) => {
+            error!("Deno bootstrap failed: {}", e);
+          }
+        }
+
         APP.set(app.handle()).expect("error setting up app");
+          // Auto-start enabled plugins after app handle is available
+          plugin_runtime::auto_start_enabled_plugins(app.handle().clone());
           Ok(())
         })
         .run(tauri::generate_context!())
