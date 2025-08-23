@@ -11,13 +11,14 @@ import { useStore } from '../store/store';
 export class PluginAPI {
   private static instance: PluginAPI | null = null;
   private isInitialized = false;
-  // --- SETTINGS helpers ---
-  async emitSettingsAction(actionId: string) {
+  // --- ACTION helpers ---
+  async emitAction(plugin_id: string, action: string, params: any = {}) {
+    console.log('Emitting action', action, params);
     try {
-      await emit('plugin/settings_action', { actionId });
-      console.log('Emitted settings_action', actionId);
+      await invoke('send_to_plugin', { pluginId: plugin_id, event: 'plugin.action', data: { action, params } });
+      console.log('Emitted action', action);
     } catch (err) {
-      console.error('Failed to emit settings_action', err);
+      console.error('Failed to emit action', err);
     }
   }
   private serverPort = 3001;
