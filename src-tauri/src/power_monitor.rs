@@ -10,8 +10,8 @@ pub fn schedule_sleep_flag_auto_reset(timeout_ms: u64) {
         std::thread::sleep(std::time::Duration::from_millis(timeout_ms));
         if COMPUTER_SLEEPING_GEN.load(Ordering::SeqCst) == generation {
             unsafe {
-                if crate::decker::COMPUTER_SLEEPING {
-                    crate::decker::COMPUTER_SLEEPING = false;
+                if crate::decker::COMPUTER_SLEEPING.load(Ordering::SeqCst) {
+                    crate::decker::COMPUTER_SLEEPING.store(false, Ordering::SeqCst);
                     log::info!("psp: Auto-reset COMPUTER_SLEEPING after {} ms", timeout_ms);
                 }
             }
