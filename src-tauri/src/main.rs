@@ -6,6 +6,7 @@ use log::{info, trace, error};
 use serde_json::{json, Value};
 use tauri::AppHandle;
 use tauri::{ Manager, Window };
+use tauri_plugin_store::StoreBuilder;
 use windows_volume_control::AudioController;
 use windows_volume_control::CoinitMode;
 use tauri_plugin_autostart::MacosLauncher;
@@ -575,15 +576,15 @@ fn get_app_handle() -> &'static AppHandle {
 
 fn get_suspend_dim_enabled() -> bool {
   let app_handle = get_app_handle();
-  let store = app_handle.store("config.json");
+  let store = StoreBuilder::new(app_handle.clone(), "config.json".parse().unwrap()).build();
 
   match store.get("suspendDimEnabled") {
     Some(value) => {
       // The value from the store is a serde_json::Value
       // We need to convert it to a boolean
-      value.as_bool().unwrap_or(true) // Default to true if not a boolean
+      value.as_bool().unwrap_or(false) // Default to false if not a boolean
     },
-    None => true, // Default to true if not found
+    None => false, // Default to false if not found
   }
 }
 
