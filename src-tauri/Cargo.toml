@@ -1,6 +1,6 @@
 [package]
 name = "dot_x"
-version = "1.2.3-2"
+version = "1.2.2"
 description = "Dot X"
 authors = ["you"]
 license = ""
@@ -45,13 +45,6 @@ lazy_static = "1.4.0"
 chrono = "0.4"
 brightness = "0.5.0"
 futures = "0.3.31"
-windows = { version = "0.61.3", features = [
-  "Win32_Foundation",
-  "Win32_UI_WindowsAndMessaging",
-  "Win32_System_Power",
-  "Win32_System_LibraryLoader",
-  "Win32_Graphics_Gdi"
-] }
 psp = { git = "https://github.com/Frogbyte-io/psp" }
 #psp = { path = "../../psp" }
 
