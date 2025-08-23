@@ -10,8 +10,8 @@ pub fn schedule_sleep_flag_auto_reset(timeout_ms: u64) {
         std::thread::sleep(std::time::Duration::from_millis(timeout_ms));
         if COMPUTER_SLEEPING_GEN.load(Ordering::SeqCst) == generation {
             unsafe {
-                if crate::decker::COMPUTER_SLEEPING.load(Ordering::SeqCst) {
-                    crate::decker::COMPUTER_SLEEPING.store(false, Ordering::SeqCst);
+                if crate::decker::COMPUTER_SLEEPING {
+                    crate::decker::COMPUTER_SLEEPING = false;
                     log::info!("psp: Auto-reset COMPUTER_SLEEPING after {} ms", timeout_ms);
                 }
             }
@@ -49,11 +49,11 @@ pub fn setup_power_monitoring() {
                             crate::decker::disconnect_decker();
                         } else if ev.contains("Resume") {
                             log::info!("psp: Resume detected");
-                            crate::decker::COMPUTER_SLEEPING.store(false, AtomicOrdering::SeqCst);
+                            unsafe { crate::decker::COMPUTER_SLEEPING = false; }
                         } else if ev.contains("ScreenLocked") {
                             log::info!("psp: Screen locked");
                         } else if ev.contains("ScreenUnlocked") {
-                            crate::decker::COMPUTER_SLEEPING.store(false, AtomicOrdering::SeqCst);
+                            unsafe { crate::decker::COMPUTER_SLEEPING = false; }
                             log::info!("psp: Screen unlocked");
                         } else {
                             log::info!("psp: event: {}", ev);
