@@ -30,8 +30,14 @@ export default class Plugin {
 
   // Convenience: build and register settings in one go
   async createSettingsPage(buildFn: (builder: SettingsBuilder) => void): Promise<void> {
-    // Build once, persist schema for get_plugin_settings, and create settings in host
-    const builder = new SettingsBuilder();
+    // Build once, persist schema for get_plugin_settings
+    const builder = new SettingsBuilder(() => {
+      // On any mutation from field handles, push the latest schema
+      const updated = builder.build();
+      this.client.setSectionedSchema(updated);
+      // Notify host to refresh UI
+      this.client.notifySettingsUpdated();
+    });
     buildFn(builder);
     const sectioned = builder.build();
     this.client.setSectionedSchema(sectioned);

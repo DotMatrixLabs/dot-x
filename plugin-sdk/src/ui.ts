@@ -13,6 +13,11 @@ export type UISection = { title: string; components: SettingsComponent[] };
 export class SettingsBuilder {
   private currentSection: string | undefined;
   private sections: UISection[] = [];
+  private onMutate?: () => void;
+
+  constructor(onMutate?: () => void) {
+    this.onMutate = onMutate;
+  }
 
   /**
    * Starts a new logical section. Subsequent fields will be assigned this section.
@@ -45,7 +50,7 @@ export class SettingsBuilder {
     const section = this.ensureCurrentSection();
     const component: SettingsComponent = { key, ...(field as any) };
     section.components.push(component);
-    return new TextFieldHandle(component);
+    return new TextFieldHandle(component, this.onMutate);
   }
 
   /**
@@ -61,7 +66,7 @@ export class SettingsBuilder {
     const section = this.ensureCurrentSection();
     const component: SettingsComponent = { key, ...(field as any) };
     section.components.push(component);
-    return new ButtonFieldHandle(component);
+    return new ButtonFieldHandle(component, this.onMutate);
   }
 
   /**
@@ -91,105 +96,126 @@ export class SettingsBuilder {
 }
 
 class TextFieldHandle {
-  constructor(private component: SettingsComponent) {}
+  constructor(private component: SettingsComponent, private notifyChange?: () => void) {}
 
   setPlaceholder(placeholder: string): this {
     (this.component as any).placeholder = placeholder;
+    this.notifyChange?.();
     return this;
     
   }
 
   setValue(value: any): this {
     (this.component as any).default = value;
+    this.notifyChange?.();
     return this;
   }
 
   onChange(callback: (value: any) => void): this {
     (this.component as any).onChange = callback;
+    this.notifyChange?.();
     return this;
   }
 
   setDesc(description: string): this {
     (this.component as any).description = description;
+    this.notifyChange?.();
     return this;
   }
 
   setName(name: string): this {
     (this.component as any).label = name;
+    this.notifyChange?.();
     return this;
   }
 
   setLabel(label: string): this {
     (this.component as any).label = label;
+    this.notifyChange?.();
     return this;
   }
 
   setRequired(required: boolean): this {
     (this.component as any).required = required;
+    this.notifyChange?.();
     return this;
   }
 
   setHelp(help: string): this {
     (this.component as any).help = help;
+    this.notifyChange?.();
     return this;
   }
 
   setType(type: TextField['type']): this {
     (this.component as any).type = type;
+    this.notifyChange?.();
     return this;
   }
 
   assign(props: Partial<TextField>): this {
     Object.assign(this.component as any, props);
+    this.notifyChange?.();
     return this;
   }
 }
 
 class ButtonFieldHandle {
-  constructor(private component: SettingsComponent) {}
+  constructor(private component: SettingsComponent, private notifyChange?: () => void) {}
 
   setTitle(title: string): this {
+    (this.component as any).title = title;
+    // Ensure frontend-visible label is updated as well
     (this.component as any).label = title;
+    this.notifyChange?.();
     return this;
   }
 
   setLabel(label: string): this {
     (this.component as any).label = label;
+    this.notifyChange?.();
     return this;
   }
 
   setText(text: string): this {
     (this.component as any).text = text;
+    this.notifyChange?.();
     return this;
   }
 
   setStyle(style: ButtonField['style']): this {
     (this.component as any).style = style;
+    this.notifyChange?.();
     return this;
   }
 
   setOnClick(onClick: () => void): this {
     (this.component as any).onClick = onClick;
+    this.notifyChange?.();
     return this;
   }
 
   setDesc(description: string): this {
     (this.component as any).description = description;
+    this.notifyChange?.();
     return this;
   }
 
   setHelp(help: string): this {
     (this.component as any).help = help;
+    this.notifyChange?.();
     return this;
   }
 
   setRequired(required: boolean): this {
     (this.component as any).required = required;
+    this.notifyChange?.();
     return this;
   }
 
   assign(props: Partial<ButtonField>): this {
     Object.assign(this.component as any, props);
+    this.notifyChange?.();
     return this;
   }
 }

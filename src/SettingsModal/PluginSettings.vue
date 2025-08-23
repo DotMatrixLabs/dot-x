@@ -29,6 +29,7 @@
 import PluginHeader from './PluginHeader.vue';
 import pluginAPI from '../plugin-api/pluginAPI';
 import { resolveComponent as resolveUi, componentRegistry } from '../components/fields/registry';
+import EventBus from '../js/eventBus';
 
     export default {
         name: "PluginSettings",
@@ -179,6 +180,17 @@ import { resolveComponent as resolveUi, componentRegistry } from '../components/
         },
         mounted() {
             this.loadSettings();
+            // Refresh this plugin's settings when settings change events are emitted
+            this._settingsUpdatedHandler = ({ pluginId }) => {
+              if (!this.plugin || (pluginId && pluginId !== this.plugin.id)) return;
+              this.loadSettings();
+            };
+            EventBus.on('plugin:settingsUpdated', this._settingsUpdatedHandler);
+        },
+        beforeUnmount() {
+            if (this._settingsUpdatedHandler) {
+              EventBus.off('plugin:settingsUpdated', this._settingsUpdatedHandler);
+            }
         }
     }
 </script>
