@@ -128,10 +128,13 @@ impl PluginServer {
                 socket.on("api_request", {
                     let app_handle = app_handle.clone();
                     let pending_requests = Arc::clone(&pending_requests);
+                    let connections = Arc::clone(&connections);
                     
                     move |_socket: SocketRef, Data::<ApiRequest>(api_request), ack: AckSender| {
                         let app_handle = app_handle.clone();
                         let pending_requests = Arc::clone(&pending_requests);
+                        let connections = Arc::clone(&connections);
+                        let socket_id = _socket.id.to_string();
                         
                         tokio::spawn(async move {
                             debug!("Received API request: {} from plugin", api_request.method);
@@ -140,11 +143,20 @@ impl PluginServer {
                             let (tx, mut rx) = mpsc::unbounded_channel();
                             pending_requests.write().await.insert(api_request.request_id.clone(), tx);
                             
+                            // Resolve plugin_id by socket_id
+                            let plugin_id = {
+                                let connections_lock = connections.read().await;
+                                connections_lock.iter()
+                                    .find(|(_, conn)| conn.socket_id == socket_id)
+                                    .map(|(id, _)| id.clone())
+                            };
+
                             // Forward to frontend via tauri invoke
                             let frontend_message = serde_json::json!({
                                 "request_id": api_request.request_id,
                                 "method": api_request.method,
-                                "params": api_request.params
+                                "params": api_request.params,
+                                "plugin_id": plugin_id
                             });
                             
                             if let Err(e) = app_handle.emit_all("plugin/api_request", &frontend_message) {

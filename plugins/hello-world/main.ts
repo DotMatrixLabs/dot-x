@@ -16,9 +16,9 @@ export default class HelloWorldPlugin extends Plugin {
           .setPlaceholder('Enter greeting')
           .setValue('Hello DotX!')
           .setDesc('This greeting is used by the plugin when needed.')
-          .onChange((value) => {
-            console.log('Greeting changed:', value);
-            demoButton.setTitle('Log Message: ' + value);
+          .onChange((data) => {
+            console.log('Greeting changed:', data.value);
+            demoButton.setTitle(data.value);
           });
 
         const demoButton = s.addButton('demoButton')
@@ -34,10 +34,10 @@ export default class HelloWorldPlugin extends Plugin {
           .setLabel('Debug Flag')
           .setPlaceholder('true/false')
           .setValue('false')
-          .onChange((value) => {
-            console.log('Debug flag changed:', value);
+          .onChange((data) => {
+            console.log('Debug flag changed:', data.value);
             this.ui.showToast({
-              message: 'Debug flag changed to: ' + value,
+              message: 'Debug flag changed to: ' + data.value,
               type: 'info',
             });
           });

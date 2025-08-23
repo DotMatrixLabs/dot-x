@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/tauri';
-import { emit, listen } from '@tauri-apps/api/event';
+import { listen } from '@tauri-apps/api/event';
 import type { 
   ApiRequest, 
   ApiResponse
@@ -63,7 +63,7 @@ export class PluginAPI {
   setupTauriEventListeners() {
     listen('plugin/api_request', (event) => {
       console.log('Received API request:', event.payload);
-      this.handleApiRequest(event.payload as ApiRequest);
+      this.handleApiRequest(event.payload as ApiRequest & { plugin_id?: string });
     });
     listen('plugin/api_response', (event) => {
       console.log('Received API response:', event.payload);
