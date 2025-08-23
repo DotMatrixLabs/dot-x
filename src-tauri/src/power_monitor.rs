@@ -49,11 +49,11 @@ pub fn setup_power_monitoring() {
                             crate::decker::disconnect_decker();
                         } else if ev.contains("Resume") {
                             log::info!("psp: Resume detected");
-                            unsafe { crate::decker::COMPUTER_SLEEPING = false; }
+                            crate::decker::COMPUTER_SLEEPING.store(false, AtomicOrdering::SeqCst);
                         } else if ev.contains("ScreenLocked") {
                             log::info!("psp: Screen locked");
                         } else if ev.contains("ScreenUnlocked") {
-                            unsafe { crate::decker::COMPUTER_SLEEPING = false; }
+                            crate::decker::COMPUTER_SLEEPING.store(false, AtomicOrdering::SeqCst);
                             log::info!("psp: Screen unlocked");
                         } else {
                             log::info!("psp: event: {}", ev);
