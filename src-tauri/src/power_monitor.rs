@@ -12,7 +12,7 @@ pub fn schedule_sleep_flag_auto_reset(timeout_ms: u64) {
             unsafe {
                 if crate::decker::COMPUTER_SLEEPING {
                     crate::decker::COMPUTER_SLEEPING = false;
-                    log::warn!("psp: Auto-reset COMPUTER_SLEEPING after {} ms", timeout_ms);
+                    log::info!("psp: Auto-reset COMPUTER_SLEEPING after {} ms", timeout_ms);
                 }
             }
         }
