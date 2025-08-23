@@ -37,7 +37,8 @@
       "longDescription": "Desktop app for DotMatrixLabs products",
       "resources": [
         "licenses/*",
-        "../plugins/**"
+        "../plugins/**",
+        "resources/deno/*"
       ],
       "windows": {
         "certificateThumbprint": "6d5ed22f2dbd07b9e2a1a31003f5635310492f41",
