@@ -369,7 +369,6 @@ pub fn disconnect_decker() {
     }
 }
 
-// Convenience helper to set device brightness via the command channel
 pub fn set_device_brightness(brightness: i32) {
     let opts = Options {
         effect: None,
