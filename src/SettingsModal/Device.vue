@@ -123,7 +123,7 @@ export default {
             breathingEnabled: false,
             selectedColor: "#f0f0f0",
             brightness: 100,
-            suspendDimEnabled: true,
+            suspendDimEnabled: false,
             deviceNames: {
                 'VM-5SW': "Decker",
             },
@@ -325,7 +325,7 @@ export default {
         this.currentRGBEffect = await ConfigStore.get("RGBEffect") ?? "Static";
         this.breathingEnabled = await ConfigStore.get("RGBBreathing") ?? false;
         this.brightness = await ConfigStore.get("RGBBrightness") ?? 100;
-        this.suspendDimEnabled = await ConfigStore.get("suspendDimEnabled") ?? true;
+        this.suspendDimEnabled = await ConfigStore.get("suspendDimEnabled") ?? false;
 
         this.comPortInterval = setInterval(() => {
             if(this.connectionState && !this.modalOpen) return;
