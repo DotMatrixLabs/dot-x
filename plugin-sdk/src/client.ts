@@ -289,6 +289,16 @@ export class APIClient {
     };
   }
   
+  // Notify the host application that the settings schema has changed
+  public async notifySettingsUpdated(): Promise<void> {
+    if (!this.isConnected()) return;
+    try {
+      await this.call('ui.updated', {});
+    } catch (err) {
+      console.warn('Failed to notify settings updated:', err);
+    }
+  }
+
   // Public utility to prepare a schema by replacing callbacks with actionIds
   // and registering the callbacks locally so the app can invoke them.
   public prepareSectionedSchemaWithActionIds(sectioned: SettingsSections): SettingsSections {
@@ -317,6 +327,8 @@ export class APIClient {
 
   // Store the latest sectioned schema explicitly (used by get_plugin_settings)
   public setSectionedSchema(schema: SettingsSections) {
+    // Reset callbacks to avoid leaking stale handlers across schema updates
+    this.actionCallbacks.clear();
     this.settingsSchema = this.prepareSectionedSchemaWithActionIds(schema);
   }
 
