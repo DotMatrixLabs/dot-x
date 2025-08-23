@@ -34,6 +34,11 @@
             <i class="fa-solid fa-file-lines" />
           </button>
         </div>
+        <div class="tooltip tooltip-bottom" data-tip="Restart">
+          <button class="btn btn-ghost btn-xs btn-square" @click="restartPlugin" :disabled="!plugin?.id">
+            <i class="fa-solid fa-rotate-right" />
+          </button>
+        </div>
         <div class="badge badge-sm" :class="statusClass">{{ statusLabel }}</div>
       </div>
     </div>
@@ -68,6 +73,7 @@
 import { invoke } from '@tauri-apps/api/tauri';
 import { mapState } from 'pinia';
 import { useStore } from '../store/store';
+import { useToast } from 'vue-toastification';
 
 export default {
   name: 'PluginHeader',
@@ -165,6 +171,18 @@ export default {
         this.logsText = 'No logs available.';
       }
       this.$emit('logs-opened', { id: this.plugin.id });
+    },
+    async restartPlugin() {
+      if (!this.plugin?.id) return;
+      try {
+        await invoke('restart_plugin', { pluginId: this.plugin.id });
+        const toast = useToast();
+        toast.success(`${this.plugin?.name || this.plugin?.id} restarted`);
+      } catch (e) {
+        console.error('Failed to restart plugin', e);
+        const toast = useToast();
+        toast.error(`Failed to restart ${this.plugin?.name || this.plugin?.id}`);
+      }
     },
   },
 };
