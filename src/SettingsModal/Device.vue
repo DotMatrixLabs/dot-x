@@ -50,8 +50,10 @@
                 </div>
                 <div class="flex justify-between items-center w-full mt-2">
                     <div class="flex flex-col">
-                        <span class="shrink-0 pt-1">Dim LEDs on Sleep</span>
-                        <span class="text-xs opacity-50 pr-4">Automatically dim LEDs when computer goes to sleep</span>
+                        <span class="shrink-0 pt-1">Turn off LEDs on Sleep</span>
+                        <span class="text-xs opacity-50 pr-4">
+                            Automatically switch off Decker LEDs when the computer enters sleep mode.
+                        </span>
                     </div>
                     <input @change="suspendDimToggled" type="checkbox" class="toggle toggle-primary px-0.5 mr-2" :checked="suspendDimEnabled"/>
                 </div>
