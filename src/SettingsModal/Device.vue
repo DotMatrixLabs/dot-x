@@ -48,18 +48,15 @@
                     <span class="shrink-0 pt-1">Brightness: </span>
                     <input @change="brightnessChanged" v-model="brightness" type="range" class="bg-gray-700 rounded-xl px-0.5 mr-2" />
                 </div>
-            </div>
-
-            <!-- Suspend LED Dimming Toggle -->
-            <div class="flex flex-col w-full mt-4">
-                <div class="flex justify-between items-center w-full">
+                <div class="flex justify-between items-center w-full mt-2">
                     <div class="flex flex-col">
-                        <span class="shrink-0 font-medium">Dim LEDs on Sleep</span>
-                        <span class="text-sm text-gray-500">Automatically dim LEDs when computer sleeps</span>
+                        <span class="shrink-0 pt-1">Dim LEDs on Sleep</span>
+                        <span class="text-xs opacity-50 pr-4">Automatically dim LEDs when computer goes to sleep</span>
                     </div>
-                    <input @change="suspendDimToggled" type="checkbox" class="toggle toggle-primary" :checked="suspendDimEnabled"/>
+                    <input @change="suspendDimToggled" type="checkbox" class="toggle toggle-primary px-0.5 mr-2" :checked="suspendDimEnabled"/>
                 </div>
             </div>
+
             <div class="flex flex-col w-full items-center mt-3">
                 <span class="shrink-0 pt-1 font-bold">Device Info: </span>
                 <div class="divider mt-0"></div>
