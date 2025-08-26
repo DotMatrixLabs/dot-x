@@ -14,6 +14,8 @@ export class SettingsBuilder {
   private currentSection: string | undefined;
   private sections: UISection[] = [];
   private onMutate?: () => void;
+  // Gate notifications so initial setup doesn't emit changes
+  private notificationsEnabled = false;
 
   constructor(onMutate?: () => void) {
     this.onMutate = onMutate;
@@ -50,7 +52,7 @@ export class SettingsBuilder {
     const section = this.ensureCurrentSection();
     const component: SettingsComponent = { key, ...(field as any) };
     section.components.push(component);
-    return new TextFieldHandle(component, this.onMutate);
+    return new TextFieldHandle(component, this.createNotifier());
   }
 
   /**
@@ -66,7 +68,7 @@ export class SettingsBuilder {
     const section = this.ensureCurrentSection();
     const component: SettingsComponent = { key, ...(field as any) };
     section.components.push(component);
-    return new ButtonFieldHandle(component, this.onMutate);
+    return new ButtonFieldHandle(component, this.createNotifier());
   }
 
   /**
@@ -92,6 +94,25 @@ export class SettingsBuilder {
       return fallback;
     }
     return section;
+  }
+
+  /**
+   * Turns on mutation notifications for subsequently updated handles.
+   * Call this after the initial schema has been built and set.
+   */
+  enableNotifications(): void {
+    this.notificationsEnabled = true;
+  }
+
+  /**
+   * Provides a notifier that only forwards when notifications are enabled.
+   */
+  private createNotifier(): () => void {
+    return () => {
+      if (this.notificationsEnabled) {
+        this.onMutate?.();
+      }
+    };
   }
 }
 
