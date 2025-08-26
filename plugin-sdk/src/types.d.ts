@@ -11,3 +11,17 @@ export interface APIResponse<T = any> {
     details?: any;
   };
 }
+
+declare module './generated/types' {
+  interface PluginAPI {
+    config: {
+      set: (key: string | Record<string, any>, value?: any) => void;
+      get: <T = any>(key: string, defaultValue?: T) => T | undefined;
+      delete: (key: string) => void;
+      clear: () => void;
+      has: (key: string) => boolean;
+      all: () => Record<string, any>;
+      path: () => string;
+    };
+  }
+}

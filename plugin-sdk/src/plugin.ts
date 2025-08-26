@@ -5,17 +5,57 @@ import { SettingsBuilder } from './ui';
 import type { SettingsSections } from './types';
 import * as fs from 'fs';
 import * as path from 'path';
+import Conf from 'conf';
 
 
-export default class Plugin {
+class Plugin {
   // public settings: PluginAPI['settings'];
   public ui: PluginAPI['ui'];
+  public config: PluginAPI['config'];
   private client: APIClient;
+  private configStore?: Conf<Record<string, any>>;
   
   constructor(pluginInfo: PluginInfo, config?: ConnectionConfig) {
     this.client = new APIClient(pluginInfo, config);
     // this.settings = this.client.settings;
     this.ui = this.client.ui as any;
+
+    // Initialize local config store in the same folder as the plugin's entry (main.js)
+    const entryDir = process.cwd();
+    const configName = `${pluginInfo.id || 'plugin'}-config`;
+    this.configStore = new Conf<Record<string, any>>({
+      cwd: entryDir,
+      configName,
+      fileExtension: 'json',
+    });
+
+    this.config = {
+      set: (keyOrObject: string | Record<string, any>, value?: any) => {
+        if (typeof keyOrObject === 'object' && keyOrObject !== null) {
+          this.configStore!.set(keyOrObject as Record<string, any>);
+          return;
+        }
+        this.configStore!.set(keyOrObject as string, value);
+      },
+      get: <T = any>(key: string, defaultValue?: T) => {
+        return this.configStore!.get(key, defaultValue as any) as T | undefined;
+      },
+      delete: (key: string) => {
+        this.configStore!.delete(key);
+      },
+      clear: () => {
+        this.configStore!.clear();
+      },
+      has: (key: string) => {
+        return this.configStore!.has(key);
+      },
+      all: () => {
+        return { ...(this.configStore as Conf<Record<string, any>>).store };
+      },
+      path: () => {
+        return (this.configStore as Conf<Record<string, any>>).path;
+      }
+    };
   }
   
   // Get the underlying client for accessing connection methods
@@ -158,3 +198,7 @@ export async function runPlugin(PluginClass: typeof Plugin, config?: ConnectionC
   process.on('SIGTERM', shutdown);
   
 }
+
+
+
+export default Plugin;
