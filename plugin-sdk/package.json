@@ -5,7 +5,8 @@
   "main": "src/index.ts",
   "types": "src/index.ts",
   "dependencies": {
-    "socket.io-client": "^4.7.4"
+    "socket.io-client": "^4.7.4",
+    "conf": "^14.0.0"
   },
   "devDependencies": {
     "@types/socket.io-client": "^3.0.0"
