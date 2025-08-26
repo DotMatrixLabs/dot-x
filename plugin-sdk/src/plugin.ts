@@ -54,6 +54,17 @@ class Plugin {
       },
       path: () => {
         return (this.configStore as Conf<Record<string, any>>).path;
+      },
+      init: (options?: { schema?: Record<string, any>; defaults?: Record<string, any> }) => {
+        const entryDirLocal = process.cwd();
+        const configNameLocal = `${pluginInfo.id || 'plugin'}-config`;
+        this.configStore = new Conf<Record<string, any>>({
+          cwd: entryDirLocal,
+          configName: configNameLocal,
+          fileExtension: 'json',
+          schema: options?.schema as any,
+          defaults: options?.defaults as any,
+        });
       }
     };
   }

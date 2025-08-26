@@ -22,6 +22,7 @@ declare module './generated/types' {
       has: (key: string) => boolean;
       all: () => Record<string, any>;
       path: () => string;
+      init: (options?: { schema?: Record<string, any>; defaults?: Record<string, any> }) => void;
     };
   }
 }
