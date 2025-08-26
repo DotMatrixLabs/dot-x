@@ -92,6 +92,8 @@ class Plugin {
     buildFn(builder);
     const sectioned = builder.build();
     this.client.setSectionedSchema(sectioned);
+    // Enable notifications for subsequent handle updates only (not initial setup)
+    builder.enableNotifications();
   }
 
   // Expose sectioned UI for get_plugin_settings or other consumers if desired
