@@ -23,8 +23,8 @@ export default class HelloWorldPlugin extends Plugin {
           .setDesc('This greeting is used by the plugin when needed.')
           .onChange((data) => {
             console.log('Greeting changed:', data.value);
-            this.settings.greeting = data.value;
-            this.saveSettings();
+            greeting.setValue(data.value);
+            this.config.set('settings.greeting', data.value);
           });
 
         const demoButton = settings.addButton('demoButton')
