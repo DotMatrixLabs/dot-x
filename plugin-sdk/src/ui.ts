@@ -71,6 +71,16 @@ export class SettingsBuilder {
     return new ButtonFieldHandle(component, this.createNotifier());
   }
 
+
+  /**
+   * Adds a switch field.
+   */
+  addSwitch(key: string): SwitchFieldHandle {
+    const field: SwitchField = {
+      type: 'switch',
+      label: '',
+    } as SwitchField;
+  }
   /**
    * Returns the constructed SettingsSchema.
    */
@@ -174,6 +184,7 @@ class TextFieldHandle {
     return this;
   }
 
+  //Assign is used to bulk assign properties to the field eg. button.assign({ label: 'Username', placeholder: 'Enter username', required: true });
   assign(props: Partial<TextField>): this {
     Object.assign(this.component as any, props);
     this.notifyChange?.();
@@ -184,6 +195,7 @@ class TextFieldHandle {
 class ButtonFieldHandle {
   constructor(private component: SettingsComponent, private notifyChange?: () => void) {}
 
+  //Title is the text that appears on the button
   setTitle(title: string): this {
     (this.component as any).title = title;
     // Ensure frontend-visible label is updated as well
@@ -192,44 +204,30 @@ class ButtonFieldHandle {
     return this;
   }
 
+  //Label is the text that appears next to the button
   setLabel(label: string): this {
     (this.component as any).label = label;
     this.notifyChange?.();
     return this;
   }
 
-  setText(text: string): this {
-    (this.component as any).text = text;
-    this.notifyChange?.();
-    return this;
-  }
-
+  //Style is the style of the button (primary, secondary, danger, outline)
   setStyle(style: ButtonField['style']): this {
     (this.component as any).style = style;
     this.notifyChange?.();
     return this;
   }
 
+  //OnClick is the function that is called when the button is clicked
   setOnClick(onClick: () => void): this {
     (this.component as any).onClick = onClick;
     this.notifyChange?.();
     return this;
   }
 
+  //Description is the description of the button, it appears below the label
   setDesc(description: string): this {
     (this.component as any).description = description;
-    this.notifyChange?.();
-    return this;
-  }
-
-  setHelp(help: string): this {
-    (this.component as any).help = help;
-    this.notifyChange?.();
-    return this;
-  }
-
-  setRequired(required: boolean): this {
-    (this.component as any).required = required;
     this.notifyChange?.();
     return this;
   }
@@ -240,6 +238,50 @@ class ButtonFieldHandle {
     return this;
   }
 }
+
+class SwitchFieldHandle {
+  constructor(private component: SettingsComponent, private notifyChange?: () => void) {}
+
+  setValue(value: boolean): this {
+    (this.component as any).default = value;
+    this.notifyChange?.();
+    return this;
+  }
+
+  onChange(callback: (value: boolean) => void): this {
+    (this.component as any).onChange = callback;
+    this.notifyChange?.();
+    return this;
+  }
+
+
+
+  setLabel(label: string): this {
+    (this.component as any).label = label;
+    this.notifyChange?.();
+    return this;
+  }
+
+  setDesc(description: string): this {
+    (this.component as any).description = description;
+    this.notifyChange?.();
+    return this;
+  }
+
+  setRequired(required: boolean): this {
+    (this.component as any).required = required;
+    this.notifyChange?.();
+    return this;
+  }
+
+  assign(props: Partial<SwitchField>): this {
+    Object.assign(this.component as any, props);
+    this.notifyChange?.();
+    return this;
+  }
+}
+
+
 
 /**
  * Convenience factory for a new SettingsBuilder
