@@ -36,10 +36,9 @@ export default class HelloWorldPlugin extends Plugin {
 
         settings.addSection('Advanced');
         
-        const debug = settings.addText('debug')
+        const debug = settings.addSwitch('debug')
           .setLabel('Debug Flag')
-          .setPlaceholder('true/false')
-          .setValue('false')
+          .setValue(this.settings?.debug || false)
           .onChange((data) => {
             console.log('Debug flag changed:', data.value);
             this.ui.showToast({
