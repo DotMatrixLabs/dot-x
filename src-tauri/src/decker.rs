@@ -10,6 +10,9 @@ use serde::ser::SerializeMap;
 use tauri::Window;
 use serialport::{available_ports, SerialPortType};
 use serde_json::Value;
+
+pub static mut COMPUTER_SLEEPING: bool = false;
+
 pub mod decker {
     use super::SliderData;
 
@@ -209,6 +212,10 @@ pub fn start_background_thread() {
 }
 
 pub fn initialize_decker(window: Window, port_name: &str, inverted: bool) -> std::result::Result<(), std::io::Error> {
+    if unsafe { COMPUTER_SLEEPING } {
+        error!("Computer is sleeping, skipping connect");
+        return Err(std::io::Error::new(std::io::ErrorKind::Other, "Computer is sleeping"));
+    }
     let baud_rate: u32 = 115_200;
 
     // Check if the connection is already open and close it if it is.
@@ -360,6 +367,16 @@ pub fn disconnect_decker() {
     } else {
         eprintln!("Sender not initialized. Make sure to initialize it before calling send_decker_command.");
     }
+}
+
+pub fn set_device_brightness(brightness: i32) {
+    let opts = Options {
+        effect: None,
+        color: None,
+        speed: None,
+        brightness: Some(brightness),
+    };
+    send_decker_command("rgb-control", Some(opts));
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]

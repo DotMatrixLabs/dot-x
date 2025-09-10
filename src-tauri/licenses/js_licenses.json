@@ -27,12 +27,28 @@
         "licenses": "MIT",
         "repository": "https://github.com/evanw/esbuild",
         "licenseUrl": "https://github.com/evanw/esbuild",
-        "parents": "dot-x"
+        "parents": "vite:dot-x"
+    },
+    "@esbuild/win32-x64@0.25.6": {
+        "licenses": "MIT",
+        "repository": "https://github.com/evanw/esbuild",
+        "licenseUrl": "https://github.com/evanw/esbuild",
+        "parents": "hello-world"
     },
     "@fortawesome/fontawesome-free@6.4.2": {
         "licenses": "(CC-BY-4.0 AND OFL-1.1 AND MIT)",
         "repository": "https://github.com/FortAwesome/Font-Awesome",
         "licenseUrl": "https://github.com/FortAwesome/Font-Awesome/raw/master/LICENSE.txt",
+        "parents": "dot-x"
+    },
+    "@isaacs/balanced-match@4.0.1": {
+        "licenses": "MIT",
+        "repository": "https://github.com/isaacs/balanced-match",
+        "licenseUrl": "https://github.com/isaacs/balanced-match/raw/master/LICENSE.md",
+        "parents": "dot-x"
+    },
+    "@isaacs/brace-expansion@5.0.0": {
+        "licenses": "MIT",
         "parents": "dot-x"
     },
     "@jridgewell/gen-mapping@0.3.3": {
@@ -185,13 +201,19 @@
         "licenseUrl": "https://github.com/sindresorhus/is/raw/master/license",
         "parents": "dot-x"
     },
+    "@socket.io/component-emitter@3.1.2": {
+        "licenses": "MIT",
+        "repository": "https://github.com/socketio/emitter",
+        "licenseUrl": "https://github.com/socketio/emitter/raw/master/LICENSE",
+        "parents": "dot-x"
+    },
     "@szmarczak/http-timer@1.1.2": {
         "licenses": "MIT",
         "repository": "https://github.com/szmarczak/http-timer",
         "licenseUrl": "https://github.com/szmarczak/http-timer/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "@tauri-apps/api@1.5.3": {
+    "@tauri-apps/api@1.6.0": {
         "licenses": "Apache-2.0 OR MIT",
         "repository": "https://github.com/tauri-apps/tauri",
         "licenseUrl": "https://github.com/tauri-apps/tauri/raw/master/LICENSE_APACHE-2.0",
@@ -205,6 +227,18 @@
         "licenses": "Apache-2.0 OR MIT",
         "repository": "https://github.com/tauri-apps/tauri",
         "licenseUrl": "https://github.com/tauri-apps/tauri/raw/master/LICENSE_APACHE-2.0",
+        "parents": "dot-x"
+    },
+    "@ts-morph/common@0.27.0": {
+        "licenses": "MIT",
+        "repository": "https://github.com/dsherret/ts-morph",
+        "licenseUrl": "https://github.com/dsherret/ts-morph/raw/master/LICENSE",
+        "parents": "dot-x"
+    },
+    "@types/cors@2.8.19": {
+        "licenses": "MIT",
+        "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+        "licenseUrl": "https://github.com/DefinitelyTyped/DefinitelyTyped/raw/master/LICENSE",
         "parents": "dot-x"
     },
     "@types/crypto-js@4.2.1": {
@@ -223,6 +257,10 @@
         "licenses": "MIT",
         "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
         "licenseUrl": "https://github.com/DefinitelyTyped/DefinitelyTyped/raw/master/LICENSE",
+        "parents": "dot-x"
+    },
+    "@types/socket.io@3.0.2": {
+        "licenses": "MIT",
         "parents": "dot-x"
     },
     "@vitejs/plugin-vue@4.4.0": {
@@ -489,6 +527,12 @@
         "licenseUrl": "https://github.com/micromatch/braces/raw/master/LICENSE",
         "parents": "dot-x"
     },
+    "braces@3.0.3": {
+        "licenses": "MIT",
+        "repository": "https://github.com/micromatch/braces",
+        "licenseUrl": "https://github.com/micromatch/braces/raw/master/LICENSE",
+        "parents": "@ts-morph/common:dot-x"
+    },
     "browserslist@4.22.1": {
         "licenses": "MIT",
         "repository": "https://github.com/browserslist/browserslist",
@@ -561,6 +605,12 @@
         "licenseUrl": "https://github.com/sindresorhus/clone-response/raw/master/LICENSE",
         "parents": "dot-x"
     },
+    "code-block-writer@13.0.3": {
+        "licenses": "MIT",
+        "repository": "https://github.com/dsherret/code-block-writer",
+        "licenseUrl": "https://github.com/dsherret/code-block-writer/raw/master/LICENSE",
+        "parents": "dot-x"
+    },
     "color-convert@1.9.3": {
         "licenses": "MIT",
         "repository": "https://github.com/Qix-/color-convert",
@@ -595,12 +645,12 @@
         "licenses": "MIT",
         "repository": "https://github.com/component/emitter",
         "licenseUrl": "https://github.com/component/emitter/raw/master/LICENSE",
-        "parents": "socket.io-parser:dot-x"
+        "parents": "@vue/devtools:dot-x"
     },
-    "component-emitter@1.3.0": {
+    "component-emitter@1.3.1": {
         "licenses": "MIT",
-        "repository": "https://github.com/component/emitter",
-        "licenseUrl": "https://github.com/component/emitter/raw/master/LICENSE",
+        "repository": "https://github.com/sindresorhus/component-emitter",
+        "licenseUrl": "https://github.com/sindresorhus/component-emitter/raw/master/LICENSE",
         "parents": "dot-x"
     },
     "component-inherit@0.0.3": {
@@ -649,7 +699,7 @@
         "licenses": "MIT",
         "repository": "https://github.com/jshttp/cookie",
         "licenseUrl": "https://github.com/jshttp/cookie/raw/master/LICENSE",
-        "parents": "engine.io:dot-x"
+        "parents": "@vue/devtools:dot-x"
     },
     "cookie@0.5.0": {
         "licenses": "MIT",
@@ -657,10 +707,22 @@
         "licenseUrl": "https://github.com/jshttp/cookie/raw/master/LICENSE",
         "parents": "dot-x"
     },
+    "cookie@0.7.2": {
+        "licenses": "MIT",
+        "repository": "https://github.com/jshttp/cookie",
+        "licenseUrl": "https://github.com/jshttp/cookie/raw/master/LICENSE",
+        "parents": "engine.io:dot-x"
+    },
     "core-util-is@1.0.3": {
         "licenses": "MIT",
         "repository": "https://github.com/isaacs/core-util-is",
         "licenseUrl": "https://github.com/isaacs/core-util-is/raw/master/LICENSE",
+        "parents": "dot-x"
+    },
+    "cors@2.8.5": {
+        "licenses": "MIT",
+        "repository": "https://github.com/expressjs/cors",
+        "licenseUrl": "https://github.com/expressjs/cors/raw/master/LICENSE",
         "parents": "dot-x"
     },
     "cross-spawn@7.0.3": {
@@ -715,7 +777,7 @@
         "licenses": "MIT",
         "repository": "https://github.com/visionmedia/debug",
         "licenseUrl": "https://github.com/visionmedia/debug/raw/master/LICENSE",
-        "parents": "socket.io-client:dot-x"
+        "parents": "engine.io-client:dot-x"
     },
     "debug@3.2.7": {
         "licenses": "MIT",
@@ -727,7 +789,7 @@
         "licenses": "MIT",
         "repository": "https://github.com/visionmedia/debug",
         "licenseUrl": "https://github.com/visionmedia/debug/raw/master/LICENSE",
-        "parents": "socket.io:dot-x"
+        "parents": "@vue/devtools:dot-x"
     },
     "debug@4.3.4": {
         "licenses": "MIT",
@@ -841,7 +903,7 @@
         "licenseUrl": "https://github.com/mafintosh/end-of-stream/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "engine.io-client@3.5.3": {
+    "engine.io-client@3.5.4": {
         "licenses": "MIT",
         "repository": "https://github.com/socketio/engine.io-client",
         "licenseUrl": "https://github.com/socketio/engine.io-client/raw/master/LICENSE",
@@ -853,10 +915,22 @@
         "licenseUrl": "https://github.com/socketio/engine.io-parser/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "engine.io@3.6.1": {
+    "engine.io-parser@5.2.3": {
+        "licenses": "MIT",
+        "repository": "https://github.com/socketio/socket.io",
+        "licenseUrl": "https://github.com/socketio/socket.io/raw/master/LICENSE",
+        "parents": "engine.io:dot-x"
+    },
+    "engine.io@3.6.2": {
         "licenses": "MIT",
         "repository": "https://github.com/socketio/engine.io",
         "licenseUrl": "https://github.com/socketio/engine.io/raw/master/LICENSE",
+        "parents": "@vue/devtools:dot-x"
+    },
+    "engine.io@6.6.4": {
+        "licenses": "MIT",
+        "repository": "https://github.com/socketio/socket.io",
+        "licenseUrl": "https://github.com/socketio/socket.io/raw/master/LICENSE",
         "parents": "dot-x"
     },
     "env-paths@2.2.1": {
@@ -875,7 +949,13 @@
         "licenses": "MIT",
         "repository": "https://github.com/evanw/esbuild",
         "licenseUrl": "https://github.com/evanw/esbuild/raw/master/LICENSE.md",
-        "parents": "dot-x"
+        "parents": "vite:dot-x"
+    },
+    "esbuild@0.25.6": {
+        "licenses": "MIT",
+        "repository": "https://github.com/evanw/esbuild",
+        "licenseUrl": "https://github.com/evanw/esbuild/raw/master/LICENSE.md",
+        "parents": "hello-world"
     },
     "escalade@3.1.1": {
         "licenses": "MIT",
@@ -931,6 +1011,12 @@
         "licenseUrl": "https://github.com/mrmlnc/fast-glob/raw/master/LICENSE",
         "parents": "dot-x"
     },
+    "fast-glob@3.3.3": {
+        "licenses": "MIT",
+        "repository": "https://github.com/mrmlnc/fast-glob",
+        "licenseUrl": "https://github.com/mrmlnc/fast-glob/raw/master/LICENSE",
+        "parents": "@ts-morph/common:dot-x"
+    },
     "fastparse@1.1.2": {
         "licenses": "MIT",
         "repository": "https://github.com/webpack/fastparse",
@@ -954,6 +1040,12 @@
         "repository": "https://github.com/jonschlinkert/fill-range",
         "licenseUrl": "https://github.com/jonschlinkert/fill-range/raw/master/LICENSE",
         "parents": "dot-x"
+    },
+    "fill-range@7.1.1": {
+        "licenses": "MIT",
+        "repository": "https://github.com/jonschlinkert/fill-range",
+        "licenseUrl": "https://github.com/jonschlinkert/fill-range/raw/master/LICENSE",
+        "parents": "@ts-morph/common:dot-x"
     },
     "finalhandler@1.2.0": {
         "licenses": "MIT",
@@ -1014,6 +1106,12 @@
         "repository": "https://github.com/sindresorhus/get-stream",
         "licenseUrl": "https://github.com/sindresorhus/get-stream/raw/master/license",
         "parents": "cacheable-request:dot-x"
+    },
+    "get-tsconfig@4.10.1": {
+        "licenses": "MIT",
+        "repository": "https://github.com/privatenumber/get-tsconfig",
+        "licenseUrl": "https://github.com/privatenumber/get-tsconfig/raw/master/LICENSE",
+        "parents": "dot-x"
     },
     "github-url-from-git@1.5.0": {
         "licenses": "MIT",
@@ -1150,6 +1248,10 @@
         "repository": "https://github.com/mathiasbynens/he",
         "licenseUrl": "https://github.com/mathiasbynens/he/raw/master/LICENSE-MIT.txt",
         "parents": "dot-x"
+    },
+    "hello-world@1.0.0": {
+        "licenses": "ISC",
+        "parents": "UNDEFINED"
     },
     "hosted-git-info@2.8.9": {
         "licenses": "ISC",
@@ -1407,6 +1509,12 @@
         "licenseUrl": "https://github.com/micromatch/micromatch/raw/master/LICENSE",
         "parents": "dot-x"
     },
+    "micromatch@4.0.8": {
+        "licenses": "MIT",
+        "repository": "https://github.com/micromatch/micromatch",
+        "licenseUrl": "https://github.com/micromatch/micromatch/raw/master/LICENSE",
+        "parents": "@ts-morph/common:dot-x"
+    },
     "mime-db@1.52.0": {
         "licenses": "MIT",
         "repository": "https://github.com/jshttp/mime-db",
@@ -1430,6 +1538,12 @@
         "repository": "https://github.com/sindresorhus/mimic-response",
         "licenseUrl": "https://github.com/sindresorhus/mimic-response/raw/master/license",
         "parents": "dot-x"
+    },
+    "minimatch@10.0.3": {
+        "licenses": "ISC",
+        "repository": "https://github.com/isaacs/minimatch",
+        "licenseUrl": "https://github.com/isaacs/minimatch/raw/master/LICENSE",
+        "parents": "@ts-morph/common:dot-x"
     },
     "minimatch@3.1.2": {
         "licenses": "ISC",
@@ -1693,6 +1807,12 @@
         "licenseUrl": "https://github.com/pillarjs/parseurl/raw/master/LICENSE",
         "parents": "dot-x"
     },
+    "path-browserify@1.0.1": {
+        "licenses": "MIT",
+        "repository": "https://github.com/browserify/path-browserify",
+        "licenseUrl": "https://github.com/browserify/path-browserify/raw/master/LICENSE",
+        "parents": "dot-x"
+    },
     "path-is-absolute@1.0.1": {
         "licenses": "MIT",
         "repository": "https://github.com/sindresorhus/path-is-absolute",
@@ -1909,6 +2029,12 @@
         "licenseUrl": "https://github.com/paulmillr/readdirp/raw/master/LICENSE",
         "parents": "dot-x"
     },
+    "resolve-pkg-maps@1.0.0": {
+        "licenses": "MIT",
+        "repository": "https://github.com/privatenumber/resolve-pkg-maps",
+        "licenseUrl": "https://github.com/privatenumber/resolve-pkg-maps/raw/master/LICENSE",
+        "parents": "dot-x"
+    },
     "resolve@1.22.8": {
         "licenses": "MIT",
         "repository": "https://github.com/browserify/resolve",
@@ -2057,6 +2183,12 @@
         "licenses": "MIT",
         "repository": "https://github.com/socketio/socket.io-adapter",
         "licenseUrl": "https://github.com/socketio/socket.io-adapter/raw/master/LICENSE",
+        "parents": "@vue/devtools:dot-x"
+    },
+    "socket.io-adapter@2.5.5": {
+        "licenses": "MIT",
+        "repository": "https://github.com/socketio/socket.io-adapter",
+        "licenseUrl": "https://github.com/socketio/socket.io-adapter/raw/master/LICENSE",
         "parents": "dot-x"
     },
     "socket.io-client@2.5.0": {
@@ -2065,7 +2197,7 @@
         "licenseUrl": "https://github.com/Automattic/socket.io-client/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "socket.io-parser@3.3.3": {
+    "socket.io-parser@3.3.4": {
         "licenses": "MIT",
         "repository": "https://github.com/Automattic/socket.io-parser",
         "licenseUrl": "https://github.com/Automattic/socket.io-parser/raw/master/LICENSE",
@@ -2075,9 +2207,21 @@
         "licenses": "MIT",
         "repository": "https://github.com/socketio/socket.io-parser",
         "licenseUrl": "https://github.com/socketio/socket.io-parser/raw/master/LICENSE",
+        "parents": "@vue/devtools:dot-x"
+    },
+    "socket.io-parser@4.2.4": {
+        "licenses": "MIT",
+        "repository": "https://github.com/socketio/socket.io-parser",
+        "licenseUrl": "https://github.com/socketio/socket.io-parser/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "socket.io@2.5.0": {
+    "socket.io@2.5.1": {
+        "licenses": "MIT",
+        "repository": "https://github.com/socketio/socket.io",
+        "licenseUrl": "https://github.com/socketio/socket.io/raw/master/LICENSE",
+        "parents": "@vue/devtools:dot-x"
+    },
+    "socket.io@4.8.1": {
         "licenses": "MIT",
         "repository": "https://github.com/socketio/socket.io",
         "licenseUrl": "https://github.com/socketio/socket.io/raw/master/LICENSE",
@@ -2199,6 +2343,10 @@
         "licenses": "MIT or APACHE-2.0",
         "parents": "dot-x"
     },
+    "tauri-plugin-websocket-api@0.0.0": {
+        "licenses": "MIT or APACHE-2.0",
+        "parents": "dot-x"
+    },
     "thenify-all@1.6.0": {
         "licenses": "MIT",
         "repository": "https://github.com/thenables/thenify-all",
@@ -2245,6 +2393,18 @@
         "licenses": "Apache-2.0",
         "repository": "https://github.com/gristlabs/ts-interface-checker",
         "licenseUrl": "https://github.com/gristlabs/ts-interface-checker/raw/master/LICENSE",
+        "parents": "dot-x"
+    },
+    "ts-morph@26.0.0": {
+        "licenses": "MIT",
+        "repository": "https://github.com/dsherret/ts-morph",
+        "licenseUrl": "https://github.com/dsherret/ts-morph/raw/master/LICENSE",
+        "parents": "dot-x"
+    },
+    "tsx@4.20.3": {
+        "licenses": "MIT",
+        "repository": "https://github.com/privatenumber/tsx",
+        "licenseUrl": "https://github.com/privatenumber/tsx/raw/master/LICENSE",
         "parents": "dot-x"
     },
     "tunnel@0.0.6": {
@@ -2397,11 +2557,17 @@
         "licenseUrl": "https://github.com/npm/wrappy/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "ws@7.4.6": {
+    "ws@7.5.10": {
         "licenses": "MIT",
         "repository": "https://github.com/websockets/ws",
         "licenseUrl": "https://github.com/websockets/ws/raw/master/LICENSE",
         "parents": "dot-x"
+    },
+    "ws@8.17.1": {
+        "licenses": "MIT",
+        "repository": "https://github.com/websockets/ws",
+        "licenseUrl": "https://github.com/websockets/ws/raw/master/LICENSE",
+        "parents": "engine.io:dot-x"
     },
     "xmlhttprequest-ssl@1.6.3": {
         "licenses": "MIT",

@@ -6,14 +6,18 @@ use log::{info, trace, error};
 use serde_json::{json, Value};
 use tauri::AppHandle;
 use tauri::{ Manager, Window };
+use tauri_plugin_store::{with_store, StoreCollection};
+use tauri::Wry;
 use windows_volume_control::AudioController;
 use windows_volume_control::CoinitMode;
 use tauri_plugin_autostart::MacosLauncher;
 use midir::{MidiOutput};
 use std::collections::HashMap;
 use std::fmt;
+use std::path::PathBuf;
 mod decker;
 mod midi;
+mod power_monitor;
 use tauri::{CustomMenuItem, SystemTrayMenu, SystemTrayMenuItem, SystemTray, SystemTrayEvent};
 use tauri::api::notification::Notification;
 use window_vibrancy::{apply_blur, apply_mica};
@@ -28,6 +32,7 @@ use sentry_tauri::sentry::{self, ClientInitGuard};
 use chrono::Local;
 use brightness::{Brightness, BrightnessDevice};
 use futures::{TryStreamExt};
+
 
 static APP: OnceCell<tauri::AppHandle> = OnceCell::new();
 
@@ -311,7 +316,7 @@ fn get_input_devices() -> Result<Vec<String>, Error> {
 
 #[tauri::command]
 async fn set_screen_brightness(brightness: f32, screens: Value) -> Result<(), Error> {
-    let screen_names: Vec<String> = screens.as_array()
+    let _screen_names: Vec<String> = screens.as_array()
         .unwrap_or(&Vec::new())
         .iter()
         .filter_map(|v| v.as_str().map(|s| s.to_string()))
@@ -368,6 +373,8 @@ fn disconnect_decker() -> Result<(), Error> {
 }
 
 
+
+
 fn build_menu() -> SystemTrayMenu {
   let menuitem_quit = CustomMenuItem::new("quit".to_string(), "Quit");
   let menuitem_show = CustomMenuItem::new("show".to_string(), "Show");
@@ -422,6 +429,8 @@ fn setup_panic_handler(client: ClientInitGuard) {
         client.flush(Some(std::time::Duration::from_secs(2)));
     }));
 }
+
+
 
 fn main() {
     let tray_menu = build_menu();
@@ -512,6 +521,9 @@ fn main() {
           _ => {}
         })
         .setup(|app| {
+          {
+            power_monitor::setup_power_monitoring();
+          }
           start_aptabase_heartbeat(app.handle().clone());
           let mut props_map = HashMap::new();
           props_map.insert("slider_amount".to_string(), Value::String("5".to_string()));
@@ -562,5 +574,21 @@ fn main() {
 
 fn get_app_handle() -> &'static AppHandle {
   APP.get().expect("AppHandle not initialized")
+}
+
+fn get_suspend_dim_enabled() -> bool {
+  let app_handle = get_app_handle();
+  let stores = app_handle.state::<StoreCollection<Wry>>();
+  let path = PathBuf::from("config.json");
+
+  let mut result = false;
+  let _ = with_store(app_handle.clone(), stores, path, |store| {
+    if let Some(value) = store.get("suspendDimEnabled") {
+      result = value.as_bool().unwrap_or(false);
+    }
+    Ok(())
+  });
+
+  result
 }
 
