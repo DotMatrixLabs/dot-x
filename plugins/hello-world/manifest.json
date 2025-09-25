@@ -11,11 +11,6 @@
     "type": "git",
     "url": "git+https://github.com/dotmatrixlabs/dot-x-hello-world.git"
   },
-  "homepage": "https://dotx.dev/plugins/hello-world",
-  "marketplaceUrl": "https://dotx.dev/plugins/hello-world",
-  "bugs": {
-    "url": "https://github.com/dotmatrixlabs/dot-x-hello-world/issues"
-  },
   "links": [
     { "title": "GitHub", "icon": "fa-brands fa-github", "url": "https://github.com/dotmatrixlabs/dot-x-hello-world" },
     { "title": "Report Bug", "icon": "fa-solid fa-bug", "url": "https://github.com/dotmatrixlabs/dot-x-hello-world/issues/new/choose" },
