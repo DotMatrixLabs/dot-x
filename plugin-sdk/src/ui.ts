@@ -219,7 +219,7 @@ class ButtonFieldHandle {
   }
 
   //OnClick is the function that is called when the button is clicked
-  setOnClick(onClick: () => void): this {
+  onClick(onClick: () => void): this {
     (this.component as any).onClick = onClick;
     this.notifyChange?.();
     return this;
