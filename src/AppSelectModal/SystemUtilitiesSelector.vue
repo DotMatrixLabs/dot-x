@@ -79,6 +79,7 @@ export default {
                 { title: "unmapped", icon: "fas fa-lg fa-question-circle", id: "unmapped"},
                 { title: "active window", icon: "fas fa-lg fa-window-maximize", id: "activeWindow"},
                 { title: "screen brightness", icon: "fas fa-lg fa-sun", id: "screen brightness"},
+                { title: "device brightness", icon: "fas fa-lg fa-lightbulb", id: "device brightness"},
             ],
             activeUtilities: [],
             sessions: [],
