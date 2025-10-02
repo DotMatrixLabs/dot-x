@@ -1,5 +1,6 @@
 import { invoke } from '@tauri-apps/api/tauri';
 import SelectedApps from './appsToControl';
+import { useDeckerStore } from '../store/deckerStore';
 
 /**
  * Class for controlling system volume and audio sessions.
@@ -164,6 +165,7 @@ class SystemVolumeController {
 
         if (apps.includes("device brightness")) {
             const currentTime = Date.now();
+            const deckerStore = useDeckerStore();
         
             // Store the latest RGB brightness value
             this.latestRGBBrightnessValue = volume;
@@ -172,6 +174,7 @@ class SystemVolumeController {
             if (currentTime - this.lastRGBBrightnessExecutionTime >= 100) {
                 this.lastRGBBrightnessExecutionTime = currentTime;
                 await this.setRGBBrightness(this.latestRGBBrightnessValue);
+                await deckerStore.setBrightness(Math.round(volume * 100));
             }
         
             // Clear the previous timeout if it exists
@@ -183,6 +186,7 @@ class SystemVolumeController {
             this.rgbBrightnessTimeoutId = setTimeout(async () => {
                 this.lastRGBBrightnessExecutionTime = Date.now();
                 await this.setRGBBrightness(this.latestRGBBrightnessValue);
+                await deckerStore.setBrightness(Math.round(this.latestRGBBrightnessValue * 100));
             }, 100 - (currentTime - this.lastRGBBrightnessExecutionTime));
         }
     }
