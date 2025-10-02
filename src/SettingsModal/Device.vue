@@ -121,7 +121,6 @@ export default {
             speed: 10,
             breathingEnabled: false,
             selectedColor: "#f0f0f0",
-            brightness: 100,
             suspendDimEnabled: false,
             deviceNames: {
                 'VM-5SW': "Decker",
@@ -136,6 +135,14 @@ export default {
         }),
         deckerStore() {
             return useDeckerStore();
+        },
+        brightness: {
+            get() {
+                return this.deckerStore.rgbBrightness;
+            },
+            set(value) {
+                this.deckerStore.rgbBrightness = value;
+            }
         },
     },
 
@@ -179,9 +186,8 @@ export default {
             RGBController.setEffect(this.currentRGBEffect.toLowerCase(), parseInt(100 - this.speed), brightness, this.selectedColor);
         },
 
-        brightnessChanged(event) {
-            ConfigStore.set("RGBBrightness", this.brightness);
-            ConfigStore.save();
+        async brightnessChanged(event) {
+            await this.deckerStore.setBrightness(this.brightness);
             this.sendCurrentRGBEffect();
         },
 
@@ -330,7 +336,7 @@ export default {
         this.speed = await ConfigStore.get("RGBSpeed") ?? 10;
         this.currentRGBEffect = await ConfigStore.get("RGBEffect") ?? "Static";
         this.breathingEnabled = await ConfigStore.get("RGBBreathing") ?? false;
-        this.brightness = await ConfigStore.get("RGBBrightness") ?? 100;
+        await this.deckerStore.loadBrightness();
         this.suspendDimEnabled = await ConfigStore.get("suspendDimEnabled") ?? false;
 
         this.comPortInterval = setInterval(() => {
