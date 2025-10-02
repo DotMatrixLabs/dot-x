@@ -134,6 +134,9 @@ export default {
         ...mapState(useDeckerStore, {
             connectionState: 'getConnectionState',
         }),
+        deckerStore() {
+            return useDeckerStore();
+        },
     },
 
 
@@ -273,8 +276,10 @@ export default {
             }
             if(this.currentDevice.pid === 58918 && this.currentDevice.vid === 1240){
                 this.deviceType = "Decker";
+                this.deckerStore.setDeviceType("Decker");
             } else {
                 this.deviceType = "Unknown";
+                this.deckerStore.setDeviceType("Unknown");
             }
             ConfigStore.set("comPort", this.currentDevice.port_name);
             ConfigStore.save();
@@ -298,8 +303,10 @@ export default {
             if(!device) return;
             if(device.pid === 58918 && device.vid === 1240){
                 this.deviceType = "Decker";
+                this.deckerStore.setDeviceType("Decker");
             } else {
                 this.deviceType = "Unknown";
+                this.deckerStore.setDeviceType("Unknown");
             }
             this.currentDevice = device;
         },

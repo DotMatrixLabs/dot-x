@@ -7,10 +7,12 @@ export const useDeckerStore = defineStore('decker', {
     prevSliders: [] as number[], //used to detect changes
     connected: false as boolean,
     channelSettings: {} as any,
+    deviceType: 'Unknown' as string,
   }),
   getters: {
     getSliders: (state) => state.sliders,
     getConnectionState: (state) => state.connected,
+    getDeviceType: (state) => state.deviceType,
   },
   actions: {
     setSliders(sliders: number[]) {
@@ -37,6 +39,10 @@ export const useDeckerStore = defineStore('decker', {
 
     updateChannelSetting(channelID: string, newSettings = {}) {
       this.channelSettings[channelID] = newSettings;
+    },
+
+    setDeviceType(type: string) {
+      this.deviceType = type;
     }
   }
 
