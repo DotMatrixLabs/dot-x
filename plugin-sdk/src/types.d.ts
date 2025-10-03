@@ -27,7 +27,7 @@ type BaseSettingsField = {
   placeholder?: string;
   required?: boolean;
   description?: string;
-  help?: string;
+  disabled?: boolean;
 };
 
 export interface TextField extends BaseSettingsField {
