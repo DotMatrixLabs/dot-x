@@ -50,6 +50,8 @@ chrono = "0.4"
 brightness = "0.5.0"
 futures = "0.3.31"
 zip = "0.6"
+# Pin base64ct to older version for Windows 7 compatibility (Rust 1.75)
+base64ct = "=1.6.0"
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem
