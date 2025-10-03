@@ -27,11 +27,21 @@ export default class HelloWorldPlugin extends Plugin {
             this.config.set('settings.greeting', data.value);
           });
 
-        const demoButton = settings.addButton('demoButton')
+
+        const demoSwitch = settings.addSwitch('demoSwitch')
+          .setLabel('Demo Switch')
+          .setValue(this.settings?.demoSwitch || false)
+          .onChange((data) => {
+            console.log('Demo switch changed:', data.value);
+            demoSwitch.setValue(data.value);
+            this.config.set('settings.demoSwitch', data.value);
+          });
+
+        settings.addButton('demoButton')
           .setTitle('Log Message')
-          .setOnClick(() => {
+          .onClick(() => {
             console.log('Button clicked!');
-            greeting.setValue('Button clicked!');
+            demoSwitch.setValue(true);
           });
 
         settings.addSection('Advanced');
@@ -41,6 +51,9 @@ export default class HelloWorldPlugin extends Plugin {
           .setValue(this.settings?.debug || false)
           .onChange((data) => {
             console.log('Debug flag changed:', data.value);
+            debug.setValue(data.value);
+            greeting.setDisabled(data.value);
+            this.config.set('settings.debug', data.value);
             this.ui.showToast({
               message: 'Debug flag changed to: ' + data.value,
               type: 'info',

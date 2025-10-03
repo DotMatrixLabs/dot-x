@@ -1,4 +1,4 @@
-import type { SettingsSections, TextField, ButtonField, SettingsComponent } from './types';
+import type { SettingsSections, TextField, ButtonField, SwitchField, SettingsComponent } from './types';
 
 export type UISection = { title: string; components: SettingsComponent[] };
 
@@ -80,6 +80,11 @@ export class SettingsBuilder {
       type: 'switch',
       label: '',
     } as SwitchField;
+
+    const section = this.ensureCurrentSection();
+    const component: SettingsComponent = { key, ...(field as any) };
+    section.components.push(component);
+    return new SwitchFieldHandle(component, this.createNotifier());
   }
   /**
    * Returns the constructed SettingsSchema.
@@ -142,7 +147,7 @@ class TextFieldHandle {
     return this;
   }
 
-  onChange(callback: (value: any) => void): this {
+  onChange(callback: (data: { value: any }) => void): this {
     (this.component as any).onChange = callback;
     this.notifyChange?.();
     return this;
@@ -172,8 +177,8 @@ class TextFieldHandle {
     return this;
   }
 
-  setHelp(help: string): this {
-    (this.component as any).help = help;
+  setDisabled(disabled: boolean): this {
+    (this.component as any).disabled = disabled;
     this.notifyChange?.();
     return this;
   }
@@ -248,12 +253,11 @@ class SwitchFieldHandle {
     return this;
   }
 
-  onChange(callback: (value: boolean) => void): this {
+  onChange(callback: (data: { value: boolean }) => void): this {
     (this.component as any).onChange = callback;
     this.notifyChange?.();
     return this;
   }
-
 
 
   setLabel(label: string): this {
@@ -270,6 +274,12 @@ class SwitchFieldHandle {
 
   setRequired(required: boolean): this {
     (this.component as any).required = required;
+    this.notifyChange?.();
+    return this;
+  }
+
+  setDisabled(disabled: boolean): this {
+    (this.component as any).disabled = disabled;
     this.notifyChange?.();
     return this;
   }

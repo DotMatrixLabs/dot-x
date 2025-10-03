@@ -63,7 +63,7 @@ import EventBus from '../js/eventBus';
                   section.components.forEach(comp => {
                     if (comp && comp.key) {
                       // Initialize known value-carrying types
-                      const valueTypes = ['text', 'number', 'select', 'number_select', 'toggle', 'password', 'password_pin'];
+                      const valueTypes = ['text', 'number', 'select', 'number_select', 'switch', 'password', 'password_pin'];
                       if (valueTypes.includes(comp.type)) {
                         map[comp.key] = comp.default ?? '';
                       }
@@ -84,6 +84,7 @@ import EventBus from '../js/eventBus';
             if (comp.type === 'text' || comp.type === 'number') {
               return {
                 ...common,
+                disabled: comp.disabled,
                 value: this.formValues[comp.key],
                 label: comp.label,
                 description: comp.description,
@@ -93,6 +94,7 @@ import EventBus from '../js/eventBus';
             if (comp.type === 'select') {
               return {
                 ...common,
+                disabled: comp.disabled,
                 value: this.formValues[comp.key],
                 label: comp.label,
                 options: comp.options || [],
@@ -102,6 +104,7 @@ import EventBus from '../js/eventBus';
               return {
                 ...common,
                 label: comp.label,
+                disabled: comp.disabled,
                 value: this.formValues[comp.key],
                 max: comp.max,
                 min: comp.min,
@@ -109,16 +112,18 @@ import EventBus from '../js/eventBus';
                 unit: comp.unit,
               };
             }
-            if (comp.type === 'toggle') {
+            if (comp.type === 'switch') {
               return {
                 ...common,
                 label: comp.label,
+                disabled: comp.disabled,
                 value: !!this.formValues[comp.key],
               };
             }
             if (comp.type === 'button') {
               return {
                 ...common,
+                disabled: comp.disabled,
                 label: comp.label || 'Action',
                 buttonTitle: comp.label || 'Action',
                 buttonType: comp.style || 'primary',
@@ -150,10 +155,17 @@ import EventBus from '../js/eventBus';
                 },
               };
             }
-            if (comp.type === 'toggle') {
+            if (comp.type === 'switch') {
               return {
-                apply: (val) => {
+                apply: async (val) => {
                   this.formValues[comp.key] = !!val;
+                  try {
+                    if (comp.onChangeActionId) {
+                      await pluginAPI.emitAction(this.plugin.id, comp.onChangeActionId, { value: !!val });
+                    }
+                  } catch (e) {
+                    console.error('Failed to emit onChange action:', e);
+                  }
                 },
               };
             }
