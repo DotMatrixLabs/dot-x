@@ -5,6 +5,9 @@
         </label>
         <input
             :maxlength="maxlength"
+            :min="min"
+            :max="max"
+            :step="step"
             @change="emitApply"
             @keyup.enter="emitApply"
             v-model.number="inputValue"
@@ -29,7 +32,10 @@ export default {
         maxlength: {
             type: Number,
             default: 100
-        }
+        },
+        min: { type: Number, default: null },
+        max: { type: Number, default: null },
+        step: { type: Number, default: 1 }
 
     },
 

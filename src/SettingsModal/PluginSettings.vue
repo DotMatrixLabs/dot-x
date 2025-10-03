@@ -81,7 +81,7 @@ import EventBus from '../js/eventBus';
 
           buildComponentProps(comp) {
             const common = {};
-            if (comp.type === 'text' || comp.type === 'number') {
+            if (comp.type === 'text' || comp.type === 'number' || comp.type === 'ip_address' || comp.type === 'mac_address') {
               return {
                 ...common,
                 disabled: comp.disabled,
@@ -89,6 +89,9 @@ import EventBus from '../js/eventBus';
                 label: comp.label,
                 description: comp.description,
                 placeholder: comp.placeholder,
+                type: comp.type,
+                max: comp.max,
+                min: comp.min
               };
             }
             if (comp.type === 'select') {

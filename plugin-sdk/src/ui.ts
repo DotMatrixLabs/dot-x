@@ -1,4 +1,4 @@
-import type { SettingsSections, TextField, ButtonField, SwitchField, SettingsComponent } from './types';
+import type { SettingsSections, InputField, ButtonField, SwitchField, SettingsComponent } from './types';
 
 export type UISection = { title: string; components: SettingsComponent[] };
 
@@ -39,20 +39,20 @@ export class SettingsBuilder {
    * You can override the input type by passing `options.type` with one of:
    * 'text' | 'password' | 'textarea' | 'color' | 'file' | 'number'.
    */
-  addText(key: string, options: Partial<TextField> = {}): TextFieldHandle {
-    const allowedTypes: TextField['type'][] = ['text', 'password', 'textarea', 'color', 'file', 'number'];
+  addInput(key: string, options: Partial<InputField> = {}): InputFieldHandle {
+    const allowedTypes: InputField['type'][] = ['text', 'password', 'textarea', 'color', 'file', 'number', 'ip_address', 'mac_address'];
     const chosenType = (options.type && allowedTypes.includes(options.type)) ? options.type : 'text';
 
-    const field: TextField = {
+    const field: InputField = {
       type: chosenType,
       label: options.label ?? '',
       ...options,
-    } as TextField;
+    } as InputField;
 
     const section = this.ensureCurrentSection();
     const component: SettingsComponent = { key, ...(field as any) };
     section.components.push(component);
-    return new TextFieldHandle(component, this.createNotifier());
+    return new InputFieldHandle(component, this.createNotifier());
   }
 
   /**
@@ -131,7 +131,7 @@ export class SettingsBuilder {
   }
 }
 
-class TextFieldHandle {
+class InputFieldHandle {
   constructor(private component: SettingsComponent, private notifyChange?: () => void) {}
 
   setPlaceholder(placeholder: string): this {
@@ -183,15 +183,27 @@ class TextFieldHandle {
     return this;
   }
 
-  setType(type: TextField['type']): this {
+  setType(type: InputField['type']): this {
     (this.component as any).type = type;
     this.notifyChange?.();
     return this;
   }
 
   //Assign is used to bulk assign properties to the field eg. button.assign({ label: 'Username', placeholder: 'Enter username', required: true });
-  assign(props: Partial<TextField>): this {
+  assign(props: Partial<InputField>): this {
     Object.assign(this.component as any, props);
+    this.notifyChange?.();
+    return this;
+  }
+
+  setMax(max: number): this {
+    (this.component as any).max = max;
+    this.notifyChange?.();
+    return this;
+  }
+
+  setMin(min: number): this {
+    (this.component as any).min = min;
     this.notifyChange?.();
     return this;
   }
