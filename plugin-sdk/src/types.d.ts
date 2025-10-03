@@ -30,8 +30,8 @@ type BaseSettingsField = {
   disabled?: boolean;
 };
 
-export interface TextField extends BaseSettingsField {
-  type: 'text' | 'password' | 'textarea' | 'color' | 'file' | 'number';
+export interface InputField extends BaseSettingsField {
+  type: 'text' | 'password' | 'textarea' | 'color' | 'file' | 'number' | 'ip_address' | 'mac_address';
   onChange?: (data: { value: any }) => void;
   onChangeActionId?: string;
 }
@@ -50,7 +50,7 @@ export interface SwitchField extends BaseSettingsField {
   onChangeActionId?: string;
 }
 
-export type SettingsField = TextField | ButtonField | SwitchField;
+export type SettingsField = InputField | ButtonField | SwitchField;
 
 export type SettingsComponent = { key: string } & SettingsField;
 export interface SettingsSection { title: string; components: SettingsComponent[] }

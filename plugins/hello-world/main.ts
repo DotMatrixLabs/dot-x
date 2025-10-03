@@ -16,15 +16,16 @@ export default class HelloWorldPlugin extends Plugin {
       await this.createSettingsPage((settings) => {
         settings.addSection('General');
 
-        const greeting = settings.addText('customGreeting')
-          .setLabel('Greeting')
-          .setPlaceholder('Enter greeting')
-          .setValue(this.settings?.greeting || 'Hello DotX!')
-          .setDesc('This greeting is used by the plugin when needed.')
+        const greeting = settings.addInput('customGreeting')
+          .setType('ip_address')
+          .setLabel('Broker IP')
+          .setPlaceholder('Enter broker IP')
+          .setValue(this.settings?.brokerIP || '192.168.1.1')
+          .setDesc('This broker IP is used by the plugin when needed.')
           .onChange((data) => {
-            console.log('Greeting changed:', data.value);
+            console.log('Broker IP changed:', data.value);
             greeting.setValue(data.value);
-            this.config.set('settings.greeting', data.value);
+            this.config.set('settings.brokerIP', data.value);
           });
 
 
@@ -82,9 +83,9 @@ export default class HelloWorldPlugin extends Plugin {
         settings: {
           type: "object",
           properties: {
-            greeting: {
-              default: 'Greetings!',
-              description: 'The greeting to use when interacting with the plugin.',
+            brokerIP: {
+              default: '192.168.1.1',
+              description: 'The broker IP to use when interacting with the plugin.',
               type: 'string'
             }
           }

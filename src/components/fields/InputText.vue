@@ -17,6 +17,8 @@
             v-model="inputValue"
             type="text"
             :placeholder="placeholder"
+            :maxlength="max"
+            :minlength="min"
             class="input input-bordered input-sm w-1/2 ml-0 md:ml-1"
         />
     </div>
@@ -33,6 +35,9 @@ export default {
         help: { type: String, default: '' },
         required: { type: Boolean, default: false },
         disabled: { type: Boolean, default: false },
+        type: { type: String, default: 'text' },
+        max: { type: Number, default: null },
+        min: { type: Number, default: null },
     },
 
     emits: ['apply'],
