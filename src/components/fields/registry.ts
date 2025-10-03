@@ -2,7 +2,7 @@ import InputText from './InputText.vue';
 import InputNumber from './InputNumber.vue';
 import OptionSelect from './OptionSelect.vue';
 import NumberSelect from './NumberSelect.vue';
-import Toggle from './Toggle.vue';
+import Switch from './Switch.vue';
 import ActionButton from './ActionButton.vue';
 import ActionLink from './ActionLink.vue';
 import TextDisplay from './TextDisplay.vue';
@@ -27,7 +27,7 @@ export const componentRegistry: Record<string, any> = {
   timezone_select: TimezoneSelect,
 
   // Toggles / switches
-  toggle: Toggle,
+  switch: Switch,
 
   // Actions
   button: ActionButton,
