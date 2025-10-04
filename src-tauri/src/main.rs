@@ -616,6 +616,7 @@ fn main() {
             plugin_server::send_to_plugin_with_ack,
             plugin_server::get_connected_plugins,
             plugin_server::send_api_response,
+            plugin_server::broadcast_to_plugins,
             plugin_runtime::start_plugin,
             plugin_runtime::stop_plugin,
             plugin_runtime::restart_plugin,
