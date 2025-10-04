@@ -94,6 +94,15 @@ export default class HelloWorldPlugin extends Plugin {
     });
   }
 
+  async onSlidersUpdate(data: any) {
+    console.log("[HELLO WORLD PLUGIN??]: Sliders updated:", data);
+    
+    // Process the slider changes
+    data.changes.forEach(change => {
+      console.log(`Slider ${change.index} changed from ${change.oldValue} to ${change.newValue}`);
+    });
+  }
+
   async onUnload() {
     console.log("Hello World Plugin shutting down...");
   }
