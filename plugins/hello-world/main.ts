@@ -29,7 +29,7 @@ export default class HelloWorldPlugin extends Plugin {
 
         const demoButton = settings.addButton('demoButton')
           .setTitle('Log Message')
-          .setOnClick(() => {
+          .onClick(() => {
             console.log('Button clicked!');
             greeting.setValue('Button clicked!');
           });
