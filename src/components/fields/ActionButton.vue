@@ -1,9 +1,16 @@
 <template>
-  <div class="w-full flex flex-col md:flex-row max-w-sm md:max-w-lg m-auto">
-    <label class="cursor-pointer label mx-2 w-full">
-      <span class="label-text">{{ label }}</span>
-      <button :class="buttonClass" class="btn btn-md" @click="$emit('apply', valueToSend)">{{ buttonTitle }}</button>
-    </label>
+  <div class="w-full flex flex-col md:flex-row max-w-sm md:max-w-lg">
+    <div class="label w-full flex flex-row justify-between items-center">
+      <div class="flex flex-col">
+        <span class="label-text">{{ label }}</span>
+        <span v-if="description" class="label-text-alt opacity-60">{{ description }}</span>
+      </div>
+      <button
+        :class="buttonClass"
+        :disabled="disabled"
+        @click="onClick"
+      >{{ text }}</button>
+    </div>
   </div>
 </template>
 
@@ -15,33 +22,44 @@ export default {
       type: String,
       default: 'Click'
     },
-    valueToSend: {
-      
-    }, 
-    buttonTitle: {
+    text: {
       type: String,
       default: 'Click'
     },
-    buttonType: {
+    style: {
       type: String,
-      default: '' // primary, secondary, accent, ghost, error, warning, success
-    }
+      default: '', // primary, secondary, danger
+      validator: (value) => ['', 'primary', 'secondary', 'danger'].includes(value)
+    },
+    description: { type: String, default: 'test description' },
+    disabled: { type: Boolean, default: false },
   },
 
   computed: {
     buttonClass() {
-      console.log(this.buttonType)
-      switch (this.buttonType) {
-        case 'delete':
-          return 'ring ring-red-500 ring-3 btn-outline text-red-300 hover:bg-red-500 hover:text-white hover:ring-0'
-          break;
+      const baseClass = `btn btn-md ${this.disabled ? 'btn-disabled' : ''}`;
+      
+      switch (this.style) {
+        case 'primary':
+          return `${baseClass} btn-primary`;
+        case 'secondary':
+          return `${baseClass} btn-secondary`;
+        case 'danger':
+          return `${baseClass} btn-error`;
         default:
-          return `btn-${this.buttonType}`;
+          return baseClass;
       }
     }
   },
 
   emits: ['apply'],
+
+  methods: {
+    onClick() {
+      if (this.disabled) return;
+      this.$emit('apply');
+    }
+  }
 
 }
 </script>

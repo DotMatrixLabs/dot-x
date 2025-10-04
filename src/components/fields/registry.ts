@@ -1,14 +1,14 @@
-import InputText from './InputText.vue';
-import InputNumber from './InputNumber.vue';
+// import InputText from './InputText.vue';
+import Input from './Input.vue';
 import OptionSelect from './OptionSelect.vue';
 import NumberSelect from './NumberSelect.vue';
-import Toggle from './Toggle.vue';
+import Switch from './Switch.vue';
 import ActionButton from './ActionButton.vue';
 import ActionLink from './ActionLink.vue';
 import TextDisplay from './TextDisplay.vue';
 import PasswordInput from './PasswordInput.vue';
 import DateTimePicker from './DateTimePicker.vue';
-import IPInput from './IPInput.vue';
+// import IPInput from './IPInput.vue';
 import MacAddressInput from './MacAddressInput.vue';
 import SortableArray from './SortableArray.vue';
 import TimezoneSelect from './TimezoneSelect.vue';
@@ -17,8 +17,10 @@ import TimezoneSelect from './TimezoneSelect.vue';
 // Keys are stable identifiers used in plugin settings schema
 export const componentRegistry: Record<string, any> = {
   // Inputs
-  text: InputText,
-  number: InputNumber,
+
+  input: Input,
+  text: Input,
+  number: Input,
   password_pin: PasswordInput,
 
   // Selectors
@@ -27,7 +29,7 @@ export const componentRegistry: Record<string, any> = {
   timezone_select: TimezoneSelect,
 
   // Toggles / switches
-  toggle: Toggle,
+  switch: Switch,
 
   // Actions
   button: ActionButton,
@@ -38,7 +40,7 @@ export const componentRegistry: Record<string, any> = {
 
   // Specialized inputs
   datetime: DateTimePicker,
-  ip_address: IPInput,
+  ip_address: Input,
   mac_address: MacAddressInput,
   array_sortable: SortableArray,
 };
