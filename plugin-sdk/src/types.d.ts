@@ -27,12 +27,12 @@ type BaseSettingsField = {
   placeholder?: string;
   required?: boolean;
   description?: string;
-  help?: string;
+  disabled?: boolean;
 };
 
-export interface TextField extends BaseSettingsField {
-  type: 'text' | 'password' | 'textarea' | 'color' | 'file' | 'number';
-  onChange?: (value: any) => void;
+export interface InputField extends BaseSettingsField {
+  type: 'text' | 'password' | 'textarea' | 'color' | 'file' | 'number' | 'ip_address' | 'mac_address';
+  onChange?: (data: { value: any }) => void;
   onChangeActionId?: string;
 }
 
@@ -44,7 +44,13 @@ export interface ButtonField extends BaseSettingsField {
   actionId?: string;
 }
 
-export type SettingsField = TextField | ButtonField;
+export interface SwitchField extends BaseSettingsField {
+  type: 'switch';
+  onChange?: (data: { value: boolean }) => void;
+  onChangeActionId?: string;
+}
+
+export type SettingsField = InputField | ButtonField | SwitchField;
 
 export type SettingsComponent = { key: string } & SettingsField;
 export interface SettingsSection { title: string; components: SettingsComponent[] }

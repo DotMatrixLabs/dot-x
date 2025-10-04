@@ -16,22 +16,33 @@ export default class HelloWorldPlugin extends Plugin {
       await this.createSettingsPage((settings) => {
         settings.addSection('General');
 
-        const greeting = settings.addText('customGreeting')
-          .setLabel('Greeting')
-          .setPlaceholder('Enter greeting')
-          .setValue(this.settings?.greeting || 'Hello DotX!')
-          .setDesc('This greeting is used by the plugin when needed.')
+        const greeting = settings.addInput('customGreeting')
+          .setType('ip_address')
+          .setLabel('Broker IP')
+          .setPlaceholder('Enter broker IP')
+          .setValue(this.settings?.brokerIP || '192.168.1.1')
+          .setDesc('This broker IP is used by the plugin when needed.')
           .onChange((data) => {
-            console.log('Greeting changed:', data.value);
+            console.log('Broker IP changed:', data.value);
             greeting.setValue(data.value);
-            this.config.set('settings.greeting', data.value);
+            this.config.set('settings.brokerIP', data.value);
           });
 
-        const demoButton = settings.addButton('demoButton')
+
+        const demoSwitch = settings.addSwitch('demoSwitch')
+          .setLabel('Demo Switch')
+          .setValue(this.settings?.demoSwitch || false)
+          .onChange((data) => {
+            console.log('Demo switch changed:', data.value);
+            demoSwitch.setValue(data.value);
+            this.config.set('settings.demoSwitch', data.value);
+          });
+
+        settings.addButton('demoButton')
           .setTitle('Log Message')
           .onClick(() => {
             console.log('Button clicked!');
-            greeting.setValue('Button clicked!');
+            demoSwitch.setValue(true);
           });
 
         settings.addSection('Advanced');
@@ -41,6 +52,9 @@ export default class HelloWorldPlugin extends Plugin {
           .setValue(this.settings?.debug || false)
           .onChange((data) => {
             console.log('Debug flag changed:', data.value);
+            debug.setValue(data.value);
+            greeting.setDisabled(data.value);
+            this.config.set('settings.debug', data.value);
             this.ui.showToast({
               message: 'Debug flag changed to: ' + data.value,
               type: 'info',
@@ -69,9 +83,9 @@ export default class HelloWorldPlugin extends Plugin {
         settings: {
           type: "object",
           properties: {
-            greeting: {
-              default: 'Greetings!',
-              description: 'The greeting to use when interacting with the plugin.',
+            brokerIP: {
+              default: '192.168.1.1',
+              description: 'The broker IP to use when interacting with the plugin.',
               type: 'string'
             }
           }
