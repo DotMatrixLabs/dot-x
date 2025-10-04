@@ -27,7 +27,7 @@ export const useDeckerStore = defineStore('decker', {
         Stats.logSliderChange(index, value);
       });
       this.sliders = sliders;
-      if (change) eventBus.emit('slider-change', { changes: this.sliders.map((newValue, index) => ({ index, oldValue: this.prevSliders[index], newValue })), allSliders: this.sliders });
+      if (change) eventBus.emit('slider-change', { changes: this.sliders.map((newValue, index) => ({ index, oldValue: this.prevSliders[index], newValue })), sliders: this.sliders });
       this.prevSliders = sliders;
     },
 
