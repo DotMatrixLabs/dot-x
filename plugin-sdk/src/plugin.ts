@@ -1,5 +1,5 @@
 // dot-x-plugin/src/plugin.ts
-import { APIClient, PluginInfo, ConnectionConfig } from './client';
+import { APIClient, PluginInfo, ConnectionConfig, SliderChanges } from './client';
 import type { PluginAPI } from './types';
 import { SettingsBuilder } from './ui';
 import type { SettingsSections } from './types';
@@ -19,6 +19,13 @@ class Plugin {
     this.client = new APIClient(pluginInfo, config);
     // this.settings = this.client.settings;
     this.ui = this.client.ui as any;
+
+    // Register slider update callback to forward to plugin's onSlidersUpdate method
+    this.client.setSliderUpdateCallback(async (data: SliderChanges) => {
+      await this.onSlidersUpdate(data);
+      // Return the data to satisfy the client's internal requirements
+      return data;
+    });
 
     // Initialize local config store in the same folder as the plugin's entry (main.js)
     const entryDir = process.cwd();
@@ -118,9 +125,15 @@ class Plugin {
   async onLoad() {
     console.log("Plugin loaded");
   }
+
   async onUnload() {
     console.log("Plugin unloaded");
     this.client.disconnect();
+  }
+
+  async onSlidersUpdate(data: SliderChanges): Promise<void> {
+    // Default implementation does nothing - plugins can override this
+    console.log("[HELLO WORLD PLUGIN?]: Sliders updated:", data);
   }
 }
 

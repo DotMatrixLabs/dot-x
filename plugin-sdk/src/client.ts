@@ -30,6 +30,11 @@ export interface ConnectionConfig {
   apiTimeout?: number;
 }
 
+export interface SliderChanges {
+  changes: Array<{ index: number; oldValue: number; newValue: number }>;
+  sliders: Array<{ value: number }>;
+}
+
 export class APIClient {
   private socket: Socket;
   private isRegistered = false;
@@ -58,6 +63,21 @@ export class APIClient {
   // Expose the connection promise for external waiting
   waitForConnection(): Promise<void> {
     return this.connectionPromise;
+  }
+
+  private sliderUpdateCallback?: (data: SliderChanges) => Promise<SliderChanges | void>;
+
+  async onSliderUpdate(data: SliderChanges) {
+    if (this.isDestroyed) return;
+    if (this.sliderUpdateCallback) {
+      const result = await this.sliderUpdateCallback(data);
+      return result || data;
+    }
+    return data;
+  }
+
+  public setSliderUpdateCallback(callback: (data: SliderChanges) => Promise<SliderChanges | void>) {
+    this.sliderUpdateCallback = callback;
   }
   
   private initializeConnection(): Promise<void> {
@@ -88,6 +108,11 @@ export class APIClient {
               console.error('Error executing action callback:', err);
             }
           }
+        });
+
+        this.socket.on('plugin.slider_change', (data: SliderChanges) => {
+          console.log('Received slider change event');
+          this.onSliderUpdate(data);
         });
 
         // Request handler from app: single topic with method routing
