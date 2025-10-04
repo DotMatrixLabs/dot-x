@@ -9,6 +9,17 @@ use serde_json::Value;
 use futures_util::{pin_mut, StreamExt};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SliderState {
+    pub id: String,
+    pub value: f64,
+}
+// Define SliderStates struct if not imported from elsewhere
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SliderStates {
+    pub states: Vec<SliderState>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PluginInfo {
     pub id: String,
     pub name: String,
@@ -479,6 +490,22 @@ pub async fn send_to_plugin_with_ack(plugin_id: String, event: String, data: Val
     if let Some(server_arc) = get_plugin_server() {
         let server = server_arc.read().await;
         server.send_to_plugin_with_ack(&plugin_id, &event, data).await
+    } else {
+        Err("Plugin server not initialized".to_string())
+    }
+}
+
+#[tauri::command]
+pub async fn broadcast_to_plugins(event: String, data: Value) -> Result<String, String> {
+    if let Some(server_arc) = get_plugin_server() {
+        let server = server_arc.read().await;
+        let connections = server.connections.read().await;
+        for plugin_id in connections.keys() {
+            if let Err(e) = server.send_to_plugin(plugin_id, &event, data.clone()).await {
+                error!("Failed to send to plugin {}: {}", plugin_id, e);
+            }
+        }
+        Ok("Broadcast sent".to_string())
     } else {
         Err("Plugin server not initialized".to_string())
     }
