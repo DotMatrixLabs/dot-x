@@ -7,10 +7,14 @@ import type {
 import { settingsManager } from './settings';
 import { uiManager } from './ui';
 import { useStore } from '../store/store';
+import { useDeckerStore } from "../store/deckerStore.ts";
+import EventBus from '../js/eventBus.js';
 
 export class PluginAPI {
   private static instance: PluginAPI | null = null;
   private isInitialized = false;
+
+  
   // --- ACTION helpers ---
   async emitAction(plugin_id: string, action: string, params: any = {}) {
     console.log('Emitting action', action, params);
@@ -25,6 +29,15 @@ export class PluginAPI {
 
   private constructor() {
     this.setupEventHandlers();
+    console.log('hellow')
+
+    setTimeout(() => {
+      console.log('hallowwwwwwwwwwwwwwwwwwww')
+      const deckerStore = useDeckerStore();
+      console.log('deckystore', deckerStore)
+      console.log('Sliders:', deckerStore.getSliders);
+      
+    }, 5000);
   }
 
   public static getInstance(): PluginAPI {
@@ -49,14 +62,48 @@ export class PluginAPI {
       
       this.isInitialized = true;
       console.log(`Plugin API Server initialized on port ${this.serverPort}`);
+      
+      // Now it's safe to access stores after initialization
+      this.logSliderValues();
     } catch (error) {
       console.error('Failed to initialize Plugin API Server:', error);
       throw error;
     }
   }
 
+  /**
+   * Safely access and log slider values from deckerStore
+   */
+  private logSliderValues() {
+    try {
+      const deckerStore = useDeckerStore();
+      deckerStore.sliders.forEach((value, index) => {
+        console.log(`Slider ${index} value: ${value}%`);
+      });
+    } catch (error) {
+      console.warn('Could not access decker store:', error);
+    }
+  }
+
+  /**
+   * Get current slider values
+   */
+  public getSliders(): number[] {
+    try {
+      const deckerStore = useDeckerStore();
+      return deckerStore.sliders;
+    } catch (error) {
+      console.warn('Could not access decker store:', error);
+      return [];
+    }
+  }
+
   setupEventHandlers() {
     // TODO: Implement event handlers for events from frontend
+    EventBus.on('slider-change', (data: any) => {
+      console.log('Slider change event received in PluginAPI:', data);
+      // Handle the slider change event as needed
+    });
   }
 
   // Events from plugins
@@ -121,6 +168,22 @@ export class PluginAPI {
             request_id: request.request_id,
             success: false,
             error: `Unknown UI method: ${methodName}`
+          };
+        }
+      } else if (request.method === 'get_sliders') {
+        // Handle slider data requests
+        try {
+          const sliders = this.getSliders();
+          response = {
+            request_id: request.request_id,
+            success: true,
+            data: { sliders }
+          };
+        } catch (error) {
+          response = {
+            request_id: request.request_id,
+            success: false,
+            error: `Failed to get sliders: ${error instanceof Error ? error.message : String(error)}`
           };
         }
       } else {
