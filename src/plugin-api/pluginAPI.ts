@@ -98,10 +98,14 @@ export class PluginAPI {
     }
   }
 
-  setupEventHandlers() {
+  async setupEventHandlers() {
     // TODO: Implement event handlers for events from frontend
-    EventBus.on('slider-change', (data: any) => {
-      console.log('Slider change event received in PluginAPI:', data);
+    EventBus.on('slider-change', async (data: any) => {
+      try {
+       await invoke('broadcast_to_plugins', { event: 'plugin.slider_change', data });
+      } catch (err) {
+        console.error('Failed to emit action', err);
+      }
       // Handle the slider change event as needed
     });
   }
