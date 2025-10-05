@@ -29,7 +29,7 @@ export default {
     value: {
       type: Boolean
     },
-    description: { type: String, default: 'test description' },
+    description: { type: String, default: '' },
     required: { type: Boolean, default: false },
     disabled: { type: Boolean, default: false },
   },
