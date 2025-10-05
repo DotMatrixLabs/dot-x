@@ -2,14 +2,14 @@
   <div class="w-full flex flex-col md:flex-row max-w-sm md:max-w-lg">
     <div class="label w-full flex flex-row justify-between items-center">
       <div class="flex flex-col">
-        <span class="label-text">{{ label }}</span>
+        <span class="label-text">{{ label || buttonTitle }}</span>
         <span v-if="description" class="label-text-alt opacity-60">{{ description }}</span>
       </div>
       <button
         :class="buttonClass"
         :disabled="disabled"
         @click="onClick"
-      >{{ text }}</button>
+      >{{ buttonTitle }}</button>
     </div>
   </div>
 </template>
@@ -22,7 +22,7 @@ export default {
       type: String,
       default: 'Click'
     },
-    text: {
+    buttonTitle: {
       type: String,
       default: 'Click'
     },
