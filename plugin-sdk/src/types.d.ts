@@ -56,7 +56,13 @@ export interface TextField extends BaseSettingsField {
   style?: 'default' | 'muted' | 'info' | 'success' | 'warning' | 'error';
 }
 
-export type SettingsField = InputField | ButtonField | SwitchField | TextField;
+export interface BadgeField extends BaseSettingsField {
+  type: 'badge';
+  text?: string;
+  style?: 'default' | 'muted' | 'info' | 'success' | 'warning' | 'error';
+}
+
+export type SettingsField = InputField | ButtonField | SwitchField | TextField | BadgeField;
 
 export type SettingsComponent = { key: string } & SettingsField;
 export interface SettingsSection { title: string; components: SettingsComponent[] }
