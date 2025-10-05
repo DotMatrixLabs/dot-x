@@ -50,8 +50,6 @@
       </a>
     </div>
 
-    <div class="divider my-1"></div>
-
     <!-- Logs Modal -->
     <div v-if="showLogs" class="modal modal-open">
       <div class="modal-box max-w-3xl h-[70vh]">
