@@ -43,7 +43,6 @@ import EventBus from '../js/eventBus';
         data() {
             return {
                 settings: {},
-                formValues: {},
             }
         },
         methods: {
@@ -52,28 +51,8 @@ import EventBus from '../js/eventBus';
             const settings = await pluginAPI.getPluginSettings(this.plugin.id);
             console.log('Settings:', settings);
             this.settings = settings;
-            this.initFormValues();
           },
 
-          initFormValues() {
-            const map = {};
-            if (this.settings && Array.isArray(this.settings.sections)) {
-              this.settings.sections.forEach(section => {
-                if (Array.isArray(section.components)) {
-                  section.components.forEach(comp => {
-                    if (comp && comp.key) {
-                      // Initialize known value-carrying types
-                      const valueTypes = ['text', 'number', 'select', 'number_select', 'switch', 'password', 'password_pin'];
-                      if (valueTypes.includes(comp.type)) {
-                        map[comp.key] = comp.default ?? '';
-                      }
-                    }
-                  });
-                }
-              });
-            }
-            this.formValues = map;
-          },
 
           resolveComponent(type) {
             return resolveUi(type);
@@ -86,12 +65,15 @@ import EventBus from '../js/eventBus';
             // Avoid binding Vue's special key attribute as a prop
             const { key: compKey, ...props } = comp;
 
-            // Inject live value from form state when a key is provided
-            if (compKey) {
-              if (comp.type === 'switch') {
-                props.value = !!this.formValues[compKey];
-              } else {
-                props.value = this.formValues[compKey];
+            // Only inject value for value-carrying components
+            const nonValueTypes = ['button', 'link', 'display_text'];
+            const shouldInjectValue = !!compKey && !nonValueTypes.includes(comp.type);
+
+            if (shouldInjectValue) {
+              const raw = (Object.prototype.hasOwnProperty.call(comp, 'default') ? comp.default : undefined);
+
+              if (raw !== undefined) {
+                props.value = comp.type === 'switch' ? !!raw : raw;
               }
             }
 
@@ -107,14 +89,7 @@ import EventBus from '../js/eventBus';
             return {
               apply: async (val) => {
                 try {
-                  // Update form state when a key is provided
-                  if (comp && comp.key) {
-                    if (comp.type === 'switch') {
-                      this.formValues[comp.key] = !!val;
-                    } else {
-                      this.formValues[comp.key] = val;
-                    }
-                  }
+                  // No local state persisted; components manage their own internal value
 
                   // Fire on-change action with current value when configured
                   if (comp && comp.onChangeActionId) {
