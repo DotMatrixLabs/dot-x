@@ -10,18 +10,24 @@
                 <span v-if="help" class="label-text-alt opacity-60">{{ help }}</span>
             </div>
         </label>
-        <input
-            :disabled="disabled"
-            :min="min"
-            :max="max"
-            :step="step"
-            @change="emitApply"
-            @keyup.enter="emitApply"
-            v-model.number="inputValue"
-            type="number"
-            :placeholder="placeholder"
-            class="input input-bordered input-sm w-1/2 ml-0 md:ml-1"
-        />
+        <div class="w-1/2 ml-0 md:ml-1 flex flex-col">
+            <input
+                :disabled="disabled"
+                :min="min"
+                :max="max"
+                :step="step"
+                @input="onInput"
+                @change="emitApply"
+                @keyup.enter="emitApply"
+                v-model.number="inputValue"
+                type="number"
+                :placeholder="placeholder"
+                class="input input-bordered input-sm"
+            />
+            <div class="h-5 mt-1 text-error text-xs">
+                <span :class="requiredError ? '' : 'opacity-0'">{{ errorText }}</span>
+            </div>
+        </div>
     </div>
 </template>
   
@@ -52,12 +58,21 @@ export default {
     data() {
         return {
             inputValue: this.value,
+            requiredError: false,
+            errorText: 'This field is required!'
         };
     },
 
     methods: {
         emitApply() {
+            if (this.required && (this.inputValue === '' || this.inputValue === null || this.inputValue === undefined || Number.isNaN(this.inputValue))) {
+                this.requiredError = true;
+                return;
+            }
             this.$emit('apply', this.inputValue);
+        },
+        onInput() {
+            this.requiredError = false;
         },
     },
 };
