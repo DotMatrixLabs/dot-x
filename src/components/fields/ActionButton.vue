@@ -31,7 +31,7 @@ export default {
       default: '', // primary, secondary, danger
       validator: (value) => ['', 'primary', 'secondary', 'danger'].includes(value)
     },
-    description: { type: String, default: 'test description' },
+    description: { type: String, default: '' },
     disabled: { type: Boolean, default: false },
   },
 
