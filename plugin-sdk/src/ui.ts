@@ -63,6 +63,8 @@ export class SettingsBuilder {
       type: 'button',
       label: '',
       text: '',
+      style: 'primary',
+      buttonTitle: 'Apply',
     } as ButtonField;
 
     const section = this.ensureCurrentSection();
@@ -214,9 +216,7 @@ class ButtonFieldHandle {
 
   //Title is the text that appears on the button
   setTitle(title: string): this {
-    (this.component as any).title = title;
-    // Ensure frontend-visible label is updated as well
-    (this.component as any).label = title;
+    (this.component as any).buttonTitle = title;
     this.notifyChange?.();
     return this;
   }
