@@ -21,12 +21,26 @@ export default class HelloWorldPlugin extends Plugin {
           .setLabel('Broker IP')
           .setPlaceholder('Enter broker IP')
           .setValue(this.settings?.brokerIP || '192.168.1.1')
+          .setRequired(true)
           .setDesc('This broker IP is used by the plugin when needed.')
           .onChange((data) => {
             console.log('Broker IP changed:', data.value);
             greeting.setValue(data.value);
             this.config.set('settings.brokerIP', data.value);
           });
+
+          const brokerPort = settings.addInput('brokerPort')
+            .setType('number')
+            .setLabel('Broker Port')
+            .setPlaceholder('Enter broker port')
+            .setValue(this.settings?.brokerPort || 1883)
+            .setRequired(true)
+            .setDesc('This broker port is used by the plugin when needed.')
+            .onChange((data) => {
+              console.log('Broker port changed:', data.value);
+              brokerPort.setValue(data.value);
+              this.config.set('settings.brokerPort', data.value);
+            });
 
 
         const demoSwitch = settings.addSwitch('demoSwitch')
