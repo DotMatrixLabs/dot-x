@@ -36,7 +36,7 @@ export const componentRegistry: Record<string, any> = {
   link: ActionLink,
 
   // Display-only
-  display_text: TextDisplay,
+  text_display: TextDisplay,
 
   // Specialized inputs
   datetime: DateTimePicker,
