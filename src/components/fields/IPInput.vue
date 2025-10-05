@@ -1,18 +1,31 @@
 <template>
-    <div class="w-full flex flex-col md:flex-row max-w-sm md:max-w-lg m-auto">
-        <label class="label ml-2 w-full h-full">
-            <span class="label-text">{{ label }}</span>
+    <div :class="disabled ? 'opacity-50' : ''" class="w-full flex flex-col md:flex-row max-w-sm md:max-w-lg m-auto items-center justify-between">
+        <label class="label w-1/3">
+            <div class="flex flex-col">
+                <span class="label-text">
+                    {{ label }}
+                    <span v-if="required" class="text-error">*</span>
+                </span>
+                <span v-if="description" class="label-text-alt opacity-60">{{ description }}</span>
+                <span v-if="help" class="label-text-alt opacity-60">{{ help }}</span>
+            </div>
         </label>
-
-        <!-- <label class="label-text text-xs mx-0.5">Use space as dots</label> -->
-
-        <div class="flex flex-col w-full h-full">
-            <input @focus="focusInput" :maxlength="15"
-                @input="format($event.target.value)" @change="emitValue" @keyup.enter="emitValue" :input="inputValue"
-                v-model="inputValue" type="text" :placeholder="placeholder" :class="IPNotValid ? 'ring ring-red-500 ring-3' : 'ring-transparent'" class="input input-bordered w-full" />
-            <label v-show="IPNotValid" class="label text-red-500">
-                IP is not valid!
-            </label>
+        <div class="w-1/2 ml-0 md:ml-1 flex flex-col">
+            <input
+                :disabled="disabled"
+                @input="onInput"
+                @change="emitApply"
+                @keyup.enter="emitApply"
+                v-model="inputValue"
+                type="text"
+                :placeholder="placeholder"
+                :maxlength="max"
+                :minlength="min"
+                class="input input-bordered input-sm"
+            />
+            <div class="h-5 mt-1 text-error text-xs">
+                <span :class="IPNotValid ? '' : 'opacity-0'">{{ errorText }}</span>
+            </div>
         </div>
     </div>
 </template>
@@ -22,18 +35,16 @@
 
 export default {
     props: {
-        label: {
-            type: Number,
-            default: 'MAC'
-        },
-        placeholder: {
-            type: String,
-            default: 'Type here'
-        },
-        value: {
-            type: String,
-            default: ''
-        }
+        label: { type: String, default: 'Host or IP' },
+        placeholder: { type: String, default: '' },
+        value: { type: String, default: '' },
+        description: { type: String, default: '' },
+        help: { type: String, default: '' },
+        required: { type: Boolean, default: false },
+        disabled: { type: Boolean, default: false },
+        type: { type: String, default: 'text' },
+        max: { type: Number, default: 253 },
+        min: { type: Number, default: null },
 
     },
 
@@ -50,31 +61,55 @@ export default {
     data() {
         return {
             inputValue: this.value,
-            IPNotValid: false
+            IPNotValid: false,
+            errorText: 'Invalid host or IP!'
         }
     },
 
     methods: {
-        format() {
+        focusInput() {},
+        onInput() {
+            // live formatting: replace a trailing space with a dot
             this.IPNotValid = false;
-
-            let value = this.inputValue;
-            
-            if(value[value.length - 1] == ' ') {
-                return this.inputValue = value.replace(' ', '.');
+            let value = this.inputValue || '';
+            if (value.length > 0 && value[value.length - 1] === ' ') {
+                this.inputValue = value.replace(' ', '.');
+                return;
             }
-
-            this.inputValue = value;
         },
 
-        isValidIP(ip) {
+        isValidIPv4(ip) {
             let regex = /^((25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9])(\.(?!$)|$)){4}$/;
             return regex.test(ip);
         },
+        isValidHostname(host) {
+            if (!host) return false;
+            let value = String(host).trim();
+            if (value === '') return false;
+            if (value.toLowerCase() === 'localhost') return true;
+            if (value.endsWith('.')) value = value.slice(0, -1);
+            if (value.length > 253) return false;
+            const labels = value.split('.');
+            for (let i = 0; i < labels.length; i++) {
+                const label = labels[i];
+                if (label.length < 1 || label.length > 63) return false;
+                if (!/^[a-zA-Z0-9-]+$/.test(label)) return false;
+                if (label.startsWith('-') || label.endsWith('-')) return false;
+                if (/^\d+$/.test(label) && i === labels.length - 1) {
+                    // avoid all-numeric TLDs
+                    return false;
+                }
+            }
+            return true;
+        },
 
-        emitValue(event) {
-            if(!this.isValidIP(event.target.value)) return this.IPNotValid = true;
-            this.$emit('apply', event.target.value);
+        emitApply() {
+            const value = (this.inputValue || '').trim();
+            if (!(this.isValidIPv4(value) || this.isValidHostname(value))) {
+                this.IPNotValid = true;
+                return;
+            }
+            this.$emit('apply', value);
         },
     },
 }
