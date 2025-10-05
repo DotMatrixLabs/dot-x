@@ -6,6 +6,7 @@ import Switch from './Switch.vue';
 import ActionButton from './ActionButton.vue';
 import ActionLink from './ActionLink.vue';
 import TextDisplay from './TextDisplay.vue';
+import Badge from './Badge.vue';
 import PasswordInput from './PasswordInput.vue';
 import DateTimePicker from './DateTimePicker.vue';
 // import IPInput from './IPInput.vue';
@@ -37,6 +38,7 @@ export const componentRegistry: Record<string, any> = {
 
   // Display-only
   text_display: TextDisplay,
+  badge: Badge,
 
   // Specialized inputs
   datetime: DateTimePicker,

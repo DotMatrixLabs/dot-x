@@ -1,4 +1,4 @@
-import type { SettingsSections, InputField, ButtonField, SwitchField, SettingsComponent, TextField } from './types';
+import type { SettingsSections, InputField, ButtonField, SwitchField, SettingsComponent, TextField, BadgeField } from './types';
 
 export type UISection = { title: string; components: SettingsComponent[] };
 
@@ -104,6 +104,23 @@ export class SettingsBuilder {
     const component: SettingsComponent = { key, ...(field as any) };
     section.components.push(component);
     return new TextFieldHandle(component, this.createNotifier());
+  }
+
+  /**
+   * Adds a display badge field.
+   */
+  addBadge(key: string): BadgeFieldHandle {
+    const field: BadgeField = {
+      type: 'badge',
+      label: '',
+      text: '',
+      style: 'default',
+    } as BadgeField;
+
+    const section = this.ensureCurrentSection();
+    const component: SettingsComponent = { key, ...(field as any) };
+    section.components.push(component);
+    return new BadgeFieldHandle(component, this.createNotifier());
   }
   /**
    * Returns the constructed SettingsSchema.
@@ -348,6 +365,40 @@ class TextFieldHandle {
   }
 
   assign(props: Partial<TextField>): this {
+    Object.assign(this.component as any, props);
+    this.notifyChange?.();
+    return this;
+  }
+}
+
+class BadgeFieldHandle {
+  constructor(private component: SettingsComponent, private notifyChange?: () => void) {}
+
+  setText(text: string): this {
+    (this.component as any).text = text;
+    this.notifyChange?.();
+    return this;
+  }
+
+  setStyle(style: BadgeField['style']): this {
+    (this.component as any).style = style;
+    this.notifyChange?.();
+    return this;
+  }
+
+  setLabel(label: string): this {
+    (this.component as any).label = label;
+    this.notifyChange?.();
+    return this;
+  }
+
+  setDesc(description: string): this {
+    (this.component as any).description = description;
+    this.notifyChange?.();
+    return this;
+  }
+
+  assign(props: Partial<BadgeField>): this {
     Object.assign(this.component as any, props);
     this.notifyChange?.();
     return this;
