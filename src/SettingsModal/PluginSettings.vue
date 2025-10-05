@@ -79,113 +79,58 @@ import EventBus from '../js/eventBus';
             return resolveUi(type);
           },
 
+          // Pass through all component-defined props and inject current value
           buildComponentProps(comp) {
-            const common = {};
-            if (comp.type === 'text' || comp.type === 'number' || comp.type === 'ip_address' || comp.type === 'mac_address') {
-              return {
-                ...common,
-                disabled: comp.disabled,
-                value: this.formValues[comp.key],
-                label: comp.label,
-                description: comp.description,
-                placeholder: comp.placeholder,
-                type: comp.type,
-                max: comp.max,
-                min: comp.min
-              };
+            if (!comp || typeof comp !== 'object') return {};
+
+            // Avoid binding Vue's special key attribute as a prop
+            const { key: compKey, ...props } = comp;
+
+            // Inject live value from form state when a key is provided
+            if (compKey) {
+              if (comp.type === 'switch') {
+                props.value = !!this.formValues[compKey];
+              } else {
+                props.value = this.formValues[compKey];
+              }
             }
-            if (comp.type === 'select') {
-              return {
-                ...common,
-                disabled: comp.disabled,
-                value: this.formValues[comp.key],
-                label: comp.label,
-                options: comp.options || [],
-              };
+
+            // Provide safe defaults for common collections
+            if (comp.type === 'select' && !Array.isArray(props.options)) {
+              props.options = [];
             }
-            if (comp.type === 'number_select') {
-              return {
-                ...common,
-                label: comp.label,
-                disabled: comp.disabled,
-                value: this.formValues[comp.key],
-                max: comp.max,
-                min: comp.min,
-                step: comp.step,
-                unit: comp.unit,
-              };
-            }
-            if (comp.type === 'switch') {
-              return {
-                ...common,
-                label: comp.label,
-                disabled: comp.disabled,
-                value: !!this.formValues[comp.key],
-              };
-            }
-            if (comp.type === 'button') {
-              return {
-                ...common,
-                disabled: comp.disabled,
-                label: comp.label || 'Action',
-                buttonTitle: comp.label || 'Action',
-                buttonType: comp.style || 'primary',
-                valueToSend: comp.valueToSend,
-              };
-            }
-            return common;
+
+            return props;
           },
 
           buildComponentListeners(comp) {
-            if (comp.type === 'text' || comp.type === 'number') {
-              return {
-                apply: async (val) => {
-                  this.formValues[comp.key] = val;
-                  try {
-                    if (comp.onChangeActionId) {
-                      await pluginAPI.emitAction(this.plugin.id, comp.onChangeActionId, { value: val });
+            return {
+              apply: async (val) => {
+                try {
+                  // Update form state when a key is provided
+                  if (comp && comp.key) {
+                    if (comp.type === 'switch') {
+                      this.formValues[comp.key] = !!val;
+                    } else {
+                      this.formValues[comp.key] = val;
                     }
-                  } catch (e) {
-                    console.error('Failed to emit onChange action:', e);
                   }
-                },
-              };
-            }
-            if (comp.type === 'select' || comp.type === 'number_select') {
-              return {
-                apply: (val) => {
-                  this.formValues[comp.key] = val;
-                },
-              };
-            }
-            if (comp.type === 'switch') {
-              return {
-                apply: async (val) => {
-                  this.formValues[comp.key] = !!val;
-                  try {
-                    if (comp.onChangeActionId) {
-                      await pluginAPI.emitAction(this.plugin.id, comp.onChangeActionId, { value: !!val });
-                    }
-                  } catch (e) {
-                    console.error('Failed to emit onChange action:', e);
+
+                  // Fire on-change action with current value when configured
+                  if (comp && comp.onChangeActionId) {
+                    const payloadValue = comp.type === 'switch' ? !!val : val;
+                    await pluginAPI.emitAction(this.plugin.id, comp.onChangeActionId, { value: payloadValue });
                   }
-                },
-              };
-            }
-            if (comp.type === 'button') {
-              return {
-                apply: async () => {
-                  try {
-                    if (comp.actionId) {
-                      await pluginAPI.emitAction(this.plugin.id, comp.actionId);
-                    }
-                  } catch (e) {
-                    console.error('Failed to emit button action:', e);
+
+                  // Fire action for button components
+                  if (comp && comp.type === 'button' && comp.actionId) {
+                    await pluginAPI.emitAction(this.plugin.id, comp.actionId);
                   }
-                },
-              };
-            }
-            return {};
+                } catch (e) {
+                  console.error('Failed to handle apply event:', e);
+                }
+              }
+            };
           },
             
         },
