@@ -6,8 +6,8 @@
           <span v-if="description" class="label-text-alt opacity-60">{{ description }}</span>
         </div>
       </label>
-      <div class="w-1/2 ml-0 md:ml-1 flex flex-col">
-        <div :class="['badge', 'badge-sm', styleClass]">{{ displayedText }}</div>
+      <div class="w-1/2 ml-0 md:ml-1 flex flex-col items-end">
+        <div :class="['badge', styleClass]">{{ displayedText }}</div>
       </div>
     </div>
   </template>
