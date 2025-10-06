@@ -128,7 +128,7 @@ export default {
         ? this.logs.split('\n') 
         : [JSON.stringify(this.logs, null, 2)];
       
-      // Process lines and combine multi-line JSON or JS-object-like blocks (with unquoted keys)
+      // Process lines and combine multi-line JSON or JS-object-like blocks (with unquoted keys, trailing commas, function tokens)
       const processed = [];
       let i = 0;
       
@@ -181,19 +181,7 @@ export default {
           // Try to parse and format the complete JSON/JS-object-like block
           const combinedJson = jsonLines.join('\n');
           try {
-            let parsed;
-            try {
-              parsed = JSON.parse(combinedJson);
-            } catch (_e) {
-              // Attempt to convert JS-like object (unquoted keys) to valid JSON
-              // Quote keys that are not in quotes before a colon
-              const quotedKeys = combinedJson
-                .replace(/([\{\,\s])([A-Za-z_$][\w$-]*)\s*:/g, '$1"$2":')
-                .replace(/'([^']*)'/g, '"$1"');
-              parsed = JSON.parse(quotedKeys);
-            }
-
-            const pretty = JSON.stringify(parsed, null, 2);
+            const pretty = this.tryPrettifyJsonLike(combinedJson);
             const fullText = prefixText ? (prefixText + '\n' + pretty) : pretty;
             processed.push({
               text: fullText,
@@ -227,23 +215,13 @@ export default {
           try {
             if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || 
                 (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
-              const parsed = JSON.parse(trimmed);
-              displayText = JSON.stringify(parsed, null, 2);
+              displayText = this.tryPrettifyJsonLike(trimmed);
               isJson = true;
             } else if (firstBraceIdx >= 0) {
-              // Inline object after text on the same line, try to parse
+              // Inline object/array after text on the same line, try to parse
               const prefixText = cleanText.slice(0, firstBraceIdx).trimEnd();
               const candidate = cleanText.slice(firstBraceIdx);
-              let parsed;
-              try {
-                parsed = JSON.parse(candidate);
-              } catch (_e) {
-                const quotedKeys = candidate
-                  .replace(/([\{\,\s])([A-Za-z_$][\w$-]*)\s*:/g, '$1"$2":')
-                  .replace(/'([^']*)'/g, '"$1"');
-                parsed = JSON.parse(quotedKeys);
-              }
-              const pretty = JSON.stringify(parsed, null, 2);
+              const pretty = this.tryPrettifyJsonLike(candidate);
               displayText = prefixText ? (prefixText + '\n' + pretty) : pretty;
               isJson = true;
             }
@@ -287,6 +265,22 @@ export default {
     },
   },
   methods: {
+    tryPrettifyJsonLike(source) {
+      // Replace function tokens and unknown tokens to make it JSON-friendly
+      const sanitized = source
+        // Remove function bodies and placeholders like [Function (anonymous)] -> "<function>"
+        .replace(/\[Function\s*\([^\)]*\)\]/g, '"<function>"')
+        .replace(/\bundefined\b/g, 'null')
+        // Quote unquoted object keys before colon
+        .replace(/([\{\,\s])([A-Za-z_$][\w$-]*)\s*:/g, '$1"$2":')
+        // Normalize single quotes to double quotes
+        .replace(/'([^']*)'/g, '"$1"')
+        // Remove trailing commas before closing braces/brackets
+        .replace(/,\s*([}\]])/g, '$1');
+
+      const parsed = JSON.parse(sanitized);
+      return JSON.stringify(parsed, null, 2);
+    },
     async fetchLogs() {
       this.isLoading = true;
       try {
