@@ -253,6 +253,23 @@ export class PluginAPI {
     return settings.data;
   }
 
+  public async getPluginActions(pluginId: string) {
+    console.log('Getting actions for plugin:', pluginId);
+    const actions = await this.pluginRequest(pluginId, 'get_actions');
+    console.log('Actions received:', actions);
+    return actions.data;
+  }
+
+  public async getConnectedPlugins() {
+    try {
+      const plugins = await invoke('get_connected_plugins');
+      return plugins as Array<{ id: string; name: string; version: string; connected_at: string }>;
+    } catch (e) {
+      console.error('Failed to get connected plugins', e);
+      return [] as any[];
+    }
+  }
+
 }
 
 // Export as default for clean imports

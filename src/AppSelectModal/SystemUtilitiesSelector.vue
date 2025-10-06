@@ -1,7 +1,7 @@
 <template>
     <div class="flex flex-col gap-4 w-full h-64 overflow-y-scroll p-2">
         <div class="grid grid-cols-3 w-1/2 m-auto gap-4">
-            <div class="flex flex-col justify-center items-center" v-for="utility in utilities" :key="utility.id">
+            <div class="flex flex-col justify-center items-center" v-for="utility in mergedUtilities" :key="utility.id">
                 <button :disabled="(utility.id === 'output' && deviceSelectors.output.devices.length === 0) || (utility.id === 'input' && deviceSelectors.input.devices.length === 0)" @click="setActiveUtility(utility.id)" class="btn btn-circle"
                     :class="activeUtilities?.includes(utility.id) ? 'btn-primary' : ''">
                     <i :class="utility.icon"></i>
@@ -65,6 +65,7 @@
 <script>
 import SelectedApps from "../ts/appsToControl.ts";
 import SystemVolumeController from "../ts/volumeControl.ts";
+import pluginAPI from "../plugin-api/pluginAPI";
 
 export default {
     props: {
@@ -80,6 +81,7 @@ export default {
                 { title: "active window", icon: "fas fa-lg fa-window-maximize", id: "activeWindow"},
                 { title: "screen brightness", icon: "fas fa-lg fa-sun", id: "screen brightness"},
             ],
+            pluginButtons: [],
             activeUtilities: [],
             sessions: [],
             deviceSelectors: {
@@ -103,6 +105,12 @@ export default {
     },
 
     computed: {
+        mergedUtilities() {
+            return [
+                ...this.utilities,
+                ...(this.pluginButtons || []).map(btn => ({ id: btn.actionId || btn.id, title: btn.title || btn.id, icon: btn.icon || 'fas fa-lg fa-bolt', isPlugin: true, raw: btn }))
+            ];
+        },
         getDeviceDisplayCount() {
             return (type, selectedDevices) => {
                 let count = selectedDevices.length;                
@@ -119,13 +127,41 @@ export default {
     },
 
     methods: {
+        async loadPluginButtons() {
+            try {
+                // Load buttons from all connected plugins and flatten
+                const plugins = await pluginAPI.getConnectedPlugins();
+                const all = [];
+                for (const p of (plugins || [])) {
+                    const actions = await pluginAPI.getPluginActions(p.id);
+                    if (actions && actions.buttons && actions.buttons.length) {
+                        all.push(...actions.buttons.map(b => ({ ...b, pluginId: p.id })));
+                    }
+                }
+                this.pluginButtons = all;
+            } catch (e) {
+                console.error('Failed to load plugin slider actions', e);
+                this.pluginButtons = [];
+            }
+        },
         async setActiveUtility(utility) {
+            // If this is a plugin button (actionId) fire action to plugin
+            const pluginBtn = (this.pluginButtons || []).find(b => (b.actionId || b.id) === utility);
+            if (pluginBtn) {
+                try {
+                    await pluginAPI.emitAction(pluginBtn.pluginId, pluginBtn.actionId || pluginBtn.id);
+                } catch (e) {
+                    console.error('Failed to emit plugin action for slider button', e);
+                }
+                return;
+            }
+            
+            // default behavior for built-in utilities
             await SelectedApps.toggleApps(this.currentSliderID.toString(), utility);
             await this.getActiveUtilities();
 
-            // If output was just selected, check if we need to auto-select default device
+            // If output/input auto-select logic
             if (utility === 'output') {
-                //if output was deselected, remove all devices toggled, else select default device
                 if(!this.activeUtilities.some(item => item === 'output')){  
                     this.removeDevicesToggledApps('output');
                 } else {
@@ -133,9 +169,7 @@ export default {
                     await this.getActiveUtilities();
                 }
             }
-            // If input was just selected, check if we need to auto-select default device
             else if (utility === 'input') {
-                //if input was deselected, remove all devices toggled, else select default device
                 if(!this.activeUtilities.some(item => item === 'input')){
                     this.removeDevicesToggledApps('input');
                 } else {
@@ -143,8 +177,6 @@ export default {
                     await this.getActiveUtilities();
                 }
             }
-
-
         },
 
         async removeDevicesToggledApps(type){
@@ -323,6 +355,7 @@ export default {
         this.loadOutputDevices();
         this.loadInputDevices();
         this.setupDeviceUpdateInterval();
+        this.loadPluginButtons();
     },
     
     beforeUnmount() {

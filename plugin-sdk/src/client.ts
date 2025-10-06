@@ -1,5 +1,5 @@
 import { io, Socket } from 'socket.io-client';
-import type { SettingsSections, CreateSettingsParams, ToastParams } from './types';
+import type { SettingsSections, CreateSettingsParams, ToastParams, ActionMappings, SystemUtilButton } from './types';
 
 export interface PluginInfo {
   id: string;
@@ -46,6 +46,7 @@ export class APIClient {
   private isDestroyed = false;
   private connectionPromise: Promise<void>;
   private settingsSchema?: SettingsSections;
+  private actionMappings?: ActionMappings;
   
   constructor(pluginInfo: PluginInfo, config: ConnectionConfig = {}) {
     this.pluginInfo = pluginInfo;
@@ -126,6 +127,11 @@ export class APIClient {
             response = payload
               ? { success: true, data: payload, request_id, method }
               : { success: false, error: 'Settings not initialized', request_id, method };
+          } else if (method === 'get_actions') {
+            const payload = this.actionMappings;
+            response = payload
+              ? { success: true, data: payload, request_id, method }
+              : { success: true, data: { buttons: [] }, request_id, method };
           }
 
           ack(response);
@@ -355,6 +361,25 @@ export class APIClient {
     // Reset callbacks to avoid leaking stale handlers across schema updates
     this.actionCallbacks.clear();
     this.settingsSchema = this.prepareSectionedSchemaWithActionIds(schema);
+  }
+
+  // Slider Actions: store latest and register callbacks
+  public setActionMappings(actions: ActionMappings): void {
+    // Only reset callbacks for new registrations coming from slider actions
+    // Keep existing settings callbacks intact by not clearing the entire map
+    const prepared: ActionMappings = {
+      buttons: (actions.buttons || []).map((btn) => {
+        const copy: SystemUtilButton = { ...btn };
+        if (typeof copy.onClick === 'function') {
+          const actionId = `slider_action_${copy.id}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+          this.actionCallbacks.set(actionId, copy.onClick);
+          copy.actionId = actionId;
+          delete (copy as any).onClick;
+        }
+        return copy;
+      })
+    };
+    this.actionMappings = prepared;
   }
 
 }

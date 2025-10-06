@@ -1,7 +1,7 @@
 // dot-x-plugin/src/plugin.ts
 import { APIClient, PluginInfo, ConnectionConfig, SliderChanges } from './client';
 import type { PluginAPI } from './types';
-import { SettingsBuilder } from './ui';
+import { SettingsBuilder, ActionMapper } from './ui';
 import type { SettingsSections } from './types';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -11,6 +11,7 @@ import Conf from 'conf';
 class Plugin {
   // public settings: PluginAPI['settings'];
   public ui: PluginAPI['ui'];
+  public actionmapper: any;
   public config: PluginAPI['config'];
   private client: APIClient;
   private configStore?: Conf<Record<string, any>>;
@@ -19,6 +20,16 @@ class Plugin {
     this.client = new APIClient(pluginInfo, config);
     // this.settings = this.client.settings;
     this.ui = this.client.ui as any;
+
+    // SliderAction builder property behaving like a live builder
+    const actionMapperBuilder = new ActionMapper(() => {
+      const updated = actionMapperBuilder.build();
+      this.client.setActionMappings(updated);
+      this.client.notifySettingsUpdated();
+    });
+    // Enable live notifications so subsequent mutations push updates
+    actionMapperBuilder.enableNotifications();
+    this.actionmapper = actionMapperBuilder;
 
     // Register slider update callback to forward to plugin's onSlidersUpdate method
     this.client.setSliderUpdateCallback(async (data: SliderChanges) => {
