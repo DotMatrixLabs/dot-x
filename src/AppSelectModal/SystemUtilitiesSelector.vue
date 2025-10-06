@@ -136,7 +136,9 @@ export default {
                 for (const p of (plugins || [])) {
                     const actions = await pluginAPI.getPluginActions(p.id);
                     if (actions && actions.buttons && actions.buttons.length) {
+                        console.log('actions.buttons', actions.buttons);
                         all.push(...actions.buttons.map(b => ({ ...b, pluginId: p.id })));
+                        console.log('all', all);
                     }
                 }
                 this.pluginButtons = all;
@@ -147,7 +149,12 @@ export default {
         },
         getUtilityActiveClass(utility){
             if(utility.isPlugin){
-                return utility?.raw?.selected ? 'btn-primary' : '';
+                const btn = utility?.raw || {};
+                const channelKey = String(this.currentSliderID);
+                const selectedForChannel = btn?.selectedByChannel && typeof btn.selectedByChannel === 'object'
+                    ? !!btn.selectedByChannel[channelKey]
+                    : false;
+                return selectedForChannel ? 'btn-primary' : '';
             }
             return this.activeUtilities?.includes(utility.id) ? 'btn-primary' : '';
         },
@@ -156,11 +163,15 @@ export default {
             const pluginBtn = (this.pluginButtons || []).find(b => (b.actionId || b.id) === utility);
             if (pluginBtn) {
                 try {
-                    await pluginAPI.emitAction(pluginBtn.pluginId, pluginBtn.actionId || pluginBtn.id);
-                    // toggle local selected state for visual feedback if button represents a toggle
-                    if(typeof pluginBtn.selected === 'boolean'){
-                        pluginBtn.selected = !pluginBtn.selected;
-                    }
+                    const channelKey = String(this.currentSliderID);
+                    const currentlySelected = pluginBtn?.selectedByChannel && typeof pluginBtn.selectedByChannel === 'object'
+                        ? !!pluginBtn.selectedByChannel[channelKey]
+                        : false;
+                    await pluginAPI.emitAction(
+                        pluginBtn.pluginId,
+                        pluginBtn.actionId || pluginBtn.id,
+                        { selected: !currentlySelected, channel: this.currentSliderID }
+                    );
                 } catch (e) {
                     console.error('Failed to emit plugin action for slider button', e);
                 }

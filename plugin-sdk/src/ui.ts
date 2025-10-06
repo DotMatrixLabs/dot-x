@@ -224,8 +224,49 @@ class SystemUtilButtonHandle {
     return this;
   }
 
-  setSelected(selected: boolean): this {
-    this.button.selected = selected;
+  // Overload: set a single channel's selection
+  setSelected(selected: boolean, channel: number | string): this;
+  // Overload: set defaults for multiple channels using an array (index = channel)
+  setSelected(defaults: boolean[]): this;
+  // Overload: set defaults for multiple channels using a map
+  setSelected(defaults: Record<string | number, boolean>): this;
+  setSelected(
+    selectedOrMap: boolean | boolean[] | Record<string | number, boolean>,
+    channel?: number | string
+  ): this {
+    if (Array.isArray(selectedOrMap)) {
+      // Replace the entire per-channel map using array indices
+      const map: Record<string, boolean> = {};
+      for (let i = 0; i < selectedOrMap.length; i++) {
+        const v = !!selectedOrMap[i];
+        if (v) {
+          map[String(i)] = true;
+        }
+      }
+      this.button.selectedByChannel = map;
+      this.notifyChange?.();
+      return this;
+    }
+
+    if (typeof selectedOrMap === 'object') {
+      // Replace the entire per-channel map from provided object
+      const map: Record<string, boolean> = {};
+      for (const k in selectedOrMap) {
+        if (Object.prototype.hasOwnProperty.call(selectedOrMap, k)) {
+          map[String(k)] = !!(selectedOrMap as Record<string | number, boolean>)[k];
+        }
+      }
+      this.button.selectedByChannel = map;
+      this.notifyChange?.();
+      return this;
+    }
+
+    // Single channel update
+    const key = String(channel as string | number);
+    if (!this.button.selectedByChannel) {
+      this.button.selectedByChannel = {} as Record<string, boolean>;
+    }
+    (this.button.selectedByChannel as Record<string, boolean>)[key] = !!selectedOrMap;
     this.notifyChange?.();
     return this;
   }
