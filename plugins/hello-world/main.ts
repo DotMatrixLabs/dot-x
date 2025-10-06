@@ -105,7 +105,6 @@ export default class HelloWorldPlugin extends Plugin {
             this.settings.helloWorldChannels = [] as boolean[];
           }
           this.settings.helloWorldChannels[channel] = selected;
-          console.log('this.settings.helloWorldChannels', this.settings.helloWorldChannels);
           helloWorldButton.setSelected(this.settings.helloWorldChannels || []);
           this.saveSettings();
           this.ui.showToast({ message: 'Hello from Slider Action!', type: 'success' });
