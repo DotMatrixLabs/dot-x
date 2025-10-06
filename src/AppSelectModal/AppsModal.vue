@@ -30,7 +30,7 @@
 <script>
 // import BoardManager from "../../js/boardManager.js";
 // import StorageHandler from "../../js/storage.mjs";
-import { useToast } from "vue-toastification";
+import { toast } from 'vue-sonner';
 
 import _ from "lodash";
 // import LoadingSpinner from "../assets/loadingSpinner.vue";
@@ -42,9 +42,6 @@ import config from "../ts/config";
 import Settings from "./Settings.vue";
 
 // import { useMicrophoneStore } from "../store/microphoneStore";
-
-
-const toast = useToast();
 
 
 // const boardManager = new BoardManager();

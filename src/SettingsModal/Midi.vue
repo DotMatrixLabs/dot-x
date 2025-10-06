@@ -27,13 +27,11 @@
 </template>
 
 <script>
-import { useToast } from "vue-toastification";
+import { toast } from 'vue-sonner';
 import Decker from "../ts/decker.ts";
 import ConfigStore from "../ts/config.ts";
 import decker from "../ts/decker.ts";
 import { trackEvent } from "@aptabase/tauri";
-
-const toast = useToast();
 
 
 export default {
