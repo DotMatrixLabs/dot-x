@@ -16,6 +16,19 @@ export default class HelloWorldPlugin extends Plugin {
       await this.createSettingsPage((settings) => {
         settings.addSection('General');
 
+
+        const connectionStatus = settings.addBadge('connectionStatus')
+          .setLabel('Connection Status')
+          .setText(this.settings?.connectionStatus || 'Disconnected')
+          .setDesc('This connection status is used by the plugin when needed.')
+          .setStyle('success')
+
+        const currentTime = settings.addText('currentTime')
+          .setLabel('Current Time')
+          .setText(new Date().toLocaleTimeString())
+          .setDesc('This is the current time.')
+          .setStyle('info')
+
         const greeting = settings.addInput('customGreeting')
           .setType('ip_address')
           .setLabel('Broker IP')
