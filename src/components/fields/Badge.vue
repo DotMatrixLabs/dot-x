@@ -1,12 +1,12 @@
 <template>
-    <div class="w-full flex flex-col md:flex-row max-w-sm md:max-w-lg m-auto items-center justify-between">
+    <div class="w-full flex flex-row max-w-lg m-auto items-center justify-between">
       <label class="label w-1/3">
         <div class="flex flex-col">
           <span class="label-text">{{ label }}</span>
           <span v-if="description" class="label-text-alt opacity-60">{{ description }}</span>
         </div>
       </label>
-      <div class="w-1/2 ml-0 md:ml-1 flex flex-col items-end">
+      <div class="w-1/2 ml-0 flex flex-col items-end">
         <div :class="['badge', styleClass]">{{ displayedText }}</div>
       </div>
     </div>

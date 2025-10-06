@@ -1,9 +1,9 @@
 <template>
-  <div class="w-full flex flex-col md:flex-row max-w-sm md:max-w-lg m-auto">
+  <div class="w-full flex flex-row max-w-lg m-auto">
     <label class="label mx-2 w-full">
       <span class="label-text">{{ label }}</span>
     </label>
-    <select @change="emitValue" v-model="inputValue" class="select select-bordered w-full ml-0 md:ml-5">
+    <select @change="emitValue" v-model="inputValue" class="select select-bordered w-full ml-0">
       <template v-for="number in numbers" :key="number">
         <option class="px-2 text-xl cursor-pointer rounded-lg w-24 h-8" :value="number">{{ number }}{{unit}}</option>
       </template>

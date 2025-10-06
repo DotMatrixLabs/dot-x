@@ -1,5 +1,5 @@
 <template>
-    <div class="w-full flex flex-col md:flex-row max-w-sm md:max-w-lg m-auto">
+    <div class="w-full flex flex-row max-w-lg m-auto">
         <label class="label w-full mx-2">
             <span class="label-text">{{ label }}</span>
         </label>
@@ -11,7 +11,7 @@
             <div class="modal-box realtive">
 
                 <label for="arrayList" class="btn btn-sm btn-circle absolute right-2 top-2">✕</label>
-                <h3 class="text-base md:text-xl lg:text-3xl font-bold text-center pb-6">{{ label }}</h3>
+                <h3 class="text-base font-bold text-center pb-6">{{ label }}</h3>
                 <div class="flex flex-col justify-center items-center text-sm">
                     <SlickList @update:list="sendList" axis="y" class="z-50" v-model:list="sortedList">
                         <SlickItem class="slickItem bg-secondary text-white w-full" v-for="(option, i) in sortedList"
