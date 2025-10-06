@@ -74,6 +74,15 @@ export default class MyPlugin extends Plugin {
       message: "Plugin loaded!",
       type: "success"
     });
+
+    // Register a system utility button via actionmapper (works for sliders, knobs, buttons)
+    this.actionmapper
+      .addSystemUtilButton('myAction')
+      .setTitle('Do Thing')
+      .setIcon('fas fa-lg fa-bolt')
+      .onClick(() => {
+        this.ui.showToast({ message: 'My Action clicked!', type: 'info' });
+      });
   }
   
   async onUnload() {
@@ -413,6 +422,23 @@ Check if the plugin is connected and ready.
 const connected = this.isConnected();
 // Returns: boolean
 ```
+
+### Action Mapper (System Utilities)
+
+Expose plugin-defined buttons inside the System Utilities tab using the `actionmapper` property. Actions are control-agnostic (sliders, knobs, buttons).
+
+```typescript
+// Inside your plugin's onLoad()
+this.actionmapper
+  .addSystemUtilButton('myAction')
+  .setTitle('Do Thing')
+  .setIcon('fas fa-lg fa-bolt')
+  .onClick(() => {
+    this.ui.showToast({ message: 'My Action clicked!', type: 'info' });
+  });
+```
+
+Type: SystemUtilButton { id: string; title: string; icon?: string; onClick?: () => void }
 
 ## Development
 

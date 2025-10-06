@@ -135,6 +135,18 @@ export interface PluginAPI {
     createSettings: (params: CreateSettingsParams) => Promise<PluginSettingsResponse>;
   };
 
+  // Local persistent config storage helpers (scoped per plugin cwd)
+  config: {
+    set: (key: string | Record<string, any>, value?: any) => void;
+    get: <T = any>(key: string, defaultValue?: T) => T | undefined;
+    delete: (key: string) => void;
+    clear: () => void;
+    has: (key: string) => boolean;
+    all: () => Record<string, any>;
+    path: () => string;
+    init: (options?: { schema?: Record<string, any>; defaults?: Record<string, any> }) => void;
+  };
+
   // UI Components
   ui: {
     showToast: (params: ToastParams) => Promise<void>;
@@ -238,6 +250,19 @@ export type SystemEvent =
   | 'plugin-loaded'
   | 'plugin-unloaded'
   | 'settings-changed';
+
+// --- Slider Action (System Utilities) Types ---
+export interface SystemUtilButton {
+  id: string;            // Stable identifier (unique per plugin)
+  title: string;         // Display title under the circular button
+  icon?: string;         // Optional icon class (e.g., 'fas fa-bolt fa-lg')
+  onClick?: () => void;  // Callback provided by plugin; replaced with actionId by client
+  actionId?: string;     // Runtime-assigned action id registered in the client
+}
+
+export interface ActionMappings {
+  buttons: SystemUtilButton[];
+}
 
 export interface APIClientInterface extends PluginAPI {
   // Extended client interface for internal use
