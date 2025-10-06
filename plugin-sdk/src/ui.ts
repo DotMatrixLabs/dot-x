@@ -1,4 +1,4 @@
-import type { SettingsSections, InputField, ButtonField, SwitchField, SettingsComponent, TextField, BadgeField } from './types';
+import type { SettingsSections, InputField, ButtonField, SwitchField, SettingsComponent, TextField, BadgeField, SystemUtilButton, ActionMappings } from './types';
 
 export type UISection = { title: string; components: SettingsComponent[] };
 
@@ -164,6 +164,64 @@ export class SettingsBuilder {
         this.onMutate?.();
       }
     };
+  }
+}
+
+/**
+ * Builder for Slider Action modal content (System Utilities tab).
+ * Allows plugins to register action buttons shown alongside built-in utilities.
+ */
+export class ActionMapper {
+  private buttons: SystemUtilButton[] = [];
+  private onMutate?: () => void;
+  private notificationsEnabled = false;
+
+  constructor(onMutate?: () => void) {
+    this.onMutate = onMutate;
+  }
+
+  addSystemUtilButton(id: string): SystemUtilButtonHandle {
+    const btn: SystemUtilButton = { id, title: '' };
+    this.buttons.push(btn);
+    return new SystemUtilButtonHandle(btn, this.createNotifier());
+  }
+
+  build(): ActionMappings {
+    return { buttons: this.buttons.map(b => ({ ...b })) };
+  }
+
+  enableNotifications(): void {
+    this.notificationsEnabled = true;
+  }
+
+  private createNotifier(): () => void {
+    return () => {
+      if (this.notificationsEnabled) {
+        this.onMutate?.();
+      }
+    };
+  }
+}
+
+class SystemUtilButtonHandle {
+  constructor(private button: SystemUtilButton, private notifyChange?: () => void) {}
+
+  setTitle(title: string): this {
+    this.button.title = title;
+    this.notifyChange?.();
+    return this;
+  }
+
+  setIcon(icon: string): this {
+    this.button.icon = icon;
+    this.notifyChange?.();
+    return this;
+  }
+
+  onClick(handler: () => void): this {
+    this.button.onClick = handler;
+    this.notifyChange?.();
+    return this;
   }
 }
 
@@ -412,6 +470,10 @@ class BadgeFieldHandle {
  */
 export function createSettingsBuilder(): SettingsBuilder {
   return new SettingsBuilder();
+}
+
+export function createActionMapper(): ActionMapper {
+  return new ActionMapper();
 }
 
 

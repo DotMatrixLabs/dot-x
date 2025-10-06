@@ -90,6 +90,16 @@ export default class HelloWorldPlugin extends Plugin {
       });
       
       console.log("Plugin settings created successfully!");
+
+      // Register a system utility button using the live builder on the Plugin instance
+      this.actionmapper
+        .addSystemUtilButton('helloWorld')
+        .setTitle('Hello')
+        .setIcon('fas fa-lg fa-bolt')
+        .onClick(() => {
+          console.log('[HelloWorld] Slider action button clicked');
+          this.ui.showToast({ message: 'Hello from Slider Action!', type: 'success' });
+        });
       
     } catch (error) {
       console.error("Error during plugin initialization:", error);
