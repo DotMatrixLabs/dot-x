@@ -1,12 +1,12 @@
 <template>
     <div class="flex flex-col gap-4 w-full h-64 overflow-y-scroll p-2">
-        <div class="grid grid-cols-3 w-1/2 m-auto gap-4">
-            <div class="flex flex-col justify-center items-center" v-for="utility in mergedUtilities" :key="utility.id">
+        <div class="grid grid-cols-3 w-1/2 m-auto gap-2">
+            <div class="flex flex-col justify-start items-center" v-for="utility in mergedUtilities" :key="utility.id">
                 <button :disabled="(utility.id === 'output' && deviceSelectors.output.devices.length === 0) || (utility.id === 'input' && deviceSelectors.input.devices.length === 0)" @click="setActiveUtility(utility.id)" class="btn btn-circle"
                     :class="getUtilityActiveClass(utility)">
                     <i :class="utility.icon"></i>
                 </button>
-                <span class="text-base-content text-xs text-center capitalize my-1"> {{ utility.title }}</span>
+                <span class="text-base-content text-xs text-center capitalize my-1 h-10"> {{ utility.title }}</span>
             </div>
         </div>
 
