@@ -3,7 +3,7 @@
         <div class="grid grid-cols-3 w-1/2 m-auto gap-4">
             <div class="flex flex-col justify-center items-center" v-for="utility in mergedUtilities" :key="utility.id">
                 <button :disabled="(utility.id === 'output' && deviceSelectors.output.devices.length === 0) || (utility.id === 'input' && deviceSelectors.input.devices.length === 0)" @click="setActiveUtility(utility.id)" class="btn btn-circle"
-                    :class="activeUtilities?.includes(utility.id) ? 'btn-primary' : ''">
+                    :class="getUtilityActiveClass(utility)">
                     <i :class="utility.icon"></i>
                 </button>
                 <span class="text-base-content text-xs text-center capitalize my-1"> {{ utility.title }}</span>
@@ -66,6 +66,7 @@
 import SelectedApps from "../ts/appsToControl.ts";
 import SystemVolumeController from "../ts/volumeControl.ts";
 import pluginAPI from "../plugin-api/pluginAPI";
+import EventBus from "../js/eventBus.js";
 
 export default {
     props: {
@@ -144,12 +145,22 @@ export default {
                 this.pluginButtons = [];
             }
         },
+        getUtilityActiveClass(utility){
+            if(utility.isPlugin){
+                return utility?.raw?.selected ? 'btn-primary' : '';
+            }
+            return this.activeUtilities?.includes(utility.id) ? 'btn-primary' : '';
+        },
         async setActiveUtility(utility) {
             // If this is a plugin button (actionId) fire action to plugin
             const pluginBtn = (this.pluginButtons || []).find(b => (b.actionId || b.id) === utility);
             if (pluginBtn) {
                 try {
                     await pluginAPI.emitAction(pluginBtn.pluginId, pluginBtn.actionId || pluginBtn.id);
+                    // toggle local selected state for visual feedback if button represents a toggle
+                    if(typeof pluginBtn.selected === 'boolean'){
+                        pluginBtn.selected = !pluginBtn.selected;
+                    }
                 } catch (e) {
                     console.error('Failed to emit plugin action for slider button', e);
                 }
@@ -356,12 +367,22 @@ export default {
         this.loadInputDevices();
         this.setupDeviceUpdateInterval();
         this.loadPluginButtons();
+
+        // Listen for plugin action updates to refresh action buttons
+        this._actionsUpdatedHandler = ({ pluginId }) => {
+            // We currently refresh all plugin buttons for simplicity
+            this.loadPluginButtons();
+        };
+        EventBus.on('plugin:actionsUpdated', this._actionsUpdatedHandler);
     },
     
     beforeUnmount() {
         // Clean up interval when component is destroyed
         if (this.deviceUpdateInterval) {
             clearInterval(this.deviceUpdateInterval);
+        }
+        if (this._actionsUpdatedHandler) {
+            EventBus.off('plugin:actionsUpdated', this._actionsUpdatedHandler);
         }
     },
 }

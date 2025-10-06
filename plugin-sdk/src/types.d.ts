@@ -258,6 +258,7 @@ export interface SystemUtilButton {
   icon?: string;         // Optional icon class (e.g., 'fas fa-bolt fa-lg')
   onClick?: () => void;  // Callback provided by plugin; replaced with actionId by client
   actionId?: string;     // Runtime-assigned action id registered in the client
+  selected?: boolean;    // Optional selection state to render as active in UI
 }
 
 export interface ActionMappings {
