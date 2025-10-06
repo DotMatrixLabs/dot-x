@@ -386,9 +386,9 @@ export class APIClient {
           copy.actionId = actionId;
           delete (copy as any).onClick;
         }
-        // Persist selected state if provided
-        if (typeof btn.selected === 'boolean') {
-          copy.selected = !!btn.selected;
+        // Preserve per-channel selection map if provided
+        if (btn.selectedByChannel && typeof btn.selectedByChannel === 'object') {
+          copy.selectedByChannel = { ...btn.selectedByChannel } as Record<string, boolean>;
         }
         return copy;
       })

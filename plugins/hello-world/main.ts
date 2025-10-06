@@ -91,13 +91,23 @@ export default class HelloWorldPlugin extends Plugin {
       
       console.log("Plugin settings created successfully!");
 
-      // Register a system utility button using the live builder on the Plugin instance
-      this.actionmapper
+
+      const helloWorldButton = this.actionmapper
         .addSystemUtilButton('helloWorld')
         .setTitle('Hello')
         .setIcon('fas fa-lg fa-bolt')
-        .onClick(() => {
-          console.log('[HelloWorld] Slider action button clicked');
+        .setSelected(this.settings?.helloWorldChannels || [])
+        .onClick(({selected, channel}) => {
+          console.log('selected', selected);
+          console.log('channel', channel);
+          channel = Number(channel);
+          if (!Array.isArray(this.settings.helloWorldChannels)) {
+            this.settings.helloWorldChannels = [] as boolean[];
+          }
+          this.settings.helloWorldChannels[channel] = selected;
+          console.log('this.settings.helloWorldChannels', this.settings.helloWorldChannels);
+          helloWorldButton.setSelected(this.settings.helloWorldChannels || []);
+          this.saveSettings();
           this.ui.showToast({ message: 'Hello from Slider Action!', type: 'success' });
         });
       
