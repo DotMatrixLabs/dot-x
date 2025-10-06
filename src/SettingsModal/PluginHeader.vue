@@ -51,17 +51,12 @@
     </div>
 
     <!-- Logs Modal -->
-    <div v-if="showLogs" class="modal modal-open">
-      <div class="modal-box max-w-3xl h-[70vh]">
-        <h3 class="font-bold text-lg">{{ plugin?.name || plugin?.id }} Logs</h3>
-        <div class="mt-2 h-[55vh] overflow-auto bg-base-300 text-base-content p-3 rounded">
-          <pre class="text-xs whitespace-pre-wrap">{{ logsText }}</pre>
-        </div>
-        <div class="modal-action">
-          <button class="btn btn-ghost" @click="showLogs = false">Close</button>
-        </div>
-      </div>
-    </div>
+    <PluginLogsModal 
+      :is-open="showLogs" 
+      :plugin-id="plugin?.id" 
+      :plugin-name="plugin?.name || plugin?.id"
+      @close="showLogs = false"
+    />
 
   </div>
   
@@ -72,9 +67,13 @@ import { invoke } from '@tauri-apps/api/tauri';
 import { mapState } from 'pinia';
 import { useStore } from '../store/store';
 import { useToast } from 'vue-toastification';
+import PluginLogsModal from '../components/PluginLogsModal.vue';
 
 export default {
   name: 'PluginHeader',
+  components: {
+    PluginLogsModal,
+  },
   props: {
     plugin: {
       type: Object,
@@ -84,7 +83,6 @@ export default {
   data() {
     return {
       showLogs: false,
-      logsText: 'Loading logs...\nIf nothing appears, logs may not be available for this plugin.',
     };
   },
   computed: {
@@ -155,19 +153,8 @@ export default {
     
   },
   methods: {
-    async openLogs() {
+    openLogs() {
       this.showLogs = true;
-      try {
-        // Attempt backend log fetch if available
-        const maybe = await invoke('get_plugin_logs', { pluginId: this.plugin.id });
-        if (maybe) {
-          this.logsText = typeof maybe === 'string' ? maybe : JSON.stringify(maybe, null, 2);
-        } else {
-          this.logsText = 'No logs available.';
-        }
-      } catch (_e) {
-        this.logsText = 'No logs available.';
-      }
       this.$emit('logs-opened', { id: this.plugin.id });
     },
     async restartPlugin() {

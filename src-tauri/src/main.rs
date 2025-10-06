@@ -621,6 +621,8 @@ fn main() {
             plugin_runtime::stop_plugin,
             plugin_runtime::restart_plugin,
             plugin_runtime::start_enabled_plugins,
+            plugin_runtime::get_plugin_logs,
+            plugin_runtime::clear_plugin_logs,
             list_installed_plugins,
             get_plugins_folder,
             open_plugins_folder
