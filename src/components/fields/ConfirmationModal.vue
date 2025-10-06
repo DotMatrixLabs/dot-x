@@ -1,5 +1,5 @@
 <template>
-    <div class="w-full flex flex-col md:flex-row max-w-sm md:max-w-lg m-auto">
+    <div class="w-full flex flex-row max-w-lg m-auto">
         <label class="label mx-2 w-full">
             <span class="label-text">{{ label }}</span>
         </label>
