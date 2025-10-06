@@ -25,7 +25,7 @@ class Plugin {
     const actionMapperBuilder = new ActionMapper(() => {
       const updated = actionMapperBuilder.build();
       this.client.setActionMappings(updated);
-      this.client.notifySettingsUpdated();
+      this.client.notifyActionsUpdated();
     });
     // Enable live notifications so subsequent mutations push updates
     actionMapperBuilder.enableNotifications();
