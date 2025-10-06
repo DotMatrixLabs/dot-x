@@ -10,7 +10,7 @@
         <div for="passwordField" class="modal">
             <div class="modal-box realtive">
                 <label @click="pin = ''" for="passwordField" class="btn btn-sm btn-circle absolute right-2 top-2">✕</label>
-                <h3 class="text-base md:text-xl lg:text-3xl font-bold text-center pb-6">{{ options.title }}</h3>
+                <h3 class="text-base font-bold text-center pb-6">{{ options.title }}</h3>
                 <div class="flex flex-col justify-center items-center text-sm">
                     <div class="max-w-sm mx-auto flex flex-col">
 

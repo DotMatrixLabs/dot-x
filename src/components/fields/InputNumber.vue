@@ -1,5 +1,5 @@
 <template>
-    <div :class="disabled ? 'opacity-50' : ''" class="w-full flex flex-col md:flex-row max-w-sm md:max-w-lg m-auto items-center justify-between">
+    <div :class="disabled ? 'opacity-50' : ''" class="w-full flex flex-row max-w-lg m-auto items-center justify-between">
         <label class="label w-1/3">
             <div class="flex flex-col">
                 <span class="label-text">
@@ -10,7 +10,7 @@
                 <span v-if="help" class="label-text-alt opacity-60">{{ help }}</span>
             </div>
         </label>
-        <div class="w-1/2 ml-0 md:ml-1 flex flex-col">
+        <div class="w-1/2 ml-0 flex flex-col">
             <input
                 :disabled="disabled"
                 :min="min"

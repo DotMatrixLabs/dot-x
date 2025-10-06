@@ -1,5 +1,5 @@
 <template>
-  <div class="w-full flex flex-col md:flex-row max-w-sm md:max-w-lg">
+  <div class="w-full flex flex-row max-w-lg">
     <div class="label w-full flex flex-row justify-between items-center">
       <div class="flex flex-col">
         <span class="label-text">{{ label || buttonTitle }}</span>
