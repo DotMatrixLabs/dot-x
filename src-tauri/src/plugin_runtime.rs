@@ -1,16 +1,22 @@
-use std::{ collections::HashMap, fs, path::{Path, PathBuf}, };
+use std::{ collections::{HashMap, VecDeque}, fs, path::{Path, PathBuf}, };
 use log::{error, info};
 use once_cell::sync::OnceCell;
 use serde_json::Value;
 use std::sync::Arc;
 use tauri::{AppHandle, Manager};
-use tokio::{process::Command, sync::RwLock, io::{AsyncBufReadExt, BufReader}};
+use tokio::{process::Command, sync::RwLock, io::{AsyncBufReadExt, BufReader, AsyncWriteExt, AsyncRead}};
+use tokio::fs as async_fs;
+use chrono::Local;
 
 // Global process table: plugin_id -> Child process
 static PROCESS_TABLE: OnceCell<Arc<RwLock<HashMap<String, tokio::process::Child>>>> = OnceCell::new();
 
 // Global logs table: plugin_id -> captured logs (stdout + stderr)
-static LOGS_TABLE: OnceCell<Arc<RwLock<HashMap<String, Vec<String>>>>> = OnceCell::new();
+static LOGS_TABLE: OnceCell<Arc<RwLock<HashMap<String, VecDeque<String>>>>> = OnceCell::new();
+
+const MAX_LOG_LINES: usize = 5000; // per plugin in-memory
+const MAX_LOG_FILE_BYTES: u64 = 5 * 1024 * 1024; // 5MB per plugin log file
+const MAX_LOG_BACKUPS: u8 = 2; // plugin.log.1 .. plugin.log.3
 
 fn process_table() -> Arc<RwLock<HashMap<String, tokio::process::Child>>> {
   PROCESS_TABLE
@@ -18,10 +24,97 @@ fn process_table() -> Arc<RwLock<HashMap<String, tokio::process::Child>>> {
     .clone()
 }
 
-fn logs_table() -> Arc<RwLock<HashMap<String, Vec<String>>>> {
+fn logs_table() -> Arc<RwLock<HashMap<String, VecDeque<String>>>> {
   LOGS_TABLE
     .get_or_init(|| Arc::new(RwLock::new(HashMap::new())))
     .clone()
+}
+
+fn make_backup_path(base: &Path, index: u8) -> PathBuf {
+  let mut s = base.to_string_lossy().to_string();
+  s.push('.');
+  s.push_str(&index.to_string());
+  PathBuf::from(s)
+}
+
+async fn rotate_logs_if_needed(log_path: &Path) -> Result<(), String> {
+  if let Ok(meta) = async_fs::metadata(log_path).await {
+    if meta.len() <= MAX_LOG_FILE_BYTES { return Ok(()); }
+  } else {
+    return Ok(());
+  }
+
+  // Remove oldest backup
+  let oldest = make_backup_path(log_path, MAX_LOG_BACKUPS);
+  let _ = async_fs::remove_file(&oldest).await;
+
+  // Shift backups
+  let mut idx = MAX_LOG_BACKUPS;
+  while idx > 1 {
+    let src = make_backup_path(log_path, idx - 1);
+    let dst = make_backup_path(log_path, idx);
+    if async_fs::metadata(&src).await.is_ok() {
+      let _ = async_fs::rename(&src, &dst).await;
+    }
+    idx -= 1;
+  }
+
+  if async_fs::metadata(log_path).await.is_ok() {
+    let _ = async_fs::rename(log_path, make_backup_path(log_path, 1)).await;
+  }
+
+  let _ = async_fs::File::create(log_path).await.map_err(|e| format!("Failed to create new log file: {}", e))?;
+  Ok(())
+}
+
+async fn append_log_line_to_file(dir: &Path, kind: &str, line: &str) -> Result<(), String> {
+  let path = dir.join("plugin.log");
+  let mut file = async_fs::OpenOptions::new()
+    .create(true)
+    .append(true)
+    .open(&path)
+    .await
+    .map_err(|e| format!("Open log file failed: {}", e))?;
+
+  let timestamp = Local::now().format("%Y-%m-%d %H:%M:%S%.3f");
+  let to_write = format!("[{}] [{}] {}\n", timestamp, kind, line);
+  file.write_all(to_write.as_bytes()).await.map_err(|e| format!("Write log failed: {}", e))?;
+  file.flush().await.map_err(|e| format!("Flush log failed: {}", e))?;
+  drop(file);
+
+  rotate_logs_if_needed(&path).await
+}
+
+async fn push_memory_log(plugin_id: &str, line: String) {
+  let table = logs_table();
+  let mut map = table.write().await;
+  let entry = map.entry(plugin_id.to_string()).or_insert_with(|| VecDeque::with_capacity(MAX_LOG_LINES + 128));
+  entry.push_back(line);
+  if entry.len() > MAX_LOG_LINES {
+    let overflow = entry.len() - MAX_LOG_LINES;
+    for _ in 0..overflow { let _ = entry.pop_front(); }
+  }
+}
+
+fn spawn_log_task<R>(plugin_id: String, app_handle: AppHandle, dir: PathBuf, stream: R, kind: &'static str)
+where
+  R: AsyncRead + Unpin + Send + 'static,
+{
+  tokio::spawn(async move {
+    let reader = BufReader::new(stream);
+    let mut lines = reader.lines();
+    while let Ok(Some(line)) = lines.next_line().await {
+      let mem_line = format!("[{}] {}", kind, line);
+      push_memory_log(&plugin_id, mem_line).await;
+      let _ = append_log_line_to_file(&dir, kind, &line).await;
+
+      let _ = app_handle.emit_all("plugin-log", serde_json::json!({
+        "pluginId": plugin_id,
+        "type": kind,
+        "message": line
+      }));
+    }
+  });
 }
 
 fn resolve_plugins_dir(app_handle: &AppHandle) -> Option<PathBuf> {
@@ -116,50 +209,12 @@ async fn start_plugin_internal(app_handle: &AppHandle, plugin_id: &str) -> Resul
 
   // Capture stdout
   if let Some(stdout) = child.stdout.take() {
-    let plugin_id_clone = plugin_id.to_string();
-    let app_handle_clone = app_handle.clone();
-    tokio::spawn(async move {
-      let reader = BufReader::new(stdout);
-      let mut lines = reader.lines();
-      while let Ok(Some(line)) = lines.next_line().await {
-        let logs = logs_table();
-        let mut map = logs.write().await;
-        map.entry(plugin_id_clone.clone())
-          .or_insert_with(Vec::new)
-          .push(format!("[stdout] {}", line));
-        
-        // Emit event to frontend
-        let _ = app_handle_clone.emit_all("plugin-log", serde_json::json!({
-          "pluginId": plugin_id_clone,
-          "type": "stdout",
-          "message": line
-        }));
-      }
-    });
+    spawn_log_task(plugin_id.to_string(), app_handle.clone(), dir.clone(), stdout, "stdout");
   }
 
   // Capture stderr
   if let Some(stderr) = child.stderr.take() {
-    let plugin_id_clone = plugin_id.to_string();
-    let app_handle_clone = app_handle.clone();
-    tokio::spawn(async move {
-      let reader = BufReader::new(stderr);
-      let mut lines = reader.lines();
-      while let Ok(Some(line)) = lines.next_line().await {
-        let logs = logs_table();
-        let mut map = logs.write().await;
-        map.entry(plugin_id_clone.clone())
-          .or_insert_with(Vec::new)
-          .push(format!("[stderr] {}", line));
-        
-        // Emit event to frontend
-        let _ = app_handle_clone.emit_all("plugin-log", serde_json::json!({
-          "pluginId": plugin_id_clone,
-          "type": "stderr",
-          "message": line
-        }));
-      }
-    });
+    spawn_log_task(plugin_id.to_string(), app_handle.clone(), dir.clone(), stderr, "stderr");
   }
 
   let table = process_table();
@@ -264,7 +319,7 @@ pub async fn get_plugin_logs(plugin_id: String) -> Result<String, String> {
     if lines.is_empty() {
       Ok("No logs available yet. Logs will appear once the plugin produces output.".to_string())
     } else {
-      Ok(lines.join("\n"))
+      Ok(lines.iter().cloned().collect::<Vec<String>>().join("\n"))
     }
   } else {
     Ok("No logs available for this plugin. Make sure the plugin is running.".to_string())
