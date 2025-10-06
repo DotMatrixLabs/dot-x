@@ -223,6 +223,12 @@ class SystemUtilButtonHandle {
     this.notifyChange?.();
     return this;
   }
+
+  setSelected(selected: boolean): this {
+    this.button.selected = selected;
+    this.notifyChange?.();
+    return this;
+  }
 }
 
 class InputFieldHandle {

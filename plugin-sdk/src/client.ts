@@ -330,6 +330,16 @@ export class APIClient {
     }
   }
 
+  // Notify the host application that action mappings have changed
+  public async notifyActionsUpdated(): Promise<void> {
+    if (!this.isConnected()) return;
+    try {
+      await this.call('ui.actionsUpdated', {});
+    } catch (err) {
+      console.warn('Failed to notify actions updated:', err);
+    }
+  }
+
   // Public utility to prepare a schema by replacing callbacks with actionIds
   // and registering the callbacks locally so the app can invoke them.
   public prepareSectionedSchemaWithActionIds(sectioned: SettingsSections): SettingsSections {
@@ -375,6 +385,10 @@ export class APIClient {
           this.actionCallbacks.set(actionId, copy.onClick);
           copy.actionId = actionId;
           delete (copy as any).onClick;
+        }
+        // Persist selected state if provided
+        if (typeof btn.selected === 'boolean') {
+          copy.selected = !!btn.selected;
         }
         return copy;
       })
