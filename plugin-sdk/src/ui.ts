@@ -186,6 +186,23 @@ export class ActionMapper {
     return new SystemUtilButtonHandle(btn, this.createNotifier());
   }
 
+  /**
+   * Attach a SettingsSections schema to an existing SystemUtilButton by id.
+   * Reuses SettingsBuilder so plugin authors can call addText/addSwitch/etc.
+   */
+  addSystemUtilSetting(buttonId: string, build: (b: SettingsBuilder) => void): this {
+    const btn = this.buttons.find(b => b.id === buttonId);
+    if (!btn) return this;
+    const builder = new SettingsBuilder(() => {
+      // Push updates when nested builder mutates
+      btn.settings = builder.build();
+      this.onMutate?.();
+    });
+    build(builder);
+    btn.settings = builder.build();
+    return this;
+  }
+
   build(): ActionMappings {
     return { buttons: this.buttons.map(b => ({ ...b })) };
   }
@@ -220,6 +237,20 @@ class SystemUtilButtonHandle {
 
   onClick(handler: () => void): this {
     this.button.onClick = handler;
+    this.notifyChange?.();
+    return this;
+  }
+
+  /**
+   * Fluent helper to attach per-button settings using SettingsBuilder.
+   */
+  withSettings(build: (b: SettingsBuilder) => void): this {
+    const builder = new SettingsBuilder(() => {
+      this.button.settings = builder.build();
+      this.notifyChange?.();
+    });
+    build(builder);
+    this.button.settings = builder.build();
     this.notifyChange?.();
     return this;
   }

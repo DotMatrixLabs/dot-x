@@ -108,6 +108,14 @@ export default class HelloWorldPlugin extends Plugin {
           helloWorldButton.setSelected(this.settings.helloWorldChannels || []);
           this.saveSettings();
           this.ui.showToast({ message: 'Hello from Slider Action!', type: 'success' });
+        })  .withSettings((s) => {
+          s.addSection('General')
+            .addSwitch('enabled').setLabel('Enable EQ').setValue(true)
+            .setDesc('Toggle the equalizer');
+      
+          s.addSection('Levels')
+            .addInput('gain', { type: 'number' }).setLabel('Gain (dB)').setMin(-12).setMax(12)
+            .setValue(0);
         });
       
     } catch (error) {

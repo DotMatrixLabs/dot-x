@@ -390,6 +390,15 @@ export class APIClient {
         if (btn.selectedByChannel && typeof btn.selectedByChannel === 'object') {
           copy.selectedByChannel = { ...btn.selectedByChannel } as Record<string, boolean>;
         }
+        // Prepare per-button settings schema (register callbacks and replace with actionIds)
+        if (btn.settings && (btn.settings as any).sections) {
+          try {
+            copy.settings = this.prepareSectionedSchemaWithActionIds(btn.settings as any);
+          } catch (e) {
+            console.warn('Failed to prepare button settings schema', e);
+            copy.settings = btn.settings;
+          }
+        }
         return copy;
       })
     };
