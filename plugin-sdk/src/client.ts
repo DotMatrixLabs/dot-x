@@ -344,9 +344,15 @@ export class APIClient {
   // and registering the callbacks locally so the app can invoke them.
   public prepareSectionedSchemaWithActionIds(sectioned: SettingsSections): SettingsSections {
     return {
-      sections: sectioned.sections.map((sec) => ({
+      sections: sectioned.sections.map((sec: any, idx: number) => ({
+        key: sec.key || sec.title || `section_${idx}`,
+        name: sec.name,
         title: sec.title,
-        components: sec.components.map((comp) => {
+        disabled: sec.disabled,
+        hidden: sec.hidden,
+        expandable: sec.expandable,
+        expanded: sec.expanded,
+        components: (sec.components || []).map((comp: any) => {
           const newComp: any = { ...comp };
           if (newComp.type === 'button' && typeof newComp.onClick === 'function') {
             const actionId = `action_${newComp.key}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
