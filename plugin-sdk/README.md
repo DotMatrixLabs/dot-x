@@ -469,6 +469,36 @@ this.actionmapper
 
 Type: SystemUtilButton { id: string; title: string; icon?: string; onClick?: () => void }
 
+#### Per-button System Utility Settings
+
+You can attach a lightweight settings UI to a specific system-utility button. These settings render inside the System Utilities selector only when that button is selected for the current channel. This reuses the same `SettingsBuilder` field DSL (`addText`, `addSwitch`, `addInput`, etc.).
+
+```typescript
+// Attach settings using the fluent handle
+this.actionmapper
+  .addSystemUtilButton('eq')
+  .setTitle('EQ')
+  .setIcon('fas fa-sliders-h fa-lg')
+  .withSettings((s) => {
+    s.addSection('General')
+      .addSwitch('enabled').setLabel('Enable EQ').setValue(true)
+      .setDesc('Toggle the equalizer');
+
+    s.addSection('Levels')
+      .addInput('gain', { type: 'number' }).setLabel('Gain (dB)').setMin(-12).setMax(12)
+      .setValue(0);
+  });
+
+// Or attach by id later
+this.actionmapper.addSystemUtilSetting('eq', (s) => {
+  s.addSection('Advanced').addText('note').setText('Extra controls...');
+});
+```
+
+Notes:
+- Settings callbacks are converted to `actionId`/`onChangeActionId` internally; the app will invoke them via the same `plugin.action` channel.
+- The `settings` are included in `get_actions` per button; the app renders them only when the button is selected for the active channel.
+
 ## Development
 
 ### Testing Plugin Server Connection

@@ -59,6 +59,13 @@
                 </div>
             </div>
         </div>
+
+        <!-- Plugin per-button settings -->
+        <div v-if="selectedPluginButtonsWithSettings.length" class="divider label-text">Plugin Settings</div>
+        <div v-for="btn in selectedPluginButtonsWithSettings" :key="btn.actionId || btn.id" class="w-4/5 m-auto">
+            <h3 class="text-base-content text-sm font-semibold mb-2">{{ btn.title }}</h3>
+            <PluginSettingsRenderer :sections="btn.settings" :pluginId="btn.pluginId" />
+        </div>
     </div>
 </template>
 
@@ -67,8 +74,10 @@ import SelectedApps from "../ts/appsToControl.ts";
 import SystemVolumeController from "../ts/volumeControl.ts";
 import pluginAPI from "../plugin-api/pluginAPI";
 import EventBus from "../js/eventBus.js";
+import PluginSettingsRenderer from "../components/PluginSettingsRenderer.vue";
 
 export default {
+    components: { PluginSettingsRenderer },
     props: {
         currentSliderID: Number,
     },
@@ -111,6 +120,14 @@ export default {
                 ...this.utilities,
                 ...(this.pluginButtons || []).map(btn => ({ id: btn.actionId || btn.id, title: btn.title || btn.id, icon: btn.icon || 'fas fa-lg fa-bolt', isPlugin: true, raw: btn }))
             ];
+        },
+        selectedPluginButtonsWithSettings() {
+            const channelKey = String(this.currentSliderID);
+            return (this.pluginButtons || []).filter((b) => {
+                const selected = b?.selectedByChannel && typeof b.selectedByChannel === 'object' ? !!b.selectedByChannel[channelKey] : false;
+                const hasSettings = b && b.settings && Array.isArray(b.settings.sections) && b.settings.sections.length > 0;
+                return selected && hasSettings;
+            });
         },
         getDeviceDisplayCount() {
             return (type, selectedDevices) => {
