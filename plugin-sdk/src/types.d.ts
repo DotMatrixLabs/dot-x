@@ -261,6 +261,8 @@ export interface SystemUtilButton {
   actionId?: string;     // Runtime-assigned action id registered in the client
   // Per-channel selection map; keys are channel identifiers (usually slider indices)
   selectedByChannel?: Record<string, boolean>;
+  // Optional per-button settings UI, reusing the same schema as plugin settings
+  settings?: SettingsSections;
 }
 
 export interface ActionMappings {
