@@ -29,9 +29,38 @@ Frontend (Vue.js)
 ### Installation
 
 ```bash
-npm install plugin-sdk
+npm install dotx-plugin-sdk
 # or for local development
 npm link ../plugin-sdk
+```
+
+### Scaffold via NPX
+
+Create a plugin in the current directory:
+
+```bash
+npx create-dotx-plugin --name "My Plugin"
+```
+
+Options:
+
+- `--deno` (default): Deno + TypeScript template
+- `--node`: Node + TypeScript + esbuild template
+- `--id <id>`: Override generated plugin id
+- `--force`: Overwrite existing files
+
+Next steps (Deno):
+
+```bash
+deno task start
+```
+
+Next steps (Node):
+
+```bash
+npm install
+npm run build
+node main.js
 ```
 
 ### Creating a Plugin
