@@ -3,7 +3,10 @@ version: x.y.z
 release_date: YYYY-MM-DD
 ---
 
+<!-- Dot X Content is the bit that will be shown in the changelog within Dot X itself. It is hidden in the GitHub preview as well. -->
+
 <!-- DOT_X_CONTENT_START -->
+<!-- 
 ## New Features
 
 ### Feature Name
@@ -20,10 +23,14 @@ Short description of the improvement and its impact.
 
 ### Critical Bug Fix
 Description of what was broken and how it's now fixed.
-
+-->
 <!-- DOT_X_CONTENT_END -->
 
 ---
+
+
+<!-- Web Content will be published as a post to Changelogs on Dotmatrixlabs.com/changelog -->
+
 
 <!-- WEB_CONTENT_START -->
 ## New Features
