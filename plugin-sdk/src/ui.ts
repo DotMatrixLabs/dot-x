@@ -1,6 +1,15 @@
 import type { SettingsSections, InputField, ButtonField, SwitchField, SettingsComponent, TextField, BadgeField, SystemUtilButton, ActionMappings } from './types';
 
-export type UISection = { title: string; components: SettingsComponent[] };
+export type UISection = {
+  key: string;
+  name?: string;
+  title?: string; // back-compat display name
+  disabled?: boolean;
+  hidden?: boolean;
+  expandable?: boolean;
+  expanded?: boolean; // default collapsed unless true
+  components: SettingsComponent[];
+};
 
 /**
  * Chainable builder for constructing a SettingsSchema imperatively.
@@ -11,7 +20,7 @@ export type UISection = { title: string; components: SettingsComponent[] };
  *   actionIds and register the callbacks during `settings.createSettings`.
  */
 export class SettingsBuilder {
-  private currentSection: string | undefined;
+  private currentSectionKey: string | undefined;
   private sections: UISection[] = [];
   private onMutate?: () => void;
   // Gate notifications so initial setup doesn't emit changes
@@ -22,15 +31,18 @@ export class SettingsBuilder {
   }
 
   /**
-   * Starts a new logical section. Subsequent fields will be assigned this section.
+   * Starts or selects a section by stable `key` and returns a SectionHandle to configure it.
+   * Subsequent field additions will be assigned to this section.
    */
-  addSection(title: string): this {
-    this.currentSection = title;
-    // Ensure a section record exists and track keys in insertion order
-    if (!this.sections.find((s) => s.title === title)) {
-      this.sections.push({ title, components: [] });
+  addSection(key: string): SectionHandle {
+    this.currentSectionKey = key;
+    // Ensure a section record exists and track insertion order
+    let section = this.sections.find((s) => s.key === key);
+    if (!section) {
+      section = { key, components: [] } as UISection;
+      this.sections.push(section);
     }
-    return this;
+    return new SectionHandle(section, this.createNotifier());
   }
 
   /**
@@ -126,21 +138,32 @@ export class SettingsBuilder {
    * Returns the constructed SettingsSchema.
    */
   build(): SettingsSections {
-    return { sections: this.sections.map((s) => ({ title: s.title, components: s.components })) };
+    return {
+      sections: this.sections.map((s) => ({
+        key: s.key,
+        name: s.name,
+        title: s.title,
+        disabled: s.disabled,
+        hidden: s.hidden,
+        expandable: s.expandable,
+        expanded: s.expanded,
+        components: s.components,
+      })),
+    };
   }
 
   /**
    * Ensure a current section exists or create a default one.
    */
   private ensureCurrentSection(): UISection {
-    if (!this.currentSection) {
+    if (!this.currentSectionKey) {
       // Create an implicit default section when none is selected
-      this.addSection('General');
+      this.addSection('general');
     }
-    const section = this.sections.find((s) => s.title === (this.currentSection as string));
+    const section = this.sections.find((s) => s.key === (this.currentSectionKey as string));
     if (!section) {
       // Fallback (should not happen due to addSection above)
-      const fallback: UISection = { title: this.currentSection as string, components: [] };
+      const fallback: UISection = { key: this.currentSectionKey as string, components: [] } as UISection;
       this.sections.push(fallback);
       return fallback;
     }
@@ -164,6 +187,40 @@ export class SettingsBuilder {
         this.onMutate?.();
       }
     };
+  }
+}
+
+class SectionHandle {
+  constructor(private section: UISection, private notifyChange?: () => void) {}
+
+  setName(name: string): this {
+    this.section.name = name;
+    this.notifyChange?.();
+    return this;
+  }
+
+  setDisabled(disabled: boolean): this {
+    this.section.disabled = disabled;
+    this.notifyChange?.();
+    return this;
+  }
+
+  setHidden(hidden: boolean): this {
+    this.section.hidden = hidden;
+    this.notifyChange?.();
+    return this;
+  }
+
+  setExpandable(expandable: boolean): this {
+    this.section.expandable = expandable;
+    this.notifyChange?.();
+    return this;
+  }
+
+  setExpanded(expanded: boolean): this {
+    this.section.expanded = expanded;
+    this.notifyChange?.();
+    return this;
   }
 }
 
