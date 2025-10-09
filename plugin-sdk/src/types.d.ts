@@ -65,7 +65,22 @@ export interface BadgeField extends BaseSettingsField {
 export type SettingsField = InputField | ButtonField | SwitchField | TextField | BadgeField;
 
 export type SettingsComponent = { key: string } & SettingsField;
-export interface SettingsSection { title: string; components: SettingsComponent[] }
+export interface SettingsSection {
+  // Required stable key to identify the section
+  key: string;
+  // Optional display name; when omitted, UI should not render a divider/title
+  name?: string;
+  // Back-compat for older schemas; UI should prefer `name` when present
+  title?: string;
+  // Section-level state/behavior flags
+  disabled?: boolean;
+  hidden?: boolean;
+  // When true, render as an accordion/collapse
+  expandable?: boolean;
+  // Initial expanded state when expandable; default is collapsed (falsey)
+  expanded?: boolean;
+  components: SettingsComponent[];
+}
 export interface SettingsSections { sections: SettingsSection[] }
 
 export interface PluginSettingsResponse {

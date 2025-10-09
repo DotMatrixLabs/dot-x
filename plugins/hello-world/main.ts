@@ -14,7 +14,7 @@ export default class HelloWorldPlugin extends Plugin {
     try {
       // Create a sectioned settings page using the imperative builder
       await this.createSettingsPage((settings) => {
-        settings.addSection('General');
+        const general = settings.addSection('General');
 
 
         const connectionStatus = settings.addBadge('connectionStatus')
@@ -60,6 +60,7 @@ export default class HelloWorldPlugin extends Plugin {
           .setLabel('Demo Switch')
           .setValue(this.settings?.demoSwitch || false)
           .onChange((data) => {
+            advanced.setExpanded(data.value);
             console.log('Demo switch changed:', data.value);
             demoSwitch.setValue(data.value);
             this.config.set('settings.demoSwitch', data.value);
@@ -72,7 +73,9 @@ export default class HelloWorldPlugin extends Plugin {
             demoSwitch.setValue(true);
           });
 
-        settings.addSection('Advanced');
+        const advanced = settings.addSection('advanced')
+          .setExpandable(true)
+          .setName('Advanced')
         
         const debug = settings.addSwitch('debug')
           .setLabel('Debug Flag')
