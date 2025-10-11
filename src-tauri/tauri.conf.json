@@ -8,7 +8,7 @@
   },
   "package": {
     "productName": "Dot X",
-    "version": "1.2.3"
+    "version": "1.0.6"
   },
   "plugins": {
     "shell": {
@@ -76,7 +76,7 @@
       "endpoints": [
         "https://dist.anystack.sh/v1/tauri/9ab29103-730b-453d-b1c2-e7b57d099d07/{{current_version}}"
       ],
-      "dialog": true,
+      "dialog": false,
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDU2QzVDQUYzNDVERjJDNzEKUldSeExOOUY4OHJGVm5PNnZHQlZPRWE4WERodmxBYkpYbzluS2V0czlhZjRqWm5QWkRqNUt5b0cK"
     },
     "allowlist": {

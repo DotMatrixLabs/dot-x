@@ -2,6 +2,8 @@
   <div class="h-screen w-screen flex flex-col pt-12 bg-transparent rounded-xl">
     <SettingsModal :modal-open="settingsModalOpen" @close="settingsToggled" />
     <AppsModal :currentSliderID="currentSliderID" :modal-open="appsModalOpen" @close="appsToggled(null)" />
+    <UpdatePrompt />
+    <WhatsNewModal />
     <TopBar :colorScheme="colorScheme" :class="backgroundColorTopBar" @settings-toggled="settingsToggled" :connection-status="connectionState" />
     <SliderOverview :class="backgroundColor" ref="sliderOverview" :pot-values="potValues" @app-click="appsToggled" />
   </div>
@@ -9,6 +11,8 @@
 
 <script>
 import TopBar from "./components/TopBar.vue";
+import UpdatePrompt from "./components/UpdatePrompt.vue";
+import WhatsNewModal from "./components/WhatsNewModal.vue";
 import SettingsModal from "./SettingsModal/SettingsModal.vue";
 import AppsModal from "./AppSelectModal/AppsModal.vue";
 import SliderOverview from "./SliderOverview.vue";
@@ -18,13 +22,15 @@ import Decker from "./ts/decker.ts";
 import RGBController from "./ts/RGBController";
 import { useDeckerStore } from "./store/deckerStore.ts";
 import { version } from '@tauri-apps/api/os';
+import { initUpdater } from './ts/updater';
+import { useUpdateStore } from './store/updateStore';
 
 import { mapState } from "pinia"; 
 
 const toast = useToast();
 
 export default {
-  components: { TopBar, SettingsModal, SliderOverview, AppsModal },
+  components: { TopBar, SettingsModal, SliderOverview, AppsModal, UpdatePrompt, WhatsNewModal },
   name: "App",
 
   data() {
@@ -137,6 +143,15 @@ export default {
       : "light";
 
     this.setThemeFromOS();
+    // updater bootstrap
+    initUpdater();
+    const updateStore = useUpdateStore();
+    const post = updateStore.shouldShowWhatsNewOnLaunch();
+    if (post.show) {
+      updateStore.changelogHtml = post.html;
+      updateStore.whatsNewOpen = true;
+      updateStore.markWhatsNewShownFor(post.version);
+    }
 
     document.documentElement.setAttribute("data-theme", this.colorScheme);
     console.log(this.colorScheme);
