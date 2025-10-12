@@ -28,7 +28,7 @@ use active_win_pos_rs::get_active_window;
 use tauri_plugin_aptabase::EventTracker;
 use std::thread;
 use std::time::Duration;
-use sentry_tauri::sentry::{self, ClientInitGuard};
+use sentry::{self, ClientInitGuard};
 use chrono::Local;
 use brightness::{Brightness, BrightnessDevice};
 use futures::{TryStreamExt};
@@ -435,17 +435,17 @@ fn setup_panic_handler(client: ClientInitGuard) {
 fn main() {
     let tray_menu = build_menu();
 
-    let client = sentry_tauri::sentry::init((
+    let client = sentry::init((
         "https://473d7b762855b5baa461a7921a5f95cc@sentry-ingest.frogbyte.io/4",
-        sentry_tauri::sentry::ClientOptions {
-            release: sentry_tauri::sentry::release_name!(),
+        sentry::ClientOptions {
+            release: sentry::release_name!(),
             attach_stacktrace: true,
             ..Default::default()
         },
     ));
 
     // Initialize minidump first
-    let _guard = sentry_tauri::minidump::init(&client);
+    let _guard = tauri_plugin_sentry::minidump::init(&client);
     
     // Then set up panic handler
     setup_panic_handler(client);
@@ -454,7 +454,7 @@ fn main() {
         .invoke_handler(tauri::generate_handler![get_installed_apps, get_all_session_names, set_application_volume, connect_decker, decker::get_devices, decker::send_decker_command, get_available_midi_output_port_names, attach_midi_device, detach_midi_device, get_active_app_name, disconnect_decker, set_screen_brightness, get_all_audio_devices, get_output_devices, get_input_devices ])
         .plugin(tauri_plugin_aptabase::Builder::new("A-EU-7429874879").build()) // 👈 this is where you enter your App Key
         .plugin(tauri_plugin_log::Builder::default().build())
-        .plugin(sentry_tauri::plugin())
+        .plugin(tauri_plugin_sentry::init(&client))
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_autostart::init(
           MacosLauncher::LaunchAgent,
@@ -562,7 +562,7 @@ fn main() {
           Err(_) => {}
         }
 
-        info!("Starting Dot X with version {:?}", sentry_tauri::sentry::release_name!());
+        info!("Starting Dot X with version {:?}", sentry::release_name!());
 
       
         APP.set(app.handle()).expect("error setting up app");
