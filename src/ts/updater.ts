@@ -58,6 +58,32 @@ export async function initUpdater() {
       const { shouldUpdate, manifest } = await checkUpdate();
       if (!shouldUpdate) return;
       const version = manifest?.version ?? '';
+      manifest!.body = `<!-- DOT_X_CONTENT_START -->
+      <!--
+# New Features
+- It's now possible to invert sliders to support alternative hardware and wiring.  
+Toggle inverted sliders under **"General"** in the settings menu.
+[more](https://dotmatrixlabs.com/changelog/1.2.3-1/)
+
+-->
+<!-- DOT_X_CONTENT_END -->
+
+---
+
+<!-- WEB_CONTENT_START -->
+## New Features
+
+### Inverted Sliders
+You can now **invert sliders** to support alternative hardware configurations or reversed wiring.
+
+#### Details
+- **Key Capability**: Invert any slider directly from the **"General"** section in the settings menu.  
+- **Purpose**: Makes it easier to adapt to different slider orientations or wiring setups.  
+- **Use Case**: Perfect for custom hardware builds or retrofitted setups that need reversed control behavior.
+
+This feature was designed to give users more flexibility when integrating Decker with non-standard or DIY hardware.
+<!-- WEB_CONTENT_END -->
+`
       store.setAvailable({ version, body: manifest?.body });
       const html = extractDotXHtml(manifest?.body);
       if (version && html) store.setChangelog(version, html);
