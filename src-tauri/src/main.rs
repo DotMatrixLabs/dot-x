@@ -29,7 +29,7 @@ use brightness::{Brightness, BrightnessDevice};
 use chrono::Local;
 use futures::TryStreamExt;
 use tauri_plugin_cli::CliExt;
-use sentry::{self, Client, ClientInitGuard};
+use sentry::{self, Client};
 use std::thread;
 use std::time::Duration;
 use tauri_plugin_aptabase::EventTracker;
