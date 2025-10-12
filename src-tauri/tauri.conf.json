@@ -5,20 +5,13 @@
     "frontendDist": "../dist",
     "devUrl": "http://localhost:1420"
   },
+  "plugins": {
+    "shell": {
+      "open": true
+    }
+  },
   "bundle": {
     "active": true,
-    "windows": {
-      "certificateThumbprint": "6d5ed22f2dbd07b9e2a1a31003f5635310492f41",
-      "digestAlgorithm": "sha256",
-      "timestampUrl": "http://time.certum.pl",
-      "nsis": {
-        "installerIcon": "./icons/icon.ico"
-      },
-      "wix": {
-        "dialogImagePath": "./icons/WixInstaller.bmp",
-        "bannerPath": "./icons/WixInstallerBanner.bmp"
-      }
-    },
     "targets": "all",
     "icon": [
       "icons/32x32.png",
@@ -34,13 +27,22 @@
     "resources": [
       "licenses/*"
     ],
-    "licenseFile": "licenses/EULA.txt",
+    "windows": {
+      "certificateThumbprint": "ca2e93b1a72064b5c3ecdef2481044859fbe241b",
+      "digestAlgorithm": "sha256",
+      "timestampUrl": "http://time.certum.pl",
+      "nsis": {
+        "license": "licenses/EULA.txt",
+        "installerIcon": "./icons/icon.ico"
+      },
+      "wix": {
+        "license": "licenses/EULA.txt",
+        "bannerPath": "./icons/WixInstallerBanner.bmp",
+        "dialogImagePath": "./icons/WixInstaller.bmp"
+      }
+    },
     "createUpdaterArtifacts": "v1Compatible"
   },
-  "plugins": {
-    "shell": {
-      "open": true
-    },
     "cli": {
       "description": "",
       "longDescription": "",

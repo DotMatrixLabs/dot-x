@@ -48,7 +48,17 @@
                     <span class="shrink-0 pt-1">Brightness: </span>
                     <input @change="brightnessChanged" v-model="brightness" type="range" class="bg-gray-700 rounded-xl px-0.5 mr-2" />
                 </div>
+                <div class="flex justify-between items-center w-full mt-2">
+                    <div class="flex flex-col">
+                        <span class="shrink-0 pt-1">Turn off LEDs on Sleep</span>
+                        <span class="text-xs opacity-50 pr-4">
+                            Automatically switch off Decker LEDs when the computer enters sleep mode.
+                        </span>
+                    </div>
+                    <input @change="suspendDimToggled" type="checkbox" class="toggle toggle-primary px-0.5 mr-2" :checked="suspendDimEnabled"/>
+                </div>
             </div>
+
             <div class="flex flex-col w-full items-center mt-3">
                 <span class="shrink-0 pt-1 font-bold">Device Info: </span>
                 <div class="divider mt-0"></div>
@@ -112,6 +122,7 @@ export default {
             breathingEnabled: false,
             selectedColor: "#f0f0f0",
             brightness: 100,
+            suspendDimEnabled: false,
             deviceNames: {
                 'VM-5SW': "Decker",
             },
@@ -135,6 +146,7 @@ export default {
         deviceInfo(device) {
             device = {...device, ...this.deviceData};
             if(!device) return;
+
 
             if(device.pid === 58918 && device.vid === 1240){
                 return {
@@ -173,10 +185,8 @@ export default {
         deviceName(device){
             if(!device) return;
             if(device.pid === 58918 && device.vid === 1240){
-                this.deviceType = "Decker";
                 return `Decker (${device.port_name})`;
             } else {
-                this.deviceType = "Unknown";
                 return `${device.port_name}`;
             }
         },
@@ -213,7 +223,6 @@ export default {
         rgbEffectChange(event) {
             const brightness = parseInt(this.brightness * 2.55);
             this.currentRGBEffect = event.target.value;
-            console.log(this.currentRGBEffect);
             if(this.currentRGBEffect === 'Off') {
                 RGBController.setEffect('off', 0, brightness, '#000000');
                 return;
@@ -232,25 +241,27 @@ export default {
         },
 
         colorChange(event) {
-        const brightness = parseInt(this.brightness * 2.55);
-        const currentTime = Date.now();
+            const brightness = parseInt(this.brightness * 2.55);
+            const currentTime = Date.now();
 
-        if (currentTime - this.lastExecutionTime >= 100) {
-            this.selectedColor = event.target.value;
-            
-            this.lastExecutionTime = currentTime;
+            if (currentTime - this.lastExecutionTime >= 100) {
+                this.selectedColor = event.target.value;
 
-            RGBController.setEffect('static', 0, brightness, this.selectedColor);
-            if(this.breathingEnabled) return RGBController.setEffect('breathing', parseInt(100 - this.speed), brightness, this.selectedColor);
-            ConfigStore.set("RGBColor", this.selectedColor);
+                this.lastExecutionTime = currentTime;
+
+                RGBController.setEffect('static', 0, brightness, this.selectedColor);
+                if(this.breathingEnabled) return RGBController.setEffect('breathing', parseInt(100 - this.speed), brightness, this.selectedColor);
+                ConfigStore.set("RGBColor", this.selectedColor);
+                ConfigStore.save();
+            }
+        },
+
+        suspendDimToggled(event) {
+            this.suspendDimEnabled = event.target.checked;
+            ConfigStore.set("suspendDimEnabled", this.suspendDimEnabled);
             ConfigStore.save();
-        }
-    },
+        },
 
-        // getSavedComPort() {
-        //     this.currentComPort = store.get("config.comPort");
-        //     console.log(this.currentComPort);
-        // },
 
         async deviceSelected() {
             if(this.currentDevice === "disconnect") {
@@ -259,6 +270,11 @@ export default {
                 ConfigStore.set("comPort", null);
                 ConfigStore.save();
                 return;
+            }
+            if(this.currentDevice.pid === 58918 && this.currentDevice.vid === 1240){
+                this.deviceType = "Decker";
+            } else {
+                this.deviceType = "Unknown";
             }
             ConfigStore.set("comPort", this.currentDevice.port_name);
             ConfigStore.save();
@@ -280,6 +296,11 @@ export default {
             if(!storedDevice) return;
             const device = this.devices.find((device) => device.port_name === storedDevice);
             if(!device) return;
+            if(device.pid === 58918 && device.vid === 1240){
+                this.deviceType = "Decker";
+            } else {
+                this.deviceType = "Unknown";
+            }
             this.currentDevice = device;
         },
         
@@ -303,6 +324,7 @@ export default {
         this.currentRGBEffect = await ConfigStore.get("RGBEffect") ?? "Static";
         this.breathingEnabled = await ConfigStore.get("RGBBreathing") ?? false;
         this.brightness = await ConfigStore.get("RGBBrightness") ?? 100;
+        this.suspendDimEnabled = await ConfigStore.get("suspendDimEnabled") ?? false;
 
         this.comPortInterval = setInterval(() => {
             if(this.connectionState && !this.modalOpen) return;
@@ -321,6 +343,13 @@ export default {
         if(this.connectionState) {
             this.sendCurrentRGBEffect(); // Dot X was just opened and device is connected, send current RGB effect
             this.getDeviceInfo();
+        }
+    },
+
+    beforeUnmount() {
+        if (this.comPortInterval) {
+            clearInterval(this.comPortInterval);
+            this.comPortInterval = null;
         }
     },
 }

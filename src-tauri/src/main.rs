@@ -6,14 +6,18 @@ use log::{info, trace, error};
 use serde_json::{json, Value};
 use tauri::AppHandle;
 use tauri::{ Manager, Window };
+use tauri_plugin_store::{with_store, StoreCollection};
+use tauri::Wry;
 use windows_volume_control::AudioController;
 use windows_volume_control::CoinitMode;
 use tauri_plugin_autostart::MacosLauncher;
 use midir::{MidiOutput};
 use std::collections::HashMap;
 use std::fmt;
+use std::path::PathBuf;
 mod decker;
 mod midi;
+mod power_monitor;
 use tauri::{CustomMenuItem, SystemTrayMenu, SystemTrayMenuItem, SystemTray, SystemTrayEvent};
 use tauri::api::notification::Notification;
 use window_vibrancy::{apply_blur, apply_mica};
@@ -24,6 +28,11 @@ use active_win_pos_rs::get_active_window;
 use tauri_plugin_aptabase::EventTracker;
 use std::thread;
 use std::time::Duration;
+use sentry_tauri::sentry::{self, ClientInitGuard};
+use chrono::Local;
+use brightness::{Brightness, BrightnessDevice};
+use futures::{TryStreamExt};
+
 
 static APP: OnceCell<tauri::AppHandle> = OnceCell::new();
 
@@ -145,6 +154,7 @@ fn get_all_session_names() -> Result<Vec<String>, Error> {
         controller.GetSessions();
         controller.GetDefaultAudioEnpointVolumeControl();
         controller.GetAllProcessSessions();
+        controller.GetAllAudioDevices();
 
         // Collect all session names
         let all_session_names = controller.get_all_session_names();
@@ -221,21 +231,24 @@ fn detach_midi_device() -> Result<(), Error> {
 
 #[tauri::command]
 fn get_active_app_name() -> String {
-  let active_window = get_active_window().unwrap();
-  println!("Active window: {:?}", active_window);
-  let active_app_name = active_window.app_name.to_string();
-  active_app_name
+    match get_active_window() {
+        Ok(active_window) => {
+            println!("Active window: {:?}", active_window);
+            active_window.app_name.to_string()
+        }
+        Err(err) => {
+            eprintln!("Failed to get active window: {:?}", err);
+            "Unknown".to_string() // Return a default value if an error occurs
+        }
+    }
 }
 
 #[tauri::command]
 fn set_application_volume(name: &str, volume: f32) -> Result<(), Error> {
     unsafe {
-        let mut controller = AudioController::init(Some(CoinitMode::ApartmentThreaded));
-        controller.GetSessions();
-        controller.GetDefaultAudioEnpointVolumeControl();
-        controller.GetAllProcessSessions();
+        let controller = get_initialized_audio_controller();
 
-        println!("All session names: {:?}", controller.get_all_session_names());
+        // println!("All session names: {:?}", controller.get_all_session_names());
 
         // Get the current session by name
         let current_sessions = controller.get_sessions_by_name(name.to_string());
@@ -263,7 +276,85 @@ fn set_application_volume(name: &str, volume: f32) -> Result<(), Error> {
     Ok(())
 }
 
+// Helper function to create and initialize an AudioController
+unsafe fn get_initialized_audio_controller() -> AudioController {
+    let mut controller = AudioController::init(Some(CoinitMode::ApartmentThreaded));
+    controller.GetSessions();
+    controller.GetDefaultAudioEnpointVolumeControl();
+    controller.GetAllProcessSessions();
+    controller.GetAllAudioDevices();
+    controller
+}
 
+#[tauri::command]
+fn get_all_audio_devices() -> Result<Vec<String>, Error> {
+    unsafe {
+        let controller = get_initialized_audio_controller();
+        let all_device_names = controller.get_all_device_names();
+        println!("All device names: {:?}", all_device_names);
+        Ok(all_device_names)
+    }
+}
+
+#[tauri::command]
+fn get_output_devices() -> Result<Vec<String>, Error> {
+    unsafe {
+        let controller = get_initialized_audio_controller();
+        let output_device_names = controller.get_output_device_names();
+        Ok(output_device_names)
+    }
+}
+
+#[tauri::command]
+fn get_input_devices() -> Result<Vec<String>, Error> {
+    unsafe {
+        let controller = get_initialized_audio_controller();
+        let input_device_names = controller.get_input_device_names();
+        Ok(input_device_names)
+    }
+}
+
+#[tauri::command]
+async fn set_screen_brightness(brightness: f32, screens: Value) -> Result<(), Error> {
+    let _screen_names: Vec<String> = screens.as_array()
+        .unwrap_or(&Vec::new())
+        .iter()
+        .filter_map(|v| v.as_str().map(|s| s.to_string()))
+        .collect();
+
+    // Set the screen brightness using the provided value
+    set_brightness((brightness * 100.0) as u32).await;
+
+    Ok(())
+}
+
+async fn set_brightness(percentage: u32) {
+  println!("Setting brightness to {}%", percentage);
+  if let Err(e) = brightness::brightness_devices()
+      .try_for_each(|mut dev| async move {
+          if let Err(err) = dev.set(percentage).await {
+              eprintln!(
+                  "Failed to set brightness for device {}: {:?}",
+                  dev.device_name().await.unwrap_or_else(|_| "Unknown".to_string()),
+                  err
+              );
+          }
+          Ok(())
+      })
+      .await
+  {
+      eprintln!("Error iterating over brightness devices: {:?}", e);
+  }
+}
+
+async fn show_brightness(dev: &BrightnessDevice) -> Result<(), brightness::Error> {
+  println!(
+      "Brightness of device {} is {}%",
+      dev.device_name().await?,
+      dev.get().await?
+  );
+  Ok(())
+}
 
 
 #[tauri::command]
@@ -280,6 +371,8 @@ fn disconnect_decker() -> Result<(), Error> {
   info!("Decker disconnected");
   Ok(())
 }
+
+
 
 
 fn build_menu() -> SystemTrayMenu {
@@ -319,26 +412,46 @@ fn start_aptabase_heartbeat(app: tauri::AppHandle) {
   });
 }
 
+fn setup_panic_handler(client: ClientInitGuard) {
+    std::panic::set_hook(Box::new(move |panic_info| {
+        let timestamp = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+        let panic_message = format!("[{}] Panic occurred: {}", timestamp, panic_info);
+        
+        // Log using the log crate
+        error!("{}", panic_message);
+
+        // Also send to Sentry
+        sentry::capture_message(
+            &panic_message,
+            sentry::Level::Fatal,
+        );
+        
+        client.flush(Some(std::time::Duration::from_secs(2)));
+    }));
+}
+
+
 
 fn main() {
-
-
-
     let tray_menu = build_menu();
 
-
     let client = sentry_tauri::sentry::init((
-      "https://639f6e1e3e7b44e3b43c6534a82a8d99@sentry-ingest.frogbyte.io/3",
-      sentry_tauri::sentry::ClientOptions {
-          release: sentry_tauri::sentry::release_name!(),
-          ..Default::default()
-      },
+        "https://473d7b762855b5baa461a7921a5f95cc@sentry-ingest.frogbyte.io/4",
+        sentry_tauri::sentry::ClientOptions {
+            release: sentry_tauri::sentry::release_name!(),
+            attach_stacktrace: true,
+            ..Default::default()
+        },
     ));
 
+    // Initialize minidump first
     let _guard = sentry_tauri::minidump::init(&client);
+    
+    // Then set up panic handler
+    setup_panic_handler(client);
 
-      tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![get_installed_apps, get_all_session_names, set_application_volume, connect_decker, decker::get_devices, decker::send_decker_command, get_available_midi_output_port_names, attach_midi_device, detach_midi_device, get_active_app_name, disconnect_decker ])
+    tauri::Builder::default()
+        .invoke_handler(tauri::generate_handler![get_installed_apps, get_all_session_names, set_application_volume, connect_decker, decker::get_devices, decker::send_decker_command, get_available_midi_output_port_names, attach_midi_device, detach_midi_device, get_active_app_name, disconnect_decker, set_screen_brightness, get_all_audio_devices, get_output_devices, get_input_devices ])
         .plugin(tauri_plugin_aptabase::Builder::new("A-EU-7429874879").build()) // 👈 this is where you enter your App Key
         .plugin(tauri_plugin_log::Builder::default().build())
         .plugin(sentry_tauri::plugin())
@@ -349,8 +462,14 @@ fn main() {
         ))
         .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
           let window = app.get_window("main").unwrap();
-          window.show().unwrap();
-          show_notification("Dot X", "Dot X is already running");
+          if window.is_visible().unwrap() == false {
+            window.show().unwrap();
+            show_notification("Dot X", "Dot X is already running");
+          }
+          if window.is_minimized().unwrap() {
+            window.unminimize().unwrap();
+          }
+          window.set_focus().unwrap();
         }))
         .system_tray(SystemTray::new().with_menu(tray_menu))
         .on_system_tray_event(|app, event| match event {
@@ -361,6 +480,10 @@ fn main() {
         } => {
             let window = app.get_window("main").unwrap();
             window.show().unwrap();
+            if window.is_minimized().unwrap() {
+              window.unminimize().unwrap();
+            }
+            window.set_focus().unwrap();
         }
           SystemTrayEvent::MenuItemClick { id, .. } => {
             match id.as_str() {
@@ -380,6 +503,10 @@ fn main() {
                 info!("Showing Dot X");
                 let window = app.get_window("main").unwrap();
                 window.show().unwrap();
+                if window.is_minimized().unwrap() {
+                  window.unminimize().unwrap();
+                }
+                window.set_focus().unwrap();
               }
               _ => {}
             }
@@ -394,6 +521,9 @@ fn main() {
           _ => {}
         })
         .setup(|app| {
+          {
+            power_monitor::setup_power_monitoring();
+          }
           start_aptabase_heartbeat(app.handle().clone());
           let mut props_map = HashMap::new();
           props_map.insert("slider_amount".to_string(), Value::String("5".to_string()));
@@ -440,9 +570,25 @@ fn main() {
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
-
 }
 
 fn get_app_handle() -> &'static AppHandle {
   APP.get().expect("AppHandle not initialized")
 }
+
+fn get_suspend_dim_enabled() -> bool {
+  let app_handle = get_app_handle();
+  let stores = app_handle.state::<StoreCollection<Wry>>();
+  let path = PathBuf::from("config.json");
+
+  let mut result = false;
+  let _ = with_store(app_handle.clone(), stores, path, |store| {
+    if let Some(value) = store.get("suspendDimEnabled") {
+      result = value.as_bool().unwrap_or(false);
+    }
+    Ok(())
+  });
+
+  result
+}
+
