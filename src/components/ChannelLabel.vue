@@ -78,6 +78,12 @@ export default {
 
         getSliderChannelName(apps = this.apps) {
             if (!apps) return;
+            //filter out output and input from the apps list - if the apps has a prefix of output: or input: then remove it
+            apps = apps.filter((app) => !app.startsWith('output:') && !app.startsWith('input:'));
+            //filter out master and mic from the apps list, only if output or input is in the apps list
+            if (apps.some(app => app === 'output' || app === 'input')) {
+                apps = apps.filter((app) => app !== 'master' && app !== 'mic');
+            }
             //get the number of duplicates in the array - Duplicates have a (1), (2), (3), etc at the end of the name
             const duplicates = apps.filter((app) => app.match(/\(\d+\)$/));
             //remove the number and keep the original
