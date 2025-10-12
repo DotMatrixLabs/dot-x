@@ -70,7 +70,6 @@
     "os:allow-exe-extension",
     "os:allow-locale",
     "os:allow-hostname",
-    "process:allow-restart",
     "log:default"
   ]
 }

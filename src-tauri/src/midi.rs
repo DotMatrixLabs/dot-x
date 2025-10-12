@@ -79,7 +79,12 @@ pub mod midi {
                             if !ENABLED {
                                 debug!("detaching midi thread");
                                 let app_handle = get_app_handle();
-                                app_handle.emit_all("midi_detached", {});
+                                if let Err(err) = app_handle.emit("midi_detached", {}) {
+                                    log::error!(
+                                        "Failed to emit midi_detached event from MidiController: {}",
+                                        err
+                                    );
+                                }
                                 conn_out.close();
                                 break;
                             }
