@@ -14,6 +14,7 @@ use std::{
     time::Duration,
 };
 use tauri::WebviewWindow;
+use tauri::Emitter;
 
 pub static mut COMPUTER_SLEEPING: bool = false;
 

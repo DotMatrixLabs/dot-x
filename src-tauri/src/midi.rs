@@ -5,7 +5,7 @@ pub mod midi {
     use std::error::Error;
     use std::thread;
     use std::time::Duration;
-    use tauri::Manager;
+    use tauri::Emitter;
     pub static mut ENABLED: bool = true;
     pub struct Midi {
         pub name: String,
