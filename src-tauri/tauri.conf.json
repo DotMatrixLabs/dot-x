@@ -18,11 +18,25 @@
       "endpoints": [
         "https://dist.anystack.sh/v1/tauri/9ab29103-730b-453d-b1c2-e7b57d099d07/{{current_version}}"
       ]
+    },
+    "cli": {
+      "description": "",
+      "longDescription": "",
+      "beforeHelp": "",
+      "afterHelp": "",
+      "args": [
+        {
+          "name": "hidden",
+          "short": "h"
+        }
+      ],
+      "subcommands": {}
     }
   },
   "bundle": {
     "active": true,
     "targets": "all",
+    "licenseFile": "licenses/EULA.txt",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -42,30 +56,15 @@
       "digestAlgorithm": "sha256",
       "timestampUrl": "http://time.certum.pl",
       "nsis": {
-        "license": "licenses/EULA.txt",
         "installerIcon": "./icons/icon.ico"
       },
       "wix": {
-        "license": "licenses/EULA.txt",
         "bannerPath": "./icons/WixInstallerBanner.bmp",
         "dialogImagePath": "./icons/WixInstaller.bmp"
       }
     },
     "createUpdaterArtifacts": "v1Compatible"
   },
-    "cli": {
-      "description": "",
-      "longDescription": "",
-      "beforeHelp": "",
-      "afterHelp": "",
-      "args": [
-        {
-          "name": "hidden",
-          "short": "h"
-        }
-      ],
-      "subcommands": {}
-    },
   
 
   "app": {
