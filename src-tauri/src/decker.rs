@@ -13,8 +13,8 @@ use std::{
     thread::{self},
     time::Duration,
 };
-use tauri::WebviewWindow;
 use tauri::Emitter;
+use tauri::WebviewWindow;
 
 pub static mut COMPUTER_SLEEPING: bool = false;
 
@@ -351,10 +351,9 @@ pub fn initialize_decker(
                                                     }
                                                 };
                                             // Perform tasks specific to DeviceData
-                                            if let Err(e) = window.emit(
-                                                "device-info",
-                                                Payload { message: json_data },
-                                            ) {
+                                            if let Err(e) = window
+                                                .emit("device-info", Payload { message: json_data })
+                                            {
                                                 error!("Failed to emit device-info event: {}", e);
                                             }
                                         }
