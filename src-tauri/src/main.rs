@@ -6,10 +6,10 @@ use midir::MidiOutput;
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::fmt;
-use std::path::PathBuf;
 use tauri::AppHandle;
 use tauri::Manager;
 use tauri::WebviewWindow;
+use tauri::Wry;
 use tauri_plugin_autostart::MacosLauncher;
 use tauri_plugin_notification::NotificationExt;
 use tauri_plugin_store::StoreExt;
@@ -21,7 +21,7 @@ mod power_monitor;
 use once_cell::sync::OnceCell;
 use tauri::menu::{Menu, MenuBuilder, MenuItemBuilder, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent};
-use window_shadows::set_shadow;
+#[cfg(target_os = "windows")]
 use window_vibrancy::{apply_blur, apply_mica};
 
 use active_win_pos_rs::get_active_window;
@@ -29,7 +29,7 @@ use brightness::{Brightness, BrightnessDevice};
 use chrono::Local;
 use futures::TryStreamExt;
 use tauri_plugin_cli::CliExt;
-use sentry::{self, ClientInitGuard};
+use sentry::{self, Client, ClientInitGuard};
 use std::thread;
 use std::time::Duration;
 use tauri_plugin_aptabase::EventTracker;
@@ -394,7 +394,7 @@ fn disconnect_decker() -> Result<(), Error> {
     Ok(())
 }
 
-fn build_tray(app: &tauri::AppHandle) -> tauri::Result<(Menu, TrayIcon)> {
+fn build_tray(app: &tauri::AppHandle<Wry>) -> tauri::Result<(Menu<Wry>, TrayIcon<Wry>)> {
     let show = MenuItemBuilder::with_id("show", "Show").build(app)?;
     let hide = MenuItemBuilder::with_id("hide", "Hide").build(app)?;
     let quit = MenuItemBuilder::with_id("quit", "Quit").build(app)?;
@@ -443,7 +443,7 @@ fn build_tray(app: &tauri::AppHandle) -> tauri::Result<(Menu, TrayIcon)> {
             }
             _ => {}
         })
-        .build(app.clone())?;
+        .build(app)?;
 
     Ok((menu, tray))
 }
@@ -479,7 +479,7 @@ fn start_aptabase_heartbeat(app: tauri::AppHandle) {
     });
 }
 
-fn setup_panic_handler(client: ClientInitGuard) {
+fn setup_panic_handler(client: Client) {
     std::panic::set_hook(Box::new(move |panic_info| {
         let timestamp = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
         let panic_message = format!("[{}] Panic occurred: {}", timestamp, panic_info);
@@ -508,7 +508,7 @@ fn main() {
     let _guard = tauri_plugin_sentry::minidump::init(&client);
 
     // Then set up panic handler
-    setup_panic_handler(client);
+    setup_panic_handler(client.clone());
 
     tauri::Builder::default()
         .plugin(tauri_plugin_log::Builder::new().build())
@@ -548,12 +548,11 @@ fn main() {
             }
             window.set_focus().unwrap();
         }))
-        .on_window_event(|event| match event.event() {
-            tauri::WindowEvent::CloseRequested { api, .. } => {
-                event.window().hide().unwrap();
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                let _ = window.hide();
                 api.prevent_close();
             }
-            _ => {}
         })
         .setup(|app| {
             {
@@ -568,23 +567,23 @@ fn main() {
             app.track_event("app_started", Some(props_value));
             app.flush_events_blocking();
             let window = app.get_webview_window("main").unwrap();
-            #[cfg(any(windows, target_os = "macos"))]
-            set_shadow(&window, true).unwrap();
-
             #[cfg(target_os = "macos")]
             apply_vibrancy(&window, NSVisualEffectMaterial::HudWindow, None, None)
                 .expect("Unsupported platform! 'apply_vibrancy' is only supported on macOS");
 
             #[cfg(target_os = "windows")]
-            apply_mica(&window, None).unwrap_or_else(|_| {
-                let _ = apply_blur(&window, Some((25, 10, 30, 255)));
-            });
+            {
+                if let Err(err) = apply_mica(&window, None) {
+                    trace!("Mica application failed: {err:?}, falling back to blur");
+                    let _ = apply_blur(&window, Some((25, 10, 30, 255)));
+                }
+            }
 
-    let (_menu, _tray) = build_tray(app)?;
+    let (_menu, _tray) = build_tray(&app.handle())?;
 
             // This gets any command line arguments passed to the app
             let matches = app.cli().matches().unwrap_or_default();
-            if let Some(hidden) = matches.args().and_then(|args| args.get("hidden")) {
+            if let Some(hidden) = matches.args.get("hidden") {
                 if hidden.value == Value::Bool(true) {
                     window.hide().unwrap();
                 } else {
@@ -594,7 +593,7 @@ fn main() {
 
             info!("Starting Dot X with version {:?}", sentry::release_name!());
 
-            APP.set(app.handle()).expect("error setting up app");
+            APP.set(app.handle().clone()).expect("error setting up app");
             Ok(())
         })
         .run(tauri::generate_context!())
