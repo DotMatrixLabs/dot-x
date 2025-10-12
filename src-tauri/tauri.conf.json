@@ -44,7 +44,7 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "copyright": "Copyright © 2024 Frogbyte AS",
+    "copyright": "Copyright © 2025 Frogbyte AS",
     "category": "Utility",
     "shortDescription": "Dot X",
     "longDescription": "Desktop app for DotMatrixLabs products",
@@ -74,6 +74,7 @@
     },
     "windows": [
       {
+        "label": "main",
         "fullscreen": false,
         "height": 600,
         "resizable": true,
