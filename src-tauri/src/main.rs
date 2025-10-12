@@ -28,11 +28,11 @@ use active_win_pos_rs::get_active_window;
 use brightness::{Brightness, BrightnessDevice};
 use chrono::Local;
 use futures::TryStreamExt;
-use tauri_plugin_cli::CliExt;
 use sentry::{self, Client};
-use std::thread;
 use std::time::Duration;
+use std::thread;
 use tauri_plugin_aptabase::EventTracker;
+use tauri_plugin_cli::CliExt;
 
 static APP: OnceCell<tauri::AppHandle> = OnceCell::new();
 
@@ -407,8 +407,10 @@ fn build_tray(app: &tauri::AppHandle<Wry>) -> tauri::Result<(Menu<Wry>, TrayIcon
         .on_menu_event(|app, event| match event.id().as_ref() {
             "quit" => {
                 info!("Quitting Dot X");
-                app.track_event("app_exited", None);
-                app.flush_events_blocking();
+                let app_handle = app.clone();
+                tauri::async_runtime::spawn(async move {
+                    let _ = app_handle.track_event("app_exited", None);
+                });
                 std::process::exit(0);
             }
             "hide" => {
@@ -453,13 +455,7 @@ fn show_notification(app: &tauri::AppHandle, title: &str, body: &str) {
         "Showing notification || Title: {} | Message: {}",
         title, body
     );
-    if let Err(err) = app
-        .notification()
-        .builder()
-        .title(title)
-        .body(body)
-        .show()
-    {
+    if let Err(err) = app.notification().builder().title(title).body(body).show() {
         error!("Failed to show notification: {err}");
     }
 }
@@ -511,6 +507,7 @@ fn main() {
     setup_panic_handler(client.clone());
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_log::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
             get_installed_apps,
@@ -530,7 +527,6 @@ fn main() {
             get_input_devices
         ])
         .plugin(tauri_plugin_aptabase::Builder::new("A-EU-7429874879").build()) // 👈 this is where you enter your App Key
-        .plugin(tauri_plugin_log::Builder::default().build())
         .plugin(tauri_plugin_sentry::init(&client))
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_autostart::init(
@@ -538,15 +534,18 @@ fn main() {
             Some(vec!["--hidden"]),
         ))
         .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
-            let window = app.get_webview_window("main").unwrap();
-            if window.is_visible().unwrap() == false {
-                window.show().unwrap();
-                show_notification(app, "Dot X", "Dot X is already running");
+            if let Some(window) = app.get_webview_window("main") {
+                if matches!(window.is_visible(), Ok(false)) {
+                    let _ = window.show();
+                    show_notification(app, "Dot X", "Dot X is already running");
+                }
+                if matches!(window.is_minimized(), Ok(true)) {
+                    let _ = window.unminimize();
+                }
+                let _ = window.set_focus();
+            } else {
+                error!("Main window not found during single-instance handling");
             }
-            if window.is_minimized().unwrap() {
-                window.unminimize().unwrap();
-            }
-            window.set_focus().unwrap();
         }))
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
@@ -562,11 +561,18 @@ fn main() {
             let mut props_map = HashMap::new();
             props_map.insert("slider_amount".to_string(), Value::String("5".to_string()));
 
-            // Convert the HashMap to a serde_json::Value
+            // Convert the HashMap to a serde_json::Value and send event on async runtime
             let props_value = json!(props_map);
-            app.track_event("app_started", Some(props_value));
-            app.flush_events_blocking();
-            let window = app.get_webview_window("main").unwrap();
+            {
+                let app_handle = app.handle().clone();
+                tauri::async_runtime::spawn(async move {
+                    let _ = app_handle.track_event("app_started", Some(props_value));
+                });
+            }
+            let Some(window) = app.get_webview_window("main") else {
+                error!("Main window not found during setup");
+                return Ok(());
+            };
             #[cfg(target_os = "macos")]
             apply_vibrancy(&window, NSVisualEffectMaterial::HudWindow, None, None)
                 .expect("Unsupported platform! 'apply_vibrancy' is only supported on macOS");
@@ -579,15 +585,15 @@ fn main() {
                 }
             }
 
-    let (_menu, _tray) = build_tray(&app.handle())?;
+            let (_menu, _tray) = build_tray(&app.handle())?;
 
             // This gets any command line arguments passed to the app
             let matches = app.cli().matches().unwrap_or_default();
             if let Some(hidden) = matches.args.get("hidden") {
                 if hidden.value == Value::Bool(true) {
-                    window.hide().unwrap();
+                    let _ = window.hide();
                 } else {
-                    window.show().unwrap();
+                    let _ = window.show();
                 }
             }
 
