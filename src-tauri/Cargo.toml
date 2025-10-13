@@ -57,6 +57,8 @@ psp = { git = "https://github.com/Frogbyte-io/psp" }
 base64ct = "=1.7.1"
 zip = "=0.6.6"
 tauri-plugin-process = "2"
+tokio = { version = "1.45", features = ["full"] }
+tokio-tungstenite = "0.26"
 
 
 [features]
