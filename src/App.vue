@@ -71,10 +71,7 @@ export default {
   methods: {
 
     async setThemeFromOS() {
-      const osTheme = await version().then((version) => {
-        const winVersion = this.getWindowsVersion(version)
-        this.isWin10 = winVersion === 'Windows 10';
-      });
+      this.isWin10 = this.getWindowsVersion(version()) === 'Windows 10';
     },
 
     getWindowsVersion(kernelVersion) {
