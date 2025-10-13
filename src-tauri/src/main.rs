@@ -508,6 +508,7 @@ async fn main() {
     setup_panic_handler(client.clone());
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_log::Builder::new().build())
