@@ -1,7 +1,7 @@
 {
   "productName": "Dot X",
   "mainBinaryName": "Dot X",
-  "version": "1.1.0",
+  "version": "2.0.0-1",
   "identifier": "com.dot-x.dev",
   "build": {
     "beforeBuildCommand": "yarn build",

@@ -39,7 +39,7 @@ export default {
     name: "About",
     data() {
         return {
-            appVersion: tauriConf.package.version,
+            appVersion: tauriConf.version,
             updaterStatus: null,
         }
     },
