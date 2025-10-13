@@ -5,13 +5,18 @@ import * as _ from "lodash";
  * Class representing selected apps.
  */
 class SelectedApps {
-    private store: Store;
+    private store!: Store;
 
     /**
      * Creates an instance of SelectedApps.
      */
     constructor() {
-        this.store = new Store("selectedApps.json");
+    }
+
+    private async ensureLoaded() {
+        if (!this.store) {
+            this.store = await Store.load("selectedApps.json");
+        }
     }
 
     /**
@@ -20,6 +25,7 @@ class SelectedApps {
      * @param {string | string[]} appNames - The name or array of names of the app(s) or device(s) to toggle.
      */
     async toggleApps(sliderID: string, appNames: string | string[]) {
+        await this.ensureLoaded();
         console.log("toggleApps", sliderID, appNames);
 
         const key: string = sliderID.toString();
@@ -41,9 +47,11 @@ class SelectedApps {
      * @returns {Promise<string[] | null>} The apps and devices for the slider, or null if not found.
      */
     async getApps(sliderID: number): Promise<string[] | null> {
+        await this.ensureLoaded();
         const sliderIDString = sliderID?.toString();
         if (!sliderIDString) return null;
-        return await this.store.get(sliderIDString);
+        const result = await this.store.get(sliderIDString);
+        return (result ?? null) as string[] | null;
     }
 
     /**
@@ -51,6 +59,7 @@ class SelectedApps {
      * @returns {Promise<string[] | null>} The apps for the slider, or null if not found.
      */
     async getMappedApps(): Promise<string[] | null> {
+        await this.ensureLoaded();
         let mappedApps: string[] = [];
         //get number of sliders by looking at number of keys in store
         const keys = await this.store.keys();
@@ -67,6 +76,7 @@ class SelectedApps {
      * Saves the changes to the store.
      */
     async save() {
+        await this.ensureLoaded();
         await this.store.save();
     }
 }
