@@ -25,7 +25,7 @@ tauri-plugin-store = { version = "2.1.0" }
 tauri-plugin-autostart = { version = "2.0.1" }
 windows-volume-control = { git = "https://github.com/Frogbyte-io/windows-volume-control.git", branch = "use-local-language-to-get-process-names" }
 #windows-volume-control = { path = "../../windows-volume-control" }
-serialport = "=4.3.0"
+serialport = "=4.3.0" # locked to 4.3.0 due to slow reading of data on higher versions. TODO: investigate
 tracing-subscriber = "0.3.17"
 tracing = "0.1.39"
 clap = "4.5.49"
@@ -39,8 +39,8 @@ sentry = "0.42"
 tauri-plugin-sentry = "0.5"
 log = { version = "^0.4", features = ["max_level_debug", "release_max_level_warn"] }
 tauri-plugin-log = { version = "2" }
-active-win-pos-rs = "0.8.3"
-cargo-license = "0.6.1"
+active-win-pos-rs = "0.9.1"
+cargo-license = "0.7.0"
 lazy_static = "1.4.0"
 tauri-plugin-fs = "2"
 tauri-plugin-cli = "2.0.1"
@@ -50,7 +50,7 @@ tauri-plugin-notification = "2"
 tauri-plugin-updater = "2"
 tauri-plugin-shell = "2"
 chrono = "0.4"
-brightness = "0.5.0"
+brightness = "0.8.0"
 futures = "0.3.31"
 psp = { git = "https://github.com/Frogbyte-io/psp" }
 #psp = { path = "../../psp" }
