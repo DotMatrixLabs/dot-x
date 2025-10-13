@@ -1,5 +1,5 @@
 // dot-x-plugin/src/plugin.ts
-import { APIClient, PluginInfo, ConnectionConfig, SliderChanges } from './client';
+import { APIClient, PluginInfo, ConnectionConfig, DeviceChanges } from './client';
 import type { PluginAPI } from './types';
 import { SettingsBuilder, ActionMapper } from './ui';
 import type { SettingsSections } from './types';
@@ -32,8 +32,8 @@ class Plugin {
     this.actionmapper = actionMapperBuilder;
 
     // Register slider update callback to forward to plugin's onSlidersUpdate method
-    this.client.setSliderUpdateCallback(async (data: SliderChanges) => {
-      await this.onSlidersUpdate(data);
+    this.client.setDeviceUpdateCallback(async (data: DeviceChanges) => {
+      await this.onDeviceUpdate(data);
       // Return the data to satisfy the client's internal requirements
       return data;
     });
@@ -142,7 +142,7 @@ class Plugin {
     this.client.disconnect();
   }
 
-  async onSlidersUpdate(data: SliderChanges): Promise<void> {
+  async onDeviceUpdate(data: DeviceChanges): Promise<void> {
     // Default implementation does nothing - plugins can override this
     console.log("[HELLO WORLD PLUGIN?]: Sliders updated:", data);
   }
