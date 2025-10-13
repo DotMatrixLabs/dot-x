@@ -469,7 +469,7 @@ struct InstancePayload {
 fn start_aptabase_heartbeat(app: tauri::AppHandle) {
     thread::spawn(move || {
         loop {
-            app.track_event("app_heartbeat💓", None);
+            let _ = app.track_event("app_heartbeat💓", None);
             thread::sleep(Duration::from_secs(1 * 60 * 59)); //heartbeat every hour (I'm concerned exactly 1 hour will make a new session, so I'm doing 59 minutes - you got a problem with that? That's what I thought.)
         }
     });
@@ -490,7 +490,8 @@ fn setup_panic_handler(client: Client) {
     }));
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let client = sentry::init((
         "https://473d7b762855b5baa461a7921a5f95cc@sentry-ingest.frogbyte.io/4",
         sentry::ClientOptions {
@@ -509,6 +510,7 @@ fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_log::Builder::new().build())
+        .plugin(tauri_plugin_cli::init())
         .invoke_handler(tauri::generate_handler![
             get_installed_apps,
             get_all_session_names,
