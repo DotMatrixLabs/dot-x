@@ -33,7 +33,7 @@
 <script>
 
 import tauriConf from "../../src-tauri/tauri.conf.json";
-import { checkUpdate } from '@tauri-apps/plugin-updater';
+import { check } from '@tauri-apps/plugin-updater';
 
 export default {
     name: "About",
@@ -46,7 +46,7 @@ export default {
     methods: {
         async checkForUpdates() {
             this.checkingForUpdates = true;
-            const update = await checkUpdate();
+            const update = await check();
             console.log('Update:', update);
             if(update.shouldUpdate === false) {
                 this.updaterStatus = 'No updates available';
