@@ -93,13 +93,16 @@ export default {
         },
 
         async getMIDISettings() {
-            // Read MIDIConfiguration from config.get(MIDIConfiguration), if it exists. If not, set it to an empty array.
-
+            // Read MIDIConfiguration from config.get(MIDIConfiguration), if it exists. If not, set it to default values.
             this.MIDIConfiguration = await config.get("midiConfiguration") ?? [];
-            if(this.MIDIConfiguration[this.currentSliderID] === undefined || this.MIDIConfiguration[this.currentSliderID] === null) this.MIDIConfiguration[this.currentSliderID] = {}; // If the MIDI configuration for the current slider doesn't exist, create it
+            if(this.MIDIConfiguration[this.currentSliderID] === undefined || this.MIDIConfiguration[this.currentSliderID] === null) {
+                this.MIDIConfiguration[this.currentSliderID] = {};
+                this.MIDIConfiguration[this.currentSliderID].channel = `${this.currentSliderID + 1}`; // By default, the channel is the slider ID/number
+                this.MIDIConfiguration[this.currentSliderID].CCValue = `7`; // By default, the CC value is 7
+                await config.set("midiConfiguration", this.MIDIConfiguration);
+            }
             this.channelInput = this.MIDIConfiguration[this.currentSliderID]?.channel ?? `${this.currentSliderID + 1}`; // By default, the channel is the slider ID/number
             this.CCValueInput = this.MIDIConfiguration[this.currentSliderID]?.CCValue ?? `7`; // By default, the CC value is 7
-            console.log(`[Slider ${this.currentSliderID +1}]: Channel: ${this.channelInput}, CC Value: ${this.CCValueInput}`);
         },
 
         async setCCValue() {
