@@ -30,9 +30,9 @@ export interface ConnectionConfig {
   apiTimeout?: number;
 }
 
-export interface SliderChanges {
+export interface DeviceChanges {
   changes: Array<{ index: number; oldValue: number; newValue: number }>;
-  sliders: Array<{ value: number }>;
+  values: Array<{ value: number }>;
 }
 
 export class APIClient {
@@ -66,19 +66,19 @@ export class APIClient {
     return this.connectionPromise;
   }
 
-  private sliderUpdateCallback?: (data: SliderChanges) => Promise<SliderChanges | void>;
+  private deviceUpdateCallback?: (data: DeviceChanges) => Promise<DeviceChanges | void>;
 
-  async onSliderUpdate(data: SliderChanges) {
+  async onDeviceUpdate(data: DeviceChanges) {
     if (this.isDestroyed) return;
-    if (this.sliderUpdateCallback) {
-      const result = await this.sliderUpdateCallback(data);
+    if (this.deviceUpdateCallback) {
+      const result = await this.deviceUpdateCallback(data);
       return result || data;
     }
     return data;
   }
 
-  public setSliderUpdateCallback(callback: (data: SliderChanges) => Promise<SliderChanges | void>) {
-    this.sliderUpdateCallback = callback;
+  public setDeviceUpdateCallback(callback: (data: DeviceChanges) => Promise<DeviceChanges | void>) {
+    this.deviceUpdateCallback = callback;
   }
   
   private initializeConnection(): Promise<void> {
@@ -111,9 +111,9 @@ export class APIClient {
           }
         });
 
-        this.socket.on('plugin.slider_change', (data: SliderChanges) => {
-          console.log('Received slider change event');
-          this.onSliderUpdate(data);
+        this.socket.on('plugin.device_update', (data: DeviceChanges) => {
+          console.log('Received device update event');
+          this.onDeviceUpdate(data);
         });
 
         // Request handler from app: single topic with method routing
