@@ -29,8 +29,8 @@ use brightness::{Brightness, BrightnessDevice};
 use chrono::Local;
 use futures::TryStreamExt;
 use sentry::{self, Client};
-use std::time::Duration;
 use std::thread;
+use std::time::Duration;
 use tauri_plugin_aptabase::EventTracker;
 use tauri_plugin_cli::CliExt;
 
@@ -508,6 +508,7 @@ async fn main() {
     setup_panic_handler(client.clone());
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_process::init())
