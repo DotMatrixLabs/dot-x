@@ -27,7 +27,7 @@
       "args": [
         {
           "name": "hidden",
-          "short": "h"
+          "short": "H"
         }
       ],
       "subcommands": {}
