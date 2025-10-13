@@ -100,9 +100,9 @@ export class PluginAPI {
 
   async setupEventHandlers() {
     // TODO: Implement event handlers for events from frontend
-    EventBus.on('slider-change', async (data: any) => {
+    EventBus.on('device-update', async (data: any) => {
       try {
-       await invoke('broadcast_to_plugins', { event: 'plugin.slider_change', data });
+       await invoke('broadcast_to_plugins', { event: 'plugin.device_update', data });
       } catch (err) {
         console.error('Failed to emit action', err);
       }

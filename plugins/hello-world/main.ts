@@ -151,10 +151,10 @@ export default class HelloWorldPlugin extends Plugin {
     });
   }
 
-  async onSlidersUpdate(data: any) {
-    console.log("[HELLO WORLD PLUGIN??]: Sliders updated:", data);
-    
-    // Process the slider changes
+  async onDeviceUpdate(data: any) {
+    console.log("[HELLO WORLD PLUGIN??]: Device updated:", data);
+
+    // Process the device changes
     data.changes.forEach(change => {
       console.log(`Slider ${change.index} changed from ${change.oldValue} to ${change.newValue}`);
     });
