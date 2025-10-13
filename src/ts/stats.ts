@@ -2,18 +2,24 @@ import { Store } from "@tauri-apps/plugin-store";
 import * as CryptoJS from 'crypto-js';
 
 class Stats {
-    private store: Store;
+    private store!: Store;
     private secretKey: string;
 
     constructor() {
-        this.store = new Store("stats.x");
         this.secretKey = "madebyfrogs";
         setInterval(() => {
             this.save();
         }, 1000 * 60); //save every minute
     }
 
+    private async ensureLoaded() {
+        if (!this.store) {
+            this.store = await Store.load("stats.x");
+        }
+    }
+
     async logSliderChange(slider: number, value: number) {
+        await this.ensureLoaded();
         if(isNaN(value)) return;
         const key = `slider-${slider}`;
         const oldValue: any = await this.store.get(key);
@@ -32,6 +38,7 @@ class Stats {
     }
 
     async getSliderDistance(slider: number): Promise<string> {
+        await this.ensureLoaded();
         const key = `slider-${slider}`;
         const value: any = this.decrypt(await this.store.get(key) || "");
         const distance: any = this.formatDistance(value);
@@ -78,6 +85,7 @@ class Stats {
 
 
     private async save() {
+        await this.ensureLoaded();
         await this.store.save();
     }
 
