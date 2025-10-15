@@ -130,6 +130,7 @@
     "sentry:default",
     "sentry:allow-breadcrumb",
     "sentry:allow-envelope",
-    "sentry:allow-event"
+    "sentry:allow-event",
+    "process:allow-restart"
   ]
 }
