@@ -1,7 +1,7 @@
 <template>
     <div class="grid grid-cols-1 w-1/2 m-auto gap-4 p-2">
         
-        <div class="flex flex-col justify-center items-center" v-for="device in devices">
+        <div class="flex flex-col justify-center items-center" v-for="device in devices" :key="device.id">
             <button :disabled="(device.id === 'master' || device.id === 'mic') && !sessions?.includes(device.id)" @click="setActiveDevice(device.id)" class="btn btn-wide"
                 :class="activeDevices?.includes(device.id) ? 'btn-primary' : ''">
                 <div v-if="activeDevices?.includes(device.id)">
