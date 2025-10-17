@@ -1,6 +1,7 @@
 import { mkdir, copyFile, BaseDirectory, readFile, remove, exists, readDir } from '@tauri-apps/plugin-fs';
 import {imageDimensionsFromData} from 'image-dimensions';
 import { relaunch } from '@tauri-apps/plugin-process';
+import { open } from '@tauri-apps/plugin-shell';
 
 export async function copyFileToAppdata(filePath: string, folderName: string, fileName?: string) {
     if(!fileName) fileName = filePath.split("/").pop();
@@ -123,5 +124,16 @@ export async function resetChannelSettings() {
         await relaunch();
     } catch (error) {
         console.error('Error resetting channel settings:', error);
+    }
+}
+
+
+export async function openLink(url: string): Promise<boolean> {
+    try{
+        await open(url);
+        return true;
+    } catch (error) {
+        console.error('Error opening link:', error);
+        return false;
     }
 }

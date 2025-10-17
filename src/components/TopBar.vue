@@ -11,9 +11,9 @@
         <span class="text-sm text-base-content mx-2 capitalize">{{ connectionStatus ? 'Connected' : 'Disconnected' }}</span>
       </div>
 
-      <a class="opacity-70 hover:opacity-100 transition-opacity" href="https://dml.gg/discord" target="_blank" rel="noopener noreferrer">
+      <span @click="openLink('https://dml.gg/discord')" class="opacity-70 hover:opacity-100 transition-opacity cursor-pointer">
         <i class="fab fa-discord"></i>
-      </a>
+      </span>
 
     </div>
     <div class="flex flex-row justify-center top-0">
@@ -33,6 +33,7 @@
 <script>
 
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
+import { openLink } from "../ts/helpers.ts"
 const appWindow = getCurrentWebviewWindow()
 
 export default {
@@ -54,6 +55,7 @@ export default {
     minimize() {
       appWindow.minimize()
     },
+    openLink,
   },
 
   mounted() {

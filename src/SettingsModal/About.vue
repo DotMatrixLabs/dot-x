@@ -7,26 +7,19 @@
         </div>
         <div class="flex flex-row w-full justify-between px-2 mt-4">
             <span class="my-auto">Read the docs</span>
-            <a href="https://dml.gg/docs" target="_blank" rel="noopener noreferrer">
-                <button class="btn btn-sm">Docs<i class="fa-solid fa-book fa-lg"></i></button>
-            </a>
+            <button @click="openLink('https://dml.gg/docs')" class="btn btn-sm">Docs<i class="fa-solid fa-book fa-lg"></i></button>
         </div>
         <div class="flex flex-row w-full justify-between px-2 mt-4">
             <span class="my-auto">Give feedback</span>
-            <a href="https://dml.gg/feedback" target="_blank" rel="noopener noreferrer">
-                <button class="btn btn-sm">Feedback</button>
-            </a>
-
+            <button @click="openLink('https://dml.gg/feedback')" class="btn btn-sm">Feedback</button>
         </div>
         <div class="flex flex-row w-full justify-between px-2 mt-4">
             <span class="my-auto">Join our Discord</span>
-            <a href="https://dml.gg/discord" target="_blank" rel="noopener noreferrer">
-                <button class="btn btn-sm">Join<i class="fab fa-discord fa-lg"></i></button>
-            </a>
+            <button @click="openLink('https://dml.gg/discord')" class="btn btn-sm">Join<i class="fab fa-discord fa-lg"></i></button>
         </div>
         <div class="flex flex-col w-full justify-center px-2 mb-4 absolute bottom-0 left-1/2 -translate-x-1/2">
-            <a href="https://dml.gg" target="_blank" rel="noopener noreferrer"
-                class="mb-2 text-sm hover:underline opacity-80 text-center first-letter:">Made by DotMatrixLabs</a>
+            <span @click="openLink('https://dml.gg')"
+                class="mb-2 text-sm hover:underline opacity-80 text-center first-letter: cursor-pointer">Made by DotMatrixLabs</span>
             <span class="text-center text-xs opacity-50">&copy; Frogbyte AS {{ new Date().getFullYear() }}</span>
         </div>
     </div>
@@ -36,6 +29,9 @@
 
 import tauriConf from "../../src-tauri/tauri.conf.json";
 import { check } from '@tauri-apps/plugin-updater';
+import { openLink } from "../ts/helpers.ts";
+
+const openLinkMethod = openLink;
 
 export default {
     name: "About",
@@ -47,6 +43,7 @@ export default {
         }
     },
     methods: {
+        openLink: openLinkMethod,
         async checkForUpdates() {
             this.checkingForUpdates = true;
             const update = await check();
