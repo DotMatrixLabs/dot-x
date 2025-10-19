@@ -2,10 +2,11 @@
   <div v-if="open" class="modal modal-open h-full w-full">
     <div class="modal-box p-4 max-w-xl">
       <div class="flex justify-between items-start">
-        <h3 class="font-bold text-xl text-gray-300">What’s New - {{store.currentVersion}}</h3>
+        <h3 class="font-extrabold text-xl text-white">What’s New - {{store.currentVersion}}</h3>
         <button class="btn btn-ghost btn-xs btn-circle" @click="close">✕</button>
       </div>
-      <div ref="content" class="prose prose-h1:text-xl prose-h2:text-xl prose-h3:text-xl prose-h4:text-lg prose-h5:text-base prose-h6:text-sm dark:prose-invert max-w-none mt-3" v-html="html"></div>
+      <div class="divider my-0 py-0"></div>
+      <div ref="content" class="prose prose-invert prose-h1:text-xl prose-h2:text-xl prose-h3:text-xl prose-h4:text-lg prose-h5:text-base prose-h6:text-sm max-w-none mt-3 font-sans" v-html="html"></div>
       <!-- divider -->
       <div class="divider my-0 py-0"></div>
       <div class="modal-action mt-2 pb-0 mb-0 flex flex-row justify-end items-center">
@@ -74,3 +75,9 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+.prose :is(h1, h2, h3, h4, h5, h6, p, li, a) {
+  @apply text-white font-sans;
+}
+</style>
