@@ -6,7 +6,7 @@
         <button class="btn btn-ghost btn-sm" @click="dismiss">✕</button>
       </div>
       <p class="mt-2 opacity-90">
-        Version {{store.availableVersion}} is now available — Update now to get the latest features and improvements.
+        Version {{store.availableVersion}} is now available — Update to get the latest features and improvements.
       </p>
       <div class="mt-2 text-sm">
         <a v-if="hasChangelog" href="#" @click.prevent="showChangelog">See what’s new</a>
