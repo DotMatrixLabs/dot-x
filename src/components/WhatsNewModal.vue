@@ -39,7 +39,7 @@ export default {
     };
   },
   computed: {
-    open() { return true; },
+    open() { return this.store.whatsNewOpen; },
     html() { return this.store.changelogHtml; },
   },
   methods: {

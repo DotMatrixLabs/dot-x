@@ -108,10 +108,10 @@ export const useUpdateStore = defineStore('update', {
 
     shouldShowWhatsNewOnLaunch(): { show: boolean; html: string; version: string } {
       const version = this.currentVersion;
-      if (!version) return { show: false, html: '', version: '' };
-      if (this.persisted.whatsNewShownForVersion === version) return { show: false, html: '', version: version };
+      if (!version) return { show: false, html: '', version: '' }; // if the version is not set, return false
+      if (this.persisted.whatsNewShownForVersion === version) return { show: false, html: '', version: version }; // if the version has already been shown, return false
       const html = this.changelogForVersion(version);
-      if (!html) return { show: false, html: '', version: version };
+      if (!html) return { show: false, html: '', version: version };// if the html is not set, return false
       return { show: true, html, version: version };
     },
 
