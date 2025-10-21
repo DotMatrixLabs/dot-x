@@ -8,12 +8,15 @@ module.exports = {
   ],
   theme: {
     colors: {
-      'primary': '#202124',
+      'primary': '#1a1a1a',
       'secondary': '#292A2D',
       'secondaryLight': '#555555',
-      'accent': '#CC051C',
-      'hover-accent': '#A80316',
+      'accent': '#7033d9',
+      'hover-accent': '#5a28ad',
       'hover-white': '#D2D2D2',
+      'brand-black': '#1a1a1a',
+      'brand-white': '#f9f9fb',
+      'brand-accent': '#7033d9',
       transparent: 'transparent',
       gray: colors.gray,
       blue: colors.blue,
@@ -25,7 +28,12 @@ module.exports = {
       yellow: colors.yellow,
       black: colors.black,
     },
-    extend: {},
+    extend: {
+      fontFamily: {
+        'sans': ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+        'heading': ['Poppins', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+      },
+    },
   },
   plugins: [require("daisyui")],
   daisyui: {
