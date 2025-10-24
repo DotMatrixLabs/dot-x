@@ -9,7 +9,7 @@
         Version {{store.availableVersion}} is now available — Update to get the latest features and improvements.
       </p>
       <div class="mt-2 text-sm">
-        <a v-if="hasChangelog" href="#" @click.prevent="showChangelog">See what’s new</a>
+        <a v-if="hasChangelog" class="underline text-white opacity-60 hover:opacity-80 transition-all" href="#" @click.prevent="showChangelog">See what’s new</a>
       </div>
       <div class="modal-action">
         <button class="btn" @click="dismiss" :disabled="store.downloading">Later</button>
