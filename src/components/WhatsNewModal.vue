@@ -2,7 +2,7 @@
   <div v-if="open" class="modal modal-open h-full w-full">
     <div class="modal-box p-4 max-w-xl">
       <div class="flex justify-between items-start">
-        <h3 class="font-bold text-xl text-white">What’s New - {{store.currentVersion}}</h3>
+        <h3 class="font-bold text-xl text-white">What’s New - {{store.availableVersion ?? store.currentVersion}}</h3>
         <button class="btn btn-ghost btn-xs btn-circle" @click="close">✕</button>
       </div>
       <div class="divider my-0 py-0"></div>
