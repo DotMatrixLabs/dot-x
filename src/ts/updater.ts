@@ -2,7 +2,7 @@ import { checkUpdate, installUpdate, onUpdaterEvent } from '@tauri-apps/api/upda
 import { relaunch } from '@tauri-apps/api/process';
 import { isPermissionGranted, requestPermission, sendNotification } from '@tauri-apps/api/notification';
 import { useUpdateStore } from '../store/updateStore';
-import { marked } from 'marked';
+import { renderMarkdown } from './markdown';
 
 function extractDotXHtml(body?: string): string {
   if (!body) return '';
@@ -12,8 +12,7 @@ function extractDotXHtml(body?: string): string {
   const endIndex = body.indexOf(endMarker);
   if (startIndex === -1 || endIndex === -1 || endIndex <= startIndex) return '';
   const markdown = body.slice(startIndex + startMarker.length, endIndex).replace(/<!--|-->/g, '').trim();
-  const rendered = marked.parse(markdown);
-  return typeof rendered === 'string' ? rendered : '';
+  return renderMarkdown(markdown);
 }
 
 async function notifyOnce(version: string) {
