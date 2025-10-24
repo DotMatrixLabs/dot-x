@@ -63,8 +63,8 @@ export async function initUpdater() {
       if (version && html) store.setChangelog(version, html);
       await notifyOnce(version);
       store.openPrompt();
-    } catch {
-      console.error('Error checking for updates');
+    } catch (error) {
+      console.error(error);
     }
   };
 
