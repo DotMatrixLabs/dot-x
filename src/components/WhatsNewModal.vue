@@ -9,7 +9,12 @@
       <div v-if="store.changelogHtml === ''" class="flex justify-center items-center mt-8 mb-8 h-28">
         <loadingSpinner />
       </div>
-      <div v-else ref="content" class="prose prose-invert prose-h1:text-xl prose-h2:text-xl prose-h3:text-lg prose-h4:text-base prose-h5:text-base prose-h6:text-sm max-w-none mt-3 font-sans text-opacity-90" v-html="html"></div>
+      <div
+        v-else
+        ref="contentRef"
+        class="mt-3 font-sans text-sm leading-relaxed text-white text-opacity-90 space-y-3"
+        v-html="html"
+      ></div>
       <!-- divider -->
       <div class="divider my-0 py-0"></div>
       <div class="modal-action mt-2 pb-0 mb-0 flex flex-row justify-end items-center">
@@ -21,7 +26,6 @@
 
 <script>
 import { useUpdateStore } from '../store/updateStore';
-import { open } from '@tauri-apps/api/shell';
 import loadingSpinner from '../assets/loadingSpinner.vue';
 
 export default {
@@ -35,7 +39,8 @@ export default {
   },
   data() {
     return {
-      contentRef: null
+      contentRef: null,
+      contentObserver: null
     };
   },
   computed: {
@@ -47,48 +52,35 @@ export default {
       this.store.whatsNewOpen = false;
       this.store.markWhatsNewShownFor(this.store.currentVersion);
     },
-    handleLinkClick(event) {
-      // Check if the clicked element is a link
-      if (event.target.tagName === 'A') {
-        event.preventDefault();
-        const url = event.target.href;
-        if (url) {
-          open(url).catch(console.error);
-        }
-      }
-    },
-    attachLinkListeners() {
-      if (this.contentRef) {
-        this.contentRef.addEventListener('click', this.handleLinkClick);
-      }
-    },
-    detachLinkListeners() {
-      if (this.contentRef) {
-        this.contentRef.removeEventListener('click', this.handleLinkClick);
-      }
-    }
   },
-  mounted() {
-    this.contentRef = this.$refs.content;
-    this.attachLinkListeners();
-  },
-  updated() {
-    // Re-attach listeners after content updates
-    this.detachLinkListeners();
-    this.attachLinkListeners();
-  },
-  beforeUnmount() {
-    this.detachLinkListeners();
-  }
+  // mounted() {
+  //   // Delegate link clicks to open via Tauri shell.open
+  //   const handler = async (event) => {
+  //     const target = event.target;
+  //     if (!(target instanceof HTMLElement)) return;
+  //     const anchor = target.closest('a');
+  //     if (!anchor) return;
+  //     const href = anchor.getAttribute('href');
+  //     if (!href) return;
+  //     event.preventDefault();
+  //     try {
+  //       const { open } = await import('@tauri-apps/api/shell');
+  //       await open(href);
+  //     } catch (error) {
+  //       console.error('Failed to open link:', error);
+  //     }
+  //   };
+  //   this._linkHandler = handler;
+  //   this.$nextTick(() => {
+  //     if (this.$refs.contentRef) {
+  //       this.$refs.contentRef.addEventListener('click', this._linkHandler, { capture: true });
+  //     }
+  //   });
+  // },
+  // beforeUnmount() {
+  //   if (this.$refs.contentRef && this._linkHandler) {
+  //     this.$refs.contentRef.removeEventListener('click', this._linkHandler, { capture: true });
+  //   }
+  // },
 }
 </script>
-
-<style scoped>
-.prose :is(h1, h2, h3, h4, h5, h6, p, li, a, strong, blockquote) {
-  @apply text-white font-sans m-1;
-}
-
-.prose :is(a) {
-  @apply hover:text-gray-300 cursor-pointer text-opacity-90;
-}
-</style>
