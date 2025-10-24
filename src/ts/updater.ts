@@ -85,8 +85,9 @@ export async function userInstallUpdate() {
   try {
     store.startDownloading();
     await installUpdate();
-  } catch {
+  } catch (error) {
     store.stopDownloading();
+    console.error(error);
   }
 }
 

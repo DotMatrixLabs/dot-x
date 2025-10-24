@@ -17,6 +17,10 @@
 
     </div>
     <div class="flex flex-row justify-center top-0">
+      <button v-if="store.updateAvailable" title="Update available — click to install" @click="clickUpdate" class="mx-2 btn btn-ghost rounded-md p-2 w-10 h-10 cursor-default">
+          <div v-show="store.downloading" class="loading loading-spinner"></div>
+          <span v-if="!store.downloading"><i class="fas fa-xl fa-arrow-right-to-bracket rotate-90 text-green-500"></i></span>
+      </button>
       <button title="Settings" @click="$emit('settings-toggled')" class="mx-8 btn btn-ghost rounded-md p-2">
         <i class="fas fa-gear fa-lg text-base-content"></i>
       </button>
@@ -33,6 +37,8 @@
 <script>
 
 import { appWindow } from '@tauri-apps/api/window'
+import { useUpdateStore } from '../store/updateStore'
+import { userInstallUpdate, performRelaunchIfReady } from '../ts/updater'
 
 export default {
   name: 'TopBar',
@@ -41,8 +47,10 @@ export default {
 
   emits: ["settings-toggled"],
 
+
   data() {
     return {
+      store: useUpdateStore(),
     }
   },
 
@@ -52,6 +60,14 @@ export default {
     },
     minimize() {
       appWindow.minimize()
+    },
+    async clickUpdate() {
+      if (this.store.updateReady) {
+        await performRelaunchIfReady()
+      } else {
+        await userInstallUpdate()
+        await performRelaunchIfReady()
+      }
     },
   },
 
