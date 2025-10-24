@@ -8,7 +8,7 @@ const md = new MarkdownIt({
   typographer: true,
 });
 
-const proxy: RenderRule = (tokens, idx, options, self) => self.renderToken(tokens, idx, options);
+const proxy: RenderRule = (tokens, idx, options, _env, self) => self.renderToken(tokens, idx, options);
 
 function appendClass(ruleName: keyof typeof md.renderer.rules, className: string) {
   const original = md.renderer.rules[ruleName] || proxy;
