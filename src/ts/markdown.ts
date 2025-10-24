@@ -57,7 +57,15 @@ md.renderer.rules.link_open = (tokens, idx, options, env, self) => {
 };
 
 export function renderMarkdown(markdown: string): string {
-  return md.render(markdown);
+  try {
+    return md.render(markdown);
+  } catch {
+    const escapeHtml = (input: string) => input
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+    return `<div class="text-sm leading-relaxed text-white text-opacity-90 whitespace-pre-wrap">${escapeHtml(markdown)}</div>`;
+  }
 }
 
 
