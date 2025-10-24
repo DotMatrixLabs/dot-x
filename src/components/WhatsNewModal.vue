@@ -2,14 +2,14 @@
   <div v-if="open" class="modal modal-open h-full w-full">
     <div class="modal-box p-4 max-w-xl">
       <div class="flex justify-between items-start">
-        <h3 class="font-extrabold text-xl text-white">What’s New - {{store.currentVersion}}</h3>
+        <h3 class="font-bold text-xl text-white">What’s New - {{store.currentVersion}}</h3>
         <button class="btn btn-ghost btn-xs btn-circle" @click="close">✕</button>
       </div>
       <div class="divider my-0 py-0"></div>
       <div v-if="store.changelogHtml === ''" class="flex justify-center items-center mt-8 mb-8 h-28">
         <loadingSpinner />
       </div>
-      <div v-else ref="content" class="prose prose-invert prose-h1:text-xl prose-h2:text-xl prose-h3:text-xl prose-h4:text-lg prose-h5:text-base prose-h6:text-sm max-w-none mt-3 font-sans" v-html="html"></div>
+      <div v-else ref="content" class="prose prose-invert prose-h1:text-xl prose-h2:text-xl prose-h3:text-lg prose-h4:text-base prose-h5:text-base prose-h6:text-sm max-w-none mt-3 font-sans text-opacity-90" v-html="html"></div>
       <!-- divider -->
       <div class="divider my-0 py-0"></div>
       <div class="modal-action mt-2 pb-0 mb-0 flex flex-row justify-end items-center">
@@ -85,10 +85,10 @@ export default {
 
 <style scoped>
 .prose :is(h1, h2, h3, h4, h5, h6, p, li, a, strong, blockquote) {
-  @apply text-white font-sans;
+  @apply text-white font-sans m-1;
 }
 
 .prose :is(a) {
-  @apply hover:text-gray-300 cursor-pointer;
+  @apply hover:text-gray-300 cursor-pointer text-opacity-90;
 }
 </style>
