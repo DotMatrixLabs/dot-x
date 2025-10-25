@@ -1,6 +1,7 @@
 import { checkUpdate, installUpdate, onUpdaterEvent } from '@tauri-apps/api/updater';
 import { relaunch } from '@tauri-apps/api/process';
 import { isPermissionGranted, requestPermission, sendNotification } from '@tauri-apps/api/notification';
+import { platform, version as osVersion } from '@tauri-apps/api/os';
 import { useUpdateStore } from '../store/updateStore';
 import { renderMarkdown } from './markdown';
 
@@ -13,6 +14,34 @@ function extractDotXHtml(body?: string): string {
   if (startIndex === -1 || endIndex === -1 || endIndex <= startIndex) return '';
   const markdown = body.slice(startIndex + startMarker.length, endIndex).replace(/<!--|-->/g, '').trim();
   return renderMarkdown(markdown);
+}
+
+let unsupportedWindowsCache: boolean | null = null;
+
+async function isUnsupportedWindows(): Promise<boolean> {
+  if (unsupportedWindowsCache !== null) return unsupportedWindowsCache;
+  try {
+    const osPlatform = await platform();
+    if (osPlatform !== 'win32') {
+      unsupportedWindowsCache = false;
+      return false;
+    }
+    const rawVersion = await osVersion();
+    if (!rawVersion) {
+      unsupportedWindowsCache = false;
+      return false;
+    }
+    const [majorStr, minorStr] = rawVersion.split('.');
+    const major = Number.parseInt(majorStr ?? '', 10);
+    const minor = Number.parseInt(minorStr ?? '', 10);
+    const isWindows7 = major === 6 && minor === 1;
+    const isWindows8 = major === 6 && (minor === 2 || minor === 3);
+    unsupportedWindowsCache = Boolean(isWindows7 || isWindows8);
+    return unsupportedWindowsCache;
+  } catch {
+    unsupportedWindowsCache = false;
+    return false;
+  }
 }
 
 async function notifyOnce(version: string) {
@@ -68,21 +97,25 @@ export async function performRelaunchIfReady() {
 
 async function runCheck(): Promise<'available' | 'none' | 'error'> {
   const store = useUpdateStore();
-    try {
-      const { shouldUpdate, manifest } = await checkUpdate();
-      if (!shouldUpdate) return 'none';
-      const version = manifest?.version ?? '';
-      const changelog = manifest?.body ?? '';
-      store.setAvailable({ version, body: changelog });
-      const html = extractDotXHtml(changelog);
-      if (version && html) store.setChangelog(version, html);
-      await notifyOnce(version);
-      store.openPrompt();
-      return 'available';
-    } catch (error) {
-      console.error(error);
-      return 'error';
-    }
+  if (await isUnsupportedWindows()) {
+    store.resetAvailability();
+    return 'none';
+  }
+  try {
+    const { shouldUpdate, manifest } = await checkUpdate();
+    if (!shouldUpdate) return 'none';
+    const version = manifest?.version ?? '';
+    const changelog = manifest?.body ?? '';
+    store.setAvailable({ version, body: changelog });
+    const html = extractDotXHtml(changelog);
+    if (version && html) store.setChangelog(version, html);
+    await notifyOnce(version);
+    store.openPrompt();
+    return 'available';
+  } catch (error) {
+    console.error(error);
+    return 'error';
+  }
 }
 
 
