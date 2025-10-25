@@ -52,21 +52,7 @@ export async function initUpdater() {
     }
   });
 
-  const runCheck = async () => {
-    try {
-      const { shouldUpdate, manifest } = await checkUpdate();
-      if (!shouldUpdate) return;
-      const version = manifest?.version ?? '';
-      const changelog = manifest?.body ?? '';
-      store.setAvailable({ version, body: changelog });
-      const html = extractDotXHtml(changelog);
-      if (version && html) store.setChangelog(version, html);
-      await notifyOnce(version);
-      store.openPrompt();
-    } catch (error) {
-      console.error(error);
-    }
-  };
+
 
   await runCheck();
   setInterval(runCheck, 12 * 60 * 60 * 1000);//every 12 hours
@@ -79,6 +65,28 @@ export async function performRelaunchIfReady() {
   }
 }
 
+
+async function runCheck(): Promise<'available' | 'none' | 'error'> {
+  const store = useUpdateStore();
+    try {
+      const { shouldUpdate, manifest } = await checkUpdate();
+      if (!shouldUpdate) return 'none';
+      const version = manifest?.version ?? '';
+      const changelog = manifest?.body ?? '';
+      store.setAvailable({ version, body: changelog });
+      const html = extractDotXHtml(changelog);
+      if (version && html) store.setChangelog(version, html);
+      await notifyOnce(version);
+      store.openPrompt();
+      return 'available';
+    } catch (error) {
+      console.error(error);
+      return 'error';
+    }
+}
+
+
+
 export async function userInstallUpdate() {
   const store = useUpdateStore();
   try {
@@ -88,6 +96,16 @@ export async function userInstallUpdate() {
     store.stopDownloading();
     console.error(error);
   }
+}
+
+// Exposed helper for user-initiated checks (e.g., About modal button)
+export async function userCheckForUpdates(): Promise<'available' | 'none' | 'error'> {
+  const store = useUpdateStore();
+  const result = await runCheck();
+  if (result === 'available') {
+    store.promptOpen = true;
+    return 'available';
+  } else return result;
 }
 
 
