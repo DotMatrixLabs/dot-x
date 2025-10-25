@@ -77,6 +77,15 @@ export const useUpdateStore = defineStore('update', {
       this.downloading = false;
     },
 
+    resetAvailability() {
+      this.availableVersion = null;
+      this.changelogHtml = '';
+      this.updateAvailable = false;
+      this.updateReady = false;
+      this.downloading = false;
+      this.promptOpen = false;
+    },
+
     setUpdateReady(ready: boolean) {
       this.updateReady = ready;
       if (ready) {
