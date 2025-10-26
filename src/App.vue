@@ -45,24 +45,14 @@ export default {
     }),
 
     backgroundColor() {
-      if(this.isWin10 && this.colorScheme === "dark") {
-        return "bg-gray-900";
-      } else if (this.isWin10) {
-        return "bg-white";
-      } else {
-        return "bg-transparent";
-      }
+      if(this.isWin10) return "bg-base-100";
+      return "bg-transparent";
     },
 
     
     backgroundColorTopBar() {
-      if(this.isWin10 && this.colorScheme === "dark") {
-        return "bg-gray-900 bg-opacity-20";
-      } else if (this.isWin10) {
-        return "bg-white";
-      } else {
-        return "bg-black bg-opacity-10 ";
-      }
+      if(this.isWin10) return "bg-base-400 bg-opacity-20";
+      return "bg-black bg-opacity-10 ";
     },
 
 
