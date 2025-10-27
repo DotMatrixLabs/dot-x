@@ -1,7 +1,7 @@
 <template>
     <HelpBox ref="helpBox" class="p-12" />
     <!-- Apps -->
-    <div class="flex flex-row m-auto mb-2 justify-center items-center">
+    <div class="flex flex-row m-auto mb-2 justify-between items-center">
         <div class="h-full">
             <label class="label cursor-pointer">
                 <span class="text-xs mx-2">All Apps</span> 
