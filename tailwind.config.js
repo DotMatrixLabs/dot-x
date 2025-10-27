@@ -65,9 +65,8 @@ module.exports = {
           neutral: colors.gray[800],
           "neutral-content": "#f9f9fb",
           "base-100": "#202020", // Mica base color
-          "base-200": "#1A1A1A", // layer 1 - cards, buttons, etc.
-          "base-300": "#1C1C1C", // layer 2 - deeper cards, etc.
-          "base-400": "#222222",
+          "base-200": "#1C1C1C", // layer 1 - cards, buttons, etc.
+          "base-300": "#1A1A1A", // layer 2 - deeper cards, etc.
           "base-content": "#f9f9fb",
           info: colors.blue[400],
           success: colors.green[400],
