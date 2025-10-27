@@ -14,8 +14,8 @@
             <i class="fas fa-info h-3 w-3"></i>
         </button>
     </div>
-    <div class="flex flex-col overflow-y-auto overflow-x-hidden h-40 w-full p-4 bg-base-200 rounded-lg relative">
-        <div v-if="loading" class="absolute bg-base-400 h-full w-full left-0 top-0 bg-opacity-50">
+    <div class="flex flex-col overflow-y-auto overflow-x-hidden h-52 w-full p-4 bg-base-200 bg-opacity-80 rounded-lg relative">
+        <div v-if="loading" class="absolute bg-base-200 h-full w-full left-0 top-0 bg-opacity-50">
             <div class="absolute transform left-1/2 -translate-x-1/2 top-1/2">
                 <LoadingSpinner />
             </div>
