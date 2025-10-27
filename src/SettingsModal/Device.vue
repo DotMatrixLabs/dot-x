@@ -63,11 +63,11 @@
                 <span class="shrink-0 pt-1 font-bold">Device Info: </span>
                 <div class="divider mt-0"></div>
                 <div :key="infopoint" v-for="(infopoint, index) in deviceInfoPoints" class="flex text-sm flex-row w-full justify-between my-1">
-                    <span class="text-gray-500">{{infopoint.name}}:</span>
+                    <span class="label-text">{{infopoint.name}}:</span>
                     <span :key="currentDevice" class="font-semibold w-1/3 text-center">{{deviceInfo(currentDevice)?.[index] ?? 'N/A'}}</span>
                 </div>
                 <div class=" flex flex-row w-full justify-between my-1">
-                    <span class="text-gray-500">Stats</span>
+                    <span class="label-text">Stats</span>
                     <button @click="statsToggled" class="font-semibold btn btn-sm w-1/3">See</button>
                 </div>
             </div>
