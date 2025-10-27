@@ -42,7 +42,7 @@
                 </div>
                 <div v-if="(currentRGBEffect === 'Static' && breathingEnabled) || (currentRGBEffect !== 'Off' && currentRGBEffect !== 'Lightning Storm' && currentRGBEffect !== 'Static')" class="flex flex-row w-full justify-between mt-2">
                     <span class="shrink-0 pt-1">Speed: </span>
-                    <input @change="speedChanged" v-model="speed" type="range" class="range range-xs range-primary w-1/2 m-auto rounded-xl px-0.5 mr-2 " />
+                    <input @change="speedChanged" v-model="speed" type="range" class="range range-xs range-primary w-1/2 m-auto rounded-xl px-0.5 mr-2" />
                 </div>
                 <div class="flex flex-row w-full justify-between mt-2">
                     <span class="shrink-0 pt-1">Brightness: </span>
