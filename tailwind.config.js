@@ -41,7 +41,8 @@ module.exports = {
         light: {
           ...require("daisyui/src/theming/themes")["light"],
           primary: "#7033d9", // DML accent
-          secondary: "#292A2D", // DML secondary
+          secondary: "#dadada", // DML secondary Light
+          "secondary-content": "#1a1a1a",
           accent: "#7033d9",
           neutral: colors.gray[700],
           "base-100": "#f9f9fb", // DML white
