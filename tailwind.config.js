@@ -64,10 +64,10 @@ module.exports = {
           "accent-content": "#f9f9fb",
           neutral: colors.gray[800],
           "neutral-content": "#f9f9fb",
-          "base-100": "#1a1a1a", // DML black
-          "base-200": "#1F1F1F",
-          "base-300": "#262626",
-          "base-400": "#2E2E2E",
+          "base-100": "#202020", // Mica base color
+          "base-200": "#1A1A1A", // layer 1 - cards, buttons, etc.
+          "base-300": "#1C1C1C", // layer 2 - deeper cards, etc.
+          "base-400": "#222222",
           "base-content": "#f9f9fb",
           info: colors.blue[400],
           success: colors.green[400],
