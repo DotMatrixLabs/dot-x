@@ -30,7 +30,6 @@
 <script>
 // import BoardManager from "../../js/boardManager.js";
 // import StorageHandler from "../../js/storage.mjs";
-import { toast } from 'vue-sonner';
 
 import _ from "lodash";
 // import LoadingSpinner from "../assets/loadingSpinner.vue";

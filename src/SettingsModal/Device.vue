@@ -76,7 +76,6 @@
 </template>
 
 <script>
-import { toast } from 'vue-sonner';
 import Decker from "../ts/decker.ts";
 import ConfigStore from "../ts/config.ts";
 import StatsPanel from "./StatsPanel.vue";

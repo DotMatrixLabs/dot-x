@@ -4,7 +4,11 @@
     <AppsModal :currentSliderID="currentSliderID" :modal-open="appsModalOpen" @close="appsToggled(null)" />
     <TopBar :colorScheme="colorScheme" :class="backgroundColorTopBar" @settings-toggled="settingsToggled" :connection-status="connectionState" />
     <SliderOverview :class="backgroundColor" ref="sliderOverview" :pot-values="potValues" @app-click="appsToggled" />
-    <Toaster position="bottom-right" :theme="colorScheme" />
+    <Toaster 
+      position="bottom-right" 
+      :theme="colorScheme"
+      richColors
+      />
   </div>
 </template>
 
@@ -14,6 +18,7 @@ import SettingsModal from "./SettingsModal/SettingsModal.vue";
 import AppsModal from "./AppSelectModal/AppsModal.vue";
 import SliderOverview from "./SliderOverview.vue";
 import { Toaster, toast } from 'vue-sonner';
+import 'vue-sonner/style.css'
 import ConfigStore from "./ts/config.ts";
 import Decker from "./ts/decker.ts";
 import RGBController from "./ts/RGBController";
@@ -96,6 +101,7 @@ export default {
 
     settingsToggled() {
       this.settingsModalOpen = !this.settingsModalOpen;
+      toast.error("Settings modal toggled");
     },
 
     appsToggled(id) {
