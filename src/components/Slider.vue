@@ -6,14 +6,31 @@
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
   >
+    <defs>
+      <linearGradient id="glassBorderDark" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#dddddd" />
+        <stop offset="33%" stop-color="#555555" />
+        <stop offset="62%" stop-color="#555555" />
+        <stop offset="100%" stop-color="#555555" />
+      </linearGradient>
+      <linearGradient id="glassBorderLight" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#8a8a8a" />
+        <stop offset="33%" stop-color="#7a7a7a" />
+        <stop offset="62%" stop-color="#5e5e5e" />
+        <stop offset="100%" stop-color="#7a7a7a" />
+      </linearGradient>
+    </defs>
     <rect
       x="6.05322"
       y="0.0852051"
       width="23.7288"
       height="349.343"
       rx="11.8644"
-      fill="#727272"
-      :fill-opacity="colorScheme === 'dark' ? 0.3 : 0.5"
+      :fill="colorScheme === 'dark' ? '#ffffff' : '#000000'"
+      :fill-opacity="colorScheme === 'dark' ? 0.06 : 0.06"
+      :stroke="colorScheme === 'dark' ? 'url(#glassBorderDark)' : 'url(#glassBorderLight)'"
+      stroke-width="2"
+      :stroke-opacity="colorScheme === 'dark' ? 0.7 : 0.5"
     />
     <g :transform="`translate(0,${sliderPosition})`">
       <rect x="1" y="0" width="34" height="50" rx="5" :style="rectStyle"  fill="#f2f2f2" />
