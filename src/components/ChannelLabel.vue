@@ -1,5 +1,5 @@
 <template>
-    <div class="rounded-full w-24 h-12 btn-secondary border-0 shadow-sm px-0 btn">
+    <div class="rounded-full w-24 h-12 btn backdrop-blur-md bg-base-100/10 shadow-sm px-0 channel-glass-btn">
         <div v-if="settings?.selectedLabelType === 'text'" :class="labelTextInputTextSize(settings?.labelText)">
             {{settings?.labelText}}
         </div>
@@ -116,4 +116,71 @@ export default {
 </script>
 
 <style scoped>
+@property --c1 {
+  syntax: "<color>";
+  inherits: false;
+  initial-value: #dddddd;
+}
+@property --c2 {
+  syntax: "<color>";
+  inherits: false;
+  initial-value: #555555;
+}
+@property --c3 {
+  syntax: "<color>";
+  inherits: false;
+  initial-value: #333333;
+}
+
+.channel-glass-btn {
+  position: relative;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(3px);
+  color: white;
+}
+
+.channel-glass-btn:before {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  inset: 0px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    to bottom right,
+    var(--c1) 0%,
+    var(--c3) 33%,
+    var(--c2) 62%,
+    var(--c3) 100%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  transition: --c1 300ms ease, --c2 300ms ease, --c3 300ms ease;
+}
+
+.channel-glass-btn:hover:before {
+  --c1: #525252;
+  --c2: #878787;
+  --c3: #414141;
+}
+
+.channel-glass-btn:active:before {
+  --c1: #525252;
+  --c2: #414141;
+  --c3: #414141;
+}
+
+@media (prefers-color-scheme: light) {
+  .channel-glass-btn {
+    background: rgba(0, 0, 0, 0.06);
+    color: #111111;
+  }
+  .channel-glass-btn:before {
+    --c1: #8a8a8a;
+    --c2: #5e5e5e;
+    --c3: #7a7a7a;
+  }
+}
 </style>
