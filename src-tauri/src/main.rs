@@ -12,14 +12,12 @@ use tauri::Wry;
 use tauri::{Manager, Window};
 use tauri_plugin_autostart::MacosLauncher;
 use tauri_plugin_store::{with_store, StoreCollection};
-use windows_volume_control::AudioController;
-use windows_volume_control::CoinitMode;
+ 
 mod decker;
 mod midi;
 mod power_monitor;
+mod audio;
 use once_cell::sync::OnceCell;
-use std::cell::RefCell;
-use std::thread_local;
 use tauri::api::notification::Notification;
 use tauri::{CustomMenuItem, SystemTray, SystemTrayEvent, SystemTrayMenu, SystemTrayMenuItem};
 use window_shadows::set_shadow;
@@ -33,22 +31,13 @@ use sentry_tauri::sentry::{self, ClientInitGuard};
 use std::thread;
 use std::time::Duration;
 use tauri_plugin_aptabase::EventTracker;
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::time::{SystemTime, UNIX_EPOCH};
+ 
 
 static APP: OnceCell<tauri::AppHandle> = OnceCell::new();
-static LAST_VOLUME_CALL_MS: AtomicU64 = AtomicU64::new(0);
-
-fn now_millis() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_millis() as u64)
-        .unwrap_or(0)
-}
 
 // create the error type that represents all errors possible in our program
 #[derive(Debug, thiserror::Error)]
-enum Error {
+pub(crate) enum Error {
     #[error(transparent)]
     Io(#[from] std::io::Error),
     SessionNotFound,
@@ -154,21 +143,7 @@ fn get_installed_apps() -> Result<CustomResponse, Error> {
     Ok(app_list_response)
 }
 
-#[tauri::command]
-fn get_all_session_names() -> Result<Vec<String>, Error> {
-    unsafe {
-        let mut controller = AudioController::init(Some(CoinitMode::ApartmentThreaded));
-        controller.GetSessions();
-        controller.GetDefaultAudioEnpointVolumeControl();
-        controller.GetAllProcessSessions();
-        controller.GetAllAudioDevices();
-
-        // Collect all session names
-        let all_session_names = controller.get_all_session_names();
-
-        Ok(all_session_names)
-    }
-}
+ 
 
 fn value_to_i32_vec(value: &Value) -> Option<Vec<i32>> {
     if let Value::Array(array) = value {
@@ -270,124 +245,11 @@ fn get_active_app_name() -> String {
     }
 }
 
-#[tauri::command]
-fn set_application_volume(name: &str, volume: f32) -> Result<(), Error> {
-    unsafe {
-        maybe_throttled_session_refresh(500);
-        // Try apply with cached controller; refresh internally if needed
-        if try_apply_volume(name, volume) {
-            return Ok(());
-        }
+ 
 
-        // Reinitialize once to capture newly launched apps/devices and try again
-        AUDIO_CONTROLLER.with(|cell| cell.replace(Some(get_initialized_audio_controller())));
-        if try_apply_volume(name, volume) {
-            return Ok(());
-        }
+ 
 
-        // Still not found
-        return Err(Error::SessionNotFound);
-    }
-
-    Ok(())
-}
-
-// Helper function to refresh the AudioController's sessions
-unsafe fn refresh_audio_controller_sessions(controller: &mut AudioController) {
-    controller.GetSessions();
-    controller.GetAllProcessSessions();
-}
-
-// Helper function to create and initialize an AudioController
-unsafe fn get_initialized_audio_controller() -> AudioController {
-    let mut controller = AudioController::init(Some(CoinitMode::ApartmentThreaded));
-    controller.GetSessions();
-    controller.GetDefaultAudioEnpointVolumeControl();
-    controller.GetAllProcessSessions();
-    controller.GetAllAudioDevices();
-    controller
-}
-
-thread_local! {
-    static AUDIO_CONTROLLER: RefCell<Option<AudioController>> = RefCell::new(None);
-}
-
-unsafe fn maybe_throttled_session_refresh(threshold_ms: u64) {
-    let now = now_millis();
-    // Debounce by last invocation time: refresh only if gap since previous call >= threshold
-    let last_call = LAST_VOLUME_CALL_MS.swap(now, Ordering::Relaxed);
-    let delta = if last_call == 0 { u64::MAX } else { now.saturating_sub(last_call) };
-    if delta >= threshold_ms {
-        AUDIO_CONTROLLER.with(|cell| {
-            let mut opt = cell.borrow_mut();
-            // Full reinit to avoid accumulating sessions across refreshes
-            *opt = Some(get_initialized_audio_controller());
-        });
-    }
-}
-
-unsafe fn with_audio_controller<R>(f: impl FnOnce(&mut AudioController) -> R) -> R {
-    AUDIO_CONTROLLER.with(|cell| {
-        if cell.borrow().is_none() {
-            cell.replace(Some(get_initialized_audio_controller()));
-        }
-        let mut borrow = cell.borrow_mut();
-        let controller = borrow.as_mut().unwrap();
-        f(controller)
-    })
-}
-
-unsafe fn try_apply_volume(name: &str, volume: f32) -> bool {
-    with_audio_controller(|controller| {
-        let mut sessions = controller.get_sessions_by_name(name.to_string());
-        if sessions.is_empty() {
-            refresh_audio_controller_sessions(controller);
-            sessions = controller.get_sessions_by_name(name.to_string());
-        }
-        if sessions.is_empty() {
-            return false;
-        }
-        for session in sessions {
-            if volume < 0.01 {
-                session.setMute(true);
-                // Also set application volume to 0. This is not actually needed, but it's visually pleasing since the slider is at 0 and makes it easier to see which applications are muted.
-                session.setVolume(0.0);
-            } else {
-                session.setMute(false);
-                session.setVolume(volume);
-            }
-        }
-        true
-    })
-}
-
-#[tauri::command]
-fn get_all_audio_devices() -> Result<Vec<String>, Error> {
-    unsafe {
-        let controller = get_initialized_audio_controller();
-        let all_device_names = controller.get_all_device_names();
-        println!("All device names: {:?}", all_device_names);
-        Ok(all_device_names)
-    }
-}
-
-#[tauri::command]
-fn get_output_devices() -> Result<Vec<String>, Error> {
-    unsafe {
-        let controller = get_initialized_audio_controller();
-        let output_device_names = controller.get_output_device_names();
-        Ok(output_device_names)
-    }
-}
-
-#[tauri::command]
-fn get_input_devices() -> Result<Vec<String>, Error> {
-    unsafe {
-        let controller = get_initialized_audio_controller();
-        let input_device_names = controller.get_input_device_names();
-        Ok(input_device_names)
-    }
-}
+ 
 
 #[tauri::command]
 async fn set_screen_brightness(brightness: f32, screens: Value) -> Result<(), Error> {
@@ -527,8 +389,8 @@ fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             get_installed_apps,
-            get_all_session_names,
-            set_application_volume,
+            audio::get_all_session_names,
+            audio::set_application_volume,
             connect_decker,
             decker::get_devices,
             decker::send_decker_command,
@@ -538,9 +400,9 @@ fn main() {
             get_active_app_name,
             disconnect_decker,
             set_screen_brightness,
-            get_all_audio_devices,
-            get_output_devices,
-            get_input_devices
+            audio::get_all_audio_devices,
+            audio::get_output_devices,
+            audio::get_input_devices
         ])
         .plugin(tauri_plugin_aptabase::Builder::new("A-EU-7429874879").build()) // 👈 this is where you enter your App Key
         .plugin(tauri_plugin_log::Builder::default().build())
