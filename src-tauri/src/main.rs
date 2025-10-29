@@ -18,7 +18,8 @@ mod decker;
 mod midi;
 mod power_monitor;
 use once_cell::sync::OnceCell;
-use std::sync::Mutex;
+use std::cell::RefCell;
+use std::thread_local;
 use tauri::api::notification::Notification;
 use tauri::{CustomMenuItem, SystemTray, SystemTrayEvent, SystemTrayMenu, SystemTrayMenuItem};
 use window_shadows::set_shadow;
@@ -34,7 +35,6 @@ use std::time::Duration;
 use tauri_plugin_aptabase::EventTracker;
 
 static APP: OnceCell<tauri::AppHandle> = OnceCell::new();
-static AUDIO_CONTROLLER: OnceCell<Mutex<AudioController>> = OnceCell::new();
 
 // create the error type that represents all errors possible in our program
 #[derive(Debug, thiserror::Error)]
@@ -263,52 +263,22 @@ fn get_active_app_name() -> String {
 #[tauri::command]
 fn set_application_volume(name: &str, volume: f32) -> Result<(), Error> {
     unsafe {
-        // Get the cached audio controller
-        let controller_mutex = get_or_init_audio_controller();
-        let mut controller = controller_mutex.lock().unwrap();
-
-        // Try to get the current session by name from the cached controller
-        let mut current_sessions = controller.get_sessions_by_name(name.to_string());
-
-        // If session not found, refresh the controller's sessions and try again
-        if current_sessions.is_empty() {
-            refresh_audio_controller_sessions(&mut controller);
-            current_sessions = controller.get_sessions_by_name(name.to_string());
+        // Try apply with cached controller; refresh internally if needed
+        if try_apply_volume(name, volume) {
+            return Ok(());
         }
 
-        // If multiple sessions are found, change the volume for all of them
-        if !current_sessions.is_empty() {
-            for session in current_sessions {
-                println!("Setting volume for session: {}", name);
-                println!("{}", session.getVolume().to_string());
-                if volume < 0.01 {
-                    session.setMute(true);
-                    // Also set application volume to 0. This is not actually needed, but it's visually pleasing since the slider is at 0 and makes it easier to see which applications are muted.
-                    session.setVolume(0.0);
-                } else {
-                    session.setMute(false);
-                    session.setVolume(volume);
-                }
-            }
-        } else {
-            // Handle the case where the session was not found (e.g., return an error)
-            return Err(Error::SessionNotFound);
+        // Reinitialize once to capture newly launched apps/devices and try again
+        AUDIO_CONTROLLER.with(|cell| cell.replace(Some(get_initialized_audio_controller())));
+        if try_apply_volume(name, volume) {
+            return Ok(());
         }
+
+        // Still not found
+        return Err(Error::SessionNotFound);
     }
 
     Ok(())
-}
-
-// Helper function to get or initialize the cached AudioController
-unsafe fn get_or_init_audio_controller() -> &'static Mutex<AudioController> {
-    AUDIO_CONTROLLER.get_or_init(|| {
-        let mut controller = AudioController::init(Some(CoinitMode::ApartmentThreaded));
-        controller.GetSessions();
-        controller.GetDefaultAudioEnpointVolumeControl();
-        controller.GetAllProcessSessions();
-        controller.GetAllAudioDevices();
-        Mutex::new(controller)
-    })
 }
 
 // Helper function to refresh the AudioController's sessions
@@ -325,6 +295,47 @@ unsafe fn get_initialized_audio_controller() -> AudioController {
     controller.GetAllProcessSessions();
     controller.GetAllAudioDevices();
     controller
+}
+
+thread_local! {
+    static AUDIO_CONTROLLER: RefCell<Option<AudioController>> = RefCell::new(None);
+}
+
+unsafe fn with_audio_controller<R>(f: impl FnOnce(&mut AudioController) -> R) -> R {
+    AUDIO_CONTROLLER.with(|cell| {
+        if cell.borrow().is_none() {
+            cell.replace(Some(get_initialized_audio_controller()));
+        }
+        let mut borrow = cell.borrow_mut();
+        let controller = borrow.as_mut().unwrap();
+        f(controller)
+    })
+}
+
+unsafe fn try_apply_volume(name: &str, volume: f32) -> bool {
+    with_audio_controller(|controller| {
+        let mut sessions = controller.get_sessions_by_name(name.to_string());
+        if sessions.is_empty() {
+            refresh_audio_controller_sessions(controller);
+            sessions = controller.get_sessions_by_name(name.to_string());
+        }
+        if sessions.is_empty() {
+            return false;
+        }
+        for session in sessions {
+            println!("Setting volume for session: {}", name);
+            println!("{}", session.getVolume().to_string());
+            if volume < 0.01 {
+                session.setMute(true);
+                // Also set application volume to 0. This is not actually needed, but it's visually pleasing since the slider is at 0 and makes it easier to see which applications are muted.
+                session.setVolume(0.0);
+            } else {
+                session.setMute(false);
+                session.setVolume(volume);
+            }
+        }
+        true
+    })
 }
 
 #[tauri::command]
