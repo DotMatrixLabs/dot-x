@@ -1,12 +1,9 @@
 <template>
-  <div class="w-full h-full">
+  <div class="w-full h-full relative">
     <div class="flex flex-row justify-evenly h-full p-24">
       <template v-for="(slider, index) in (sliders.length > 0 ? sliders : 5)" :key="index">
         <div class="flex flex-col justify-center">
           <Slider :midiEnabledGlobal="midiEnabledGlobal" :midiEnabled="midiEnabled[index]" :class="sliders.length === 0 || connectionState === false ? 'opacity-50' : 'opacity-100'" :slider-val="slider" class="h-full w-full" />
-          <div v-if="sliders.length === 0 || connectionState === false" class="p-2 bg-base-200 rounded-md shadow-md ring-1 ring-gray-500 absolute text-center -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2 bg-opacity-50 text-base-content">
-            <h1>Device not connected</h1>
-          </div>
 
           <button @click="$emit('app-click', index)"
             class="m-auto rounded-full w-24 h-12 mt-12 mx-1">
@@ -16,6 +13,9 @@
           </button>
         </div>
       </template>
+    </div>
+    <div v-if="sliders.length === 0 || connectionState === false" class="py-2 px-4 rounded-lg border border-black/30 shadow-lg absolute text-center -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2 bg-black/10 text-neutral-900 dark:border-white/30 dark:bg-white/10 dark:text-white backdrop-blur-3xl">
+      <h1>Device not connected</h1>
     </div>
   </div>
 </template>
@@ -126,11 +126,3 @@ export default {
 };
 </script>
 
-<style scoped>
-
-.text-xxs {
-  font-size: 0.6rem;
-}
-
-</style>
-./store/deckerStore.ts
