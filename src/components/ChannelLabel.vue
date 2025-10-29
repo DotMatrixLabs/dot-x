@@ -1,5 +1,5 @@
 <template>
-    <div class="rounded-full w-24 h-12 btn-secondary border-0 shadow-sm px-0 btn">
+    <div class="rounded-full w-24 h-12 bg-base-100/10 border hover:border-primary hover:bg-base-100/20 dark:border-white/30 border-black/30 shadow-lg px-0 btn backdrop-blur-lg">
         <div v-if="settings?.selectedLabelType === 'text'" :class="labelTextInputTextSize(settings?.labelText)">
             {{settings?.labelText}}
         </div>
