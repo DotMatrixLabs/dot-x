@@ -33,8 +33,18 @@ use sentry_tauri::sentry::{self, ClientInitGuard};
 use std::thread;
 use std::time::Duration;
 use tauri_plugin_aptabase::EventTracker;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 static APP: OnceCell<tauri::AppHandle> = OnceCell::new();
+static LAST_VOLUME_CALL_MS: AtomicU64 = AtomicU64::new(0);
+
+fn now_millis() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(0)
+}
 
 // create the error type that represents all errors possible in our program
 #[derive(Debug, thiserror::Error)]
@@ -263,6 +273,7 @@ fn get_active_app_name() -> String {
 #[tauri::command]
 fn set_application_volume(name: &str, volume: f32) -> Result<(), Error> {
     unsafe {
+        maybe_throttled_session_refresh(500);
         // Try apply with cached controller; refresh internally if needed
         if try_apply_volume(name, volume) {
             return Ok(());
@@ -301,6 +312,20 @@ thread_local! {
     static AUDIO_CONTROLLER: RefCell<Option<AudioController>> = RefCell::new(None);
 }
 
+unsafe fn maybe_throttled_session_refresh(threshold_ms: u64) {
+    let now = now_millis();
+    // Debounce by last invocation time: refresh only if gap since previous call >= threshold
+    let last_call = LAST_VOLUME_CALL_MS.swap(now, Ordering::Relaxed);
+    let delta = if last_call == 0 { u64::MAX } else { now.saturating_sub(last_call) };
+    if delta >= threshold_ms {
+        AUDIO_CONTROLLER.with(|cell| {
+            let mut opt = cell.borrow_mut();
+            // Full reinit to avoid accumulating sessions across refreshes
+            *opt = Some(get_initialized_audio_controller());
+        });
+    }
+}
+
 unsafe fn with_audio_controller<R>(f: impl FnOnce(&mut AudioController) -> R) -> R {
     AUDIO_CONTROLLER.with(|cell| {
         if cell.borrow().is_none() {
@@ -323,8 +348,6 @@ unsafe fn try_apply_volume(name: &str, volume: f32) -> bool {
             return false;
         }
         for session in sessions {
-            println!("Setting volume for session: {}", name);
-            println!("{}", session.getVolume().to_string());
             if volume < 0.01 {
                 session.setMute(true);
                 // Also set application volume to 0. This is not actually needed, but it's visually pleasing since the slider is at 0 and makes it easier to see which applications are muted.
