@@ -102,7 +102,6 @@ export class APIClient {
           console.log('Received action!', data);
           const cb = this.actionCallbacks.get(data.action);
           if (cb) {
-            console.log('Received action', data.action, data.params);
             try {
               cb(data.params);
             } catch (err) {
@@ -387,7 +386,7 @@ export class APIClient {
       buttons: (actions.buttons || []).map((btn) => {
         const copy: SystemUtilButton = { ...btn };
         if (typeof copy.onClick === 'function') {
-          const actionId = `slider_action_${copy.id}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+          const actionId = `channel_action_${copy.id}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
           this.actionCallbacks.set(actionId, copy.onClick);
           copy.actionId = actionId;
           delete (copy as any).onClick;

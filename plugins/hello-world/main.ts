@@ -29,6 +29,11 @@ export default class HelloWorldPlugin extends Plugin {
           .setDesc('This is the current time.')
           .setStyle('info')
 
+        // setInterval(() => {
+        //   currentTime.setText(new Date().toLocaleTimeString());
+        //   console.log('Current time updated:', new Date().toLocaleTimeString());
+        // }, 1000);
+
         const greeting = settings.addInput('customGreeting')
           .setType('ip_address')
           .setLabel('Broker IP')
@@ -95,31 +100,25 @@ export default class HelloWorldPlugin extends Plugin {
       console.log("Plugin settings created successfully!");
 
 
-      const helloWorldButton = this.actionmapper
-        .addSystemUtilButton('helloWorld')
-        .setTitle('Hello')
+      const boltButton = this.actionmapper
+        .addSystemUtilButton('bolt')
+        .setTitle('Bolt')
         .setIcon('fas fa-lg fa-bolt')
-        .setSelected(this.settings?.helloWorldChannels || [])
-        .onClick(({selected, channel}) => {
-          console.log('selected', selected);
-          console.log('channel', channel);
-          channel = Number(channel);
-          if (!Array.isArray(this.settings.helloWorldChannels)) {
-            this.settings.helloWorldChannels = [] as boolean[];
-          }
-          this.settings.helloWorldChannels[channel] = selected;
-          helloWorldButton.setSelected(this.settings.helloWorldChannels || []);
-          this.saveSettings();
-          this.ui.showToast({ message: 'Hello from Slider Action!', type: 'success' });
-        })  .withSettings((s) => {
-          s.addSection('General')
-            .addSwitch('enabled').setLabel('Enable EQ').setValue(true)
-            .setDesc('Toggle the equalizer');
+        .onClick(({ selected, channel }) => {
+          console.log('Hello action clicked on channel', channel, 'selected:', selected);
+          this.ui.showToast({ message: `Hello on ch ${channel} (${selected ? 'ON' : 'OFF'})`, type: 'success' });
+        })
+
+        
+        // .withSettings((s) => {
+        //   s.addSection('General')
+        //     .addSwitch('enabled').setLabel('Enable EQ').setValue(true)
+        //     .setDesc('Toggle the equalizer');
       
-          s.addSection('Levels')
-            .addInput('gain', { type: 'number' }).setLabel('Gain (dB)').setMin(-12).setMax(12)
-            .setValue(0);
-        });
+        //   s.addSection('Levels')
+        //     .addInput('gain', { type: 'number' }).setLabel('Gain (dB)').setMin(-12).setMax(12)
+        //     .setValue(0);
+        // });
       
     } catch (error) {
       console.error("Error during plugin initialization:", error);

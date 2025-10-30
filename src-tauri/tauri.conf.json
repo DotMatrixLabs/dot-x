@@ -49,7 +49,9 @@
     "shortDescription": "Dot X",
     "longDescription": "Desktop app for DotMatrixLabs products",
     "resources": [
-      "licenses/*"
+      "licenses/*",
+      "../plugins/**",
+      "resources/deno/*"
     ],
     "windows": {
       "certificateThumbprint": "ca2e93b1a72064b5c3ecdef2481044859fbe241b",
