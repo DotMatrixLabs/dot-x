@@ -54,7 +54,7 @@
 <script>
 import channelSettings from "../ts/channelSettings.ts";
 import IconPicker from "../components/IconPicker.vue";
-import { open } from '@tauri-apps/api/dialog';
+import { open } from '@tauri-apps/plugin-dialog';
 import { copyFileToAppdata, getImage, getImageSize, removeFileFromAppdata } from '../ts/helpers.ts';
 import Alert from "../components/Alert.vue";
 

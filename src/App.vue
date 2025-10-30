@@ -21,9 +21,9 @@ import ConfigStore from "./ts/config.ts";
 import Decker from "./ts/decker.ts";
 import RGBController from "./ts/RGBController";
 import { useDeckerStore } from "./store/deckerStore.ts";
-import { version } from '@tauri-apps/api/os';
 import PluginAPI from "./plugin-api/pluginAPI";
 import { mapState } from "pinia";
+import { version } from '@tauri-apps/plugin-os';
 
 const toast = useToast();
 
@@ -75,10 +75,7 @@ export default {
   methods: {
 
     async setThemeFromOS() {
-      const osTheme = await version().then((version) => {
-        const winVersion = this.getWindowsVersion(version)
-        this.isWin10 = winVersion === 'Windows 10';
-      });
+      this.isWin10 = this.getWindowsVersion(version()) === 'Windows 10';
     },
 
     getWindowsVersion(kernelVersion) {
