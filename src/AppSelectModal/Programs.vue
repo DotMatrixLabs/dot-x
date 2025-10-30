@@ -47,7 +47,7 @@ import { useToast } from "vue-toastification";
 
 const toast = useToast();
 
-import { invoke } from "@tauri-apps/api/tauri";
+import { invoke } from "@tauri-apps/api/core";
 
 export default {
 
