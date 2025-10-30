@@ -102,23 +102,19 @@ export default class HelloWorldPlugin extends Plugin {
 
       const boltButton = this.actionmapper
         .addSystemUtilButton('bolt')
-        .setTitle('Bolt')
+        .setTitle('Boltt')
         .setIcon('fas fa-lg fa-bolt')
         .onClick(({ selected, channel }) => {
           console.log('Hello action clicked on channel', channel, 'selected:', selected);
           this.ui.showToast({ message: `Hello on ch ${channel} (${selected ? 'ON' : 'OFF'})`, type: 'success' });
         })
 
-        
-        // .withSettings((s) => {
-        //   s.addSection('General')
-        //     .addSwitch('enabled').setLabel('Enable EQ').setValue(true)
-        //     .setDesc('Toggle the equalizer');
-      
-        //   s.addSection('Levels')
-        //     .addInput('gain', { type: 'number' }).setLabel('Gain (dB)').setMin(-12).setMax(12)
-        //     .setValue(0);
-        // });
+        // Add settings to the bolt button
+        boltButton.addSettings((s) => {
+          s.addSection('General')
+          s.addSwitch('enabled').setLabel('Enable EQ').setValue(true)
+            .setDesc('Toggle the equalizer');
+        });
       
     } catch (error) {
       console.error("Error during plugin initialization:", error);
