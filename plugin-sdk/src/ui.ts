@@ -273,7 +273,7 @@ export class ActionMapper {
       buttons: this.buttons.map((b) => {
         const copy: SystemUtilButton = { ...b } as SystemUtilButton;
         if (!copy.selectedByChannel && this.configStore) {
-          const key = `action:${copy.id}:selectedByChannel`;
+          const key = `action.${copy.id}.selectedByChannel`;
           copy.selectedByChannel = this.configStore.get<Record<string, boolean>>(key, {} as any) || {};
         }
         return copy;
@@ -299,7 +299,7 @@ class SystemUtilButtonHandle {
   private pluginClickHandler?: (evt: { selected: boolean; channel: number | string }) => void;
 
   constructor(private button: SystemUtilButton, private notifyChange?: () => void, private configStore?: SimpleConfig) {
-    const storageKey = () => `action:${this.button.id}:selectedByChannel`;
+    const storageKey = () => `action.${this.button.id}.selectedByChannel`;
     const getMap = (): Record<string, boolean> => {
       if (!this.configStore) return (this.button.selectedByChannel && { ...this.button.selectedByChannel }) || {};
       return this.configStore.get<Record<string, boolean>>(storageKey(), {} as any) || {};
@@ -357,7 +357,7 @@ class SystemUtilButtonHandle {
   /**
    * Fluent helper to attach per-button settings using SettingsBuilder.
    */
-  withSettings(build: (b: SettingsBuilder) => void): this {
+  addSettings(build: (b: SettingsBuilder) => void): this {
     const builder = new SettingsBuilder(() => {
       this.button.settings = builder.build();
       this.notifyChange?.();
@@ -378,7 +378,7 @@ class SystemUtilButtonHandle {
     selectedOrMap: boolean | boolean[] | Record<string | number, boolean>,
     channel?: number | string
   ): this {
-    const storageKey = `action:${this.button.id}:selectedByChannel`;
+    const storageKey = `action.${this.button.id}.selectedByChannel`;
     const getMap = (): Record<string, boolean> => {
       if (!this.configStore) return (this.button.selectedByChannel && { ...this.button.selectedByChannel }) || {};
       return this.configStore.get<Record<string, boolean>>(storageKey, {} as any) || {};
@@ -430,7 +430,7 @@ class SystemUtilButtonHandle {
 
   getSelectedMap(): Record<string, boolean> {
     if (this.configStore) {
-      const key = `action:${this.button.id}:selectedByChannel`;
+      const key = `action.${this.button.id}.selectedByChannel`;
       return this.configStore.get<Record<string, boolean>>(key, {} as any) || {};
     }
     return (this.button.selectedByChannel && { ...this.button.selectedByChannel }) || {};

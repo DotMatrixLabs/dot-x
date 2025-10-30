@@ -3,8 +3,11 @@
 		"demoSwitch": false,
 		"brokerIP": "192.168.1.2"
 	},
-	"action:bolt:selectedByChannel": {
-		"0": true,
-		"2": false
+	"action": {
+		"bolt": {
+			"selectedByChannel": {
+				"0": true
+			}
+		}
 	}
 }
