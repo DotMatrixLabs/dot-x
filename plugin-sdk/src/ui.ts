@@ -1,5 +1,11 @@
 import type { SettingsSections, InputField, ButtonField, SwitchField, SettingsComponent, TextField, BadgeField, SystemUtilButton, ActionMappings } from './types';
 
+type SimpleConfig = {
+  set: (key: string | Record<string, any>, value?: any) => void;
+  get: <T = any>(key: string, defaultValue?: T) => T | undefined;
+  delete: (key: string) => void;
+};
+
 export type UISection = {
   key: string;
   name?: string;
@@ -232,15 +238,17 @@ export class ActionMapper {
   private buttons: SystemUtilButton[] = [];
   private onMutate?: () => void;
   private notificationsEnabled = false;
+  private configStore?: SimpleConfig;
 
-  constructor(onMutate?: () => void) {
+  constructor(onMutate?: () => void, configStore?: SimpleConfig) {
     this.onMutate = onMutate;
+    this.configStore = configStore;
   }
 
   addSystemUtilButton(id: string): SystemUtilButtonHandle {
     const btn: SystemUtilButton = { id, title: '' };
     this.buttons.push(btn);
-    return new SystemUtilButtonHandle(btn, this.createNotifier());
+    return new SystemUtilButtonHandle(btn, this.createNotifier(), this.configStore);
   }
 
   /**
@@ -261,7 +269,16 @@ export class ActionMapper {
   }
 
   build(): ActionMappings {
-    return { buttons: this.buttons.map(b => ({ ...b })) };
+    return {
+      buttons: this.buttons.map((b) => {
+        const copy: SystemUtilButton = { ...b } as SystemUtilButton;
+        if (!copy.selectedByChannel && this.configStore) {
+          const key = `action:${copy.id}:selectedByChannel`;
+          copy.selectedByChannel = this.configStore.get<Record<string, boolean>>(key, {} as any) || {};
+        }
+        return copy;
+      })
+    };
   }
 
   enableNotifications(): void {
@@ -278,7 +295,46 @@ export class ActionMapper {
 }
 
 class SystemUtilButtonHandle {
-  constructor(private button: SystemUtilButton, private notifyChange?: () => void) {}
+  private autoPersist = true;
+  private pluginClickHandler?: (evt: { selected: boolean; channel: number | string }) => void;
+
+  constructor(private button: SystemUtilButton, private notifyChange?: () => void, private configStore?: SimpleConfig) {
+    const storageKey = () => `action:${this.button.id}:selectedByChannel`;
+    const getMap = (): Record<string, boolean> => {
+      if (!this.configStore) return (this.button.selectedByChannel && { ...this.button.selectedByChannel }) || {};
+      return this.configStore.get<Record<string, boolean>>(storageKey(), {} as any) || {};
+    };
+    const setMap = (map: Record<string, boolean>) => {
+      if (this.configStore && this.autoPersist) this.configStore.set(storageKey(), map);
+    };
+
+    // Default click: toggle + persist, then call plugin handler if provided
+    (this.button as any).onClick = (evt: any) => {
+      const ch = evt && Object.prototype.hasOwnProperty.call(evt, 'channel') ? evt.channel : undefined;
+      const selectedFromEvt = evt && Object.prototype.hasOwnProperty.call(evt, 'selected') ? evt.selected : undefined;
+      if (ch === undefined || ch === null) {
+        // Without a channel we cannot map selection; just invoke plugin handler if present
+        if (typeof this.pluginClickHandler === 'function') {
+          this.pluginClickHandler(evt);
+        }
+        return;
+      }
+      const channelKey = String(ch);
+      const currentMap = getMap();
+      const newSelected = typeof selectedFromEvt === 'boolean' ? !!selectedFromEvt : !currentMap[channelKey];
+
+      const nextMap = { ...currentMap, [channelKey]: newSelected };
+      setMap(nextMap);
+
+      if (!this.button.selectedByChannel) this.button.selectedByChannel = {} as Record<string, boolean>;
+      (this.button.selectedByChannel as Record<string, boolean>)[channelKey] = newSelected;
+      this.notifyChange?.();
+
+      if (typeof this.pluginClickHandler === 'function') {
+        this.pluginClickHandler({ selected: newSelected, channel: ch });
+      }
+    };
+  }
 
   setTitle(title: string): this {
     this.button.title = title;
@@ -292,8 +348,8 @@ class SystemUtilButtonHandle {
     return this;
   }
 
-  onClick(handler: () => void): this {
-    this.button.onClick = handler;
+  onClick(handler: (evt: { selected: boolean; channel: number | string }) => void): this {
+    this.pluginClickHandler = handler;
     this.notifyChange?.();
     return this;
   }
@@ -322,6 +378,14 @@ class SystemUtilButtonHandle {
     selectedOrMap: boolean | boolean[] | Record<string | number, boolean>,
     channel?: number | string
   ): this {
+    const storageKey = `action:${this.button.id}:selectedByChannel`;
+    const getMap = (): Record<string, boolean> => {
+      if (!this.configStore) return (this.button.selectedByChannel && { ...this.button.selectedByChannel }) || {};
+      return this.configStore.get<Record<string, boolean>>(storageKey, {} as any) || {};
+    };
+    const setMap = (map: Record<string, boolean>) => {
+      if (this.configStore && this.autoPersist) this.configStore.set(storageKey, map);
+    };
     if (Array.isArray(selectedOrMap)) {
       // Replace the entire per-channel map using array indices
       const map: Record<string, boolean> = {};
@@ -332,6 +396,7 @@ class SystemUtilButtonHandle {
         }
       }
       this.button.selectedByChannel = map;
+      setMap(map);
       this.notifyChange?.();
       return this;
     }
@@ -345,6 +410,7 @@ class SystemUtilButtonHandle {
         }
       }
       this.button.selectedByChannel = map;
+      setMap(map);
       this.notifyChange?.();
       return this;
     }
@@ -355,7 +421,28 @@ class SystemUtilButtonHandle {
       this.button.selectedByChannel = {} as Record<string, boolean>;
     }
     (this.button.selectedByChannel as Record<string, boolean>)[key] = !!selectedOrMap;
+    const map = getMap();
+    const nextMap = { ...map, [key]: !!selectedOrMap };
+    setMap(nextMap);
     this.notifyChange?.();
+    return this;
+  }
+
+  getSelectedMap(): Record<string, boolean> {
+    if (this.configStore) {
+      const key = `action:${this.button.id}:selectedByChannel`;
+      return this.configStore.get<Record<string, boolean>>(key, {} as any) || {};
+    }
+    return (this.button.selectedByChannel && { ...this.button.selectedByChannel }) || {};
+  }
+
+  isSelected(channel: number | string): boolean {
+    const map = this.getSelectedMap();
+    return !!map[String(channel)];
+  }
+
+  setAutoPersist(flag: boolean): this {
+    this.autoPersist = !!flag;
     return this;
   }
 }
