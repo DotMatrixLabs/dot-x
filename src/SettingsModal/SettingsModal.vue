@@ -37,7 +37,7 @@ import Plugins from "./Plugins.vue";
 import PluginSettings from "./PluginSettings.vue";
 import { mapState } from "pinia";
 import { useStore } from "../store/store";
-import { invoke } from "@tauri-apps/api/tauri";
+import { invoke } from "@tauri-apps/api/core";
 
 export default {
   name: "SettingsModal",
