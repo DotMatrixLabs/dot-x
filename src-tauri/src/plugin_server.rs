@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{mpsc, RwLock};
 use serde::{Deserialize, Serialize};
-use tauri::{Manager, AppHandle};
+use tauri::{AppHandle, Emitter};
 use log::{info, error, debug};
 use socketioxide::{SocketIo, extract::{SocketRef, Data, AckSender}};
 use serde_json::Value;
@@ -122,7 +122,7 @@ impl PluginServer {
                             connections.write().await.insert(plugin_info.id.clone(), connection);
                             
                             // Emit to frontend
-                            let _ = app_handle.emit_all("plugin/connected", &plugin_info);
+                            let _ = app_handle.emit("plugin/connected", &plugin_info);
                             
                             // Send acknowledgment
                             let ack_payload = serde_json::json!({
@@ -170,7 +170,7 @@ impl PluginServer {
                                 "plugin_id": plugin_id
                             });
                             
-                            if let Err(e) = app_handle.emit_all("plugin/api_request", &frontend_message) {
+                            if let Err(e) = app_handle.emit("plugin/api_request", &frontend_message) {
                                 error!("Failed to forward API request to frontend: {}", e);
                                 let error_response = ApiResponse {
                                     request_id: api_request.request_id.clone(),
@@ -234,7 +234,7 @@ impl PluginServer {
                                 "plugin_id": plugin_id,
                                 "response": response
                             });
-                            let _ = app_handle.emit_all("plugin/response", &payload);
+                            let _ = app_handle.emit("plugin/response", &payload);
                         });
                     }
                 });
@@ -261,7 +261,7 @@ impl PluginServer {
                                 info!("Plugin disconnected: {}", plugin_id);
                                 
                                 // Emit to frontend with consistent payload shape
-                                let _ = app_handle.emit_all("plugin/disconnected", serde_json::json!({
+                                let _ = app_handle.emit("plugin/disconnected", serde_json::json!({
                                     "id": plugin_id
                                 }));
                             }
@@ -281,7 +281,7 @@ impl PluginServer {
         info!("Plugin Socket.IO server started on port {}", self.port);
         
         // Emit to frontend that server started
-        let _ = self.app_handle.emit_all("plugin_server/started", serde_json::json!({ "port": self.port }));
+        let _ = self.app_handle.emit("plugin_server/started", serde_json::json!({ "port": self.port }));
 
         let is_running = Arc::clone(&self.is_running);
         tokio::spawn(async move {
@@ -309,7 +309,7 @@ impl PluginServer {
         // no additional pending maps to clear
         
         info!("Plugin Socket.IO server stopped");
-        let _ = self.app_handle.emit_all("plugin_server/stopped", serde_json::json!({}));
+        let _ = self.app_handle.emit("plugin_server/stopped", serde_json::json!({}));
     }
 
     pub async fn send_api_response(&self, response: ApiResponse) -> Result<(), String> {
@@ -390,16 +390,20 @@ static mut PLUGIN_SERVER: Option<Arc<RwLock<PluginServer>>> = None;
 
 pub fn initialize_plugin_server(app_handle: AppHandle, port: u16) {
     unsafe {
-        if PLUGIN_SERVER.is_none() {
+        let server_ptr = std::ptr::addr_of_mut!(PLUGIN_SERVER);
+        if (*server_ptr).is_none() {
             let server = PluginServer::new(app_handle, port);
-            PLUGIN_SERVER = Some(Arc::new(RwLock::new(server)));
+            *server_ptr = Some(Arc::new(RwLock::new(server)));
             info!("Plugin server initialized on port {}", port);
         }
     }
 }
 
 pub fn get_plugin_server() -> Option<Arc<RwLock<PluginServer>>> {
-    unsafe { PLUGIN_SERVER.as_ref().cloned() }
+    unsafe { 
+        let server_ptr = std::ptr::addr_of!(PLUGIN_SERVER);
+        (*server_ptr).as_ref().cloned()
+    }
 }
 
 // Tauri commands

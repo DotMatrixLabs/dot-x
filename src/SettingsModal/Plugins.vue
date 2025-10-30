@@ -66,7 +66,7 @@
 <script>
 import { useStore } from '../store/store';
 import { mapState } from "pinia";
-import { invoke } from "@tauri-apps/api/tauri";
+import { invoke } from "@tauri-apps/api/core";
 
 export default {
 	name: "Plugins",

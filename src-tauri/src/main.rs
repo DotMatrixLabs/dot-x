@@ -2,32 +2,23 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use log::{error, info, trace};
-use midir::MidiOutput;
 use serde_json::{json, Value};
-use tauri::AppHandle;
-use tauri::api::shell;
+use tauri::{AppHandle, Manager, WebviewWindow, Wry};
 use std::fs;
 use std::fs::File;
 use std::path::PathBuf;
-use tauri::{ Manager, Window };
-use windows_volume_control::AudioController;
-use windows_volume_control::CoinitMode;
+use windows_volume_control::{AudioController, CoinitMode};
 use tauri_plugin_autostart::MacosLauncher;
 use midir::{MidiOutput};
 use std::collections::HashMap;
 use std::fmt;
-use tauri::AppHandle;
-use tauri::Manager;
-use tauri::WebviewWindow;
-use tauri::Wry;
-use tauri_plugin_autostart::MacosLauncher;
 use tauri_plugin_notification::NotificationExt;
 use tauri_plugin_store::StoreExt;
-use windows_volume_control::AudioController;
-use windows_volume_control::CoinitMode;
 mod decker;
 mod midi;
 mod power_monitor;
+mod plugin_server;
+mod plugin_runtime;
 use once_cell::sync::OnceCell;
 use tauri::menu::{Menu, MenuBuilder, MenuItemBuilder, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent};
@@ -99,11 +90,12 @@ struct MidiPortNames {
 }
 fn resolve_plugins_dir(app_handle: &AppHandle) -> Option<PathBuf> {
   // Try resources path (bundled)
-  if let Some(p) = app_handle.path_resolver().resolve_resource("../plugins") {
-    if p.exists() { return Some(p); }
+  let path_resolver = app_handle.path();
+  if let Ok(path) = path_resolver.resolve("../plugins", tauri::path::BaseDirectory::Resource) {
+    if path.exists() { return Some(path); }
   }
-  if let Some(p) = app_handle.path_resolver().resolve_resource("plugins") {
-    if p.exists() { return Some(p); }
+  if let Ok(path) = path_resolver.resolve("plugins", tauri::path::BaseDirectory::Resource) {
+    if path.exists() { return Some(path); }
   }
   // Try working dir variants (dev)
   if let Ok(cwd) = std::env::current_dir() {
@@ -173,10 +165,12 @@ fn get_plugins_folder(app_handle: AppHandle) -> Result<String, String> {
 }
 
 #[tauri::command]
-fn open_plugins_folder(app_handle: AppHandle) -> Result<(), String> {
+async fn open_plugins_folder(app_handle: AppHandle) -> Result<(), String> {
   let plugins_dir = resolve_plugins_dir(&app_handle).ok_or_else(|| "Plugins directory not found".to_string())?;
-  shell::open(&app_handle.shell_scope(), plugins_dir.to_string_lossy().to_string(), None)
-    .map_err(|e| e.to_string())
+  use tauri_plugin_shell::ShellExt;
+  // Shell open is deprecated, but we'll use it for now
+  let _ = app_handle.shell().open(plugins_dir.to_string_lossy().to_string(), None);
+  Ok(())
 }
 
 
@@ -387,11 +381,11 @@ fn set_application_volume(name: &str, volume: f32) -> Result<(), Error> {
 
 // Helper function to create and initialize an AudioController
 unsafe fn get_initialized_audio_controller() -> AudioController {
-    let mut controller = AudioController::init(Some(CoinitMode::ApartmentThreaded));
-    controller.GetSessions();
-    controller.GetDefaultAudioEnpointVolumeControl();
-    controller.GetAllProcessSessions();
-    controller.GetAllAudioDevices();
+    let mut controller = unsafe { AudioController::init(Some(CoinitMode::ApartmentThreaded)) };
+    unsafe { controller.GetSessions(); }
+    unsafe { controller.GetDefaultAudioEnpointVolumeControl(); }
+    unsafe { controller.GetAllProcessSessions(); }
+    unsafe { controller.GetAllAudioDevices(); }
     controller
 }
 
@@ -598,7 +592,8 @@ fn find_executable_recursive(base: &std::path::Path, name: &str) -> Option<std::
 }
 
 fn ensure_deno_extracted(app: &tauri::AppHandle) -> Result<std::path::PathBuf, String> {
-  let data_dir = app.path_resolver().app_data_dir().ok_or_else(|| "App data dir not available".to_string())?;
+  let path_resolver = app.path();
+  let data_dir = path_resolver.app_data_dir().map_err(|e| format!("App data dir not available: {}", e))?;
   let deno_dir = data_dir.join("deno");
   let exe_name = if cfg!(target_os = "windows") { "deno.exe" } else { "deno" };
   let deno_exe_default = deno_dir.join(exe_name);
@@ -615,10 +610,8 @@ fn ensure_deno_extracted(app: &tauri::AppHandle) -> Result<std::path::PathBuf, S
   #[cfg(not(target_os = "windows"))]
   let archive_rel = "resources/deno/unsupported-platform"; // placeholder
 
-  let archive_path = app
-    .path_resolver()
-    .resolve_resource(archive_rel)
-    .ok_or_else(|| format!("Bundled Deno archive not found at {}", archive_rel))?;
+  let archive_path = path_resolver.resolve(archive_rel, tauri::path::BaseDirectory::Resource)
+    .map_err(|e| format!("Bundled Deno archive not found at {}: {}", archive_rel, e))?;
 
   if cfg!(target_os = "windows") {
     let file = File::open(&archive_path).map_err(|e| format!("Failed to open Deno zip: {}", e))?;
@@ -783,7 +776,9 @@ async fn main() {
             // Ensure bundled Deno is available and export its path
             match ensure_deno_extracted(&app.handle()) {
                 Ok(p) => {
-                    std::env::set_var("DOTX_DENO_PATH", p.to_string_lossy().to_string());
+                    unsafe {
+                        std::env::set_var("DOTX_DENO_PATH", p.to_string_lossy().to_string());
+                    }
                     info!("Deno ready at {}", p.display());
                 }
                 Err(e) => {

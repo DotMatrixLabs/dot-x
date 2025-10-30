@@ -1,17 +1,23 @@
-import { Store } from "tauri-plugin-store-api";
+import { Store } from "@tauri-apps/plugin-store";
 
 class PluginsStore {
-  private store: Store;
+  private store!: Store;
 
-  constructor() {
-    this.store = new Store("plugins.json");
+  constructor() {}
+
+  private async ensureLoaded() {
+    if (!this.store) {
+      this.store = await Store.load("plugins.json");
+    }
   }
 
   async save() {
+    await this.ensureLoaded();
     await this.store.save();
   }
 
   async getEnabledPluginIds(): Promise<string[]> {
+    await this.ensureLoaded();
     const value = await this.store.get("enabled");
     if (Array.isArray(value)) {
       return value as string[];
@@ -20,6 +26,7 @@ class PluginsStore {
   }
 
   async setEnabledPluginIds(pluginIds: string[]): Promise<void> {
+    await this.ensureLoaded();
     await this.store.set("enabled", pluginIds);
     await this.save();
   }

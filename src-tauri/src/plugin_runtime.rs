@@ -4,6 +4,7 @@ use once_cell::sync::OnceCell;
 use serde_json::Value;
 use std::sync::Arc;
 use tauri::{AppHandle, Manager};
+use tauri::Emitter;
 use tokio::{process::Command, sync::RwLock, io::{AsyncBufReadExt, BufReader, AsyncWriteExt, AsyncRead}};
 use tokio::fs as async_fs;
 use chrono::Local;
@@ -108,7 +109,7 @@ where
       push_memory_log(&plugin_id, mem_line).await;
       let _ = append_log_line_to_file(&dir, kind, &line).await;
 
-      let _ = app_handle.emit_all("plugin-log", serde_json::json!({
+      let _ = app_handle.emit("plugin-log", serde_json::json!({
         "pluginId": plugin_id,
         "type": kind,
         "message": line
@@ -118,10 +119,11 @@ where
 }
 
 fn resolve_plugins_dir(app_handle: &AppHandle) -> Option<PathBuf> {
-  if let Some(p) = app_handle.path_resolver().resolve_resource("../plugins") {
+  let path_resolver = app_handle.path();
+  if let Ok(p) = path_resolver.resolve("../plugins", tauri::path::BaseDirectory::Resource) {
     if p.exists() { return Some(p); }
   }
-  if let Some(p) = app_handle.path_resolver().resolve_resource("plugins") {
+  if let Ok(p) = path_resolver.resolve("plugins", tauri::path::BaseDirectory::Resource) {
     if p.exists() { return Some(p); }
   }
   if let Ok(cwd) = std::env::current_dir() {
@@ -167,7 +169,8 @@ fn resolve_deno_path(app_handle: &AppHandle) -> Option<PathBuf> {
     let path = PathBuf::from(p);
     if path.exists() { return Some(path); }
   }
-  if let Some(base) = app_handle.path_resolver().app_data_dir() {
+  let path_resolver = app_handle.path();
+  if let Ok(base) = path_resolver.app_data_dir() {
     let exe_name = if cfg!(target_os = "windows") { "deno.exe" } else { "deno" };
     let candidate = base.join("deno").join(exe_name);
     if candidate.exists() { return Some(candidate); }
@@ -246,10 +249,11 @@ async fn stop_plugin_internal(plugin_id: &str) -> Result<(), String> {
 fn read_enabled_plugin_ids(app_handle: &AppHandle) -> Vec<String> {
   // Try common store locations used by tauri-plugin-store
   let mut candidates: Vec<PathBuf> = Vec::new();
-  if let Some(p) = app_handle.path_resolver().app_data_dir() {
+  let path_resolver = app_handle.path();
+  if let Ok(p) = path_resolver.app_data_dir() {
     candidates.push(p.join("plugins.json"));
   }
-  if let Some(p) = app_handle.path_resolver().app_config_dir() {
+  if let Ok(p) = path_resolver.app_config_dir() {
     candidates.push(p.join("plugins.json"));
   }
 
