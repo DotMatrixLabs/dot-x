@@ -1,5 +1,5 @@
 import { listen } from '@tauri-apps/api/event';
-import { invoke } from '@tauri-apps/api/tauri';
+import { invoke } from '@tauri-apps/api/core';
 import { useDeckerStore } from "../store/deckerStore.ts";
 import SystemVolumeController from "./volumeControl.ts";
 import ConfigStore from './config.ts';
@@ -131,7 +131,7 @@ class Decker {
             const sliderArray: Array<number> = Object.values(jsonObject);
             this.sliders = sliderArray;
             deckerStore.setSliders(this.sliders);
-            // console.log(this.sliders);
+            console.log(this.sliders);
         });
 
         this.MIDIListenerDetatcher = await listen('midi_detached', async () => {
@@ -151,6 +151,7 @@ class Decker {
     }
 
     public async disconnect() {
+        console.log("Disconnecting from Decker...");
         await invoke('disconnect_decker');
         this.sliderListenerDetatcher();
         this.MIDIListenerDetatcher();

@@ -29,7 +29,7 @@ import SelectedApps from "./ts/appsToControl.ts";
 import Decker from "./ts/decker.ts";
 import configStore from "./ts/config.ts";
 import { useDeckerStore } from "./store/deckerStore.ts";
-import { invoke } from "@tauri-apps/api/tauri";
+import { invoke } from "@tauri-apps/api/core";
 import ChannelLabel from "./components/ChannelLabel.vue";
 
 import { mapState } from "pinia"; 

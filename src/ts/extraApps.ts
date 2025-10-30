@@ -1,17 +1,22 @@
-import { Store } from "tauri-plugin-store-api";
+import { Store } from "@tauri-apps/plugin-store";
 import * as _ from "lodash"; // Make sure to import lodash if you haven't already
 
 /**
  * Class for managing extra apps and their configurations.
  */
 class ExtraApps {
-    private store: Store;
+    private store!: Store;
 
     /**
      * Creates an instance of ExtraApps.
      */
     constructor() {
-        this.store = new Store("extraApps.json");
+    }
+
+    private async ensureLoaded() {
+        if (!this.store) {
+            this.store = await Store.load("extraApps.json");
+        }
     }
 
     /**
@@ -20,6 +25,7 @@ class ExtraApps {
      * @param {any} value - The value to be stored.
      */
     async set(key: string, value: any) {
+        await this.ensureLoaded();
         await this.store.set(key, value);
     }
 
@@ -29,6 +35,7 @@ class ExtraApps {
      * @returns {Promise<any>} The stored value.
      */
     async get(key: string): Promise<any> {
+        await this.ensureLoaded();
         return await this.store.get(key);
     }
 
@@ -36,6 +43,7 @@ class ExtraApps {
      * Saves changes to the store.
      */
     async save() {
+        await this.ensureLoaded();
         await this.store.save();
     }
 
@@ -45,6 +53,7 @@ class ExtraApps {
      * @param {string} filePath - The installation location of the extra app.
      */
     async addExtraApp(name: string, filePath: string) {
+        await this.ensureLoaded();
         const extraApp = {
             DisplayName: name,
             InstallationLocation: filePath,
@@ -64,6 +73,7 @@ class ExtraApps {
      * @returns {Promise<any>} An array of extra apps and their configurations.
      */
     async getExtraApps(): Promise<any> {
+        await this.ensureLoaded();
         return await this.store.values();
     }
 }
