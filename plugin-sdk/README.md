@@ -479,15 +479,6 @@ this.actionmapper
   .addSystemUtilButton('eq')
   .setTitle('EQ')
   .setIcon('fas fa-sliders-h fa-lg')
-  .withSettings((s) => {
-    s.addSection('General')
-      .addSwitch('enabled').setLabel('Enable EQ').setValue(true)
-      .setDesc('Toggle the equalizer');
-
-    s.addSection('Levels')
-      .addInput('gain', { type: 'number' }).setLabel('Gain (dB)').setMin(-12).setMax(12)
-      .setValue(0);
-  });
 
 // Or attach by id later
 this.actionmapper.addSystemUtilSetting('eq', (s) => {
