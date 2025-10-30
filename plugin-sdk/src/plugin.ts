@@ -21,23 +21,6 @@ class Plugin {
     // this.settings = this.client.settings;
     this.ui = this.client.ui as any;
 
-    // SliderAction builder property behaving like a live builder
-    const actionMapperBuilder = new ActionMapper(() => {
-      const updated = actionMapperBuilder.build();
-      this.client.setActionMappings(updated);
-      this.client.notifyActionsUpdated();
-    });
-    // Enable live notifications so subsequent mutations push updates
-    actionMapperBuilder.enableNotifications();
-    this.actionmapper = actionMapperBuilder;
-
-    // Register slider update callback to forward to plugin's onSlidersUpdate method
-    this.client.setDeviceUpdateCallback(async (data: DeviceChanges) => {
-      await this.onDeviceUpdate(data);
-      // Return the data to satisfy the client's internal requirements
-      return data;
-    });
-
     // Initialize local config store in the same folder as the plugin's entry (main.js)
     const entryDir = process.cwd();
     const configName = `${pluginInfo.id || 'plugin'}-config`;
@@ -85,6 +68,23 @@ class Plugin {
         });
       }
     };
+
+    // SliderAction builder property behaving like a live builder
+    const actionMapperBuilder = new ActionMapper(() => {
+      const updated = actionMapperBuilder.build();
+      this.client.setActionMappings(updated);
+      this.client.notifyActionsUpdated();
+    }, this.config);
+    // Enable live notifications so subsequent mutations push updates
+    actionMapperBuilder.enableNotifications();
+    this.actionmapper = actionMapperBuilder;
+
+    // Register slider update callback to forward to plugin's onSlidersUpdate method
+    this.client.setDeviceUpdateCallback(async (data: DeviceChanges) => {
+      await this.onDeviceUpdate(data);
+      // Return the data to satisfy the client's internal requirements
+      return data;
+    });
   }
   
   // Get the underlying client for accessing connection methods
