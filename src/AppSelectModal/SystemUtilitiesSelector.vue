@@ -10,7 +10,7 @@
             </div>
         </div>
 
-        <div v-if="activeUtilities?.includes('output') || activeUtilities?.includes('input')" class="divider label-text">Settings</div>
+        <div v-if="activeUtilities?.includes('output') || activeUtilities?.includes('input')" class="divider font-semibold text-base-content">Settings</div>
 
         <!-- Combined device selector -->
         <div v-show="activeUtilities?.includes(type)" v-for="(selector, type) in deviceSelectors" :key="type" class="w-4/5 m-auto">
@@ -61,9 +61,8 @@
         </div>
 
         <!-- Plugin per-button settings -->
-        <div v-if="selectedPluginButtonsWithSettings.length" class="divider label-text">Plugin Settings</div>
         <div v-for="btn in selectedPluginButtonsWithSettings" :key="btn.actionId || btn.id" class="w-4/5 m-auto">
-            <h3 class="text-base-content text-sm font-semibold mb-2">{{ btn.title }}</h3>
+            <div class="divider label-text">{{btn.title}} Settings</div>
             <PluginSettingsRenderer :sections="btn.settings" :pluginId="btn.pluginId" />
         </div>
     </div>
