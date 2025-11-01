@@ -5,7 +5,7 @@
         <template v-if="!section.hidden">
           <template v-if="section.expandable"> <!-- if section is expandable, render the components in a collapsible section -->
             <details class="collapse collapse-arrow" :open="section.expanded === true" :class="{ 'opacity-50 pointer-events-none select-none': section.disabled }">
-              <summary class="collapse-title font-semibold pl-0"><div class="divider pl-0">{{ (section.name || section.title) || 'Section' }}</div></summary>
+              <summary class="collapse-title font-semibold px-0"><div class="divider pl-0">{{ (section.name || section.title) || 'Section' }}</div></summary>
               <div class="collapse-content text-sm flex flex-col w-full m-0 p-0">
                 <template v-for="(comp, cIdx) in section.components" :key="`comp_${sIdx}_${cIdx}`">
                   <component
@@ -96,6 +96,12 @@ export default {
 </script>
 
 <style scoped>
+.divider.pl-0::after {
+  flex-grow: 0;
+  flex-shrink: 1;
+  width: calc(90% - 2.5rem);
+  margin-right: 2.5rem;
+}
 </style>
 
 
