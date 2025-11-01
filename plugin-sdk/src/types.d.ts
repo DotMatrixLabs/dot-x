@@ -50,6 +50,13 @@ export interface SwitchField extends BaseSettingsField {
   onChangeActionId?: string;
 }
 
+export interface SelectField extends BaseSettingsField {
+  type: 'select';
+  options: Array<{ value: any; label: string }>;
+  onChange?: (data: { value: any }) => void;
+  onChangeActionId?: string;
+}
+
 export interface TextField extends BaseSettingsField {
   type: 'text_display';
   text?: string;
@@ -62,7 +69,7 @@ export interface BadgeField extends BaseSettingsField {
   style?: 'default' | 'muted' | 'info' | 'success' | 'warning' | 'error';
 }
 
-export type SettingsField = InputField | ButtonField | SwitchField | TextField | BadgeField;
+export type SettingsField = InputField | ButtonField | SwitchField | SelectField | TextField | BadgeField;
 
 export type SettingsComponent = { key: string } & SettingsField;
 export interface SettingsSection {
