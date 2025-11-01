@@ -124,7 +124,7 @@ export default class HelloWorldPlugin extends Plugin {
 
         // Add settings to the bolt button
         boltButton.addSettings((settings) => {
-          settings.addSection('General').setName('General').setExpandable(true)
+          settings.addSection('General').setName('General')
           settings.addSwitch('enabled').setLabel('Enable EQ').setValue(true)
             .setDesc('Toggle the equalizer');
         });
