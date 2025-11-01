@@ -1,4 +1,4 @@
-import type { SettingsSections, InputField, ButtonField, SwitchField, SettingsComponent, TextField, BadgeField, SystemUtilButton, ActionMappings } from './types';
+import type { SettingsSections, InputField, ButtonField, SwitchField, SelectField, SettingsComponent, TextField, BadgeField, SystemUtilButton, ActionMappings } from './types';
 
 type SimpleConfig = {
   set: (key: string | Record<string, any>, value?: any) => void;
@@ -105,6 +105,23 @@ export class SettingsBuilder {
     const component: SettingsComponent = { key, ...(field as any) };
     section.components.push(component);
     return new SwitchFieldHandle(component, this.createNotifier());
+  }
+
+  /**
+   * Adds a select field.
+   */
+  addSelect(key: string, options: Partial<SelectField> = {}): SelectFieldHandle {
+    const field: SelectField = {
+      type: 'select',
+      label: options.label ?? '',
+      options: Array.isArray(options.options) ? options.options : [],
+      ...options,
+    } as SelectField;
+
+    const section = this.ensureCurrentSection();
+    const component: SettingsComponent = { key, ...(field as any) };
+    section.components.push(component);
+    return new SelectFieldHandle(component, this.createNotifier());
   }
 
   /**
@@ -679,6 +696,71 @@ class BadgeFieldHandle {
   }
 
   assign(props: Partial<BadgeField>): this {
+    Object.assign(this.component as any, props);
+    this.notifyChange?.();
+    return this;
+  }
+}
+
+class SelectFieldHandle {
+  constructor(private component: SettingsComponent, private notifyChange?: () => void) {}
+
+  setLabel(label: string): this {
+    (this.component as any).label = label;
+    this.notifyChange?.();
+    return this;
+  }
+
+  setDesc(description: string): this {
+    (this.component as any).description = description;
+    this.notifyChange?.();
+    return this;
+  }
+
+  setRequired(required: boolean): this {
+    (this.component as any).required = required;
+    this.notifyChange?.();
+    return this;
+  }
+
+  setDisabled(disabled: boolean): this {
+    (this.component as any).disabled = disabled;
+    this.notifyChange?.();
+    return this;
+  }
+
+  setPlaceholder(placeholder: string): this {
+    (this.component as any).placeholder = placeholder;
+    this.notifyChange?.();
+    return this;
+  }
+
+  setValue(value: any): this {
+    (this.component as any).default = value;
+    this.notifyChange?.();
+    return this;
+  }
+
+  setOptions(options: Array<{ value: any; label: string }> | Array<string | number>): this {
+    const normalized = Array.isArray(options)
+      ? options.map((opt: any) =>
+          typeof opt === 'object' && opt !== null && 'value' in opt && 'label' in opt
+            ? opt
+            : { value: opt, label: String(opt) }
+        )
+      : [];
+    (this.component as any).options = normalized;
+    this.notifyChange?.();
+    return this;
+  }
+
+  onChange(callback: (data: { value: any }) => void): this {
+    (this.component as any).onChange = callback;
+    this.notifyChange?.();
+    return this;
+  }
+
+  assign(props: Partial<SelectField>): this {
     Object.assign(this.component as any, props);
     this.notifyChange?.();
     return this;

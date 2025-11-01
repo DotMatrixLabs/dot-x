@@ -60,6 +60,22 @@ export default class HelloWorldPlugin extends Plugin {
               this.config.set('settings.brokerPort', data.value);
             });
 
+          const quality = settings.addSelect('quality')
+            .setLabel('Quality')
+            .setPlaceholder('Pick one')
+            .setOptions([
+              { value: 'low', label: 'Low' },
+              { value: 'medium', label: 'Medium' },
+              { value: 'high', label: 'High' },
+            ])
+            .setValue(this.settings?.quality || 'medium')
+            .setDesc('Select processing quality')
+            .onChange(({ value }) => {
+              console.log('Quality changed:', value);
+              quality.setValue(value);
+              this.config.set('settings.quality', value);
+            });
+
 
         const demoSwitch = settings.addSwitch('demoSwitch')
           .setLabel('Expandable Section Switch')

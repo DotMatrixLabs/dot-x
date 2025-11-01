@@ -1,6 +1,6 @@
 // import InputText from './InputText.vue';
 import Input from './Input.vue';
-import OptionSelect from './OptionSelect.vue';
+import Select from './Select.vue';
 import NumberSelect from './NumberSelect.vue';
 import Switch from './Switch.vue';
 import ActionButton from './ActionButton.vue';
@@ -25,7 +25,7 @@ export const componentRegistry: Record<string, any> = {
   password_pin: PasswordInput,
 
   // Selectors
-  select: OptionSelect,
+  select: Select,
   number_select: NumberSelect,
   timezone_select: TimezoneSelect,
 
