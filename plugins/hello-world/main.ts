@@ -62,13 +62,26 @@ export default class HelloWorldPlugin extends Plugin {
 
 
         const demoSwitch = settings.addSwitch('demoSwitch')
-          .setLabel('Demo Switch')
+          .setLabel('Expandable Section Switch')
           .setValue(this.settings?.demoSwitch || false)
           .onChange((data) => {
             advanced.setExpanded(data.value);
-            console.log('Demo switch changed:', data.value);
-            demoSwitch.setValue(data.value);
-            this.config.set('settings.demoSwitch', data.value);
+          });
+
+          const hiddenSectionSwitch = settings.addSwitch('hiddenSectionSwitch')
+          .setLabel('Hidden Section Switch')
+          .setValue(this.settings?.hiddenSectionSwitch || false)
+          .onChange((data) => {
+            advanced.setHidden(data.value);
+          });
+
+
+        
+          const disabledSwitch = settings.addSwitch('disabledSwitch')
+          .setLabel('Disabled Section Switch')
+          .setValue(this.settings?.disabledSwitch || false)
+          .onChange((data) => {
+            advanced.setDisabled(data.value);
           });
 
         settings.addButton('demoButton')
@@ -110,9 +123,9 @@ export default class HelloWorldPlugin extends Plugin {
         })
 
         // Add settings to the bolt button
-        boltButton.addSettings((s) => {
-          s.addSection('General')
-          s.addSwitch('enabled').setLabel('Enable EQ').setValue(true)
+        boltButton.addSettings((settings) => {
+          settings.addSection('General')
+          settings.addSwitch('enabled').setLabel('Enable EQ').setValue(true)
             .setDesc('Toggle the equalizer');
         });
       

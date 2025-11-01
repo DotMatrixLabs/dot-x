@@ -1,7 +1,8 @@
 {
 	"settings": {
-		"demoSwitch": false,
-		"brokerIP": "192.168.1.2"
+		"demoSwitch": true,
+		"brokerIP": "192.168.1.2",
+		"debug": false
 	},
 	"action": {
 		"bolt": {
