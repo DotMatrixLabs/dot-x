@@ -1,11 +1,37 @@
+/**
+ * Plugin SDK UI builders for constructing settings UIs and action mappings.
+ *
+ * This module exposes fluent builder APIs to define settings sections and components
+ * (inputs, switches, selects, buttons, text, badges) as well as action mappings for
+ * the System Utilities tab. The output schemas are consumed by the host app.
+ *
+ * The primary entry points are {@link SettingsBuilder} and {@link ActionMapper}.
+ * Prefer the convenience factories {@link createSettingsBuilder} and {@link createActionMapper}.
+ */
 import type { SettingsSections, InputField, ButtonField, SwitchField, SelectField, SettingsComponent, TextField, BadgeField, SystemUtilButton, ActionMappings } from './types';
 
+/**
+ * Minimal config store interface used for persisting small key/value maps.
+ * Implementations typically wrap application configuration storage.
+ */
 type SimpleConfig = {
   set: (key: string | Record<string, any>, value?: any) => void;
   get: <T = any>(key: string, defaultValue?: T) => T | undefined;
   delete: (key: string) => void;
 };
 
+/**
+ * Declarative description of a settings section containing UI components.
+ *
+ * @property {string} key - Stable identifier for the section.
+ * @property {string} [name] - Human-readable section name; shown in UI.
+ * @property {string} [title] - Deprecated alias for name maintained for back-compat.
+ * @property {boolean} [disabled] - If true, section is rendered but inactive.
+ * @property {boolean} [hidden] - If true, section is not shown.
+ * @property {boolean} [expandable] - If true, section can be collapsed/expanded.
+ * @property {boolean} [expanded] - Default expanded state when expandable.
+ * @property {SettingsComponent[]} components - Fields/components within the section.
+ */
 export type UISection = {
   key: string;
   name?: string;
@@ -18,12 +44,20 @@ export type UISection = {
 };
 
 /**
- * Chainable builder for constructing a SettingsSchema imperatively.
+ * Chainable builder for constructing a {@link SettingsSections} schema imperatively.
  *
  * Notes:
  * - Sections are represented by assigning the `section` property on subsequent fields.
  * - Button callbacks are preserved on the schema; the client will replace them with
  *   actionIds and register the callbacks during `settings.createSettings`.
+ *
+ * @example
+ * const builder = createSettingsBuilder();
+ * builder
+ *   .addSection('general').setName('General')
+ *   .addInput('username', { label: 'Username' }).setPlaceholder('Enter username')
+ *   .addSwitch('enabled').setLabel('Enable feature').setValue(true);
+ * const schema = builder.build();
  */
 export class SettingsBuilder {
   private currentSectionKey: string | undefined;
@@ -37,8 +71,11 @@ export class SettingsBuilder {
   }
 
   /**
-   * Starts or selects a section by stable `key` and returns a SectionHandle to configure it.
+   * Starts or selects a section by stable `key` and returns a handle to configure it.
    * Subsequent field additions will be assigned to this section.
+   *
+   * @param {string} key - Stable section identifier.
+   * @returns {SectionHandle}
    */
   addSection(key: string): SectionHandle {
     this.currentSectionKey = key;
@@ -52,10 +89,14 @@ export class SettingsBuilder {
   }
 
   /**
-   * Adds a text-like field (defaults to 'text') and returns a chainable handle for it.
+   * Adds an input field and returns a chainable handle for it.
    *
    * You can override the input type by passing `options.type` with one of:
-   * 'text' | 'password' | 'textarea' | 'color' | 'file' | 'number'.
+   * 'text' | 'password' | 'textarea' | 'color' | 'file' | 'number' | 'ip_address' | 'mac_address'.
+   *
+   * @param {string} key - Field key used to bind/read values.
+   * @param {Partial<InputField>} [options] - Initial field options (label, type, etc.).
+   * @returns {InputFieldHandle}
    */
   addInput(key: string, options: Partial<InputField> = {}): InputFieldHandle {
     const allowedTypes: InputField['type'][] = ['text', 'password', 'textarea', 'color', 'file', 'number', 'ip_address', 'mac_address'];
@@ -74,7 +115,11 @@ export class SettingsBuilder {
   }
 
   /**
-   * Adds a button field with a click handler.
+   * Adds a button field and returns a chainable handle.
+   * Use the returned handle to set label/title/style and onClick handler.
+   *
+   * @param {string} key - Field key.
+   * @returns {ButtonFieldHandle}
    */
   addButton(key: string): ButtonFieldHandle {
     const field: ButtonField = {
@@ -93,7 +138,10 @@ export class SettingsBuilder {
 
 
   /**
-   * Adds a switch field.
+   * Adds a switch field and returns a chainable handle.
+   *
+   * @param {string} key - Field key.
+   * @returns {SwitchFieldHandle}
    */
   addSwitch(key: string): SwitchFieldHandle {
     const field: SwitchField = {
@@ -108,7 +156,11 @@ export class SettingsBuilder {
   }
 
   /**
-   * Adds a select field.
+   * Adds a select field and returns a chainable handle.
+   *
+   * @param {string} key - Field key.
+   * @param {Partial<SelectField>} [options] - Initial options (label, options list, etc.).
+   * @returns {SelectFieldHandle}
    */
   addSelect(key: string, options: Partial<SelectField> = {}): SelectFieldHandle {
     const field: SelectField = {
@@ -125,7 +177,10 @@ export class SettingsBuilder {
   }
 
   /**
-   * Adds a display-only text field.
+   * Adds a display-only text field and returns a chainable handle.
+   *
+   * @param {string} key - Field key.
+   * @returns {TextFieldHandle}
    */
   addText(key: string): TextFieldHandle {
     const field: TextField = {
@@ -142,7 +197,10 @@ export class SettingsBuilder {
   }
 
   /**
-   * Adds a display badge field.
+   * Adds a display badge field and returns a chainable handle.
+   *
+   * @param {string} key - Field key.
+   * @returns {BadgeFieldHandle}
    */
   addBadge(key: string): BadgeFieldHandle {
     const field: BadgeField = {
@@ -158,7 +216,9 @@ export class SettingsBuilder {
     return new BadgeFieldHandle(component, this.createNotifier());
   }
   /**
-   * Returns the constructed SettingsSchema.
+   * Builds and returns the constructed {@link SettingsSections} schema.
+   *
+   * @returns {SettingsSections}
    */
   build(): SettingsSections {
     return {
@@ -196,6 +256,8 @@ export class SettingsBuilder {
   /**
    * Turns on mutation notifications for subsequently updated handles.
    * Call this after the initial schema has been built and set.
+   *
+   * @returns {void}
    */
   enableNotifications(): void {
     this.notificationsEnabled = true;
@@ -250,6 +312,14 @@ class SectionHandle {
 /**
  * Builder for Slider Action modal content (System Utilities tab).
  * Allows plugins to register action buttons shown alongside built-in utilities.
+ *
+ * @example
+ * const mapper = createActionMapper();
+ * mapper
+ *   .addSystemUtilButton('toggle-mic')
+ *     .setTitle('Toggle Mic')
+ *     .onClick(({ selected, channel }) => { console.log(selected, channel); });
+ * const actions = mapper.build();
  */
 export class ActionMapper {
   private buttons: SystemUtilButton[] = [];
@@ -262,6 +332,12 @@ export class ActionMapper {
     this.configStore = configStore;
   }
 
+  /**
+   * Adds a new System Utilities action button and returns its handle.
+   *
+   * @param {string} id - Stable identifier for the button.
+   * @returns {SystemUtilButtonHandle}
+   */
   addSystemUtilButton(id: string): SystemUtilButtonHandle {
     const btn: SystemUtilButton = { id, title: '' };
     this.buttons.push(btn);
@@ -269,8 +345,12 @@ export class ActionMapper {
   }
 
   /**
-   * Attach a SettingsSections schema to an existing SystemUtilButton by id.
-   * Reuses SettingsBuilder so plugin authors can call addText/addSwitch/etc.
+   * Attaches a {@link SettingsSections} schema to an existing System Utilities button.
+   * Reuses {@link SettingsBuilder} so plugin authors can call addText/addSwitch/etc.
+   *
+   * @param {string} buttonId - Target button id returned from addSystemUtilButton.
+   * @param {function(SettingsBuilder): void} build - Builder callback.
+   * @returns {this}
    */
   addSystemUtilSetting(buttonId: string, build: (b: SettingsBuilder) => void): this {
     const btn = this.buttons.find(b => b.id === buttonId);
@@ -285,6 +365,11 @@ export class ActionMapper {
     return this;
   }
 
+  /**
+   * Builds and returns the action mappings for registered buttons.
+   *
+   * @returns {ActionMappings}
+   */
   build(): ActionMappings {
     return {
       buttons: this.buttons.map((b) => {
@@ -298,6 +383,11 @@ export class ActionMapper {
     };
   }
 
+  /**
+   * Enables mutation notifications for nested handles.
+   *
+   * @returns {void}
+   */
   enableNotifications(): void {
     this.notificationsEnabled = true;
   }
@@ -770,12 +860,36 @@ class SelectFieldHandle {
 
 
 /**
- * Convenience factory for a new SettingsBuilder
+ * Convenience factory for a new {@link SettingsBuilder}.
+ *
+ * @example
+ * const settings = createSettingsBuilder()
+ *   .addSection('general').setName('General')
+ *   .addInput('apiKey', { label: 'API Key', type: 'password' })
+ *   .addSwitch('enabled').setLabel('Enable plugin').setValue(true)
+ *   .build();
+ *
+ * @returns {SettingsBuilder}
  */
 export function createSettingsBuilder(): SettingsBuilder {
   return new SettingsBuilder();
 }
 
+/**
+ * Convenience factory for a new {@link ActionMapper}.
+ *
+ * @example
+ * const actions = createActionMapper()
+ *   .addSystemUtilButton('record')
+ *     .setTitle('Record')
+ *   .addSystemUtilSetting('record', (b) => {
+ *     b.addSection('settings').setName('Recording')
+ *       .addSelect('quality', { label: 'Quality', options: ['Low', 'High'] });
+ *   })
+ *   .build();
+ *
+ * @returns {ActionMapper}
+ */
 export function createActionMapper(): ActionMapper {
   return new ActionMapper();
 }
