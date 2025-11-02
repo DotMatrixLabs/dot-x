@@ -17,19 +17,11 @@
   "engines": {
     "node": ">=16"
   },
-  "scripts": {
-    "docs:clean": "powershell -NoProfile -Command \"Remove-Item -Recurse -Force 'D:/dotmatrixlabs-docs/docs/plugin-sdk/reference' -ErrorAction SilentlyContinue\"",
-    "docs:build": "yarn run docs:clean && typedoc --options ./typedoc.json --out \"D:/dotmatrixlabs-docs/docs/plugin-sdk/reference\"",
-    "docs:watch": "typedoc --options ./typedoc.json --out \"D:/dotmatrixlabs-docs/docs/plugin-sdk/reference\" --watch"
-  },
   "dependencies": {
-    "conf": "^14.0.0",
-    "socket.io-client": "^4.7.4"
+    "socket.io-client": "^4.7.4",
+    "conf": "^14.0.0"
   },
   "devDependencies": {
-    "@types/socket.io-client": "^3.0.0",
-    "typedoc": "^0.28.14",
-    "typedoc-plugin-markdown": "^4.9.0",
-    "typescript": "^5.7.0"
+    "@types/socket.io-client": "^3.0.0"
   }
 }
