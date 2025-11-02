@@ -7,11 +7,117 @@ import * as fs from 'fs';
 import * as path from 'path';
 import Conf from 'conf';
 
-
+/**
+ * Base class for creating Dot X plugins.
+ * 
+ * Extend this class to create your own plugin. Override lifecycle methods like
+ * `onLoad()`, `onUnload()`, and `onDeviceUpdate()` to implement your plugin's behavior.
+ * 
+ * @group Plugin Lifecycle
+ * 
+ * @example
+ * ```typescript
+ * import Plugin, { runPlugin } from 'dotx-plugin-sdk';
+ * 
+ * export default class MyPlugin extends Plugin {
+ *   async onLoad() {
+ *     console.log('Plugin loaded!');
+ *     
+ *     // Create settings UI
+ *     await this.createSettingsPage((settings) => {
+ *       settings.addSection('general');
+ *       settings.addInput('apiKey')
+ *         .setLabel('API Key')
+ *         .setType('password')
+ *         .setValue(this.config.get('apiKey', ''));
+ *     });
+ *     
+ *     // Show notification
+ *     await this.ui.showToast({
+ *       message: 'Plugin loaded successfully!',
+ *       type: 'success'
+ *     });
+ *   }
+ *   
+ *   async onUnload() {
+ *     console.log('Plugin unloading...');
+ *   }
+ * }
+ * 
+ * if (require.main === module) {
+ *   runPlugin(MyPlugin);
+ * }
+ * ```
+ */
 class Plugin {
-  // public settings: PluginAPI['settings'];
+  /**
+   * Global UI methods for showing toasts, modals, and confirmations.
+   * 
+   * @group Global UI
+   * 
+   * @example
+   * ```typescript
+   * // Show a success toast
+   * await this.ui.showToast({
+   *   message: 'Operation completed!',
+   *   type: 'success',
+   *   duration: 3000
+   * });
+   * ```
+   */
   public ui: PluginAPI['ui'];
+  
+  /**
+   * Action mapper for creating System Utilities buttons.
+   * 
+   * @group Action Mapper Modal
+   * 
+   * @example
+   * ```typescript
+   * this.actionmapper
+   *   .addSystemUtilButton('myAction')
+   *   .setTitle('My Action')
+   *   .setIcon('fas fa-bolt fa-lg')
+   *   .onClick(({ selected, channel }) => {
+   *     console.log(`Action ${selected ? 'enabled' : 'disabled'} on channel ${channel}`);
+   *   });
+   * ```
+   */
   public actionmapper: any;
+  
+  /**
+   * Local persistent configuration storage.
+   * 
+   * Store and retrieve plugin configuration data that persists across restarts.
+   * 
+   * @group Storing Data
+   * 
+   * @example
+   * ```typescript
+   * // Initialize config with schema
+   * this.config.init({
+   *   schema: {
+   *     settings: {
+   *       type: 'object',
+   *       properties: {
+   *         apiKey: { type: 'string', default: '' }
+   *       }
+   *     }
+   *   }
+   * });
+   * 
+   * // Set a value
+   * this.config.set('settings.apiKey', 'my-key');
+   * 
+   * // Get a value
+   * const apiKey = this.config.get('settings.apiKey', 'default-key');
+   * 
+   * // Check if key exists
+   * if (this.config.has('settings.apiKey')) {
+   *   console.log('API key is configured');
+   * }
+   * ```
+   */
   public config: PluginAPI['config'];
   private client: APIClient;
   private configStore?: Conf<Record<string, any>>;
@@ -31,6 +137,34 @@ class Plugin {
     });
 
     this.config = {
+      /**
+       * Sets a configuration value.
+       * 
+       * Supports dot notation for nested keys (e.g., 'settings.apiKey').
+       * Can also accept an object to set multiple values at once.
+       * 
+       * @group Storing Data
+       * 
+       * @param keyOrObject - Key string or object with multiple key-value pairs
+       * @param value - Value to set (when first param is a string)
+       * 
+       * @example
+       * ```typescript
+       * // Set a simple value
+       * this.config.set('apiKey', 'my-secret-key');
+       * 
+       * // Set nested value using dot notation
+       * this.config.set('settings.broker.ip', '192.168.1.1');
+       * this.config.set('settings.broker.port', 1883);
+       * 
+       * // Set multiple values at once
+       * this.config.set({
+       *   apiKey: 'my-secret-key',
+       *   'settings.broker.ip': '192.168.1.1',
+       *   'settings.broker.port': 1883
+       * });
+       * ```
+       */
       set: (keyOrObject: string | Record<string, any>, value?: any) => {
         if (typeof keyOrObject === 'object' && keyOrObject !== null) {
           this.configStore!.set(keyOrObject as Record<string, any>);
@@ -38,24 +172,170 @@ class Plugin {
         }
         this.configStore!.set(keyOrObject as string, value);
       },
+      /**
+       * Gets a configuration value.
+       * 
+       * Supports dot notation for nested keys. Returns the default value if key doesn't exist.
+       * 
+       * @group Storing Data
+       * 
+       * @param key - Configuration key (supports dot notation)
+       * @param defaultValue - Default value if key doesn't exist
+       * @returns The stored value or default value
+       * 
+       * @example
+       * ```typescript
+       * // Get a simple value
+       * const apiKey = this.config.get('apiKey', 'default-key');
+       * 
+       * // Get nested value using dot notation
+       * const brokerIP = this.config.get('settings.broker.ip', '127.0.0.1');
+       * 
+       * // Type-safe retrieval
+       * const port = this.config.get<number>('settings.broker.port', 1883);
+       * const debug = this.config.get<boolean>('debug', false);
+       * ```
+       */
       get: <T = any>(key: string, defaultValue?: T) => {
         return this.configStore!.get(key, defaultValue as any) as T | undefined;
       },
+      /**
+       * Deletes a configuration value.
+       * 
+       * @group Storing Data
+       * 
+       * @param key - Configuration key to delete
+       * 
+       * @example
+       * ```typescript
+       * // Delete a value
+       * this.config.delete('apiKey');
+       * 
+       * // Delete nested value
+       * this.config.delete('settings.broker.ip');
+       * ```
+       */
       delete: (key: string) => {
         this.configStore!.delete(key);
       },
+      /**
+       * Clears all configuration data.
+       * 
+       * @group Storing Data
+       * 
+       * @example
+       * ```typescript
+       * // Reset all settings
+       * this.config.clear();
+       * ```
+       */
       clear: () => {
         this.configStore!.clear();
       },
+      /**
+       * Checks if a configuration key exists.
+       * 
+       * @group Storing Data
+       * 
+       * @param key - Configuration key to check
+       * @returns True if key exists, false otherwise
+       * 
+       * @example
+       * ```typescript
+       * if (this.config.has('apiKey')) {
+       *   console.log('API key is configured');
+       * } else {
+       *   console.log('API key not set');
+       * }
+       * 
+       * // Check nested key
+       * if (this.config.has('settings.broker.ip')) {
+       *   console.log('Broker IP is configured');
+       * }
+       * ```
+       */
       has: (key: string) => {
         return this.configStore!.has(key);
       },
+      /**
+       * Gets all configuration data as an object.
+       * 
+       * @group Storing Data
+       * 
+       * @returns Object containing all configuration data
+       * 
+       * @example
+       * ```typescript
+       * // Get all config
+       * const allConfig = this.config.all();
+       * console.log('All settings:', allConfig);
+       * 
+       * // Export config
+       * const configJson = JSON.stringify(this.config.all(), null, 2);
+       * ```
+       */
       all: () => {
         return { ...(this.configStore as Conf<Record<string, any>>).store };
       },
+      /**
+       * Gets the file path where configuration is stored.
+       * 
+       * @group Storing Data
+       * 
+       * @returns Absolute path to the config file
+       * 
+       * @example
+       * ```typescript
+       * console.log('Config stored at:', this.config.path());
+       * // Output: Config stored at: /path/to/plugin/my-plugin-config.json
+       * ```
+       */
       path: () => {
         return (this.configStore as Conf<Record<string, any>>).path;
       },
+      /**
+       * Initializes or reinitializes the configuration store with schema and defaults.
+       * 
+       * @group Storing Data
+       * 
+       * @param options - Initialization options
+       * @param options.schema - JSON schema for validation
+       * @param options.defaults - Default values
+       * 
+       * @example
+       * ```typescript
+       * // Initialize with schema and defaults
+       * this.config.init({
+       *   schema: {
+       *     settings: {
+       *       type: 'object',
+       *       properties: {
+       *         apiKey: {
+       *           type: 'string',
+       *           default: ''
+       *         },
+       *         broker: {
+       *           type: 'object',
+       *           properties: {
+       *             ip: { type: 'string', default: '127.0.0.1' },
+       *             port: { type: 'number', default: 1883 }
+       *           }
+       *         }
+       *       }
+       *     }
+       *   },
+       *   defaults: {
+       *     settings: {
+       *       apiKey: '',
+       *       broker: {
+       *         ip: '127.0.0.1',
+       *         port: 1883
+       *       }
+       *     }
+       *   }
+       * });
+       * ```
+       */
       init: (options?: { schema?: Record<string, any>; defaults?: Record<string, any> }) => {
         const entryDirLocal = process.cwd();
         const configNameLocal = `${pluginInfo.id || 'plugin'}-config`;
@@ -97,7 +377,63 @@ class Plugin {
     return this.client.waitForConnection();
   }
 
-  // Convenience: build and register settings in one go
+  /**
+   * Creates a settings page for your plugin using a fluent builder API.
+   * 
+   * This is the primary method for creating plugin settings UI. Use the builder
+   * to add sections and UI components like inputs, switches, buttons, and more.
+   * 
+   * @group Settings Page
+   * 
+   * @param buildFn - Callback function that receives a SettingsBuilder instance
+   * @returns Promise that resolves when settings are created
+   * 
+   * @example
+   * ```typescript
+   * await this.createSettingsPage((settings) => {
+   *   // Create a General section
+   *   const general = settings.addSection('general')
+   *     .setName('General Settings');
+   *   
+   *   // Add an input field
+   *   settings.addInput('brokerIP')
+   *     .setType('ip_address')
+   *     .setLabel('Broker IP')
+   *     .setPlaceholder('192.168.1.1')
+   *     .setValue(this.config.get('brokerIP', '192.168.1.1'))
+   *     .setRequired(true)
+   *     .onChange(({ value }) => {
+   *       this.config.set('brokerIP', value);
+   *     });
+   *   
+   *   // Add a switch
+   *   settings.addSwitch('debug')
+   *     .setLabel('Enable Debug Mode')
+   *     .setValue(this.config.get('debug', false))
+   *     .onChange(({ value }) => {
+   *       this.config.set('debug', value);
+   *     });
+   *   
+   *   // Add a select dropdown
+   *   settings.addSelect('quality')
+   *     .setLabel('Quality')
+   *     .setOptions([
+   *       { value: 'low', label: 'Low' },
+   *       { value: 'medium', label: 'Medium' },
+   *       { value: 'high', label: 'High' }
+   *     ])
+   *     .setValue(this.config.get('quality', 'medium'))
+   *     .onChange(({ value }) => {
+   *       this.config.set('quality', value);
+   *     });
+   *   
+   *   // Add an expandable advanced section
+   *   const advanced = settings.addSection('advanced')
+   *     .setName('Advanced Settings')
+   *     .setExpandable(true);
+   * });
+   * ```
+   */
   async createSettingsPage(buildFn: (builder: SettingsBuilder) => void): Promise<void> {
     // Build once, persist schema for get_plugin_settings
     const builder = new SettingsBuilder(() => {
@@ -132,16 +468,117 @@ class Plugin {
     return this.client.isConnected();
   }
   
-  // Plugin lifecycle methods
+  /**
+   * Called when the plugin is loaded and ready to run.
+   * 
+   * Override this method to initialize your plugin, create settings UI,
+   * register action buttons, and set up any necessary resources.
+   * 
+   * @group Plugin Lifecycle
+   * 
+   * @example
+   * ```typescript
+   * async onLoad() {
+   *   console.log('My plugin is loading...');
+   *   
+   *   // Initialize configuration
+   *   this.config.init({
+   *     schema: {
+   *       settings: {
+   *         type: 'object',
+   *         properties: {
+   *           apiKey: { type: 'string', default: '' }
+   *         }
+   *       }
+   *     }
+   *   });
+   *   
+   *   // Create settings UI
+   *   await this.createSettingsPage((settings) => {
+   *     settings.addSection('general');
+   *     settings.addInput('apiKey')
+   *       .setLabel('API Key')
+   *       .setType('password');
+   *   });
+   *   
+   *   // Add action button
+   *   this.actionmapper
+   *     .addSystemUtilButton('myAction')
+   *     .setTitle('My Action')
+   *     .onClick(({ selected, channel }) => {
+   *       console.log(`Action triggered on channel ${channel}`);
+   *     });
+   *   
+   *   console.log('Plugin loaded successfully!');
+   * }
+   * ```
+   */
   async onLoad() {
     console.log("Plugin loaded");
   }
 
+  /**
+   * Called when the plugin is being unloaded or the application is shutting down.
+   * 
+   * Override this method to perform cleanup tasks like closing connections,
+   * saving state, or releasing resources.
+   * 
+   * @group Plugin Lifecycle
+   * 
+   * @example
+   * ```typescript
+   * async onUnload() {
+   *   console.log('Cleaning up plugin resources...');
+   *   
+   *   // Save any pending data
+   *   this.config.set('lastShutdown', new Date().toISOString());
+   *   
+   *   // Close connections
+   *   if (this.mqttClient) {
+   *     await this.mqttClient.end();
+   *   }
+   *   
+   *   console.log('Plugin unloaded successfully');
+   * }
+   * ```
+   */
   async onUnload() {
     console.log("Plugin unloaded");
     this.client.disconnect();
   }
 
+  /**
+   * Called when device values (sliders, knobs, buttons) are updated.
+   * 
+   * Override this method to respond to device input changes. This is useful
+   * for implementing custom behaviors based on hardware control changes.
+   * 
+   * @group Plugin Lifecycle
+   * 
+   * @param data - Object containing the device changes
+   * @param data.changes - Array of changes with index, oldValue, and newValue
+   * @param data.values - Current values of all device controls
+   * 
+   * @example
+   * ```typescript
+   * async onDeviceUpdate(data) {
+   *   console.log('Device updated:', data);
+   *   
+   *   // Process each change
+   *   data.changes.forEach(change => {
+   *     console.log(`Control ${change.index} changed from ${change.oldValue} to ${change.newValue}`);
+   *     
+   *     // Respond to specific controls
+   *     if (change.index === 0 && change.newValue > 50) {
+   *       this.ui.showToast({
+   *         message: 'Volume is high!',
+   *         type: 'warning'
+   *       });
+   *     }
+   *   });
+   * }
+   * ```
+   */
   async onDeviceUpdate(data: DeviceChanges): Promise<void> {
     // Default implementation does nothing - plugins can override this
     console.log("[HELLO WORLD PLUGIN?]: Sliders updated:", data);
@@ -149,7 +586,10 @@ class Plugin {
 }
 
 /**
- * Reads the manifest.json file from the current working directory
+ * Reads the manifest.json file from the current working directory.
+ * 
+ * @internal
+ * @group Advanced/Internal
  */
 function readManifest() {
   try {
@@ -165,15 +605,53 @@ function readManifest() {
 }
 
 /**
- * Automatically runs a plugin when the module is executed directly
- * Use this at the end of your plugin file like:
+ * Automatically runs a plugin when the module is executed directly.
  * 
- * if (require.main === module) {
- *   runPlugin(YourPluginClass);
+ * This utility function handles the complete plugin lifecycle:
+ * - Reads plugin metadata from manifest.json
+ * - Establishes connection to the Dot X application
+ * - Waits for successful registration
+ * - Calls the plugin's onLoad() method
+ * - Handles graceful shutdown on SIGINT/SIGTERM
+ * - Provides automatic retry logic for connection failures
+ * 
+ * @group Plugin Lifecycle
+ * 
+ * @param PluginClass - The plugin class to instantiate and run
+ * @param config - Optional connection configuration to customize behavior
+ * 
+ * @example
+ * ```typescript
+ * import Plugin, { runPlugin } from 'dotx-plugin-sdk';
+ * 
+ * export default class MyPlugin extends Plugin {
+ *   async onLoad() {
+ *     console.log('Plugin loaded!');
+ *   }
  * }
  * 
- * @param PluginClass The plugin class to instantiate and run
- * @param config Optional connection configuration
+ * // Run the plugin when executed directly
+ * if (require.main === module) {
+ *   runPlugin(MyPlugin);
+ * }
+ * ```
+ * 
+ * @example
+ * ```typescript
+ * // With custom connection configuration
+ * import Plugin, { runPlugin, ConnectionConfig } from 'dotx-plugin-sdk';
+ * 
+ * const config: ConnectionConfig = {
+ *   serverUrl: 'http://localhost:3001',
+ *   maxRetries: 10,
+ *   retryDelay: 3000,
+ *   connectionTimeout: 15000
+ * };
+ * 
+ * if (require.main === module) {
+ *   runPlugin(MyPlugin, config);
+ * }
+ * ```
  */
 export async function runPlugin(PluginClass: typeof Plugin, config?: ConnectionConfig) {
   const manifest = readManifest();

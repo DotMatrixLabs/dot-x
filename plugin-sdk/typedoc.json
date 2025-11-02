@@ -3,8 +3,17 @@
   "entryPoints": ["src"],
   "plugin": ["typedoc-plugin-markdown"],
   "readme": "none",
-  "categorizeByGroup": false,
+  "categorizeByGroup": true,
   "outputFileStrategy": "modules",
+  "groupOrder": [
+    "Plugin Lifecycle",
+    "Settings Page",
+    "Action Mapper Modal",
+    "Global UI",
+    "Storing Data",
+    "Advanced/Internal",
+    "*"
+  ],
   "categoryOrder": ["UI", "Runtime", "Communication", "Manifest", "Other"],
   "hideBreadcrumbs": true,
   "indexFormat": "table",
@@ -13,6 +22,7 @@
     "**/dist/**",
     "**/node_modules/**"
   ],
+  "excludeInternal": false,
   "skipErrorChecking": true
 }
 

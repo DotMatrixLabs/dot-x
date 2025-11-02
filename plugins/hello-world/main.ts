@@ -3,6 +3,7 @@ import Plugin, { runPlugin } from "../../plugin-sdk/src/index";
 console.log("Hello World!");
 
 export default class HelloWorldPlugin extends Plugin {
+
   private settings: any;
 
   async onLoad() {
