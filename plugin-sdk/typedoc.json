@@ -1,0 +1,18 @@
+{
+  "entryPointStrategy": "expand",
+  "entryPoints": ["src"],
+  "plugin": ["typedoc-plugin-markdown"],
+  "readme": "none",
+  "categorizeByGroup": false,
+  "outputFileStrategy": "modules",
+  "categoryOrder": ["UI", "Runtime", "Communication", "Manifest", "Other"],
+  "hideBreadcrumbs": true,
+  "indexFormat": "table",
+  "exclude": [
+    "**/*.{test,spec}.ts",
+    "**/dist/**",
+    "**/node_modules/**"
+  ],
+  "skipErrorChecking": true
+}
+
