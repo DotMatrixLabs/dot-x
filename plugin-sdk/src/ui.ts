@@ -9,13 +9,14 @@
  * Prefer the convenience factories {@link createSettingsBuilder} and {@link createActionMapper}.
  *
  * @module ui
- * @category UI
  */
 import type { SettingsSections, InputField, ButtonField, SwitchField, SelectField, SettingsComponent, TextField, BadgeField, SystemUtilButton, ActionMappings } from './types';
 
 /**
  * Minimal config store interface used for persisting small key/value maps.
  * Implementations typically wrap application configuration storage.
+ * 
+ * @internal
  */
 type SimpleConfig = {
   set: (key: string | Record<string, any>, value?: any) => void;
@@ -25,6 +26,9 @@ type SimpleConfig = {
 
 /**
  * Declarative description of a settings section containing UI components.
+ * 
+ * @group Settings Page
+ * @group Action Mapper Modal
  *
  * @property {string} key - Stable identifier for the section.
  * @property {string} [name] - Human-readable section name; shown in UI.
@@ -47,20 +51,96 @@ export type UISection = {
 };
 
 /**
- * Chainable builder for constructing a {@link SettingsSections} schema imperatively.
+ * Chainable builder for constructing plugin settings UI.
+ * 
+ * The SettingsBuilder provides a fluent API for creating settings pages with sections
+ * and various UI components. All methods return handles that support method chaining.
+ * 
+ * @group Settings Page
  *
- * Notes:
- * - Sections are represented by assigning the `section` property on subsequent fields.
- * - Button callbacks are preserved on the schema; the client will replace them with
- *   actionIds and register the callbacks during `settings.createSettings`.
- *
+ * ## Available UI Components
+ * 
+ * | Component | Method | Description |
+ * |-----------|--------|-------------|
+ * | Section | `addSection(key)` | Creates a container for grouping related settings |
+ * | Input | `addInput(key)` | Text input field (supports text, password, number, IP address, etc.) |
+ * | Switch | `addSwitch(key)` | Toggle switch for boolean values |
+ * | Button | `addButton(key)` | Clickable button that triggers actions |
+ * | Select | `addSelect(key)` | Dropdown menu for selecting from options |
+ * | Text | `addText(key)` | Read-only text display with styling |
+ * | Badge | `addBadge(key)` | Status badge with colored styling |
+ * 
  * @example
- * const builder = createSettingsBuilder();
- * builder
- *   .addSection('general').setName('General')
- *   .addInput('username', { label: 'Username' }).setPlaceholder('Enter username')
- *   .addSwitch('enabled').setLabel('Enable feature').setValue(true);
- * const schema = builder.build();
+ * ```typescript
+ * // Create a complete settings page
+ * await this.createSettingsPage((settings) => {
+ *   // Add a general settings section
+ *   settings.addSection('general')
+ *     .setName('General Settings')
+ *     .setExpandable(false);
+ *   
+ *   // Add various input types
+ *   settings.addInput('brokerIP')
+ *     .setType('ip_address')
+ *     .setLabel('Broker IP Address')
+ *     .setPlaceholder('192.168.1.1')
+ *     .setValue('127.0.0.1')
+ *     .setRequired(true)
+ *     .onChange(({ value }) => {
+ *       this.config.set('brokerIP', value);
+ *     });
+ *   
+ *   settings.addInput('port')
+ *     .setType('number')
+ *     .setLabel('Port')
+ *     .setValue(1883)
+ *     .setMin(1)
+ *     .setMax(65535);
+ *   
+ *   // Add a switch
+ *   settings.addSwitch('enableDebug')
+ *     .setLabel('Enable Debug Mode')
+ *     .setValue(false)
+ *     .onChange(({ value }) => {
+ *       console.log('Debug mode:', value);
+ *     });
+ *   
+ *   // Add a select dropdown
+ *   settings.addSelect('quality')
+ *     .setLabel('Quality')
+ *     .setOptions([
+ *       { value: 'low', label: 'Low' },
+ *       { value: 'medium', label: 'Medium' },
+ *       { value: 'high', label: 'High' }
+ *     ])
+ *     .setValue('medium');
+ *   
+ *   // Add a button
+ *   settings.addButton('testConnection')
+ *     .setTitle('Test Connection')
+ *     .setStyle('primary')
+ *     .onClick(() => {
+ *       this.ui.showToast({ message: 'Testing connection...', type: 'info' });
+ *     });
+ *   
+ *   // Add display elements
+ *   settings.addText('status')
+ *     .setLabel('Connection Status')
+ *     .setText('Connected')
+ *     .setStyle('success');
+ *   
+ *   settings.addBadge('version')
+ *     .setLabel('Version')
+ *     .setText('1.0.0')
+ *     .setStyle('info');
+ *   
+ *   // Add an expandable advanced section
+ *   settings.addSection('advanced')
+ *     .setName('Advanced Settings')
+ *     .setExpandable(true)
+ *     .setExpanded(false);
+ * });
+ * ```
  */
 export class SettingsBuilder {
   private currentSectionKey: string | undefined;
@@ -74,11 +154,51 @@ export class SettingsBuilder {
   }
 
   /**
-   * Starts or selects a section by stable `key` and returns a handle to configure it.
-   * Subsequent field additions will be assigned to this section.
+   * Creates or selects a settings section.
+   * 
+   * Sections group related settings together. Use the returned handle to configure
+   * section properties like name, expandability, and visibility.
+   * 
+   * @group Settings Page
+   * @group Action Mapper Modal
    *
-   * @param {string} key - Stable section identifier.
-   * @returns {SectionHandle}
+   * @param key - Unique identifier for the section
+   * @returns Handle for configuring the section
+   * 
+   * ## SectionHandle Methods
+   * 
+   * | Method | Parameters | Description |
+   * |--------|------------|-------------|
+   * | `setName(name)` | `name: string` | Sets the display name shown in the UI |
+   * | `setDisabled(disabled)` | `disabled: boolean` | Disables all controls in the section |
+   * | `setHidden(hidden)` | `hidden: boolean` | Hides the section from view |
+   * | `setExpandable(expandable)` | `expandable: boolean` | Makes section collapsible/expandable |
+   * | `setExpanded(expanded)` | `expanded: boolean` | Sets default expanded state |
+   * 
+   * @example
+   * ```typescript
+   * // Create a basic section
+   * settings.addSection('general')
+   *   .setName('General Settings');
+   * 
+   * // Create an expandable section
+   * settings.addSection('advanced')
+   *   .setName('Advanced Settings')
+   *   .setExpandable(true)
+   *   .setExpanded(false);
+   * 
+   * // Create a hidden section (can be shown programmatically)
+   * const debugSection = settings.addSection('debug')
+   *   .setName('Debug Options')
+   *   .setHidden(true);
+   * 
+   * // Show/hide sections dynamically
+   * settings.addSwitch('showDebug')
+   *   .setLabel('Show Debug Options')
+   *   .onChange(({ value }) => {
+   *     debugSection.setHidden(!value);
+   *   });
+   * ```
    */
   addSection(key: string): SectionHandle {
     this.currentSectionKey = key;
@@ -92,14 +212,70 @@ export class SettingsBuilder {
   }
 
   /**
-   * Adds an input field and returns a chainable handle for it.
+   * Adds an input field for text, numbers, passwords, and more.
+   * 
+   * @group Settings Page
+   * @group Action Mapper Modal
    *
-   * You can override the input type by passing `options.type` with one of:
-   * 'text' | 'password' | 'textarea' | 'color' | 'file' | 'number' | 'ip_address' | 'mac_address'.
-   *
-   * @param {string} key - Field key used to bind/read values.
-   * @param {Partial<InputField>} [options] - Initial field options (label, type, etc.).
-   * @returns {InputFieldHandle}
+   * @param key - Unique identifier for the input field
+   * @param options - Optional initial configuration
+   * @returns Handle for configuring the input field
+   * 
+   * ## InputFieldHandle Methods
+   * 
+   * | Method | Parameters | Required | Description |
+   * |--------|------------|----------|-------------|
+   * | `setType(type)` | `'text' \| 'password' \| 'textarea' \| 'color' \| 'file' \| 'number' \| 'ip_address' \| 'mac_address'` | No | Sets the input type |
+   * | `setLabel(label)` | `string` | No | Sets the field label |
+   * | `setPlaceholder(text)` | `string` | No | Sets placeholder text |
+   * | `setValue(value)` | `any` | No | Sets the default/current value |
+   * | `setRequired(required)` | `boolean` | No | Marks field as required |
+   * | `setDesc(description)` | `string` | No | Sets help text below the field |
+   * | `setDisabled(disabled)` | `boolean` | No | Disables the input |
+   * | `setMin(min)` | `number` | No | Sets minimum value (number type only) |
+   * | `setMax(max)` | `number` | No | Sets maximum value (number type only) |
+   * | `onChange(callback)` | `(data: { value: any }) => void` | No | Called when value changes |
+   * | `assign(props)` | `Partial<InputField>` | No | Bulk assign multiple properties |
+   * 
+   * @example
+   * ```typescript
+   * // Text input
+   * settings.addInput('username')
+   *   .setLabel('Username')
+   *   .setPlaceholder('Enter your username')
+   *   .setValue('admin')
+   *   .setRequired(true)
+   *   .onChange(({ value }) => {
+   *     console.log('Username changed:', value);
+   *   });
+   * 
+   * // Password input
+   * settings.addInput('password')
+   *   .setType('password')
+   *   .setLabel('Password')
+   *   .setRequired(true);
+   * 
+   * // Number input with min/max
+   * settings.addInput('port')
+   *   .setType('number')
+   *   .setLabel('Port Number')
+   *   .setValue(8080)
+   *   .setMin(1)
+   *   .setMax(65535);
+   * 
+   * // IP Address input with validation
+   * settings.addInput('serverIP')
+   *   .setType('ip_address')
+   *   .setLabel('Server IP')
+   *   .setValue('192.168.1.1')
+   *   .setDesc('Enter a valid IPv4 address');
+   * 
+   * // Textarea for long text
+   * settings.addInput('notes')
+   *   .setType('textarea')
+   *   .setLabel('Notes')
+   *   .setPlaceholder('Enter any additional notes...');
+   * ```
    */
   addInput(key: string, options: Partial<InputField> = {}): InputFieldHandle {
     const allowedTypes: InputField['type'][] = ['text', 'password', 'textarea', 'color', 'file', 'number', 'ip_address', 'mac_address'];
@@ -118,11 +294,55 @@ export class SettingsBuilder {
   }
 
   /**
-   * Adds a button field and returns a chainable handle.
-   * Use the returned handle to set label/title/style and onClick handler.
+   * Adds a clickable button to the settings page.
+   * 
+   * @group Settings Page
+   * @group Action Mapper Modal
    *
-   * @param {string} key - Field key.
-   * @returns {ButtonFieldHandle}
+   * @param key - Unique identifier for the button
+   * @returns Handle for configuring the button
+   * 
+   * ## ButtonFieldHandle Methods
+   * 
+   * | Method | Parameters | Required | Description |
+   * |--------|------------|----------|-------------|
+   * | `setTitle(title)` | `string` | Yes | Sets the text shown on the button |
+   * | `setLabel(label)` | `string` | No | Sets the label text beside the button |
+   * | `setStyle(style)` | `'primary' \| 'secondary' \| 'danger'` | No | Sets the button style/color |
+   * | `setDesc(description)` | `string` | No | Sets help text below the button |
+   * | `onClick(callback)` | `() => void` | No | Called when button is clicked |
+   * | `assign(props)` | `Partial<ButtonField>` | No | Bulk assign multiple properties |
+   * 
+   * @example
+   * ```typescript
+   * // Primary action button
+   * settings.addButton('save')
+   *   .setTitle('Save Settings')
+   *   .setStyle('primary')
+   *   .onClick(() => {
+   *     this.config.set('lastSaved', Date.now());
+   *     this.ui.showToast({ message: 'Settings saved!', type: 'success' });
+   *   });
+   * 
+   * // Secondary button with label
+   * settings.addButton('refresh')
+   *   .setLabel('Connection')
+   *   .setTitle('Refresh')
+   *   .setStyle('secondary')
+   *   .setDesc('Refresh the connection status')
+   *   .onClick(() => {
+   *     console.log('Refreshing connection...');
+   *   });
+   * 
+   * // Danger button for destructive actions
+   * settings.addButton('reset')
+   *   .setTitle('Reset to Defaults')
+   *   .setStyle('danger')
+   *   .onClick(() => {
+   *     this.config.clear();
+   *     this.ui.showToast({ message: 'Settings reset', type: 'warning' });
+   *   });
+   * ```
    */
   addButton(key: string): ButtonFieldHandle {
     const field: ButtonField = {
@@ -141,10 +361,54 @@ export class SettingsBuilder {
 
 
   /**
-   * Adds a switch field and returns a chainable handle.
+   * Adds a toggle switch for boolean values.
+   * 
+   * @group Settings Page
+   * @group Action Mapper Modal
    *
-   * @param {string} key - Field key.
-   * @returns {SwitchFieldHandle}
+   * @param key - Unique identifier for the switch
+   * @returns Handle for configuring the switch
+   * 
+   * ## SwitchFieldHandle Methods
+   * 
+   * | Method | Parameters | Required | Description |
+   * |--------|------------|----------|-------------|
+   * | `setLabel(label)` | `string` | Yes | Sets the switch label |
+   * | `setValue(value)` | `boolean` | No | Sets the default/current state (on/off) |
+   * | `setDesc(description)` | `string` | No | Sets help text below the switch |
+   * | `setRequired(required)` | `boolean` | No | Marks the switch as required |
+   * | `setDisabled(disabled)` | `boolean` | No | Disables the switch |
+   * | `onChange(callback)` | `(data: { value: boolean }) => void` | No | Called when switch is toggled |
+   * | `assign(props)` | `Partial<SwitchField>` | No | Bulk assign multiple properties |
+   * 
+   * @example
+   * ```typescript
+   * // Basic switch
+   * settings.addSwitch('enableFeature')
+   *   .setLabel('Enable Feature')
+   *   .setValue(true)
+   *   .onChange(({ value }) => {
+   *     this.config.set('featureEnabled', value);
+   *     console.log('Feature enabled:', value);
+   *   });
+   * 
+   * // Switch with description
+   * settings.addSwitch('debug')
+   *   .setLabel('Debug Mode')
+   *   .setValue(false)
+   *   .setDesc('Enable detailed logging for troubleshooting')
+   *   .onChange(({ value }) => {
+   *     this.config.set('debug', value);
+   *   });
+   * 
+   * // Switch that controls other elements
+   * const advancedSwitch = settings.addSwitch('showAdvanced')
+   *   .setLabel('Show Advanced Settings')
+   *   .setValue(false)
+   *   .onChange(({ value }) => {
+   *     advancedSection.setHidden(!value);
+   *   });
+   * ```
    */
   addSwitch(key: string): SwitchFieldHandle {
     const field: SwitchField = {
@@ -159,11 +423,58 @@ export class SettingsBuilder {
   }
 
   /**
-   * Adds a select field and returns a chainable handle.
+   * Adds a dropdown select menu with options.
+   * 
+   * @group Settings Page
+   * @group Action Mapper Modal
    *
-   * @param {string} key - Field key.
-   * @param {Partial<SelectField>} [options] - Initial options (label, options list, etc.).
-   * @returns {SelectFieldHandle}
+   * @param key - Unique identifier for the select field
+   * @param options - Optional initial configuration
+   * @returns Handle for configuring the select field
+   * 
+   * ## SelectFieldHandle Methods
+   * 
+   * | Method | Parameters | Required | Description |
+   * |--------|------------|----------|-------------|
+   * | `setLabel(label)` | `string` | Yes | Sets the field label |
+   * | `setPlaceholder(text)` | `string` | No | Sets placeholder text |
+   * | `setOptions(options)` | `Array<{ value: any, label: string }> \| Array<string \| number>` | Yes | Sets the selectable options |
+   * | `setValue(value)` | `any` | No | Sets the default selected value |
+   * | `setDesc(description)` | `string` | No | Sets help text below the field |
+   * | `setRequired(required)` | `boolean` | No | Marks field as required |
+   * | `setDisabled(disabled)` | `boolean` | No | Disables the select |
+   * | `onChange(callback)` | `(data: { value: any }) => void` | No | Called when selection changes |
+   * | `assign(props)` | `Partial<SelectField>` | No | Bulk assign multiple properties |
+   * 
+   * @example
+   * ```typescript
+   * // Basic select with object options
+   * settings.addSelect('quality')
+   *   .setLabel('Quality Level')
+   *   .setPlaceholder('Choose quality...')
+   *   .setOptions([
+   *     { value: 'low', label: 'Low Quality' },
+   *     { value: 'medium', label: 'Medium Quality' },
+   *     { value: 'high', label: 'High Quality' }
+   *   ])
+   *   .setValue('medium')
+   *   .onChange(({ value }) => {
+   *     this.config.set('quality', value);
+   *   });
+   * 
+   * // Select with simple array options
+   * settings.addSelect('theme')
+   *   .setLabel('Theme')
+   *   .setOptions(['Light', 'Dark', 'Auto'])
+   *   .setValue('Auto');
+   * 
+   * // Select with numeric options
+   * settings.addSelect('retryCount')
+   *   .setLabel('Retry Attempts')
+   *   .setOptions([1, 3, 5, 10])
+   *   .setValue(3)
+   *   .setDesc('Number of times to retry on failure');
+   * ```
    */
   addSelect(key: string, options: Partial<SelectField> = {}): SelectFieldHandle {
     const field: SelectField = {
@@ -180,10 +491,53 @@ export class SettingsBuilder {
   }
 
   /**
-   * Adds a display-only text field and returns a chainable handle.
+   * Adds a read-only text display element.
+   * 
+   * @group Settings Page
+   * @group Action Mapper Modal
    *
-   * @param {string} key - Field key.
-   * @returns {TextFieldHandle}
+   * @param key - Unique identifier for the text element
+   * @returns Handle for configuring the text display
+   * 
+   * ## TextFieldHandle Methods
+   * 
+   * | Method | Parameters | Required | Description |
+   * |--------|------------|----------|-------------|
+   * | `setLabel(label)` | `string` | No | Sets the label text |
+   * | `setText(text)` | `string` | Yes | Sets the display text content |
+   * | `setStyle(style)` | `'default' \| 'muted' \| 'info' \| 'success' \| 'warning' \| 'error'` | No | Sets the text color/style |
+   * | `setDesc(description)` | `string` | No | Sets help text below the element |
+   * | `assign(props)` | `Partial<TextField>` | No | Bulk assign multiple properties |
+   * 
+   * @example
+   * ```typescript
+   * // Display connection status
+   * const statusText = settings.addText('connectionStatus')
+   *   .setLabel('Status')
+   *   .setText('Connected')
+   *   .setStyle('success');
+   * 
+   * // Update text dynamically
+   * setInterval(() => {
+   *   const time = new Date().toLocaleTimeString();
+   *   statusText.setText(time);
+   * }, 1000);
+   * 
+   * // Info message
+   * settings.addText('info')
+   *   .setText('This plugin requires an active internet connection')
+   *   .setStyle('info');
+   * 
+   * // Warning message
+   * settings.addText('warning')
+   *   .setText('Beta feature - use with caution')
+   *   .setStyle('warning');
+   * 
+   * // Error message
+   * settings.addText('error')
+   *   .setText('Connection failed')
+   *   .setStyle('error');
+   * ```
    */
   addText(key: string): TextFieldHandle {
     const field: TextField = {
@@ -200,10 +554,56 @@ export class SettingsBuilder {
   }
 
   /**
-   * Adds a display badge field and returns a chainable handle.
+   * Adds a status badge with colored styling.
+   * 
+   * @group Settings Page
+   * @group Action Mapper Modal
    *
-   * @param {string} key - Field key.
-   * @returns {BadgeFieldHandle}
+   * @param key - Unique identifier for the badge
+   * @returns Handle for configuring the badge
+   * 
+   * ## BadgeFieldHandle Methods
+   * 
+   * | Method | Parameters | Required | Description |
+   * |--------|------------|----------|-------------|
+   * | `setLabel(label)` | `string` | No | Sets the label text |
+   * | `setText(text)` | `string` | Yes | Sets the badge text content |
+   * | `setStyle(style)` | `'default' \| 'muted' \| 'info' \| 'success' \| 'warning' \| 'error'` | No | Sets the badge color/style |
+   * | `setDesc(description)` | `string` | No | Sets help text below the badge |
+   * | `assign(props)` | `Partial<BadgeField>` | No | Bulk assign multiple properties |
+   * 
+   * @example
+   * ```typescript
+   * // Connection status badge
+   * const connectionBadge = settings.addBadge('status')
+   *   .setLabel('Connection')
+   *   .setText('Connected')
+   *   .setStyle('success');
+   * 
+   * // Update badge dynamically
+   * function updateStatus(connected: boolean) {
+   *   if (connected) {
+   *     connectionBadge.setText('Connected').setStyle('success');
+   *   } else {
+   *     connectionBadge.setText('Disconnected').setStyle('error');
+   *   }
+   * }
+   * 
+   * // Version badge
+   * settings.addBadge('version')
+   *   .setLabel('Version')
+   *   .setText('1.0.0')
+   *   .setStyle('info');
+   * 
+   * // Status badges
+   * settings.addBadge('beta')
+   *   .setText('Beta')
+   *   .setStyle('warning');
+   * 
+   * settings.addBadge('pro')
+   *   .setText('Pro Feature')
+   *   .setStyle('info');
+   * ```
    */
   addBadge(key: string): BadgeFieldHandle {
     const field: BadgeField = {
@@ -278,7 +678,17 @@ export class SettingsBuilder {
   }
 }
 
-class SectionHandle {
+/**
+ * Handle for configuring a settings section.
+ * 
+ * Returned by {@link SettingsBuilder.addSection}. Provides methods to configure
+ * section properties like name, visibility, and expandability.
+ * 
+ * @displayName Section
+ * @group Settings Page
+ * @group Action Mapper Modal
+ */
+export class SectionHandle {
   constructor(private section: UISection, private notifyChange?: () => void) {}
 
   setName(name: string): this {
@@ -313,16 +723,50 @@ class SectionHandle {
 }
 
 /**
- * Builder for Slider Action modal content (System Utilities tab).
- * Allows plugins to register action buttons shown alongside built-in utilities.
- *
+ * Builder for creating System Utilities action buttons.
+ * 
+ * The ActionMapper allows plugins to register custom buttons in the System Utilities
+ * modal. These buttons can be assigned to device channels (sliders, knobs, buttons) and
+ * can have their own settings UI.
+ * 
+ * @group Action Mapper Modal
+ * 
  * @example
- * const mapper = createActionMapper();
- * mapper
- *   .addSystemUtilButton('toggle-mic')
- *     .setTitle('Toggle Mic')
- *     .onClick(({ selected, channel }) => { console.log(selected, channel); });
- * const actions = mapper.build();
+ * ```typescript
+ * // Create a simple action button
+ * this.actionmapper
+ *   .addSystemUtilButton('toggleMic')
+ *   .setTitle('Mic Mute')
+ *   .setIcon('fas fa-microphone fa-lg')
+ *   .onClick(({ selected, channel }) => {
+ *     console.log(`Mic ${selected ? 'muted' : 'unmuted'} on channel ${channel}`);
+ *     // Call your MIDI/API to toggle mic
+ *   });
+ * 
+ * // Action button with settings
+ * const eqButton = this.actionmapper
+ *   .addSystemUtilButton('equalizer')
+ *   .setTitle('EQ')
+ *   .setIcon('fas fa-sliders-h fa-lg')
+ *   .onClick(({ selected, channel }) => {
+ *     const settings = this.config.get(`eq.channel${channel}`);
+ *     // Apply EQ settings
+ *   });
+ * 
+ * // Add per-button settings
+ * eqButton.addSettings((settings) => {
+ *   settings.addSection('eq').setName('Equalizer Settings');
+ *   
+ *   settings.addSelect('preset')
+ *     .setLabel('Preset')
+ *     .setOptions(['Flat', 'Bass Boost', 'Treble Boost'])
+ *     .setValue('Flat');
+ *   
+ *   settings.addSwitch('enabled')
+ *     .setLabel('Enable EQ')
+ *     .setValue(true);
+ * });
+ * ```
  */
 export class ActionMapper {
   private buttons: SystemUtilButton[] = [];
@@ -336,10 +780,64 @@ export class ActionMapper {
   }
 
   /**
-   * Adds a new System Utilities action button and returns its handle.
+   * Creates a new System Utilities action button.
+   * 
+   * System Utility buttons appear in the action selector modal and can be assigned
+   * to device channels. Each button maintains its own selected state per channel.
+   * 
+   * @group Action Mapper Modal
    *
-   * @param {string} id - Stable identifier for the button.
-   * @returns {SystemUtilButtonHandle}
+   * @param id - Unique identifier for the button
+   * @returns Handle for configuring the button
+   * 
+   * ## SystemUtilButtonHandle Methods
+   * 
+   * | Method | Parameters | Required | Description |
+   * |--------|------------|----------|-------------|
+   * | `setTitle(title)` | `string` | Yes | Sets the button display title |
+   * | `setIcon(icon)` | `string` | No | Sets FontAwesome icon class (e.g., 'fas fa-bolt fa-lg') |
+   * | `onClick(callback)` | `({ selected: boolean, channel: number \| string }) => void` | Yes | Called when button is clicked/toggled |
+   * | `addSettings(buildFn)` | `(builder: SettingsBuilder) => void` | No | Adds per-button settings UI |
+   * | `setSelected(selected, channel)` | `boolean, number \| string` | No | Sets selected state for a specific channel |
+   * | `setSelected(defaults)` | `boolean[] \| Record<string \| number, boolean>` | No | Sets default selected states for multiple channels |
+   * | `getSelectedMap()` | - | - | Returns the per-channel selection map |
+   * | `isSelected(channel)` | `number \| string` | - | Checks if button is selected on a channel |
+   * | `setAutoPersist(flag)` | `boolean` | No | Controls automatic persistence of selection state |
+   * 
+   * @example
+   * ```typescript
+   * // Basic action button
+   * this.actionmapper
+   *   .addSystemUtilButton('mute')
+   *   .setTitle('Mute')
+   *   .setIcon('fas fa-volume-mute fa-lg')
+   *   .onClick(({ selected, channel }) => {
+   *     console.log(`Channel ${channel} mute ${selected ? 'ON' : 'OFF'}`);
+   *     // Implement mute logic
+   *   });
+   * 
+   * // Button with settings
+   * const volumeButton = this.actionmapper
+   *   .addSystemUtilButton('volume')
+   *   .setTitle('Volume Control')
+   *   .setIcon('fas fa-volume-up fa-lg');
+   * 
+   * volumeButton.addSettings((settings) => {
+   *   settings.addSection('volume').setName('Volume Settings');
+   *   
+   *   settings.addInput('maxVolume')
+   *     .setType('number')
+   *     .setLabel('Maximum Volume')
+   *     .setValue(100)
+   *     .setMin(0)
+   *     .setMax(100);
+   *   
+   *   settings.addSwitch('smoothing')
+   *     .setLabel('Volume Smoothing')
+   *     .setValue(true)
+   *     .setDesc('Smoothly transition between volume levels');
+   * });
+   * ```
    */
   addSystemUtilButton(id: string): SystemUtilButtonHandle {
     const btn: SystemUtilButton = { id, title: '' };
@@ -348,12 +846,46 @@ export class ActionMapper {
   }
 
   /**
-   * Attaches a {@link SettingsSections} schema to an existing System Utilities button.
-   * Reuses {@link SettingsBuilder} so plugin authors can call addText/addSwitch/etc.
+   * Adds settings UI to an existing System Utilities button.
+   * 
+   * This method allows you to attach a settings page to a specific action button.
+   * The settings use the same SettingsBuilder API as the main plugin settings.
+   * 
+   * @group Action Mapper Modal
    *
-   * @param {string} buttonId - Target button id returned from addSystemUtilButton.
-   * @param {function(SettingsBuilder): void} build - Builder callback.
-   * @returns {this}
+   * @param buttonId - ID of the button created with addSystemUtilButton
+   * @param build - Callback that receives a SettingsBuilder instance
+   * @returns This ActionMapper for method chaining
+   * 
+   * @example
+   * ```typescript
+   * // Create a button first
+   * this.actionmapper
+   *   .addSystemUtilButton('eq')
+   *   .setTitle('Equalizer')
+   *   .setIcon('fas fa-sliders-h fa-lg');
+   * 
+   * // Add settings to it later
+   * this.actionmapper.addSystemUtilSetting('eq', (settings) => {
+   *   settings.addSection('general').setName('EQ Settings');
+   *   
+   *   settings.addSelect('preset')
+   *     .setLabel('Preset')
+   *     .setOptions(['Flat', 'Bass Boost', 'Vocal', 'Treble'])
+   *     .setValue('Flat');
+   *   
+   *   settings.addSwitch('enabled')
+   *     .setLabel('Enable EQ')
+   *     .setValue(true);
+   *   
+   *   settings.addInput('gain')
+   *     .setType('number')
+   *     .setLabel('Master Gain')
+   *     .setValue(0)
+   *     .setMin(-12)
+   *     .setMax(12);
+   * });
+   * ```
    */
   addSystemUtilSetting(buttonId: string, build: (b: SettingsBuilder) => void): this {
     const btn = this.buttons.find(b => b.id === buttonId);
@@ -404,7 +936,16 @@ export class ActionMapper {
   }
 }
 
-class SystemUtilButtonHandle {
+/**
+ * Handle for configuring a System Utilities action button.
+ * 
+ * Returned by {@link ActionMapper.addSystemUtilButton}. Provides methods to configure
+ * button properties, click handlers, selection state, and per-button settings.
+ * 
+ * @displayName System Util Button
+ * @group Action Mapper Modal
+ */
+export class SystemUtilButtonHandle {
   private autoPersist = true;
   private pluginClickHandler?: (evt: { selected: boolean; channel: number | string }) => void;
 
@@ -557,7 +1098,17 @@ class SystemUtilButtonHandle {
   }
 }
 
-class InputFieldHandle {
+/**
+ * Handle for configuring an input field.
+ * 
+ * Returned by {@link SettingsBuilder.addInput}. Provides methods to configure
+ * input properties like type, placeholder, value, validation, and change handlers.
+ * 
+ * @displayName Input Field
+ * @group Settings Page
+ * @group Action Mapper Modal
+ */
+export class InputFieldHandle {
   constructor(private component: SettingsComponent, private notifyChange?: () => void) {}
 
   setPlaceholder(placeholder: string): this {
@@ -635,7 +1186,17 @@ class InputFieldHandle {
   }
 }
 
-class ButtonFieldHandle {
+/**
+ * Handle for configuring a button field.
+ * 
+ * Returned by {@link SettingsBuilder.addButton}. Provides methods to configure
+ * button properties like title, label, style, and click handlers.
+ * 
+ * @displayName Button Field
+ * @group Settings Page
+ * @group Action Mapper Modal
+ */
+export class ButtonFieldHandle {
   constructor(private component: SettingsComponent, private notifyChange?: () => void) {}
 
   //Title is the text that appears on the button
@@ -680,7 +1241,17 @@ class ButtonFieldHandle {
   }
 }
 
-class SwitchFieldHandle {
+/**
+ * Handle for configuring a switch field.
+ * 
+ * Returned by {@link SettingsBuilder.addSwitch}. Provides methods to configure
+ * switch properties like label, value, description, and change handlers.
+ * 
+ * @displayName Switch Field
+ * @group Settings Page
+ * @group Action Mapper Modal
+ */
+export class SwitchFieldHandle {
   constructor(private component: SettingsComponent, private notifyChange?: () => void) {}
 
   setValue(value: boolean): this {
@@ -727,7 +1298,17 @@ class SwitchFieldHandle {
   }
 }
 
-class TextFieldHandle {
+/**
+ * Handle for configuring a text display field.
+ * 
+ * Returned by {@link SettingsBuilder.addText}. Provides methods to configure
+ * text properties like label, text content, and style.
+ * 
+ * @displayName Text Field
+ * @group Settings Page
+ * @group Action Mapper Modal
+ */
+export class TextFieldHandle {
   constructor(private component: SettingsComponent, private notifyChange?: () => void) {}
 
   setText(text: string): this {
@@ -761,7 +1342,17 @@ class TextFieldHandle {
   }
 }
 
-class BadgeFieldHandle {
+/**
+ * Handle for configuring a badge display field.
+ * 
+ * Returned by {@link SettingsBuilder.addBadge}. Provides methods to configure
+ * badge properties like label, text content, and style.
+ * 
+ * @displayName Badge Field
+ * @group Settings Page
+ * @group Action Mapper Modal
+ */
+export class BadgeFieldHandle {
   constructor(private component: SettingsComponent, private notifyChange?: () => void) {}
 
   setText(text: string): this {
@@ -795,7 +1386,17 @@ class BadgeFieldHandle {
   }
 }
 
-class SelectFieldHandle {
+/**
+ * Handle for configuring a select dropdown field.
+ * 
+ * Returned by {@link SettingsBuilder.addSelect}. Provides methods to configure
+ * select properties like label, options, value, and change handlers.
+ * 
+ * @displayName Select Field
+ * @group Settings Page
+ * @group Action Mapper Modal
+ */
+export class SelectFieldHandle {
   constructor(private component: SettingsComponent, private notifyChange?: () => void) {}
 
   setLabel(label: string): this {
@@ -863,35 +1464,47 @@ class SelectFieldHandle {
 
 
 /**
- * Convenience factory for a new {@link SettingsBuilder}.
+ * Creates a new SettingsBuilder instance.
+ * 
+ * Factory function for creating a settings builder. Usually not needed as
+ * `createSettingsPage()` provides this automatically.
  *
+ * @group Settings Page
+ * 
+ * @returns New SettingsBuilder instance
+ * 
  * @example
- * const settings = createSettingsBuilder()
- *   .addSection('general').setName('General')
- *   .addInput('apiKey', { label: 'API Key', type: 'password' })
- *   .addSwitch('enabled').setLabel('Enable plugin').setValue(true)
- *   .build();
- *
- * @returns {SettingsBuilder}
+ * ```typescript
+ * const builder = createSettingsBuilder();
+ * builder.addSection('general');
+ * builder.addInput('apiKey')
+ *   .setLabel('API Key')
+ *   .setType('password');
+ * const schema = builder.build();
+ * ```
  */
 export function createSettingsBuilder(): SettingsBuilder {
   return new SettingsBuilder();
 }
 
 /**
- * Convenience factory for a new {@link ActionMapper}.
+ * Creates a new ActionMapper instance.
+ * 
+ * Factory function for creating an action mapper. Usually not needed as
+ * the plugin class provides `this.actionmapper` automatically.
  *
+ * @group Action Mapper Modal
+ * 
+ * @returns New ActionMapper instance
+ * 
  * @example
- * const actions = createActionMapper()
- *   .addSystemUtilButton('record')
- *     .setTitle('Record')
- *   .addSystemUtilSetting('record', (b) => {
- *     b.addSection('settings').setName('Recording')
- *       .addSelect('quality', { label: 'Quality', options: ['Low', 'High'] });
- *   })
- *   .build();
- *
- * @returns {ActionMapper}
+ * ```typescript
+ * const mapper = createActionMapper();
+ * mapper.addSystemUtilButton('mute')
+ *   .setTitle('Mute')
+ *   .setIcon('fas fa-volume-mute fa-lg');
+ * const actions = mapper.build();
+ * ```
  */
 export function createActionMapper(): ActionMapper {
   return new ActionMapper();

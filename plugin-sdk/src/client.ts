@@ -1,6 +1,11 @@
 import { io, Socket } from 'socket.io-client';
 import type { SettingsSections, CreateSettingsParams, ToastParams, ActionMappings, SystemUtilButton } from './types';
 
+/**
+ * Plugin metadata for registration with the Dot X application.
+ * 
+ * @group Advanced/Internal
+ */
 export interface PluginInfo {
   id: string;
   name: string;
@@ -8,12 +13,24 @@ export interface PluginInfo {
   connected_at: string;
 }
 
+/**
+ * API request structure for Socket.IO communication.
+ * 
+ * @internal
+ * @group Advanced/Internal
+ */
 export interface ApiRequest {
   method: string;
   params: any;
   request_id: string;
 }
 
+/**
+ * API response structure from Socket.IO communication.
+ * 
+ * @internal
+ * @group Advanced/Internal
+ */
 export interface ApiResponse {
   request_id: string;
   success: boolean;
@@ -21,20 +38,63 @@ export interface ApiResponse {
   error?: string;
 }
 
+/**
+ * Configuration options for plugin connection behavior.
+ * 
+ * Customize connection retry logic, timeouts, and server URL.
+ * 
+ * @group Advanced/Internal
+ * 
+ * @example
+ * ```typescript
+ * const config: ConnectionConfig = {
+ *   serverUrl: 'http://localhost:3001',
+ *   maxRetries: 10,
+ *   retryDelay: 3000,
+ *   connectionTimeout: 15000,
+ *   registrationTimeout: 20000,
+ *   apiTimeout: 30000
+ * };
+ * 
+ * if (require.main === module) {
+ *   runPlugin(MyPlugin, config);
+ * }
+ * ```
+ */
 export interface ConnectionConfig {
+  /** Plugin server URL. Default: 'http://127.0.0.1:3001' */
   serverUrl?: string;
+  /** Maximum connection retry attempts. Default: 5 */
   maxRetries?: number;
+  /** Delay between retry attempts in milliseconds. Default: 2000 */
   retryDelay?: number;
+  /** Connection timeout in milliseconds. Default: 10000 */
   connectionTimeout?: number;
+  /** Registration timeout in milliseconds. Default: 15000 */
   registrationTimeout?: number;
+  /** API request timeout in milliseconds. Default: 30000 */
   apiTimeout?: number;
 }
 
+/**
+ * Device update event data containing control value changes.
+ * 
+ * @group Advanced/Internal
+ */
 export interface DeviceChanges {
   changes: Array<{ index: number; oldValue: number; newValue: number }>;
   values: Array<{ value: number }>;
 }
 
+/**
+ * Internal API client for Socket.IO communication with Dot X application.
+ * 
+ * This class handles low-level socket communication, connection management,
+ * and API request/response cycles. Most plugin developers will not interact
+ * with this class directly.
+ * 
+ * @group Advanced/Internal
+ */
 export class APIClient {
   private socket: Socket;
   private isRegistered = false;
@@ -308,18 +368,78 @@ export class APIClient {
     return 'disconnected';
   }
   
+  /**
+   * @internal
+   */
   get settings() {
     return {
     };
   }
   
+  /**
+   * Global UI methods for showing notifications and dialogs.
+   * 
+   * @group Global UI
+   */
   get ui() {
     return {
+      /**
+       * Displays a toast notification to the user.
+       * 
+       * @group Global UI
+       * 
+       * @param params - Toast configuration
+       * @param params.message - Message text to display
+       * @param params.type - Notification type: 'info', 'success', 'warning', or 'error'
+       * @param params.duration - Duration in milliseconds before auto-dismiss (default: 3000)
+       * @returns Promise that resolves when the toast is shown
+       * 
+       * ## Parameters
+       * 
+       * | Parameter | Type | Required | Default | Description |
+       * |-----------|------|----------|---------|-------------|
+       * | `message` | `string` | Yes | - | The message to display |
+       * | `type` | `'info' \| 'success' \| 'warning' \| 'error'` | No | `'info'` | Visual style of the toast |
+       * | `duration` | `number` | No | `3000` | Auto-dismiss duration in milliseconds |
+       * 
+       * @example
+       * ```typescript
+       * // Success notification
+       * await this.ui.showToast({
+       *   message: 'Settings saved successfully!',
+       *   type: 'success',
+       *   duration: 3000
+       * });
+       * 
+       * // Error notification
+       * await this.ui.showToast({
+       *   message: 'Failed to connect to server',
+       *   type: 'error',
+       *   duration: 5000
+       * });
+       * 
+       * // Warning notification
+       * await this.ui.showToast({
+       *   message: 'This feature is experimental',
+       *   type: 'warning'
+       * });
+       * 
+       * // Info notification (default)
+       * await this.ui.showToast({
+       *   message: 'Processing your request...',
+       *   type: 'info'
+       * });
+       * ```
+       */
       showToast: (params: ToastParams) => this.call('ui.showToast', params),
     };
   }
   
-  // Notify the host application that the settings schema has changed
+  /**
+   * Notifies the host application that settings schema has changed.
+   * 
+   * @internal
+   */
   public async notifySettingsUpdated(): Promise<void> {
     if (!this.isConnected()) return;
     try {
@@ -329,7 +449,11 @@ export class APIClient {
     }
   }
 
-  // Notify the host application that action mappings have changed
+  /**
+   * Notifies the host application that action mappings have changed.
+   * 
+   * @internal
+   */
   public async notifyActionsUpdated(): Promise<void> {
     if (!this.isConnected()) return;
     try {
@@ -339,8 +463,11 @@ export class APIClient {
     }
   }
 
-  // Public utility to prepare a schema by replacing callbacks with actionIds
-  // and registering the callbacks locally so the app can invoke them.
+  /**
+   * Prepares schema by replacing callbacks with actionIds.
+   * 
+   * @internal
+   */
   public prepareSectionedSchemaWithActionIds(sectioned: SettingsSections): SettingsSections {
     return {
       sections: sectioned.sections.map((sec: any, idx: number) => ({
@@ -371,14 +498,22 @@ export class APIClient {
     };
   }
 
-  // Store the latest sectioned schema explicitly (used by get_plugin_settings)
+  /**
+   * Stores the latest sectioned schema for plugin settings.
+   * 
+   * @internal
+   */
   public setSectionedSchema(schema: SettingsSections) {
     // Reset callbacks to avoid leaking stale handlers across schema updates
     this.actionCallbacks.clear();
     this.settingsSchema = this.prepareSectionedSchemaWithActionIds(schema);
   }
 
-  // Slider Actions: store latest and register callbacks
+  /**
+   * Stores action mappings and registers callbacks.
+   * 
+   * @internal
+   */
   public setActionMappings(actions: ActionMappings): void {
     // Only reset callbacks for new registrations coming from slider actions
     // Keep existing settings callbacks intact by not clearing the entire map
