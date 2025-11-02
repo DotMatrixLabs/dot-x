@@ -7,6 +7,9 @@
  *
  * The primary entry points are {@link SettingsBuilder} and {@link ActionMapper}.
  * Prefer the convenience factories {@link createSettingsBuilder} and {@link createActionMapper}.
+ *
+ * @module ui
+ * @category UI
  */
 import type { SettingsSections, InputField, ButtonField, SwitchField, SelectField, SettingsComponent, TextField, BadgeField, SystemUtilButton, ActionMappings } from './types';
 
