@@ -166,11 +166,21 @@ function generateSummary(content, groupTitle) {
         description = description.substring(0, 97) + '...';
       }
       
+      // Extract Display Name if available
+      let actualDisplayName = displayName.replace(/Handle$/, '').trim();
+      for (let j = i + 1; j < Math.min(i + 20, lines.length); j++) {
+        if (lines[j] === '#### Display Name' && j + 2 < lines.length) {
+          actualDisplayName = lines[j + 2].trim();
+          break;
+        }
+        if (lines[j].startsWith('###')) break;
+      }
+      
       components.push({
-        title: displayName.replace(/Handle$/, '').trim(),
+        title: actualDisplayName,
         description: description,
-        // Anchor links to h2 (not h3) after promotion
-        anchor: componentName.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '')
+        // Anchor based on actual Display Name used in heading
+        anchor: actualDisplayName.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '')
       });
     }
   }
@@ -196,7 +206,7 @@ function generateSummary(content, groupTitle) {
   return summary;
 }
 
-// Promote component headings from h3 to h2 for TOC visibility
+// Promote component headings from h3 to h2 for TOC visibility and use Display Names
 function promoteComponentHeadings(content) {
   const lines = content.split('\n');
   const promoted = [];
@@ -216,8 +226,21 @@ function promoteComponentHeadings(content) {
         continue;
       }
       
-      // Promote to h2
-      promoted.push(`## ${componentName}`);
+      // Look ahead for Display Name section
+      let displayName = componentName;
+      for (let j = i + 1; j < Math.min(i + 20, lines.length); j++) {
+        if (lines[j] === '#### Display Name' && j + 2 < lines.length) {
+          displayName = lines[j + 2].trim();
+          break;
+        }
+        // Stop looking if we hit another major section
+        if (lines[j].startsWith('###')) {
+          break;
+        }
+      }
+      
+      // Promote to h2 with Display Name
+      promoted.push(`## ${displayName}`);
       continue;
     }
     
@@ -311,9 +334,12 @@ function convertMethodsToTables(content) {
             }
           }
           
-          // Extract parameters and description
+          // Extract parameter types and description from Parameters section
+          const paramTypes = {}; // Store param name -> type mapping
           let inParameters = false;
           let foundDescription = false;
+          let currentParam = null;
+          
           while (i < lines.length) {
             i++;
             const nextLine = lines[i];
@@ -324,15 +350,16 @@ function convertMethodsToTables(content) {
               break;
             }
             
-            // Check for Parameters section (could be ##### after promotion)
-            if (nextLine === 'Parameters' || nextLine === '##### Parameters' || nextLine === '#### Parameters') {
+            // Check for Parameters section (still h6 after promotion since we kept h6)
+            if (nextLine === 'Parameters' || nextLine === '###### Parameters' || nextLine === '##### Parameters' || nextLine === '#### Parameters') {
               inParameters = true;
               continue;
             }
             
             // Check for Returns section (end of parameters)
-            if (nextLine === 'Returns' || nextLine === '##### Returns' || nextLine === '#### Returns') {
+            if (nextLine === 'Returns' || nextLine === '###### Returns' || nextLine === '##### Returns' || nextLine === '#### Returns') {
               inParameters = false;
+              currentParam = null;
               continue;
             }
             
@@ -341,14 +368,32 @@ function convertMethodsToTables(content) {
               continue;
             }
             
-            // Collect parameter names (they appear as ###### or ##### paramName headings)
-            if (inParameters && (nextLine?.startsWith('###### ') || nextLine?.startsWith('##### '))) {
-              // Extract parameter name from heading
-              const paramName = nextLine.replace(/^#{4,6} /, '').trim();
-              // Ignore generic headers
-              if (paramName !== 'Parameters' && paramName !== 'Returns') {
-                parameters.push(paramName);
+            // When in Parameters section, collect parameter names and types
+            if (inParameters) {
+              // Parameter name appears as ###### or ##### heading
+              if (nextLine?.startsWith('###### ') || nextLine?.startsWith('##### ')) {
+                const paramName = nextLine.replace(/^#{4,6} /, '').trim();
+                // Ignore generic headers
+                if (paramName !== 'Parameters' && paramName !== 'Returns') {
+                  currentParam = paramName;
+                }
+                continue;
               }
+              
+              // Type appears as line with backticks (after we've found a param name)
+              if (currentParam && nextLine) {
+                const trimmed = nextLine.trim();
+                if (trimmed.startsWith('`') && trimmed.endsWith('`') && !trimmed.includes('[')) {
+                  // Remove backticks to get the type
+                  let type = trimmed.replace(/^`/, '').replace(/`$/, '');
+                  // Escape pipes in union types for markdown tables
+                  type = type.replace(/\|/g, '\\|');
+                  paramTypes[currentParam] = type;
+                  currentParam = null;
+                  continue;
+                }
+              }
+              // Don't continue here - we need to check other conditions too
             }
             
             // Get first meaningful description (after parameters section)
@@ -360,10 +405,16 @@ function convertMethodsToTables(content) {
             }
           }
           
-          // Format parameters
+          // Enhance parameters array with types
+          const enhancedParams = parameters.map(p => {
+            const type = paramTypes[p];
+            return type ? `${p}: ${type}` : p;
+          });
+          
+          // Format parameters with types
           let paramDisplay = '-';
-          if (parameters.length > 0) {
-            paramDisplay = parameters.map(p => `\`${p}\``).join(', ');
+          if (enhancedParams.length > 0) {
+            paramDisplay = enhancedParams.map(p => `\`${p}\``).join(', ');
           }
           
           // Add to table
