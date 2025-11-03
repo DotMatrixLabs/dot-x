@@ -681,8 +681,7 @@ export class SettingsBuilder {
 /**
  * Handle for configuring a settings section.
  * 
- * Returned by {@link SettingsBuilder.addSection}. Provides methods to configure
- * section properties like name, visibility, and expandability.
+ * Provides methods to configure section properties like name, visibility, and expandability.
  * 
  * @displayName Section
  * @group Settings Page
@@ -691,30 +690,63 @@ export class SettingsBuilder {
 export class SectionHandle {
   constructor(private section: UISection, private notifyChange?: () => void) {}
 
+  /**
+   * Sets the name of the section.
+   * 
+   * @param name - The name of the section
+   * @returns The SectionHandle for method chaining
+   */
   setName(name: string): this {
     this.section.name = name;
     this.notifyChange?.();
     return this;
   }
 
+  /**
+   * Sets the disabled state of the section.
+   * 
+   * @param disabled - The disabled state of the section
+   * @returns The SectionHandle for method chaining
+   */
   setDisabled(disabled: boolean): this {
     this.section.disabled = disabled;
     this.notifyChange?.();
     return this;
   }
 
+  /**
+   * Sets the hidden state of the section.
+   * 
+   * 
+   * @param hidden - The hidden state of the section
+   * @returns The SectionHandle for method chaining
+   */
   setHidden(hidden: boolean): this {
     this.section.hidden = hidden;
     this.notifyChange?.();
     return this;
   }
 
+  /**
+   * Sets the expandable state of the section.
+   * When set to true, the section will render as an expandable section.
+   * 
+   * @param expandable - The expandable state of the section
+   * @returns The SectionHandle for method chaining
+   */
   setExpandable(expandable: boolean): this {
     this.section.expandable = expandable;
     this.notifyChange?.();
     return this;
   }
 
+  /**
+   * Sets the expanded state of the section. 
+   * When set to true, the section will be expanded.
+   * When set to false, the section will be collapsed.
+   * @param expanded - The expanded state of the section
+   * @returns The SectionHandle for method chaining
+   */
   setExpanded(expanded: boolean): this {
     this.section.expanded = expanded;
     this.notifyChange?.();
