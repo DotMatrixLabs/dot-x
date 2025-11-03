@@ -50,7 +50,9 @@ function readTypedocConfig(configPath) {
       'Action Mapper Modal',
       'Global UI',
       'Storing Data',
-      'Advanced/Internal'
+      'Advanced/Internal',
+      'Storing Data',
+      '*'
     ];
   }
   
