@@ -3,7 +3,8 @@
 		"demoSwitch": true,
 		"brokerIP": "192.168.1.23",
 		"debug": false,
-		"quality": "low"
+		"quality": "low",
+		"brokerPort": 1883
 	},
 	"action": {
 		"bolt": {
