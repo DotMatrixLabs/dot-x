@@ -3,9 +3,9 @@
   "entryPoints": ["src"],
   "plugin": ["typedoc-plugin-markdown"],
   "readme": "none",
-  "categorizeByGroup": true,
+  "categorizeByGroup": false,
   "outputFileStrategy": "modules",
-  "groupOrder": [
+  "categoryOrder": [
     "Plugin Lifecycle",
     "Settings Page",
     "Action Mapper Modal",
@@ -14,7 +14,6 @@
     "Advanced/Internal",
     "*"
   ],
-  "categoryOrder": ["UI", "Runtime", "Communication", "Manifest", "Other"],
   "hideBreadcrumbs": true,
   "indexFormat": "table",
   "exclude": [

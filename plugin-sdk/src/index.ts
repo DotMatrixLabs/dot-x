@@ -66,8 +66,6 @@ export type { ConnectionConfig, PluginInfo } from './client';
 /**
  * UI builder classes and factory functions.
  * 
- * @group Settings Page
- * @group Action Mapper Modal
  */
 export { 
   SettingsBuilder, 
