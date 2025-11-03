@@ -23,6 +23,7 @@
     "**/node_modules/**"
   ],
   "excludeInternal": false,
-  "skipErrorChecking": true
+  "skipErrorChecking": true,
+  "disableSources": true
 }
 

@@ -27,9 +27,9 @@ type SimpleConfig = {
 /**
  * Declarative description of a settings section containing UI components.
  * 
- * @group Settings Page
- * @group Action Mapper Modal
- *
+ * @internal
+ * @ignore
+ * 
  * @property {string} key - Stable identifier for the section.
  * @property {string} [name] - Human-readable section name; shown in UI.
  * @property {string} [title] - Deprecated alias for name maintained for back-compat.
@@ -741,9 +741,7 @@ export class SectionHandle {
   }
 
   /**
-   * Sets the expanded state of the section. 
-   * When set to true, the section will be expanded.
-   * When set to false, the section will be collapsed.
+   * Sets the expanded state of the section. When set to true, the section will be expanded. When set to false, the section will be collapsed.
    * @param expanded - The expanded state of the section
    * @returns The SectionHandle for method chaining
    */
@@ -877,60 +875,6 @@ export class ActionMapper {
     return new SystemUtilButtonHandle(btn, this.createNotifier(), this.configStore);
   }
 
-  /**
-   * Adds settings UI to an existing System Utilities button.
-   * 
-   * This method allows you to attach a settings page to a specific action button.
-   * The settings use the same SettingsBuilder API as the main plugin settings.
-   * 
-   * @group Action Mapper Modal
-   *
-   * @param buttonId - ID of the button created with addSystemUtilButton
-   * @param build - Callback that receives a SettingsBuilder instance
-   * @returns This ActionMapper for method chaining
-   * 
-   * @example
-   * ```typescript
-   * // Create a button first
-   * this.actionmapper
-   *   .addSystemUtilButton('eq')
-   *   .setTitle('Equalizer')
-   *   .setIcon('fas fa-sliders-h fa-lg');
-   * 
-   * // Add settings to it later
-   * this.actionmapper.addSystemUtilSetting('eq', (settings) => {
-   *   settings.addSection('general').setName('EQ Settings');
-   *   
-   *   settings.addSelect('preset')
-   *     .setLabel('Preset')
-   *     .setOptions(['Flat', 'Bass Boost', 'Vocal', 'Treble'])
-   *     .setValue('Flat');
-   *   
-   *   settings.addSwitch('enabled')
-   *     .setLabel('Enable EQ')
-   *     .setValue(true);
-   *   
-   *   settings.addInput('gain')
-   *     .setType('number')
-   *     .setLabel('Master Gain')
-   *     .setValue(0)
-   *     .setMin(-12)
-   *     .setMax(12);
-   * });
-   * ```
-   */
-  addSystemUtilSetting(buttonId: string, build: (b: SettingsBuilder) => void): this {
-    const btn = this.buttons.find(b => b.id === buttonId);
-    if (!btn) return this;
-    const builder = new SettingsBuilder(() => {
-      // Push updates when nested builder mutates
-      btn.settings = builder.build();
-      this.onMutate?.();
-    });
-    build(builder);
-    btn.settings = builder.build();
-    return this;
-  }
 
   /**
    * Builds and returns the action mappings for registered buttons.
@@ -954,6 +898,7 @@ export class ActionMapper {
    * Enables mutation notifications for nested handles.
    *
    * @returns {void}
+   * @internal
    */
   enableNotifications(): void {
     this.notificationsEnabled = true;
@@ -1118,12 +1063,21 @@ export class SystemUtilButtonHandle {
     }
     return (this.button.selectedByChannel && { ...this.button.selectedByChannel }) || {};
   }
-
+  /**
+   * Checks if the button is selected on a specific channel.
+   * @param channel - The channel to check
+   * @returns True if the button is selected on the channel, false otherwise
+   */ 
   isSelected(channel: number | string): boolean {
     const map = this.getSelectedMap();
     return !!map[String(channel)];
   }
 
+  /**
+   * Sets the auto persist flag for the button. When set to true, the button will persist its selection state.
+   * @param flag - The auto persist flag
+   * @returns The SystemUtilButtonHandle for method chaining
+   */
   setAutoPersist(flag: boolean): this {
     this.autoPersist = !!flag;
     return this;
@@ -1501,7 +1455,8 @@ export class SelectFieldHandle {
  * Factory function for creating a settings builder. Usually not needed as
  * `createSettingsPage()` provides this automatically.
  *
- * @group Settings Page
+ * @internal
+ * @ignore
  * 
  * @returns New SettingsBuilder instance
  * 
