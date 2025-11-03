@@ -983,7 +983,28 @@ export class SystemUtilButtonHandle {
   }
 
   /**
-   * Fluent helper to attach per-button settings using SettingsBuilder.
+   * Used to add settings to a system utility button.
+   * 
+   * @category Action Mapper Modal
+   * 
+   * @param build - The function to build the settings. 
+   * @returns The SystemUtilButtonHandle for method chaining
+   * 
+   * @example
+   * ```typescript
+   * this.actionmapper
+   *   .addSystemUtilButton('mute')
+   *   .setTitle('Mute')
+   *   .setIcon('fas fa-volume-mute fa-lg')
+   *   .onClick(({ selected, channel }) => {
+   *     console.log(`Channel ${channel} mute ${selected ? 'ON' : 'OFF'}`);
+   *     // Implement mute logic
+   *   })
+   *   .addSettings((settings) => {
+   *     settings.addSection('mute').setName('Mute Settings');
+   *     settings.addSwitch('mute').setLabel('Mute').setValue(true);
+   *   });
+   * ```  
    */
   addSettings(build: (b: SettingsBuilder) => void): this {
     const builder = new SettingsBuilder(() => {

@@ -382,8 +382,26 @@ class Plugin {
     actionMapperBuilder.enableNotifications();
     this.actionmapper = actionMapperBuilder;
 
-    // Settings page builder property
     this.settingsPage = {
+      /**
+       * Adds settings to the plugin settings page.
+       * 
+       * @category Settings Page
+       * 
+       * @param buildFn - The function to build the settings.
+       * @returns The settings page builder.
+       * 
+       * @example
+       * ```typescript
+       * this.settingsPage.addSettings((settings) => {
+       *   settings.addSection('general');
+       *   settings.addInput('apiKey')
+       *     .setLabel('API Key')
+       *     .setType('password')
+       *     .setValue(this.config.get('apiKey', ''));
+       * });
+       * ```
+       */
       addSettings: async (buildFn: (builder: SettingsBuilder) => void): Promise<void> => {
         const builder = new SettingsBuilder(() => {
           const updated = builder.build();

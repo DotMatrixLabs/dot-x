@@ -80,7 +80,7 @@ function groupNameToFilename(groupName) {
 }
 
 /**
- * Scan all source .md files for ## headings and match against groupOrder
+ * Scan all source .md files for ##, ###, and #### headings and match against groupOrder
  */
 function discoverGroups(sourceFiles, validGroups) {
   const groupsMap = new Map();
@@ -90,10 +90,14 @@ function discoverGroups(sourceFiles, validGroups) {
     const lines = content.split('\n');
     
     lines.forEach(line => {
+      // Check h2 (##), h3 (###), and h4 (####) headings
       const h2Match = line.match(/^## (.+)$/);
-      if (h2Match) {
-        const groupName = h2Match[1];
-        
+      const h3Match = line.match(/^### (.+)$/);
+      const h4Match = line.match(/^#### (.+)$/);
+      
+      const groupName = h2Match ? h2Match[1] : (h3Match ? h3Match[1] : (h4Match ? h4Match[1] : null));
+      
+      if (groupName) {
         // Check if this group name is in our valid groups list
         if (validGroups.includes(groupName)) {
           if (!groupsMap.has(groupName)) {
@@ -199,20 +203,38 @@ function extractGroupContentFromFile(filePath, groupName) {
   const lines = content.split('\n');
   const groupContent = [];
   let inGroup = false;
+  let groupLevel = 0; // Track whether we're in h2 (2), h3 (3), or h4 (4) section
   
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     
-    // Check for group marker
+    // Check for group marker at h2, h3, or h4 level
     if (line === `## ${groupName}`) {
       inGroup = true;
+      groupLevel = 2;
+      // Skip the heading itself (we'll add our own later)
+      continue;
+    } else if (line === `### ${groupName}`) {
+      inGroup = true;
+      groupLevel = 3;
+      // Skip the heading itself (we'll add our own later)
+      continue;
+    } else if (line === `#### ${groupName}`) {
+      inGroup = true;
+      groupLevel = 4;
       // Skip the heading itself (we'll add our own later)
       continue;
     }
     
-    // Check if we've hit another h2 heading (stop)
-    if (inGroup && line.match(/^## /)) {
-      break;
+    // Check if we've hit another heading at the same or higher level (stop)
+    if (inGroup) {
+      if (groupLevel === 2 && line.match(/^## /)) {
+        break; // Hit another h2
+      } else if (groupLevel === 3 && (line.match(/^## /) || line.match(/^### /))) {
+        break; // Hit h2 or h3
+      } else if (groupLevel === 4 && (line.match(/^## /) || line.match(/^### /) || line.match(/^#### /))) {
+        break; // Hit h2, h3, or h4
+      }
     }
     
     if (inGroup) {
@@ -225,18 +247,20 @@ function extractGroupContentFromFile(filePath, groupName) {
 
 /**
  * Parse content into component sections
+ * Looks for h3 headings first, then h4, then h5 if needed
  */
 function parseComponentSections(content) {
   const lines = content.split('\n');
-  const sections = [];
+  let sections = [];
   let currentSection = null;
   
+  // First pass: try to find h3 headings
+  let hasH3 = false;
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    
-    // Match h3 headings (### ComponentName)
     const h3Match = line.match(/^### (.+)$/);
     if (h3Match) {
+      hasH3 = true;
       if (currentSection) {
         sections.push(currentSection);
       }
@@ -251,6 +275,60 @@ function parseComponentSections(content) {
   
   if (currentSection) {
     sections.push(currentSection);
+  }
+  
+  // If no h3 headings found, try h4 headings
+  if (!hasH3 && content.trim()) {
+    sections = [];
+    currentSection = null;
+    let hasH4 = false;
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const h4Match = line.match(/^#### (.+)$/);
+      if (h4Match) {
+        hasH4 = true;
+        if (currentSection) {
+          sections.push(currentSection);
+        }
+        currentSection = {
+          name: h4Match[1],
+          lines: [line]
+        };
+      } else if (currentSection) {
+        currentSection.lines.push(line);
+      }
+    }
+    
+    if (currentSection) {
+      sections.push(currentSection);
+    }
+    
+    // If no h4 headings found either, try h5 headings (for deeply nested categories)
+    if (!hasH4 && content.trim()) {
+      sections = [];
+      currentSection = null;
+      
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const h5Match = line.match(/^##### (.+)$/);
+        if (h5Match) {
+          if (currentSection) {
+            sections.push(currentSection);
+          }
+          currentSection = {
+            name: h5Match[1],
+            lines: [line]
+          };
+        } else if (currentSection) {
+          currentSection.lines.push(line);
+        }
+      }
+      
+      if (currentSection) {
+        sections.push(currentSection);
+      }
+    }
   }
   
   return sections;
@@ -386,25 +464,31 @@ function aggregateGroupContent(group, sourceCategoryMap, allSourceFiles) {
     }
   });
   
-  // For items with multiple categories, find them in other category sections
+  // For items with category tags matching this group, ensure they're included
+  // This handles moving items to all their tagged categories, not just where they appear
   if (sourceCategoryMap && sourceCategoryMap.size > 0) {
-    const multiCategoryItems = Array.from(sourceCategoryMap.entries())
-      .filter(([_, cats]) => cats.has(group.name) && cats.size > 1);
+    // Find ALL items that should be in this category based on their @category tags
+    const itemsForThisCategory = Array.from(sourceCategoryMap.entries())
+      .filter(([_, cats]) => cats.has(group.name));
     
-    for (const [itemName, categories] of multiCategoryItems) {
-      // Check if we already have this item
+    for (const [itemName, categories] of itemsForThisCategory) {
+      // Check if we already have this item from the initial collection
       const alreadyHave = allSections.some(s => 
         s.name === itemName || s.name === `${itemName}Handle`
       );
       
       if (!alreadyHave) {
-        // Search all OTHER categories this item belongs to
-        for (const otherCategory of categories) {
-          if (otherCategory === group.name) continue;
+        // Search ALL categories (including this one) in all source files to find this item
+        // This is needed because an item might be physically in a different category's section
+        // but should appear here based on its @category tag
+        let foundItem = false;
+        
+        for (const categoryToSearch of categories) {
+          if (foundItem) break;
           
-          // Search all source files for this other category
+          // Search all source files for this category
           for (const sourceFile of allSourceFiles) {
-            const content = extractGroupContentFromFile(sourceFile, otherCategory);
+            const content = extractGroupContentFromFile(sourceFile, categoryToSearch);
             if (content.trim()) {
               const sections = parseComponentSections(content);
               const found = sections.find(s => 
@@ -413,14 +497,10 @@ function aggregateGroupContent(group, sourceCategoryMap, allSourceFiles) {
               
               if (found) {
                 allSections.push(found);
-                break; // Found it, stop searching
+                foundItem = true;
+                break; // Found it, stop searching this category
               }
             }
-          }
-          
-          // Check if we found it
-          if (allSections.some(s => s.name === itemName || s.name === `${itemName}Handle`)) {
-            break;
           }
         }
       }
