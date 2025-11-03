@@ -86,6 +86,29 @@ class Plugin {
   public actionmapper: any;
   
   /**
+   * Settings page builder for creating plugin settings UI.
+   * 
+   * @category Settings Page
+   * 
+   * @example
+   * ```typescript
+   * await this.settingsPage.addSettings((settings) => {
+   *   settings.addSection('general')
+   *     .setName('General Settings');
+   *   
+   *   settings.addInput('apiKey')
+   *     .setLabel('API Key')
+   *     .setType('password')
+   *     .setValue(this.config.get('apiKey', ''))
+   *     .onChange(({ value }) => {
+   *       this.config.set('apiKey', value);
+   *     });
+   * });
+   * ```
+   */
+  public settingsPage: any;
+  
+  /**
    * Local persistent configuration storage.
    * 
    * Store and retrieve plugin configuration data that persists across restarts.
@@ -359,6 +382,21 @@ class Plugin {
     actionMapperBuilder.enableNotifications();
     this.actionmapper = actionMapperBuilder;
 
+    // Settings page builder property
+    this.settingsPage = {
+      addSettings: async (buildFn: (builder: SettingsBuilder) => void): Promise<void> => {
+        const builder = new SettingsBuilder(() => {
+          const updated = builder.build();
+          this.client.setSectionedSchema(updated);
+          this.client.notifySettingsUpdated();
+        });
+        buildFn(builder);
+        const sectioned = builder.build();
+        this.client.setSectionedSchema(sectioned);
+        builder.enableNotifications();
+      }
+    };
+
     // Register slider update callback to forward to plugin's onSlidersUpdate method
     this.client.setDeviceUpdateCallback(async (data: DeviceChanges) => {
       await this.onDeviceUpdate(data);
@@ -377,78 +415,6 @@ class Plugin {
     return this.client.waitForConnection();
   }
 
-  /**
-   * Creates a settings page for your plugin using a fluent builder API.
-   * 
-   * This is the primary method for creating plugin settings UI. Use the builder
-   * to add sections and UI components like inputs, switches, buttons, and more.
-   * 
-   * @category Settings Page
-   * 
-   * @param buildFn - Callback function that receives a SettingsBuilder instance
-   * @returns Promise that resolves when settings are created
-   * 
-   * @example
-   * ```typescript
-   * await this.createSettingsPage((settings) => {
-   *   // Create a General section
-   *   const general = settings.addSection('general')
-   *     .setName('General Settings');
-   *   
-   *   // Add an input field
-   *   settings.addInput('brokerIP')
-   *     .setType('ip_address')
-   *     .setLabel('Broker IP')
-   *     .setPlaceholder('192.168.1.1')
-   *     .setValue(this.config.get('brokerIP', '192.168.1.1'))
-   *     .setRequired(true)
-   *     .onChange(({ value }) => {
-   *       this.config.set('brokerIP', value);
-   *     });
-   *   
-   *   // Add a switch
-   *   settings.addSwitch('debug')
-   *     .setLabel('Enable Debug Mode')
-   *     .setValue(this.config.get('debug', false))
-   *     .onChange(({ value }) => {
-   *       this.config.set('debug', value);
-   *     });
-   *   
-   *   // Add a select dropdown
-   *   settings.addSelect('quality')
-   *     .setLabel('Quality')
-   *     .setOptions([
-   *       { value: 'low', label: 'Low' },
-   *       { value: 'medium', label: 'Medium' },
-   *       { value: 'high', label: 'High' }
-   *     ])
-   *     .setValue(this.config.get('quality', 'medium'))
-   *     .onChange(({ value }) => {
-   *       this.config.set('quality', value);
-   *     });
-   *   
-   *   // Add an expandable advanced section
-   *   const advanced = settings.addSection('advanced')
-   *     .setName('Advanced Settings')
-   *     .setExpandable(true);
-   * });
-   * ```
-   */
-  async createSettingsPage(buildFn: (builder: SettingsBuilder) => void): Promise<void> {
-    // Build once, persist schema for get_plugin_settings
-    const builder = new SettingsBuilder(() => {
-      // On any mutation from field handles, push the latest schema
-      const updated = builder.build();
-      this.client.setSectionedSchema(updated);
-      // Notify host to refresh UI
-      this.client.notifySettingsUpdated();
-    });
-    buildFn(builder);
-    const sectioned = builder.build();
-    this.client.setSectionedSchema(sectioned);
-    // Enable notifications for subsequent handle updates only (not initial setup)
-    builder.enableNotifications();
-  }
 
   // Expose sectioned UI for get_plugin_settings or other consumers if desired
   buildSettingsSchema(buildFn: (builder: SettingsBuilder) => void): SettingsSections {
@@ -709,7 +675,7 @@ export async function runPlugin(PluginClass: typeof Plugin, config?: ConnectionC
     console.log(`${pluginName} loaded successfully!`);
     
   } catch (error) {
-    console.error(`Failed to start ${pluginName}:`, error.message);
+    console.error(`Failed to start ${pluginName}:`, (error as Error).message);
     process.exit(1);
   }
   
