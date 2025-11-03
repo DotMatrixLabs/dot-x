@@ -14,7 +14,7 @@ export default class HelloWorldPlugin extends Plugin {
 
     try {
       // Create a sectioned settings page using the imperative builder
-      await this.createSettingsPage((settings) => {
+      await this.settingsPage.addSettings((settings) => {
         const general = settings.addSection('General');
 
 
