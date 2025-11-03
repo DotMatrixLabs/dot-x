@@ -2,11 +2,11 @@
 
 /**
  * Post-processing script for TypeDoc-generated documentation.
- * Splits ui.md into separate files per @group with auto-generated summaries.
+ * Dynamically discovers groups from all .md files and splits them into separate files.
  */
 
-import { readFileSync, writeFileSync, unlinkSync, existsSync } from 'fs';
-import { resolve, dirname } from 'path';
+import { readFileSync, writeFileSync, unlinkSync, existsSync, readdirSync } from 'fs';
+import { resolve, dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -14,24 +14,135 @@ const __dirname = dirname(__filename);
 
 // Get output directory from command line or use default
 const outputDir = process.argv[2] || resolve(__dirname, '../../dotmatrixlabs-docs/docs/plugin-sdk/reference');
-const uiFilePath = resolve(outputDir, 'ui.md');
+const typedocConfigPath = resolve(__dirname, '../typedoc.json');
 
 console.log('📚 Splitting TypeDoc groups...');
-console.log(`   Input: ${uiFilePath}`);
+console.log(`   Output directory: ${outputDir}`);
 
-if (!existsSync(uiFilePath)) {
-  console.error(`❌ Error: ui.md not found at ${uiFilePath}`);
+if (!existsSync(outputDir)) {
+  console.error(`❌ Error: Output directory not found at ${outputDir}`);
   process.exit(1);
 }
 
-// Read the generated ui.md file
-const content = readFileSync(uiFilePath, 'utf-8');
+/**
+ * Discover all .md files in the output directory, excluding README.md
+ */
+function discoverSourceFiles(dir) {
+  const files = readdirSync(dir)
+    .filter(file => file.endsWith('.md') && file !== 'README.md')
+    .map(file => join(dir, file));
+  
+  console.log(`\n📁 Found ${files.length} source files:`);
+  files.forEach(file => console.log(`   - ${file.split(/[\\/]/).pop()}`));
+  
+  return files;
+}
 
-// Define the groups we want to split
-const groups = [
-  { name: 'Settings Page', filename: 'settings-page.md', title: 'Settings Page' },
-  { name: 'Action Mapper Modal', filename: 'action-mapper-modal.md', title: 'Action Mapper Modal' }
-];
+/**
+ * Read and parse typedoc.json to get the groupOrder/categoryOrder array
+ */
+function readTypedocConfig(configPath) {
+  if (!existsSync(configPath)) {
+    console.warn(`⚠️  typedoc.json not found at ${configPath}, using default groups`);
+    return [
+      'Plugin Lifecycle',
+      'Settings Page',
+      'Action Mapper Modal',
+      'Global UI',
+      'Storing Data',
+      'Advanced/Internal'
+    ];
+  }
+  
+  const config = JSON.parse(readFileSync(configPath, 'utf-8'));
+  // Support both groupOrder and categoryOrder
+  const groupOrder = config.categoryOrder || config.groupOrder || [];
+  
+  // Filter out wildcard entries
+  const validGroups = groupOrder.filter(g => g !== '*');
+  
+  console.log(`\n📋 Valid groups from typedoc.json: ${validGroups.join(', ')}`);
+  
+  return validGroups;
+}
+
+/**
+ * Convert group name to kebab-case filename
+ */
+function groupNameToFilename(groupName) {
+  return groupName
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-') + '.md';
+}
+
+/**
+ * Scan all source .md files for ## headings and match against groupOrder
+ */
+function discoverGroups(sourceFiles, validGroups) {
+  const groupsMap = new Map();
+  
+  sourceFiles.forEach(filePath => {
+    const content = readFileSync(filePath, 'utf-8');
+    const lines = content.split('\n');
+    
+    lines.forEach(line => {
+      const h2Match = line.match(/^## (.+)$/);
+      if (h2Match) {
+        const groupName = h2Match[1];
+        
+        // Check if this group name is in our valid groups list
+        if (validGroups.includes(groupName)) {
+          if (!groupsMap.has(groupName)) {
+            groupsMap.set(groupName, {
+              name: groupName,
+              filename: groupNameToFilename(groupName),
+              title: groupName,
+              sourceFiles: []
+            });
+          }
+          
+          // Track which files contain this group
+          const group = groupsMap.get(groupName);
+          if (!group.sourceFiles.includes(filePath)) {
+            group.sourceFiles.push(filePath);
+          }
+        }
+      }
+    });
+  });
+  
+  console.log(`\n🔍 Discovered ${groupsMap.size} groups:`);
+  groupsMap.forEach((group, name) => {
+    console.log(`   - ${name} (found in ${group.sourceFiles.length} file(s))`);
+  });
+  
+  return Array.from(groupsMap.values());
+}
+
+// Discover source files
+const sourceFiles = discoverSourceFiles(outputDir);
+
+if (sourceFiles.length === 0) {
+  console.error(`❌ Error: No .md files found in ${outputDir}`);
+  process.exit(1);
+}
+
+// Read typedoc config to get valid groups
+const validGroups = readTypedocConfig(typedocConfigPath);
+
+// Discover groups from all source files
+const groups = discoverGroups(sourceFiles, validGroups);
+
+// Parse source TypeScript files to find items with multiple categories
+console.log(`\n🔍 Parsing source files for multiple categories...`);
+const sourceCategoryMap = parseSourceCategories();
+if (sourceCategoryMap.size > 0) {
+  const multiCategoryItems = Array.from(sourceCategoryMap.entries())
+    .filter(([_, cats]) => cats.size > 1);
+  console.log(`   Found ${multiCategoryItems.length} items with multiple categories`);
+}
 
 // Split content by headings (##)
 function parseMarkdownSections(text) {
@@ -78,22 +189,287 @@ function parseMarkdownSections(text) {
   return sections;
 }
 
-// Extract group information from content
-function extractGroupContent(content, groupName) {
-  const sections = parseMarkdownSections(content);
-  const groupSections = [];
+/**
+ * Extract group content from a single file
+ */
+function extractGroupContentFromFile(filePath, groupName) {
+  const content = readFileSync(filePath, 'utf-8');
+  const lines = content.split('\n');
+  const groupContent = [];
+  let inGroup = false;
   
-  for (const section of sections) {
-    // Check if this section belongs to the group
-    const sectionContent = section.content.join('\n');
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
     
-    // Look for @group annotation in the content or check if it's a known section
-    if (sectionContent.includes(`@group ${groupName}`) || section.title === groupName) {
-      groupSections.push(section);
+    // Check for group marker
+    if (line === `## ${groupName}`) {
+      inGroup = true;
+      // Skip the heading itself (we'll add our own later)
+      continue;
+    }
+    
+    // Check if we've hit another h2 heading (stop)
+    if (inGroup && line.match(/^## /)) {
+      break;
+    }
+    
+    if (inGroup) {
+      groupContent.push(line);
     }
   }
   
-  return groupSections;
+  return groupContent.join('\n');
+}
+
+/**
+ * Parse content into component sections
+ */
+function parseComponentSections(content) {
+  const lines = content.split('\n');
+  const sections = [];
+  let currentSection = null;
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    
+    // Match h3 headings (### ComponentName)
+    const h3Match = line.match(/^### (.+)$/);
+    if (h3Match) {
+      if (currentSection) {
+        sections.push(currentSection);
+      }
+      currentSection = {
+        name: h3Match[1],
+        lines: [line]
+      };
+    } else if (currentSection) {
+      currentSection.lines.push(line);
+    }
+  }
+  
+  if (currentSection) {
+    sections.push(currentSection);
+  }
+  
+  return sections;
+}
+
+/**
+ * Determine if a section is a re-export stub
+ */
+function isReExportStub(section) {
+  // Check if section has "Re-exports [X]" pattern
+  const content = section.lines.join('\n');
+  return content.includes('Re-exports [');
+}
+
+/**
+ * Determine if a section is a Handle class (has methods and Display Name)
+ */
+function isHandleClass(section) {
+  const content = section.lines.join('\n');
+  // Handle classes have both Display Name and Methods sections
+  return content.includes('#### Display Name') && content.includes('#### Methods');
+}
+
+/**
+ * Determine if a section is a config interface (just properties, no methods)
+ */
+function isConfigInterface(section) {
+  const content = section.lines.join('\n');
+  // Config interfaces have Properties but no Display Name or Methods
+  return content.includes('### Properties') && 
+         !content.includes('#### Display Name') && 
+         !content.includes('#### Methods');
+}
+
+/**
+ * Get the base name for a component (normalize for deduplication)
+ */
+function getComponentBaseName(section) {
+  const content = section.lines.join('\n');
+  const lines = section.lines;
+  
+  // Look for Display Name section - this is the canonical name
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i] === '#### Display Name' && i + 2 < lines.length) {
+      // Remove "Field" suffix and normalize to lowercase for comparison
+      return lines[i + 2].trim().replace(/\s+Field$/i, '').toLowerCase().replace(/\s+/g, '');
+    }
+  }
+  
+  // Otherwise normalize the heading name for comparison
+  // Remove Handle and Field suffixes, normalize spacing
+  let baseName = section.name
+    .replace(/Handle$/, '')
+    .replace(/Field$/, '')
+    .toLowerCase()
+    .replace(/\s+/g, '');
+  return baseName;
+}
+
+/**
+ * Parse TypeScript source files to find items with multiple @category tags
+ * Returns a Map of item names to their associated categories
+ */
+function parseSourceCategories() {
+  const srcDir = resolve(__dirname, '../src');
+  const categoryMap = new Map(); // itemName -> Set of categories
+  
+  try {
+    const tsFiles = readdirSync(srcDir).filter(f => f.endsWith('.ts'));
+    
+    for (const file of tsFiles) {
+      const content = readFileSync(join(srcDir, file), 'utf-8');
+      const lines = content.split('\n');
+      
+      let currentCategories = [];
+      let currentItem = null;
+      
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        
+        // Collect @category tags
+        if (line.includes('@category')) {
+          const match = line.match(/@category\s+(.+)/);
+          if (match) {
+            currentCategories.push(match[1].trim());
+          }
+        }
+        
+        // Find export class/function/interface declarations
+        if (line.match(/^export\s+(class|interface|function|const)\s+(\w+)/)) {
+          const match = line.match(/^export\s+(?:class|interface|function|const)\s+(\w+)/);
+          if (match && currentCategories.length > 0) {
+            currentItem = match[1];
+            
+            if (!categoryMap.has(currentItem)) {
+              categoryMap.set(currentItem, new Set());
+            }
+            
+            currentCategories.forEach(cat => {
+              categoryMap.get(currentItem).add(cat);
+            });
+          }
+          
+          // Reset for next item
+          currentCategories = [];
+        }
+        
+        // Reset categories if we hit another doc comment start
+        if (line === '/**') {
+          currentCategories = [];
+        }
+      }
+    }
+  } catch (err) {
+    console.warn(`⚠️  Could not parse source categories: ${err.message}`);
+  }
+  
+  return categoryMap;
+}
+
+/**
+ * Aggregate group content from all source files with deduplication
+ */
+function aggregateGroupContent(group, sourceCategoryMap, allSourceFiles) {
+  const allSections = [];
+  
+  // Collect all sections from all files
+  group.sourceFiles.forEach(filePath => {
+    const content = extractGroupContentFromFile(filePath, group.name);
+    if (content.trim()) {
+      const sections = parseComponentSections(content);
+      allSections.push(...sections);
+    }
+  });
+  
+  // For items with multiple categories, find them in other category sections
+  if (sourceCategoryMap && sourceCategoryMap.size > 0) {
+    const multiCategoryItems = Array.from(sourceCategoryMap.entries())
+      .filter(([_, cats]) => cats.has(group.name) && cats.size > 1);
+    
+    for (const [itemName, categories] of multiCategoryItems) {
+      // Check if we already have this item
+      const alreadyHave = allSections.some(s => 
+        s.name === itemName || s.name === `${itemName}Handle`
+      );
+      
+      if (!alreadyHave) {
+        // Search all OTHER categories this item belongs to
+        for (const otherCategory of categories) {
+          if (otherCategory === group.name) continue;
+          
+          // Search all source files for this other category
+          for (const sourceFile of allSourceFiles) {
+            const content = extractGroupContentFromFile(sourceFile, otherCategory);
+            if (content.trim()) {
+              const sections = parseComponentSections(content);
+              const found = sections.find(s => 
+                s.name === itemName || s.name === `${itemName}Handle`
+              );
+              
+              if (found) {
+                allSections.push(found);
+                break; // Found it, stop searching
+              }
+            }
+          }
+          
+          // Check if we found it
+          if (allSections.some(s => s.name === itemName || s.name === `${itemName}Handle`)) {
+            break;
+          }
+        }
+      }
+    }
+  }
+  
+  // Deduplicate: prefer Handle classes > Config interfaces > Re-export stubs
+  const sectionMap = new Map();
+  
+  for (const section of allSections) {
+    const baseName = getComponentBaseName(section);
+    const isStub = isReExportStub(section);
+    const isHandle = isHandleClass(section);
+    const isConfig = isConfigInterface(section);
+    
+    if (!sectionMap.has(baseName)) {
+      // First occurrence, add it
+      sectionMap.set(baseName, section);
+    } else {
+      // Already have this component - decide which to keep
+      const existing = sectionMap.get(baseName);
+      const existingIsStub = isReExportStub(existing);
+      const existingIsHandle = isHandleClass(existing);
+      const existingIsConfig = isConfigInterface(existing);
+      
+      // Priority: Handle > Config > Re-export
+      let shouldReplace = false;
+      
+      if (isHandle && !existingIsHandle) {
+        // Current is Handle, existing is not - always replace
+        shouldReplace = true;
+      } else if (isConfig && existingIsStub && !existingIsHandle) {
+        // Current is Config, existing is stub (and not Handle) - replace
+        shouldReplace = true;
+      } else if (!isStub && existingIsStub && !existingIsHandle && !existingIsConfig) {
+        // Current is full implementation, existing is stub - replace
+        shouldReplace = true;
+      }
+      
+      if (shouldReplace) {
+        sectionMap.set(baseName, section);
+      }
+    }
+  }
+  
+  // Reconstruct content from deduplicated sections
+  const deduplicatedContent = Array.from(sectionMap.values())
+    .map(section => section.lines.join('\n'))
+    .join('\n\n');
+  
+  return deduplicatedContent;
 }
 
 // Generate a summary from sections
@@ -189,6 +565,17 @@ function generateSummary(content, groupTitle) {
     return '';
   }
   
+  // Deduplicate components by anchor (unique identifier)
+  const uniqueComponents = [];
+  const seenAnchors = new Set();
+  
+  for (const comp of components) {
+    if (!seenAnchors.has(comp.anchor)) {
+      seenAnchors.add(comp.anchor);
+      uniqueComponents.push(comp);
+    }
+  }
+  
   // Build summary markdown
   let summary = `# ${groupTitle}\n\n`;
   summary += `## Overview\n\n`;
@@ -197,7 +584,7 @@ function generateSummary(content, groupTitle) {
   summary += `| Component | Description |\n`;
   summary += `|-----------|-------------|\n`;
   
-  for (const comp of components) {
+  for (const comp of uniqueComponents) {
     summary += `| [${comp.title}](#${comp.anchor}) | ${comp.description} |\n`;
   }
   
@@ -492,54 +879,25 @@ function removeUnnecessarySections(content) {
 }
 
 // Process each group
+console.log(`\n🔧 Processing ${groups.length} group(s)...\n`);
+
 for (const group of groups) {
-  console.log(`\n📄 Processing "${group.name}"...`);
+  console.log(`📄 Processing "${group.name}"...`);
+  console.log(`   Sources: ${group.sourceFiles.map(f => f.split(/[\\/]/).pop()).join(', ')}`);
   
-  // Find sections for this group
-  const lines = content.split('\n');
-  const groupContent = [];
-  let inGroup = false;
-  let groupFound = false;
+  // Aggregate content from all source files for this group
+  const aggregatedContent = aggregateGroupContent(group, sourceCategoryMap, sourceFiles);
   
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    
-    // Check for group marker
-    if (line.includes(`## ${group.name}`)) {
-      inGroup = true;
-      groupFound = true;
-      groupContent.push(line);
-      continue;
-    }
-    
-    // Check if we've hit another major section (stop)
-    if (inGroup && line.match(/^## [A-Z]/)) {
-      // Check if it's another group or a different major section
-      const isAnotherGroup = groups.some(g => line.includes(`## ${g.name}`));
-      if (isAnotherGroup) {
-        break;
-      }
-    }
-    
-    if (inGroup) {
-      groupContent.push(line);
-    }
-  }
-  
-  if (!groupFound) {
-    console.log(`   ⚠️  Group "${group.name}" not found in ui.md`);
+  if (!aggregatedContent.trim()) {
+    console.log(`   ⚠️  No content found for group "${group.name}"`);
     continue;
   }
   
-  // Generate summary from the content
-  const contentStr = groupContent.join('\n');
-  const summary = generateSummary(contentStr, group.title);
-  
-  // Combine summary with content (skip the original ## heading)
-  const contentWithoutHeading = groupContent.slice(1).join('\n');
+  // Generate summary from the aggregated content
+  const summary = generateSummary(aggregatedContent, group.title);
   
   // Promote component headings from h3 to h2 for better TOC
-  const promotedContent = promoteComponentHeadings(contentWithoutHeading);
+  const promotedContent = promoteComponentHeadings(aggregatedContent);
   
   // Remove unnecessary sections (Display Name, Constructors)
   const cleanedContent = removeUnnecessarySections(promotedContent);
@@ -550,7 +908,7 @@ for (const group of groups) {
   const fullContent = summary + contentWithTables;
   
   // Count components for logging
-  const componentCount = (contentStr.match(/^### [A-Z]/gm) || []).length;
+  const componentCount = (aggregatedContent.match(/^### [A-Z]/gm) || []).length;
   
   // Write to new file
   const outputPath = resolve(outputDir, group.filename);
@@ -560,13 +918,30 @@ for (const group of groups) {
   console.log(`      Components found: ${componentCount}`);
 }
 
-// Remove the original ui.md file
-try {
-  unlinkSync(uiFilePath);
-  console.log(`\n🗑️  Removed original ui.md`);
-} catch (err) {
-  console.warn(`   ⚠️  Could not remove ui.md: ${err.message}`);
+// Remove all source files (excluding README.md and newly generated group files)
+console.log(`\n🗑️  Cleaning up source files...`);
+const generatedFilenames = groups.map(g => g.filename);
+let removedCount = 0;
+
+for (const sourceFile of sourceFiles) {
+  const filename = sourceFile.split(/[\\/]/).pop();
+  
+  // Skip README.md and newly generated group files
+  if (filename === 'README.md' || generatedFilenames.includes(filename)) {
+    continue;
+  }
+  
+  try {
+    unlinkSync(sourceFile);
+    console.log(`   ✓ Removed ${filename}`);
+    removedCount++;
+  } catch (err) {
+    console.warn(`   ⚠️  Could not remove ${filename}: ${err.message}`);
+  }
 }
 
-console.log('\n✨ Documentation split complete!\n');
+console.log(`\n✨ Documentation split complete!`);
+console.log(`   Groups created: ${groups.length}`);
+console.log(`   Files removed: ${removedCount}\n`);
+
 

@@ -4,7 +4,7 @@ import type { SettingsSections, CreateSettingsParams, ToastParams, ActionMapping
 /**
  * Plugin metadata for registration with the Dot X application.
  * 
- * @group Advanced/Internal
+ * @category Advanced/Internal
  */
 export interface PluginInfo {
   id: string;
@@ -17,7 +17,7 @@ export interface PluginInfo {
  * API request structure for Socket.IO communication.
  * 
  * @internal
- * @group Advanced/Internal
+ * @category Advanced/Internal
  */
 export interface ApiRequest {
   method: string;
@@ -29,7 +29,7 @@ export interface ApiRequest {
  * API response structure from Socket.IO communication.
  * 
  * @internal
- * @group Advanced/Internal
+ * @category Advanced/Internal
  */
 export interface ApiResponse {
   request_id: string;
@@ -43,7 +43,7 @@ export interface ApiResponse {
  * 
  * Customize connection retry logic, timeouts, and server URL.
  * 
- * @group Advanced/Internal
+ * @category Advanced/Internal
  * 
  * @example
  * ```typescript
@@ -79,7 +79,7 @@ export interface ConnectionConfig {
 /**
  * Device update event data containing control value changes.
  * 
- * @group Advanced/Internal
+ * @category Advanced/Internal
  */
 export interface DeviceChanges {
   changes: Array<{ index: number; oldValue: number; newValue: number }>;
@@ -93,7 +93,7 @@ export interface DeviceChanges {
  * and API request/response cycles. Most plugin developers will not interact
  * with this class directly.
  * 
- * @group Advanced/Internal
+ * @category Advanced/Internal
  */
 export class APIClient {
   private socket: Socket;
@@ -379,14 +379,14 @@ export class APIClient {
   /**
    * Global UI methods for showing notifications and dialogs.
    * 
-   * @group Global UI
+   * @category Global UI
    */
   get ui() {
     return {
       /**
        * Displays a toast notification to the user.
        * 
-       * @group Global UI
+       * @category Global UI
        * 
        * @param params - Toast configuration
        * @param params.message - Message text to display
