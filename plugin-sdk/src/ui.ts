@@ -27,9 +27,9 @@ type SimpleConfig = {
 /**
  * Declarative description of a settings section containing UI components.
  * 
- * @internal
- * @ignore
- * 
+ * @category Settings Page
+ * @category Action Mapper Modal
+ *
  * @property {string} key - Stable identifier for the section.
  * @property {string} [name] - Human-readable section name; shown in UI.
  * @property {string} [title] - Deprecated alias for name maintained for back-compat.
@@ -56,7 +56,7 @@ export type UISection = {
  * The SettingsBuilder provides a fluent API for creating settings pages with sections
  * and various UI components. All methods return handles that support method chaining.
  * 
- * @group Settings Page
+ * @category Settings Page
  *
  * ## Available UI Components
  * 
@@ -159,8 +159,8 @@ export class SettingsBuilder {
    * Sections group related settings together. Use the returned handle to configure
    * section properties like name, expandability, and visibility.
    * 
-   * @group Settings Page
-   * @group Action Mapper Modal
+   * @category Settings Page
+   * @category Action Mapper Modal
    *
    * @param key - Unique identifier for the section
    * @returns Handle for configuring the section
@@ -214,8 +214,8 @@ export class SettingsBuilder {
   /**
    * Adds an input field for text, numbers, passwords, and more.
    * 
-   * @group Settings Page
-   * @group Action Mapper Modal
+   * @category Settings Page
+   * @category Action Mapper Modal
    *
    * @param key - Unique identifier for the input field
    * @param options - Optional initial configuration
@@ -296,8 +296,8 @@ export class SettingsBuilder {
   /**
    * Adds a clickable button to the settings page.
    * 
-   * @group Settings Page
-   * @group Action Mapper Modal
+   * @category Settings Page
+   * @category Action Mapper Modal
    *
    * @param key - Unique identifier for the button
    * @returns Handle for configuring the button
@@ -363,8 +363,8 @@ export class SettingsBuilder {
   /**
    * Adds a toggle switch for boolean values.
    * 
-   * @group Settings Page
-   * @group Action Mapper Modal
+   * @category Settings Page
+   * @category Action Mapper Modal
    *
    * @param key - Unique identifier for the switch
    * @returns Handle for configuring the switch
@@ -425,8 +425,8 @@ export class SettingsBuilder {
   /**
    * Adds a dropdown select menu with options.
    * 
-   * @group Settings Page
-   * @group Action Mapper Modal
+   * @category Settings Page
+   * @category Action Mapper Modal
    *
    * @param key - Unique identifier for the select field
    * @param options - Optional initial configuration
@@ -493,8 +493,8 @@ export class SettingsBuilder {
   /**
    * Adds a read-only text display element.
    * 
-   * @group Settings Page
-   * @group Action Mapper Modal
+   * @category Settings Page
+   * @category Action Mapper Modal
    *
    * @param key - Unique identifier for the text element
    * @returns Handle for configuring the text display
@@ -556,8 +556,8 @@ export class SettingsBuilder {
   /**
    * Adds a status badge with colored styling.
    * 
-   * @group Settings Page
-   * @group Action Mapper Modal
+   * @category Settings Page
+   * @category Action Mapper Modal
    *
    * @param key - Unique identifier for the badge
    * @returns Handle for configuring the badge
@@ -684,8 +684,8 @@ export class SettingsBuilder {
  * Provides methods to configure section properties like name, visibility, and expandability.
  * 
  * @displayName Section
- * @group Settings Page
- * @group Action Mapper Modal
+ * @category Settings Page
+ * @category Action Mapper Modal
  */
 export class SectionHandle {
   constructor(private section: UISection, private notifyChange?: () => void) {}
@@ -759,7 +759,7 @@ export class SectionHandle {
  * modal. These buttons can be assigned to device channels (sliders, knobs, buttons) and
  * can have their own settings UI.
  * 
- * @group Action Mapper Modal
+ * @category Action Mapper Modal
  * 
  * @example
  * ```typescript
@@ -815,7 +815,7 @@ export class ActionMapper {
    * System Utility buttons appear in the action selector modal and can be assigned
    * to device channels. Each button maintains its own selected state per channel.
    * 
-   * @group Action Mapper Modal
+   * @category Action Mapper Modal
    *
    * @param id - Unique identifier for the button
    * @returns Handle for configuring the button
@@ -920,7 +920,7 @@ export class ActionMapper {
  * button properties, click handlers, selection state, and per-button settings.
  * 
  * @displayName System Util Button
- * @group Action Mapper Modal
+ * @category Action Mapper Modal
  */
 export class SystemUtilButtonHandle {
   private autoPersist = true;
@@ -1073,11 +1073,6 @@ export class SystemUtilButtonHandle {
     return !!map[String(channel)];
   }
 
-  /**
-   * Sets the auto persist flag for the button. When set to true, the button will persist its selection state.
-   * @param flag - The auto persist flag
-   * @returns The SystemUtilButtonHandle for method chaining
-   */
   setAutoPersist(flag: boolean): this {
     this.autoPersist = !!flag;
     return this;
@@ -1091,8 +1086,8 @@ export class SystemUtilButtonHandle {
  * input properties like type, placeholder, value, validation, and change handlers.
  * 
  * @displayName Input Field
- * @group Settings Page
- * @group Action Mapper Modal
+ * @category Settings Page
+ * @category Action Mapper Modal
  */
 export class InputFieldHandle {
   constructor(private component: SettingsComponent, private notifyChange?: () => void) {}
@@ -1179,8 +1174,8 @@ export class InputFieldHandle {
  * button properties like title, label, style, and click handlers.
  * 
  * @displayName Button Field
- * @group Settings Page
- * @group Action Mapper Modal
+ * @category Settings Page
+ * @category Action Mapper Modal
  */
 export class ButtonFieldHandle {
   constructor(private component: SettingsComponent, private notifyChange?: () => void) {}
@@ -1234,8 +1229,8 @@ export class ButtonFieldHandle {
  * switch properties like label, value, description, and change handlers.
  * 
  * @displayName Switch Field
- * @group Settings Page
- * @group Action Mapper Modal
+ * @category Settings Page
+ * @category Action Mapper Modal
  */
 export class SwitchFieldHandle {
   constructor(private component: SettingsComponent, private notifyChange?: () => void) {}
@@ -1291,8 +1286,8 @@ export class SwitchFieldHandle {
  * text properties like label, text content, and style.
  * 
  * @displayName Text Field
- * @group Settings Page
- * @group Action Mapper Modal
+ * @category Settings Page
+ * @category Action Mapper Modal
  */
 export class TextFieldHandle {
   constructor(private component: SettingsComponent, private notifyChange?: () => void) {}
@@ -1335,8 +1330,8 @@ export class TextFieldHandle {
  * badge properties like label, text content, and style.
  * 
  * @displayName Badge Field
- * @group Settings Page
- * @group Action Mapper Modal
+ * @category Settings Page
+ * @category Action Mapper Modal
  */
 export class BadgeFieldHandle {
   constructor(private component: SettingsComponent, private notifyChange?: () => void) {}
@@ -1379,8 +1374,8 @@ export class BadgeFieldHandle {
  * select properties like label, options, value, and change handlers.
  * 
  * @displayName Select Field
- * @group Settings Page
- * @group Action Mapper Modal
+ * @category Settings Page
+ * @category Action Mapper Modal
  */
 export class SelectFieldHandle {
   constructor(private component: SettingsComponent, private notifyChange?: () => void) {}
@@ -1455,8 +1450,7 @@ export class SelectFieldHandle {
  * Factory function for creating a settings builder. Usually not needed as
  * `createSettingsPage()` provides this automatically.
  *
- * @internal
- * @ignore
+ * @category Settings Page
  * 
  * @returns New SettingsBuilder instance
  * 
@@ -1480,7 +1474,7 @@ export function createSettingsBuilder(): SettingsBuilder {
  * Factory function for creating an action mapper. Usually not needed as
  * the plugin class provides `this.actionmapper` automatically.
  *
- * @group Action Mapper Modal
+ * @category Action Mapper Modal
  * 
  * @returns New ActionMapper instance
  * 

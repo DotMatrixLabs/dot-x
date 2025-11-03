@@ -13,7 +13,7 @@ import Conf from 'conf';
  * Extend this class to create your own plugin. Override lifecycle methods like
  * `onLoad()`, `onUnload()`, and `onDeviceUpdate()` to implement your plugin's behavior.
  * 
- * @group Plugin Lifecycle
+ * @category Plugin Lifecycle
  * 
  * @example
  * ```typescript
@@ -53,7 +53,7 @@ class Plugin {
   /**
    * Global UI methods for showing toasts, modals, and confirmations.
    * 
-   * @group Global UI
+   * @category Global UI
    * 
    * @example
    * ```typescript
@@ -70,7 +70,7 @@ class Plugin {
   /**
    * Action mapper for creating System Utilities buttons.
    * 
-   * @group Action Mapper Modal
+   * @category Action Mapper Modal
    * 
    * @example
    * ```typescript
@@ -90,7 +90,7 @@ class Plugin {
    * 
    * Store and retrieve plugin configuration data that persists across restarts.
    * 
-   * @group Storing Data
+   * @category Storing Data
    * 
    * @example
    * ```typescript
@@ -143,7 +143,7 @@ class Plugin {
        * Supports dot notation for nested keys (e.g., 'settings.apiKey').
        * Can also accept an object to set multiple values at once.
        * 
-       * @group Storing Data
+       * @category Storing Data
        * 
        * @param keyOrObject - Key string or object with multiple key-value pairs
        * @param value - Value to set (when first param is a string)
@@ -177,7 +177,7 @@ class Plugin {
        * 
        * Supports dot notation for nested keys. Returns the default value if key doesn't exist.
        * 
-       * @group Storing Data
+       * @category Storing Data
        * 
        * @param key - Configuration key (supports dot notation)
        * @param defaultValue - Default value if key doesn't exist
@@ -202,7 +202,7 @@ class Plugin {
       /**
        * Deletes a configuration value.
        * 
-       * @group Storing Data
+       * @category Storing Data
        * 
        * @param key - Configuration key to delete
        * 
@@ -221,7 +221,7 @@ class Plugin {
       /**
        * Clears all configuration data.
        * 
-       * @group Storing Data
+       * @category Storing Data
        * 
        * @example
        * ```typescript
@@ -235,7 +235,7 @@ class Plugin {
       /**
        * Checks if a configuration key exists.
        * 
-       * @group Storing Data
+       * @category Storing Data
        * 
        * @param key - Configuration key to check
        * @returns True if key exists, false otherwise
@@ -260,7 +260,7 @@ class Plugin {
       /**
        * Gets all configuration data as an object.
        * 
-       * @group Storing Data
+       * @category Storing Data
        * 
        * @returns Object containing all configuration data
        * 
@@ -280,7 +280,7 @@ class Plugin {
       /**
        * Gets the file path where configuration is stored.
        * 
-       * @group Storing Data
+       * @category Storing Data
        * 
        * @returns Absolute path to the config file
        * 
@@ -296,7 +296,7 @@ class Plugin {
       /**
        * Initializes or reinitializes the configuration store with schema and defaults.
        * 
-       * @group Storing Data
+       * @category Storing Data
        * 
        * @param options - Initialization options
        * @param options.schema - JSON schema for validation
@@ -383,7 +383,7 @@ class Plugin {
    * This is the primary method for creating plugin settings UI. Use the builder
    * to add sections and UI components like inputs, switches, buttons, and more.
    * 
-   * @group Settings Page
+   * @category Settings Page
    * 
    * @param buildFn - Callback function that receives a SettingsBuilder instance
    * @returns Promise that resolves when settings are created
@@ -457,13 +457,32 @@ class Plugin {
     return builder.build();
   }
  
-  
-  // Get connection status
+  /**
+   * Gets the connection status of the plugin.
+   * 
+   * @returns The connection status of the plugin
+   * 
+   * @example
+   * ```typescript
+   * const connectionStatus = this.getConnectionStatus();
+   * console.log('Connection status:', connectionStatus);
+   * ```
+   */
   getConnectionStatus(): string {
     return this.client.getConnectionStatus();
   }
   
-  // Check if connected
+  /**
+   * Checks if the plugin is connected to the host.
+   * 
+   * @returns True if the plugin is connected, false otherwise
+   * 
+   * @example
+   * ```typescript
+   * const isConnected = this.isConnected();
+   * console.log('Is connected:', isConnected);
+   * ```
+   */
   isConnected(): boolean {
     return this.client.isConnected();
   }
@@ -474,7 +493,7 @@ class Plugin {
    * Override this method to initialize your plugin, create settings UI,
    * register action buttons, and set up any necessary resources.
    * 
-   * @group Plugin Lifecycle
+   * @category Plugin Lifecycle
    * 
    * @example
    * ```typescript
@@ -523,7 +542,7 @@ class Plugin {
    * Override this method to perform cleanup tasks like closing connections,
    * saving state, or releasing resources.
    * 
-   * @group Plugin Lifecycle
+   * @category Plugin Lifecycle
    * 
    * @example
    * ```typescript
@@ -553,7 +572,7 @@ class Plugin {
    * Override this method to respond to device input changes. This is useful
    * for implementing custom behaviors based on hardware control changes.
    * 
-   * @group Plugin Lifecycle
+   * @category Plugin Lifecycle
    * 
    * @param data - Object containing the device changes
    * @param data.changes - Array of changes with index, oldValue, and newValue
@@ -589,7 +608,7 @@ class Plugin {
  * Reads the manifest.json file from the current working directory.
  * 
  * @internal
- * @group Advanced/Internal
+ * @category Advanced/Internal
  */
 function readManifest() {
   try {
@@ -615,7 +634,7 @@ function readManifest() {
  * - Handles graceful shutdown on SIGINT/SIGTERM
  * - Provides automatic retry logic for connection failures
  * 
- * @group Plugin Lifecycle
+ * @category Plugin Lifecycle
  * 
  * @param PluginClass - The plugin class to instantiate and run
  * @param config - Optional connection configuration to customize behavior

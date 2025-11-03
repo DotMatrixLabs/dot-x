@@ -1,34 +1,18 @@
 // Simplified types for the new imperative settings builder
 // Note: This file represents the public types used by the plugin SDK
 
-/**
- * Parameters for showing a toast notification.
- * 
- * @group Global UI
- */
 export interface ToastParams {
-  /** Message text to display */
   message: string;
-  /** Notification type affecting visual style */
   type?: 'info' | 'success' | 'warning' | 'error';
-  /** Duration in milliseconds before auto-dismiss */
   duration?: number;
 }
 
-/**
- * @internal
- * @group Advanced/Internal
- */
 export interface ApiRequest {
   method: string;
   params: any;
   request_id: string;
 }
 
-/**
- * @internal
- * @group Advanced/Internal
- */
 export interface ApiResponse {
   request_id: string;
   success: boolean;
@@ -36,12 +20,6 @@ export interface ApiResponse {
   error?: string;
 }
 
-/**
- * Base properties shared by all settings fields.
- * 
- * @group Settings Page
- * @group Action Mapper Modal
- */
 type BaseSettingsField = {
   label: string;
   section?: string;
@@ -52,24 +30,12 @@ type BaseSettingsField = {
   disabled?: boolean;
 };
 
-/**
- * Configuration for an input field.
- * 
- * @group Settings Page
- * @group Action Mapper Modal
- */
 export interface InputField extends BaseSettingsField {
   type: 'text' | 'password' | 'textarea' | 'color' | 'file' | 'number' | 'ip_address' | 'mac_address';
   onChange?: (data: { value: any }) => void;
   onChangeActionId?: string;
 }
 
-/**
- * Configuration for a button field.
- * 
- * @group Settings Page
- * @group Action Mapper Modal
- */
 export interface ButtonField extends BaseSettingsField {
   type: 'button';
   text?: string;
@@ -78,24 +44,12 @@ export interface ButtonField extends BaseSettingsField {
   actionId?: string;
 }
 
-/**
- * Configuration for a switch/toggle field.
- * 
- * @group Settings Page
- * @group Action Mapper Modal
- */
 export interface SwitchField extends BaseSettingsField {
   type: 'switch';
   onChange?: (data: { value: boolean }) => void;
   onChangeActionId?: string;
 }
 
-/**
- * Configuration for a select dropdown field.
- * 
- * @group Settings Page
- * @group Action Mapper Modal
- */
 export interface SelectField extends BaseSettingsField {
   type: 'select';
   options: Array<{ value: any; label: string }>;
@@ -103,36 +57,18 @@ export interface SelectField extends BaseSettingsField {
   onChangeActionId?: string;
 }
 
-/**
- * Configuration for a read-only text display field.
- * 
- * @group Settings Page
- * @group Action Mapper Modal
- */
 export interface TextField extends BaseSettingsField {
   type: 'text_display';
   text?: string;
   style?: 'default' | 'muted' | 'info' | 'success' | 'warning' | 'error';
 }
 
-/**
- * Configuration for a badge display field.
- * 
- * @group Settings Page
- * @group Action Mapper Modal
- */
 export interface BadgeField extends BaseSettingsField {
   type: 'badge';
   text?: string;
   style?: 'default' | 'muted' | 'info' | 'success' | 'warning' | 'error';
 }
 
-/**
- * Union type of all settings field types.
- * 
- * @group Settings Page
- * @group Action Mapper Modal
- */
 export type SettingsField = InputField | ButtonField | SwitchField | SelectField | TextField | BadgeField;
 
 export type SettingsComponent = { key: string } & SettingsField;
@@ -337,37 +273,20 @@ export type SystemEvent =
   | 'plugin-unloaded'
   | 'settings-changed';
 
-/**
- * Configuration for a System Utilities action button.
- * 
- * These buttons appear in the action selector modal and can be assigned to
- * device channels (sliders, knobs, buttons). Each button maintains its own
- * selected state per channel.
- * 
- * @group Action Mapper Modal
- */
+// --- Slider Action (System Utilities) Types ---
+//TODO: Rename to Channel Action
 export interface SystemUtilButton {
-  /** Unique identifier for the button */
-  id: string;
-  /** Display title shown under the button */
-  title: string;
-  /** Optional FontAwesome icon class (e.g., 'fas fa-bolt fa-lg') */
-  icon?: string;
-  /** Callback when button is clicked/toggled */
-  onClick?: (evt: { selected: boolean; channel: number | string }) => void;
-  /** Runtime-assigned action ID (internal use) */
-  actionId?: string;
-  /** Per-channel selection state map */
+  id: string;            // Stable identifier (unique per plugin)
+  title: string;         // Display title under the circular button
+  icon?: string;         // Optional icon class (e.g., 'fas fa-bolt fa-lg')
+  onClick?: (evt: { selected: boolean; channel: number | string }) => void;  // Callback provided by plugin; replaced with actionId by client
+  actionId?: string;     // Runtime-assigned action id registered in the client
+  // Per-channel selection map; keys are channel identifiers (usually slider indices)
   selectedByChannel?: Record<string, boolean>;
-  /** Optional per-button settings UI */
+  // Optional per-button settings UI, reusing the same schema as plugin settings
   settings?: SettingsSections;
 }
 
-/**
- * Collection of action button mappings.
- * 
- * @group Action Mapper Modal
- */
 export interface ActionMappings {
   buttons: SystemUtilButton[];
 }
