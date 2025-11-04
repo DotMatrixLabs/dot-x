@@ -23,7 +23,9 @@
   "blockTags": [
     "@displayName",
     "@related",
-    "@category"
+    "@category",
+    "@since",
+    "@order"
   ]
 }
 
