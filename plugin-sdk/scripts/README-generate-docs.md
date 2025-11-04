@@ -172,6 +172,28 @@ export class AdvancedConfig { }
 export class ActionMapperModal { }
 ```
 
+### `@see`
+
+**Purpose:** Provides "See also" references to related documentation or categories. Can appear multiple times. Category references are automatically converted to documentation links.
+
+**Example:**
+```typescript
+/**
+ * Builds settings UI components.
+ * @category Settings Builder
+ * @see SettingsBuilder Components
+ * @see https://docs.example.com/settings-guide
+ */
+export class SettingsBuilder {
+  /**
+   * Adds a button to the settings panel.
+   * @see SettingsBuilder Components
+   * @returns The builder instance for chaining
+   */
+  addButton() { }
+}
+```
+
 ### `@example`
 
 **Purpose:** Provide code examples. Can appear multiple times for different use cases.
@@ -244,6 +266,7 @@ export function setPreference(key: string, value: any): boolean {
  * @category Action Mapper Modal
  * @since 1.0.0
  * @order first
+ * @see Action Registry
  * @example
  * ```typescript
  * const mapper = new ActionMapperModal();
@@ -500,11 +523,12 @@ This section contains all components and utilities for Action Mapper Modal.
 Each item gets its own section with:
 - Display name as heading
 - Full description
+- "See also" references (if `@see` tags present)
 - Since version (if specified)
 - Examples (for classes)
 - Properties table (for classes/interfaces)
 - Methods table (for classes)
-- Detailed method documentation
+- Detailed method documentation (including `@see` references for methods)
 - Parameters and return values (for functions)
 
 ### Method Tables
@@ -528,6 +552,11 @@ open(): Promise<void>
 \`\`\`
 
 Opens the action mapper modal.
+
+**See also:**
+
+- [SettingsBuilder Components](settingsbuilder-components.md) - For all available UI components
+- https://docs.example.com/modal-guide
 
 **Returns:**
 
@@ -705,6 +734,26 @@ export function updateSettings(
   settings: Partial<Settings>,
   merge: boolean = true
 ) { }
+```
+
+### 9. Use @see for Cross-References
+
+Guide users to related documentation with `@see` tags. Category names are automatically converted to links:
+
+```typescript
+/**
+ * Builder for creating settings UI.
+ * @category Settings Builder
+ * @see SettingsBuilder Components
+ * @see https://docs.example.com/settings-tutorial
+ */
+export class SettingsBuilder {
+  /**
+   * Adds a checkbox component.
+   * @see SettingsBuilder Components
+   */
+  addCheckbox() { }
+}
 ```
 
 ## Troubleshooting
