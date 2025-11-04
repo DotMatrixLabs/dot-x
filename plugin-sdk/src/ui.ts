@@ -678,6 +678,295 @@ export class SettingsBuilder {
   }
 }
 
+
+
+
+  /**
+   * Creates a new System Utilities action button.
+   * 
+   * System Utility buttons appear in the action selector modal and can be assigned
+   * to device channels. Each button maintains its own selected state per channel.
+   * 
+   * @category Action Mapper Modal
+   *
+   * @param id - Unique identifier for the button
+   * @returns Handle for configuring the button
+   * @displayName System Utility Button
+   * 
+   * @order first
+   * 
+   * 
+   * @example
+   * ```typescript
+   * // Basic action button
+   * this.actionmapper
+   *   .addSystemUtilButton('mute')
+   *   .setTitle('Mute')
+   *   .setIcon('fas fa-volume-mute fa-lg')
+   *   .onClick(({ selected, channel }) => {
+   *     console.log(`Channel ${channel} mute ${selected ? 'ON' : 'OFF'}`);
+   *     // Implement mute logic
+   *   });
+   * 
+   * // Button with settings
+   * const volumeButton = this.actionmapper
+   *   .addSystemUtilButton('volume')
+   *   .setTitle('Volume Control')
+   *   .setIcon('fas fa-volume-up fa-lg');
+   * 
+   * volumeButton.addSettings((settings) => {
+   *   settings.addSection('volume').setName('Volume Settings');
+   *   
+   *   settings.addInput('maxVolume')
+   *     .setType('number')
+   *     .setLabel('Maximum Volume')
+   *     .setValue(100)
+   *     .setMin(0)
+   *     .setMax(100);
+   *   
+   *   settings.addSwitch('smoothing')
+   *     .setLabel('Volume Smoothing')
+   *     .setValue(true)
+   *     .setDesc('Smoothly transition between volume levels');
+   * });
+   * ```
+   */
+  export class SystemUtilButtonHandle {
+    private autoPersist = true;
+    private pluginClickHandler?: (evt: { selected: boolean; channel: number | string }) => void;
+  
+    constructor(private button: SystemUtilButton, private notifyChange?: () => void, private configStore?: SimpleConfig) {
+      const storageKey = () => `action.${this.button.id}.selectedByChannel`;
+      const getMap = (): Record<string, boolean> => {
+        if (!this.configStore) return (this.button.selectedByChannel && { ...this.button.selectedByChannel }) || {};
+        return this.configStore.get<Record<string, boolean>>(storageKey(), {} as any) || {};
+      };
+      const setMap = (map: Record<string, boolean>) => {
+        if (this.configStore && this.autoPersist) this.configStore.set(storageKey(), map);
+      };
+  
+      // Default click: toggle + persist, then call plugin handler if provided
+      (this.button as any).onClick = (evt: any) => {
+        const ch = evt && Object.prototype.hasOwnProperty.call(evt, 'channel') ? evt.channel : undefined;
+        const selectedFromEvt = evt && Object.prototype.hasOwnProperty.call(evt, 'selected') ? evt.selected : undefined;
+        if (ch === undefined || ch === null) {
+          // Without a channel we cannot map selection; just invoke plugin handler if present
+          if (typeof this.pluginClickHandler === 'function') {
+            this.pluginClickHandler(evt);
+          }
+          return;
+        }
+        const channelKey = String(ch);
+        const currentMap = getMap();
+        const newSelected = typeof selectedFromEvt === 'boolean' ? !!selectedFromEvt : !currentMap[channelKey];
+  
+        const nextMap = { ...currentMap, [channelKey]: newSelected };
+        setMap(nextMap);
+  
+        if (!this.button.selectedByChannel) this.button.selectedByChannel = {} as Record<string, boolean>;
+        (this.button.selectedByChannel as Record<string, boolean>)[channelKey] = newSelected;
+        this.notifyChange?.();
+  
+        if (typeof this.pluginClickHandler === 'function') {
+          this.pluginClickHandler({ selected: newSelected, channel: ch });
+        }
+      };
+    }
+  
+    /**
+     * Sets the title of the system utility button.
+     * 
+     * @param title - The title of the system utility button
+     * @returns The SystemUtilButtonHandle for method chaining
+     * 
+     * @example
+     * ```typescript
+     * this.actionmapper.addSystemUtilButton('mute').setTitle('Mute');
+     * ```
+     */
+    setTitle(title: string): this {
+      this.button.title = title;
+      this.notifyChange?.();
+      return this;
+    }
+    
+    /**
+     * Sets the icon of the system utility button.
+     * 
+     * @param icon - The icon of the system utility button
+     * @returns The SystemUtilButtonHandle for method chaining
+     * 
+     * @example
+     * ```typescript
+     * this.actionmapper.addSystemUtilButton('mute').setIcon('fas fa-volume-mute fa-lg');
+     * ```
+     */
+    setIcon(icon: string): this {
+      this.button.icon = icon;
+      this.notifyChange?.();
+      return this;
+    }
+  
+    /**
+     * Sets the click handler of the system utility button.
+     * 
+     * @param handler - The click handler of the system utility button
+     * @returns The SystemUtilButtonHandle for method chaining
+     * 
+     * @example
+     * ```typescript
+     * this.actionmapper.addSystemUtilButton('mute').onClick(({ selected, channel }) => {
+     *   console.log(`Channel ${channel} mute ${selected ? 'ON' : 'OFF'}`);
+     *   // Implement mute logic
+     * });
+     * ```
+     */
+    onClick(handler: (evt: { selected: boolean; channel: number | string }) => void): this {
+      this.pluginClickHandler = handler;
+      this.notifyChange?.();
+      return this;
+    }
+  
+    /**
+     * Used to add settings to a system utility button.
+     * 
+     * @category Action Mapper Modal
+     * 
+     * @param build - The function to build the settings. 
+     * @returns The SystemUtilButtonHandle for method chaining
+     * 
+     * @example
+     * ```typescript
+     * this.actionmapper
+     *   .addSystemUtilButton('mute')
+     *   .setTitle('Mute')
+     *   .setIcon('fas fa-volume-mute fa-lg')
+     *   .onClick(({ selected, channel }) => {
+     *     console.log(`Channel ${channel} mute ${selected ? 'ON' : 'OFF'}`);
+     *     // Implement mute logic
+     *   })
+     *   .addSettings((settings) => {
+     *     settings.addSection('mute').setName('Mute Settings');
+     *     settings.addSwitch('mute').setLabel('Mute').setValue(true);
+     *   });
+     * ```  
+     */
+    addSettings(build: (b: SettingsBuilder) => void): this {
+      const builder = new SettingsBuilder(() => {
+        this.button.settings = builder.build();
+        this.notifyChange?.();
+      });
+      build(builder);
+      this.button.settings = builder.build();
+      this.notifyChange?.();
+      return this;
+    }
+  
+  
+    setSelected(selected: boolean, channel: number | string): this;
+    // Overload: set defaults for multiple channels using an array (index = channel)
+    setSelected(defaults: boolean[]): this;
+    // Overload: set defaults for multiple channels using a map
+    setSelected(defaults: Record<string | number, boolean>): this;
+    setSelected(
+      selectedOrMap: boolean | boolean[] | Record<string | number, boolean>,
+      channel?: number | string
+    ): this {
+      const storageKey = `action.${this.button.id}.selectedByChannel`;
+      const getMap = (): Record<string, boolean> => {
+        if (!this.configStore) return (this.button.selectedByChannel && { ...this.button.selectedByChannel }) || {};
+        return this.configStore.get<Record<string, boolean>>(storageKey, {} as any) || {};
+      };
+      const setMap = (map: Record<string, boolean>) => {
+        if (this.configStore && this.autoPersist) this.configStore.set(storageKey, map);
+      };
+      if (Array.isArray(selectedOrMap)) {
+        // Replace the entire per-channel map using array indices
+        const map: Record<string, boolean> = {};
+        for (let i = 0; i < selectedOrMap.length; i++) {
+          const v = !!selectedOrMap[i];
+          if (v) {
+            map[String(i)] = true;
+          }
+        }
+        this.button.selectedByChannel = map;
+        setMap(map);
+        this.notifyChange?.();
+        return this;
+      }
+  
+      if (typeof selectedOrMap === 'object') {
+        // Replace the entire per-channel map from provided object
+        const map: Record<string, boolean> = {};
+        for (const k in selectedOrMap) {
+          if (Object.prototype.hasOwnProperty.call(selectedOrMap, k)) {
+            map[String(k)] = !!(selectedOrMap as Record<string | number, boolean>)[k];
+          }
+        }
+        this.button.selectedByChannel = map;
+        setMap(map);
+        this.notifyChange?.();
+        return this;
+      }
+  
+      // Single channel update
+      const key = String(channel as string | number);
+      if (!this.button.selectedByChannel) {
+        this.button.selectedByChannel = {} as Record<string, boolean>;
+      }
+      (this.button.selectedByChannel as Record<string, boolean>)[key] = !!selectedOrMap;
+      const map = getMap();
+      const nextMap = { ...map, [key]: !!selectedOrMap };
+      setMap(nextMap);
+      this.notifyChange?.();
+      return this;
+    }
+  
+    /**
+     * Gets the selected state map for the system utility button.
+     * 
+     * @returns The selected state map for the system utility button
+     * 
+     * @example
+     * ```typescript
+     * const selectedMap = this.actionmapper.addSystemUtilButton('mute').getSelectedMap();
+     * console.log('Selected map:', selectedMap);
+     * ```
+     */
+    getSelectedMap(): Record<string, boolean> {
+      if (this.configStore) {
+        const key = `action.${this.button.id}.selectedByChannel`;
+        return this.configStore.get<Record<string, boolean>>(key, {} as any) || {};
+      }
+      return (this.button.selectedByChannel && { ...this.button.selectedByChannel }) || {};
+    }
+    /**
+     * Checks if the button is selected on a specific channel.
+     * @param channel - The channel to check
+     * @returns True if the button is selected on the channel, false otherwise
+     */ 
+    isSelected(channel: number | string): boolean {
+      const map = this.getSelectedMap();
+      return !!map[String(channel)];
+    }
+  
+    /**
+     * Sets the auto persist flag for the system utility button.
+     * 
+     * @param flag - The auto persist flag
+     * @returns The SystemUtilButtonHandle for method chaining
+     * 
+     * @example
+     * ```typescript
+     * this.actionmapper.addSystemUtilButton('mute').setAutoPersist(true);
+     * ```
+     */
+    setAutoPersist(flag: boolean): this {
+      this.autoPersist = !!flag;
+      return this;
+    }
+  }
+
 /**
  * Handle for configuring a settings section.
  * 
@@ -809,66 +1098,6 @@ export class ActionMapper {
     this.configStore = configStore;
   }
 
-  /**
-   * Creates a new System Utilities action button.
-   * 
-   * System Utility buttons appear in the action selector modal and can be assigned
-   * to device channels. Each button maintains its own selected state per channel.
-   * 
-   * @category Action Mapper Modal
-   *
-   * @param id - Unique identifier for the button
-   * @returns Handle for configuring the button
-   * 
-   * ## SystemUtilButtonHandle Methods
-   * 
-   * | Method | Parameters | Required | Description |
-   * |--------|------------|----------|-------------|
-   * | `setTitle(title)` | `string` | Yes | Sets the button display title |
-   * | `setIcon(icon)` | `string` | No | Sets FontAwesome icon class (e.g., 'fas fa-bolt fa-lg') |
-   * | `onClick(callback)` | `({ selected: boolean, channel: number \| string }) => void` | Yes | Called when button is clicked/toggled |
-   * | `addSettings(buildFn)` | `(builder: SettingsBuilder) => void` | No | Adds per-button settings UI |
-   * | `setSelected(selected, channel)` | `boolean, number \| string` | No | Sets selected state for a specific channel |
-   * | `setSelected(defaults)` | `boolean[] \| Record<string \| number, boolean>` | No | Sets default selected states for multiple channels |
-   * | `getSelectedMap()` | - | - | Returns the per-channel selection map |
-   * | `isSelected(channel)` | `number \| string` | - | Checks if button is selected on a channel |
-   * | `setAutoPersist(flag)` | `boolean` | No | Controls automatic persistence of selection state |
-   * 
-   * @example
-   * ```typescript
-   * // Basic action button
-   * this.actionmapper
-   *   .addSystemUtilButton('mute')
-   *   .setTitle('Mute')
-   *   .setIcon('fas fa-volume-mute fa-lg')
-   *   .onClick(({ selected, channel }) => {
-   *     console.log(`Channel ${channel} mute ${selected ? 'ON' : 'OFF'}`);
-   *     // Implement mute logic
-   *   });
-   * 
-   * // Button with settings
-   * const volumeButton = this.actionmapper
-   *   .addSystemUtilButton('volume')
-   *   .setTitle('Volume Control')
-   *   .setIcon('fas fa-volume-up fa-lg');
-   * 
-   * volumeButton.addSettings((settings) => {
-   *   settings.addSection('volume').setName('Volume Settings');
-   *   
-   *   settings.addInput('maxVolume')
-   *     .setType('number')
-   *     .setLabel('Maximum Volume')
-   *     .setValue(100)
-   *     .setMin(0)
-   *     .setMax(100);
-   *   
-   *   settings.addSwitch('smoothing')
-   *     .setLabel('Volume Smoothing')
-   *     .setValue(true)
-   *     .setDesc('Smoothly transition between volume levels');
-   * });
-   * ```
-   */
   addSystemUtilButton(id: string): SystemUtilButtonHandle {
     const btn: SystemUtilButton = { id, title: '' };
     this.buttons.push(btn);
@@ -913,192 +1142,6 @@ export class ActionMapper {
   }
 }
 
-/**
- * Handle for configuring a System Utilities action button.
- * 
- * Returned by {@link ActionMapper.addSystemUtilButton}. Provides methods to configure
- * button properties, click handlers, selection state, and per-button settings.
- * 
- * @displayName System Util Button
- * @category Action Mapper Modal
- */
-export class SystemUtilButtonHandle {
-  private autoPersist = true;
-  private pluginClickHandler?: (evt: { selected: boolean; channel: number | string }) => void;
-
-  constructor(private button: SystemUtilButton, private notifyChange?: () => void, private configStore?: SimpleConfig) {
-    const storageKey = () => `action.${this.button.id}.selectedByChannel`;
-    const getMap = (): Record<string, boolean> => {
-      if (!this.configStore) return (this.button.selectedByChannel && { ...this.button.selectedByChannel }) || {};
-      return this.configStore.get<Record<string, boolean>>(storageKey(), {} as any) || {};
-    };
-    const setMap = (map: Record<string, boolean>) => {
-      if (this.configStore && this.autoPersist) this.configStore.set(storageKey(), map);
-    };
-
-    // Default click: toggle + persist, then call plugin handler if provided
-    (this.button as any).onClick = (evt: any) => {
-      const ch = evt && Object.prototype.hasOwnProperty.call(evt, 'channel') ? evt.channel : undefined;
-      const selectedFromEvt = evt && Object.prototype.hasOwnProperty.call(evt, 'selected') ? evt.selected : undefined;
-      if (ch === undefined || ch === null) {
-        // Without a channel we cannot map selection; just invoke plugin handler if present
-        if (typeof this.pluginClickHandler === 'function') {
-          this.pluginClickHandler(evt);
-        }
-        return;
-      }
-      const channelKey = String(ch);
-      const currentMap = getMap();
-      const newSelected = typeof selectedFromEvt === 'boolean' ? !!selectedFromEvt : !currentMap[channelKey];
-
-      const nextMap = { ...currentMap, [channelKey]: newSelected };
-      setMap(nextMap);
-
-      if (!this.button.selectedByChannel) this.button.selectedByChannel = {} as Record<string, boolean>;
-      (this.button.selectedByChannel as Record<string, boolean>)[channelKey] = newSelected;
-      this.notifyChange?.();
-
-      if (typeof this.pluginClickHandler === 'function') {
-        this.pluginClickHandler({ selected: newSelected, channel: ch });
-      }
-    };
-  }
-
-  setTitle(title: string): this {
-    this.button.title = title;
-    this.notifyChange?.();
-    return this;
-  }
-
-  setIcon(icon: string): this {
-    this.button.icon = icon;
-    this.notifyChange?.();
-    return this;
-  }
-
-  onClick(handler: (evt: { selected: boolean; channel: number | string }) => void): this {
-    this.pluginClickHandler = handler;
-    this.notifyChange?.();
-    return this;
-  }
-
-  /**
-   * Used to add settings to a system utility button.
-   * 
-   * @category Action Mapper Modal
-   * 
-   * @param build - The function to build the settings. 
-   * @returns The SystemUtilButtonHandle for method chaining
-   * 
-   * @example
-   * ```typescript
-   * this.actionmapper
-   *   .addSystemUtilButton('mute')
-   *   .setTitle('Mute')
-   *   .setIcon('fas fa-volume-mute fa-lg')
-   *   .onClick(({ selected, channel }) => {
-   *     console.log(`Channel ${channel} mute ${selected ? 'ON' : 'OFF'}`);
-   *     // Implement mute logic
-   *   })
-   *   .addSettings((settings) => {
-   *     settings.addSection('mute').setName('Mute Settings');
-   *     settings.addSwitch('mute').setLabel('Mute').setValue(true);
-   *   });
-   * ```  
-   */
-  addSettings(build: (b: SettingsBuilder) => void): this {
-    const builder = new SettingsBuilder(() => {
-      this.button.settings = builder.build();
-      this.notifyChange?.();
-    });
-    build(builder);
-    this.button.settings = builder.build();
-    this.notifyChange?.();
-    return this;
-  }
-
-  // Overload: set a single channel's selection
-  setSelected(selected: boolean, channel: number | string): this;
-  // Overload: set defaults for multiple channels using an array (index = channel)
-  setSelected(defaults: boolean[]): this;
-  // Overload: set defaults for multiple channels using a map
-  setSelected(defaults: Record<string | number, boolean>): this;
-  setSelected(
-    selectedOrMap: boolean | boolean[] | Record<string | number, boolean>,
-    channel?: number | string
-  ): this {
-    const storageKey = `action.${this.button.id}.selectedByChannel`;
-    const getMap = (): Record<string, boolean> => {
-      if (!this.configStore) return (this.button.selectedByChannel && { ...this.button.selectedByChannel }) || {};
-      return this.configStore.get<Record<string, boolean>>(storageKey, {} as any) || {};
-    };
-    const setMap = (map: Record<string, boolean>) => {
-      if (this.configStore && this.autoPersist) this.configStore.set(storageKey, map);
-    };
-    if (Array.isArray(selectedOrMap)) {
-      // Replace the entire per-channel map using array indices
-      const map: Record<string, boolean> = {};
-      for (let i = 0; i < selectedOrMap.length; i++) {
-        const v = !!selectedOrMap[i];
-        if (v) {
-          map[String(i)] = true;
-        }
-      }
-      this.button.selectedByChannel = map;
-      setMap(map);
-      this.notifyChange?.();
-      return this;
-    }
-
-    if (typeof selectedOrMap === 'object') {
-      // Replace the entire per-channel map from provided object
-      const map: Record<string, boolean> = {};
-      for (const k in selectedOrMap) {
-        if (Object.prototype.hasOwnProperty.call(selectedOrMap, k)) {
-          map[String(k)] = !!(selectedOrMap as Record<string | number, boolean>)[k];
-        }
-      }
-      this.button.selectedByChannel = map;
-      setMap(map);
-      this.notifyChange?.();
-      return this;
-    }
-
-    // Single channel update
-    const key = String(channel as string | number);
-    if (!this.button.selectedByChannel) {
-      this.button.selectedByChannel = {} as Record<string, boolean>;
-    }
-    (this.button.selectedByChannel as Record<string, boolean>)[key] = !!selectedOrMap;
-    const map = getMap();
-    const nextMap = { ...map, [key]: !!selectedOrMap };
-    setMap(nextMap);
-    this.notifyChange?.();
-    return this;
-  }
-
-  getSelectedMap(): Record<string, boolean> {
-    if (this.configStore) {
-      const key = `action.${this.button.id}.selectedByChannel`;
-      return this.configStore.get<Record<string, boolean>>(key, {} as any) || {};
-    }
-    return (this.button.selectedByChannel && { ...this.button.selectedByChannel }) || {};
-  }
-  /**
-   * Checks if the button is selected on a specific channel.
-   * @param channel - The channel to check
-   * @returns True if the button is selected on the channel, false otherwise
-   */ 
-  isSelected(channel: number | string): boolean {
-    const map = this.getSelectedMap();
-    return !!map[String(channel)];
-  }
-
-  setAutoPersist(flag: boolean): this {
-    this.autoPersist = !!flag;
-    return this;
-  }
-}
 
 /**
  * Handle for configuring an input field.
@@ -1113,6 +1156,12 @@ export class SystemUtilButtonHandle {
 export class InputFieldHandle {
   constructor(private component: SettingsComponent, private notifyChange?: () => void) {}
 
+  /**
+   * Sets the placeholder text shown in the input field.
+   * 
+   * @param placeholder - The placeholder text to display
+   * @returns The InputFieldHandle for method chaining
+   */
   setPlaceholder(placeholder: string): this {
     (this.component as any).placeholder = placeholder;
     this.notifyChange?.();
@@ -1120,67 +1169,132 @@ export class InputFieldHandle {
     
   }
 
+  /**
+   * Sets the default or current value of the input field.
+   * 
+   * @param value - The value to set
+   * @returns The InputFieldHandle for method chaining
+   */
   setValue(value: any): this {
     (this.component as any).default = value;
     this.notifyChange?.();
     return this;
   }
 
+  /**
+   * Registers a callback function that is called when the input value changes.
+   * 
+   * @param callback - Function called with the new value
+   * @returns The InputFieldHandle for method chaining
+   */
   onChange(callback: (data: { value: any }) => void): this {
     (this.component as any).onChange = callback;
     this.notifyChange?.();
     return this;
   }
 
+  /**
+   * Sets the help text displayed below the input field.
+   * 
+   * @param description - The description text to display
+   * @returns The InputFieldHandle for method chaining
+   */
   setDesc(description: string): this {
     (this.component as any).description = description;
     this.notifyChange?.();
     return this;
   }
 
+  /**
+   * Sets the label of the input field (alias for setLabel).
+   * 
+   * @param name - The label text to display
+   * @returns The InputFieldHandle for method chaining
+   */
   setName(name: string): this {
     (this.component as any).label = name;
     this.notifyChange?.();
     return this;
   }
 
+  /**
+   * Sets the label of the input field.
+   * 
+   * @param label - The label text to display
+   * @returns The InputFieldHandle for method chaining
+   */
   setLabel(label: string): this {
     (this.component as any).label = label;
     this.notifyChange?.();
     return this;
   }
 
+  /**
+   * Marks the input field as required.
+   * 
+   * @param required - Whether the field is required
+   * @returns The InputFieldHandle for method chaining
+   */
   setRequired(required: boolean): this {
     (this.component as any).required = required;
     this.notifyChange?.();
     return this;
   }
 
+  /**
+   * Sets the disabled state of the input field.
+   * 
+   * @param disabled - Whether the field is disabled
+   * @returns The InputFieldHandle for method chaining
+   */
   setDisabled(disabled: boolean): this {
     (this.component as any).disabled = disabled;
     this.notifyChange?.();
     return this;
   }
 
+  /**
+   * Sets the input type (text, password, number, etc.).
+   * 
+   * @param type - The input type
+   * @returns The InputFieldHandle for method chaining
+   */
   setType(type: InputField['type']): this {
     (this.component as any).type = type;
     this.notifyChange?.();
     return this;
   }
 
-  //Assign is used to bulk assign properties to the field eg. button.assign({ label: 'Username', placeholder: 'Enter username', required: true });
+  /**
+   * Bulk assigns multiple properties to the input field.
+   * 
+   * @param props - Object containing properties to assign
+   * @returns The InputFieldHandle for method chaining
+   */
   assign(props: Partial<InputField>): this {
     Object.assign(this.component as any, props);
     this.notifyChange?.();
     return this;
   }
 
+  /**
+   * Sets the maximum value for number input types.
+   * 
+   * @param max - The maximum allowed value
+   * @returns The InputFieldHandle for method chaining
+   */
   setMax(max: number): this {
     (this.component as any).max = max;
     this.notifyChange?.();
     return this;
   }
 
+  /**
+   * Sets the minimum value for number input types.
+   * 
+   * @param min - The minimum allowed value
+   * @returns The InputFieldHandle for method chaining
+   */
   setMin(min: number): this {
     (this.component as any).min = min;
     this.notifyChange?.();
@@ -1201,41 +1315,72 @@ export class InputFieldHandle {
 export class ButtonFieldHandle {
   constructor(private component: SettingsComponent, private notifyChange?: () => void) {}
 
-  //Title is the text that appears on the button
+  /**
+   * Sets the text displayed on the button.
+   * 
+   * @param title - The text to display on the button
+   * @returns The ButtonFieldHandle for method chaining
+   */
   setTitle(title: string): this {
     (this.component as any).buttonTitle = title;
     this.notifyChange?.();
     return this;
   }
 
-  //Label is the text that appears next to the button
+  /**
+   * Sets the label text displayed beside the button.
+   * 
+   * @param label - The label text to display
+   * @returns The ButtonFieldHandle for method chaining
+   */
   setLabel(label: string): this {
     (this.component as any).label = label;
     this.notifyChange?.();
     return this;
   }
 
-  //Style is the style of the button (primary, secondary, danger, outline)
+  /**
+   * Sets the visual style of the button.
+   * 
+   * @param style - The button style (primary, secondary, danger)
+   * @returns The ButtonFieldHandle for method chaining
+   */
   setStyle(style: ButtonField['style']): this {
     (this.component as any).style = style;
     this.notifyChange?.();
     return this;
   }
 
-  //OnClick is the function that is called when the button is clicked
+  /**
+   * Registers a callback function that is called when the button is clicked.
+   * 
+   * @param onClick - Function called on button click
+   * @returns The ButtonFieldHandle for method chaining
+   */
   onClick(onClick: () => void): this {
     (this.component as any).onClick = onClick;
     this.notifyChange?.();
     return this;
   }
 
-  //Description is the description of the button, it appears below the label
+  /**
+   * Sets the help text displayed below the button.
+   * 
+   * @param description - The description text to display
+   * @returns The ButtonFieldHandle for method chaining
+   */
   setDesc(description: string): this {
     (this.component as any).description = description;
     this.notifyChange?.();
     return this;
   }
 
+  /**
+   * Bulk assigns multiple properties to the button field.
+   * 
+   * @param props - Object containing properties to assign
+   * @returns The ButtonFieldHandle for method chaining
+   */
   assign(props: Partial<ButtonField>): this {
     Object.assign(this.component as any, props);
     this.notifyChange?.();
@@ -1256,43 +1401,84 @@ export class ButtonFieldHandle {
 export class SwitchFieldHandle {
   constructor(private component: SettingsComponent, private notifyChange?: () => void) {}
 
+  /**
+   * Sets the default or current state of the switch (on/off).
+   * 
+   * @param value - The boolean state of the switch
+   * @returns The SwitchFieldHandle for method chaining
+   */
   setValue(value: boolean): this {
     (this.component as any).default = value;
     this.notifyChange?.();
     return this;
   }
 
+  /**
+   * Registers a callback function that is called when the switch state changes.
+   * 
+   * @param callback - Function called with the new switch state
+   * @returns The SwitchFieldHandle for method chaining
+   */
   onChange(callback: (data: { value: boolean }) => void): this {
     (this.component as any).onChange = callback;
     this.notifyChange?.();
     return this;
   }
 
-
+  /**
+   * Sets the label of the switch.
+   * 
+   * @param label - The label text to display
+   * @returns The SwitchFieldHandle for method chaining
+   */
   setLabel(label: string): this {
     (this.component as any).label = label;
     this.notifyChange?.();
     return this;
   }
 
+  /**
+   * Sets the help text displayed below the switch.
+   * 
+   * @param description - The description text to display
+   * @returns The SwitchFieldHandle for method chaining
+   */
   setDesc(description: string): this {
     (this.component as any).description = description;
     this.notifyChange?.();
     return this;
   }
 
+  /**
+   * Marks the switch as required.
+   * 
+   * @param required - Whether the switch is required
+   * @returns The SwitchFieldHandle for method chaining
+   */
   setRequired(required: boolean): this {
     (this.component as any).required = required;
     this.notifyChange?.();
     return this;
   }
 
+  /**
+   * Sets the disabled state of the switch.
+   * 
+   * @param disabled - Whether the switch is disabled
+   * @returns The SwitchFieldHandle for method chaining
+   */
   setDisabled(disabled: boolean): this {
     (this.component as any).disabled = disabled;
     this.notifyChange?.();
     return this;
   }
 
+  /**
+   * Bulk assigns multiple properties to the switch field.
+   * 
+   * @param props - Object containing properties to assign
+   * @returns The SwitchFieldHandle for method chaining
+   */
   assign(props: Partial<SwitchField>): this {
     Object.assign(this.component as any, props);
     this.notifyChange?.();
@@ -1313,30 +1499,60 @@ export class SwitchFieldHandle {
 export class TextFieldHandle {
   constructor(private component: SettingsComponent, private notifyChange?: () => void) {}
 
+  /**
+   * Sets the text content to display.
+   * 
+   * @param text - The text to display
+   * @returns The TextFieldHandle for method chaining
+   */
   setText(text: string): this {
     (this.component as any).text = text;
     this.notifyChange?.();
     return this;
   }
 
+  /**
+   * Sets the visual style and color of the text.
+   * 
+   * @param style - The text style (default, muted, info, success, warning, error)
+   * @returns The TextFieldHandle for method chaining
+   */
   setStyle(style: TextField['style']): this {
     (this.component as any).style = style;
     this.notifyChange?.();
     return this;
   }
 
+  /**
+   * Sets the label of the text display.
+   * 
+   * @param label - The label text to display
+   * @returns The TextFieldHandle for method chaining
+   */
   setLabel(label: string): this {
     (this.component as any).label = label;
     this.notifyChange?.();
     return this;
   }
 
+  /**
+   * Sets the help text displayed below the text display.
+   * 
+   * @param description - The description text to display
+   * @returns The TextFieldHandle for method chaining
+   */
   setDesc(description: string): this {
     (this.component as any).description = description;
     this.notifyChange?.();
     return this;
   }
 
+  /**
+   * Bulk assigns multiple properties to the text field.
+   * 
+   * @param props - Object containing properties to assign
+   * @returns The TextFieldHandle for method chaining
+   */
   assign(props: Partial<TextField>): this {
     Object.assign(this.component as any, props);
     this.notifyChange?.();
@@ -1357,30 +1573,60 @@ export class TextFieldHandle {
 export class BadgeFieldHandle {
   constructor(private component: SettingsComponent, private notifyChange?: () => void) {}
 
+  /**
+   * Sets the text content of the badge.
+   * 
+   * @param text - The text to display in the badge
+   * @returns The BadgeFieldHandle for method chaining
+   */
   setText(text: string): this {
     (this.component as any).text = text;
     this.notifyChange?.();
     return this;
   }
 
+  /**
+   * Sets the visual style and color of the badge.
+   * 
+   * @param style - The badge style (default, muted, info, success, warning, error)
+   * @returns The BadgeFieldHandle for method chaining
+   */
   setStyle(style: BadgeField['style']): this {
     (this.component as any).style = style;
     this.notifyChange?.();
     return this;
   }
 
+  /**
+   * Sets the label of the badge.
+   * 
+   * @param label - The label text to display
+   * @returns The BadgeFieldHandle for method chaining
+   */
   setLabel(label: string): this {
     (this.component as any).label = label;
     this.notifyChange?.();
     return this;
   }
 
+  /**
+   * Sets the help text displayed below the badge.
+   * 
+   * @param description - The description text to display
+   * @returns The BadgeFieldHandle for method chaining
+   */
   setDesc(description: string): this {
     (this.component as any).description = description;
     this.notifyChange?.();
     return this;
   }
 
+  /**
+   * Bulk assigns multiple properties to the badge field.
+   * 
+   * @param props - Object containing properties to assign
+   * @returns The BadgeFieldHandle for method chaining
+   */
   assign(props: Partial<BadgeField>): this {
     Object.assign(this.component as any, props);
     this.notifyChange?.();
@@ -1401,42 +1647,84 @@ export class BadgeFieldHandle {
 export class SelectFieldHandle {
   constructor(private component: SettingsComponent, private notifyChange?: () => void) {}
 
+  /**
+   * Sets the label of the select field.
+   * 
+   * @param label - The label text to display
+   * @returns The SelectFieldHandle for method chaining
+   */
   setLabel(label: string): this {
     (this.component as any).label = label;
     this.notifyChange?.();
     return this;
   }
 
+  /**
+   * Sets the help text displayed below the select field.
+   * 
+   * @param description - The description text to display
+   * @returns The SelectFieldHandle for method chaining
+   */
   setDesc(description: string): this {
     (this.component as any).description = description;
     this.notifyChange?.();
     return this;
   }
 
+  /**
+   * Marks the select field as required.
+   * 
+   * @param required - Whether the field is required
+   * @returns The SelectFieldHandle for method chaining
+   */
   setRequired(required: boolean): this {
     (this.component as any).required = required;
     this.notifyChange?.();
     return this;
   }
 
+  /**
+   * Sets the disabled state of the select field.
+   * 
+   * @param disabled - Whether the field is disabled
+   * @returns The SelectFieldHandle for method chaining
+   */
   setDisabled(disabled: boolean): this {
     (this.component as any).disabled = disabled;
     this.notifyChange?.();
     return this;
   }
 
+  /**
+   * Sets the placeholder text shown when no option is selected.
+   * 
+   * @param placeholder - The placeholder text to display
+   * @returns The SelectFieldHandle for method chaining
+   */
   setPlaceholder(placeholder: string): this {
     (this.component as any).placeholder = placeholder;
     this.notifyChange?.();
     return this;
   }
 
+  /**
+   * Sets the default selected value of the select field.
+   * 
+   * @param value - The value to set as selected
+   * @returns The SelectFieldHandle for method chaining
+   */
   setValue(value: any): this {
     (this.component as any).default = value;
     this.notifyChange?.();
     return this;
   }
 
+  /**
+   * Sets the selectable options for the dropdown menu.
+   * 
+   * @param options - Array of options as objects with value/label or simple values
+   * @returns The SelectFieldHandle for method chaining
+   */
   setOptions(options: Array<{ value: any; label: string }> | Array<string | number>): this {
     const normalized = Array.isArray(options)
       ? options.map((opt: any) =>
@@ -1450,12 +1738,24 @@ export class SelectFieldHandle {
     return this;
   }
 
+  /**
+   * Registers a callback function that is called when the selected value changes.
+   * 
+   * @param callback - Function called with the newly selected value
+   * @returns The SelectFieldHandle for method chaining
+   */
   onChange(callback: (data: { value: any }) => void): this {
     (this.component as any).onChange = callback;
     this.notifyChange?.();
     return this;
   }
 
+  /**
+   * Bulk assigns multiple properties to the select field.
+   * 
+   * @param props - Object containing properties to assign
+   * @returns The SelectFieldHandle for method chaining
+   */
   assign(props: Partial<SelectField>): this {
     Object.assign(this.component as any, props);
     this.notifyChange?.();
