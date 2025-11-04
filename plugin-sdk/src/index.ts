@@ -91,6 +91,20 @@ export {
 export type { UISection } from './ui';
 
 /**
+ * RGB controller for managing Decker device lighting effects.
+ * 
+ * @group RGB Control
+ */
+export { RGBController, createRGBController } from './rgb';
+
+/**
+ * RGB types for effect names and options.
+ * 
+ * @group RGB Control
+ */
+export type { RGBEffect, RGBOptions } from './types';
+
+/**
  * Default export for convenience - the Plugin base class.
  * 
  * @group Plugin Lifecycle
