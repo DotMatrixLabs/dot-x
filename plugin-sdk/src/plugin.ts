@@ -71,7 +71,6 @@ class Plugin {
   /**
    * Action mapper for creating System Utilities buttons.
    * 
-   * @category Action Mapper Modal
    * 
    * @example
    * ```typescript
@@ -89,7 +88,6 @@ class Plugin {
   /**
    * Settings page builder for creating plugin settings UI.
    * 
-   * @category Settings Page
    * 
    * @example
    * ```typescript
@@ -114,7 +112,6 @@ class Plugin {
    * 
    * Store and retrieve plugin configuration data that persists across restarts.
    * 
-   * @category Storing Data
    * 
    * @example
    * ```typescript
@@ -150,7 +147,6 @@ class Plugin {
    * Control the 8 RGB LEDs on the Decker device with various effects,
    * colors, brightness levels, and animation speeds.
    * 
-   * @category RGB Control
    * 
    * @example
    * ```typescript
@@ -420,6 +416,7 @@ class Plugin {
     this.actionmapper = actionMapperBuilder;
 
     this.settingsPage = {
+
       /**
        * Adds settings to the plugin settings page.
        * 
@@ -428,6 +425,7 @@ class Plugin {
        * 
        * @param buildFn - The function to build the settings.
        * @returns The settings page builder.
+       * @order first
        * 
        * @example
        * ```typescript
