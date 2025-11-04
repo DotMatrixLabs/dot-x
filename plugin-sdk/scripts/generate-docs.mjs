@@ -212,7 +212,8 @@ function extractMethods(classItem) {
           type: formatType(sig.type),
           description: getTagValue(sig.comment, 'returns')
         },
-        examples: getExamples(sig.comment)
+        examples: getExamples(sig.comment),
+        see: getAllTagValues(sig.comment, 'see')
       };
     });
 }
@@ -262,6 +263,7 @@ function processItem(item) {
     related: getAllTagValues(item.comment, 'related'),
     examples: getExamples(item.comment),
     order: getTagValue(item.comment, 'order'),
+    see: getAllTagValues(item.comment, 'see'),
     parameters: [],
     returns: null,
     methods: [],
@@ -480,6 +482,21 @@ function generateMethodDetails(methods) {
       lines.push('');
     }
     
+    // See also references for methods
+    if (method.see && method.see.length > 0) {
+      lines.push('**See also:**');
+      lines.push('');
+      for (const seeRef of method.see) {
+        // Convert category references to links
+        if (seeRef.includes('SettingsBuilder Components')) {
+          lines.push(`- [SettingsBuilder Components](settingsbuilder-components.md) - For all available UI components`);
+        } else {
+          lines.push(`- ${seeRef}`);
+        }
+      }
+      lines.push('');
+    }
+    
     if (method.parameters.length > 0) {
       lines.push('**Parameters:**');
       lines.push('');
@@ -524,6 +541,21 @@ function generateItemDetails(item) {
   // Description
   if (item.description) {
     lines.push(item.description);
+    lines.push('');
+  }
+  
+  // See also references
+  if (item.see && item.see.length > 0) {
+    lines.push('**See also:**');
+    lines.push('');
+    for (const seeRef of item.see) {
+      // Convert category references to links
+      if (seeRef.includes('SettingsBuilder Components')) {
+        lines.push(`- [SettingsBuilder Components](settingsbuilder-components.md) - For all available UI components`);
+      } else {
+        lines.push(`- ${seeRef}`);
+      }
+    }
     lines.push('');
   }
   

@@ -27,8 +27,7 @@ type SimpleConfig = {
 /**
  * Declarative description of a settings section containing UI components.
  * 
- * @category Settings Page
- * @category Action Mapper Modal
+ * @category SettingsBuilder Components
  *
  * @property {string} key - Stable identifier for the section.
  * @property {string} [name] - Human-readable section name; shown in UI.
@@ -159,8 +158,7 @@ export class SettingsBuilder {
    * Sections group related settings together. Use the returned handle to configure
    * section properties like name, expandability, and visibility.
    * 
-   * @category Settings Page
-   * @category Action Mapper Modal
+   * @category SettingsBuilder Components
    *
    * @param key - Unique identifier for the section
    * @returns Handle for configuring the section
@@ -214,8 +212,7 @@ export class SettingsBuilder {
   /**
    * Adds an input field for text, numbers, passwords, and more.
    * 
-   * @category Settings Page
-   * @category Action Mapper Modal
+   * @category SettingsBuilder Components
    *
    * @param key - Unique identifier for the input field
    * @param options - Optional initial configuration
@@ -296,8 +293,7 @@ export class SettingsBuilder {
   /**
    * Adds a clickable button to the settings page.
    * 
-   * @category Settings Page
-   * @category Action Mapper Modal
+   * @category SettingsBuilder Components
    *
    * @param key - Unique identifier for the button
    * @returns Handle for configuring the button
@@ -363,8 +359,7 @@ export class SettingsBuilder {
   /**
    * Adds a toggle switch for boolean values.
    * 
-   * @category Settings Page
-   * @category Action Mapper Modal
+   * @category SettingsBuilder Components
    *
    * @param key - Unique identifier for the switch
    * @returns Handle for configuring the switch
@@ -425,8 +420,7 @@ export class SettingsBuilder {
   /**
    * Adds a dropdown select menu with options.
    * 
-   * @category Settings Page
-   * @category Action Mapper Modal
+   * @category SettingsBuilder Components
    *
    * @param key - Unique identifier for the select field
    * @param options - Optional initial configuration
@@ -493,8 +487,7 @@ export class SettingsBuilder {
   /**
    * Adds a read-only text display element.
    * 
-   * @category Settings Page
-   * @category Action Mapper Modal
+   * @category SettingsBuilder Components
    *
    * @param key - Unique identifier for the text element
    * @returns Handle for configuring the text display
@@ -556,8 +549,7 @@ export class SettingsBuilder {
   /**
    * Adds a status badge with colored styling.
    * 
-   * @category Settings Page
-   * @category Action Mapper Modal
+   * @category SettingsBuilder Components
    *
    * @param key - Unique identifier for the badge
    * @returns Handle for configuring the badge
@@ -827,15 +819,16 @@ export class SettingsBuilder {
       return this;
     }
   
-    /**
-     * Used to add settings to a system utility button.
-     * 
-     * @category Action Mapper Modal
-     * 
-     * @param build - The function to build the settings. 
-     * @returns The SystemUtilButtonHandle for method chaining
-     * 
-     * @example
+  /**
+   * Used to add settings to a system utility button.
+   * 
+   * @category Action Mapper Modal
+   * @see SettingsBuilder Components - For all available UI components
+   * 
+   * @param build - The function to build the settings. 
+   * @returns The SystemUtilButtonHandle for method chaining
+   * 
+   * @example
      * ```typescript
      * this.actionmapper
      *   .addSystemUtilButton('mute')
@@ -973,8 +966,7 @@ export class SettingsBuilder {
  * Provides methods to configure section properties like name, visibility, and expandability.
  * 
  * @displayName Section
- * @category Settings Page
- * @category Action Mapper Modal
+ * @category SettingsBuilder Components
  */
 export class SectionHandle {
   constructor(private section: UISection, private notifyChange?: () => void) {}
@@ -1150,8 +1142,7 @@ export class ActionMapper {
  * input properties like type, placeholder, value, validation, and change handlers.
  * 
  * @displayName Input Field
- * @category Settings Page
- * @category Action Mapper Modal
+ * @category SettingsBuilder Components
  */
 export class InputFieldHandle {
   constructor(private component: SettingsComponent, private notifyChange?: () => void) {}
@@ -1309,8 +1300,7 @@ export class InputFieldHandle {
  * button properties like title, label, style, and click handlers.
  * 
  * @displayName Button Field
- * @category Settings Page
- * @category Action Mapper Modal
+ * @category SettingsBuilder Components
  */
 export class ButtonFieldHandle {
   constructor(private component: SettingsComponent, private notifyChange?: () => void) {}
@@ -1395,8 +1385,7 @@ export class ButtonFieldHandle {
  * switch properties like label, value, description, and change handlers.
  * 
  * @displayName Switch Field
- * @category Settings Page
- * @category Action Mapper Modal
+ * @category SettingsBuilder Components
  */
 export class SwitchFieldHandle {
   constructor(private component: SettingsComponent, private notifyChange?: () => void) {}
@@ -1493,8 +1482,7 @@ export class SwitchFieldHandle {
  * text properties like label, text content, and style.
  * 
  * @displayName Text Field
- * @category Settings Page
- * @category Action Mapper Modal
+ * @category SettingsBuilder Components
  */
 export class TextFieldHandle {
   constructor(private component: SettingsComponent, private notifyChange?: () => void) {}
@@ -1567,8 +1555,7 @@ export class TextFieldHandle {
  * badge properties like label, text content, and style.
  * 
  * @displayName Badge Field
- * @category Settings Page
- * @category Action Mapper Modal
+ * @category SettingsBuilder Components
  */
 export class BadgeFieldHandle {
   constructor(private component: SettingsComponent, private notifyChange?: () => void) {}
@@ -1641,8 +1628,7 @@ export class BadgeFieldHandle {
  * select properties like label, options, value, and change handlers.
  * 
  * @displayName Select Field
- * @category Settings Page
- * @category Action Mapper Modal
+ * @category SettingsBuilder Components
  */
 export class SelectFieldHandle {
   constructor(private component: SettingsComponent, private notifyChange?: () => void) {}
