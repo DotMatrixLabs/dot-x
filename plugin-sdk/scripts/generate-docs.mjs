@@ -10,6 +10,22 @@
  * 4. Generates markdown files with frontmatter and tables
  * 
  * Usage: node generate-docs.mjs [output-dir]
+ * 
+ * Supported TSDoc tags:
+ * - @category: Groups items into documentation sections
+ * - @order: Controls item position within a category
+ *   - 'first': Item appears at the top of its category
+ *   - 'last': Item appears at the bottom of its category
+ *   - (no tag): Item appears in alphabetical order in the middle
+ * 
+ * Example:
+ * ```typescript
+ * /**
+ *  * @category Action Mapper Modal
+ *  * @order first
+ *  *\/
+ * export class ImportantClass { }
+ * ```
  */
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, unlinkSync } from 'fs';
@@ -245,6 +261,7 @@ function processItem(item) {
     since: getTagValue(item.comment, 'since'),
     related: getAllTagValues(item.comment, 'related'),
     examples: getExamples(item.comment),
+    order: getTagValue(item.comment, 'order'),
     parameters: [],
     returns: null,
     methods: [],
@@ -319,6 +336,29 @@ for (const item of allItems) {
     categoryMap.get(category).push(item);
   }
 }
+
+// Sort items within each category based on @order tag
+categoryMap.forEach((items, category) => {
+  items.sort((a, b) => {
+    // Determine priority based on @order tag
+    const getPriority = (item) => {
+      if (item.order === 'first') return 0;
+      if (item.order === 'last') return 2;
+      return 1; // default/middle
+    };
+    
+    const priorityA = getPriority(a);
+    const priorityB = getPriority(b);
+    
+    // Sort by priority first
+    if (priorityA !== priorityB) {
+      return priorityA - priorityB;
+    }
+    
+    // Within same priority, sort alphabetically by displayName
+    return a.displayName.localeCompare(b.displayName);
+  });
+});
 
 console.log(`   Created ${categoryMap.size} category groups:`);
 categoryMap.forEach((items, category) => {
