@@ -39,7 +39,7 @@ export interface InputField extends BaseSettingsField {
 export interface ButtonField extends BaseSettingsField {
   type: 'button';
   text?: string;
-  style?: 'primary' | 'secondary' | 'danger';
+  variant?: 'primary' | 'secondary' | 'danger';
   onClick?: () => void;
   actionId?: string;
 }
@@ -60,13 +60,13 @@ export interface SelectField extends BaseSettingsField {
 export interface TextField extends BaseSettingsField {
   type: 'text_display';
   text?: string;
-  style?: 'default' | 'muted' | 'info' | 'success' | 'warning' | 'error';
+  variant?: 'default' | 'muted' | 'info' | 'success' | 'warning' | 'error';
 }
 
 export interface BadgeField extends BaseSettingsField {
   type: 'badge';
   text?: string;
-  style?: 'default' | 'muted' | 'info' | 'success' | 'warning' | 'error';
+  variant?: 'default' | 'muted' | 'info' | 'success' | 'warning' | 'error';
 }
 
 export type SettingsField = InputField | ButtonField | SwitchField | SelectField | TextField | BadgeField;
@@ -105,7 +105,7 @@ export interface UIComponent {
 export interface ModalButton {
   label: string;
   action: () => void;
-  style?: 'primary' | 'secondary' | 'danger';
+  variant?: 'primary' | 'secondary' | 'danger';
   disabled?: boolean;
 }
 

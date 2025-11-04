@@ -317,19 +317,19 @@ export const COMPONENT_METADATA = {
         primary: { 
           label: 'Actions', 
           buttonTitle: 'Save Settings',
-          style: 'primary',
+          variant: 'primary',
           description: 'Primary style button for main actions (blue/accent color)'
         },
         secondary: { 
           label: 'Actions',
           buttonTitle: 'Cancel',
-          style: 'secondary',
+          variant: 'secondary',
           description: 'Secondary style button for alternative actions (neutral color)'
         },
         danger: { 
           label: 'Danger Zone',
           buttonTitle: 'Delete Account',
-          style: 'danger',
+          variant: 'danger',
           description: 'Danger style button for destructive actions (red/error color)'
         },
         disabled: { 
@@ -381,25 +381,25 @@ export const COMPONENT_METADATA = {
         info: { 
           label: 'System Info', 
           text: 'All services running',
-          style: 'info',
+          variant: 'info',
           description: 'Info style for informational messages (blue color)'
         },
         success: { 
           label: 'Connection', 
           text: 'Connected successfully',
-          style: 'success',
+          variant: 'success',
           description: 'Success style for positive status (green color)'
         },
         warning: {
           label: 'Storage',
           text: 'Disk usage at 85%',
-          style: 'warning',
+          variant: 'warning',
           description: 'Warning style for cautionary messages (orange/yellow color)'
         },
         error: { 
           label: 'Database', 
           text: 'Connection failed',
-          style: 'error',
+          variant: 'error',
           description: 'Error style for error messages (red color)'
         }
       }
@@ -416,25 +416,25 @@ export const COMPONENT_METADATA = {
         info: { 
           label: 'Version', 
           text: 'v2.1.0',
-          style: 'info',
+          variant: 'info',
           description: 'Info badge style for informational labels (blue badge)'
         },
         success: { 
           label: 'Status', 
           text: 'Active',
-          style: 'success',
+          variant: 'success',
           description: 'Success badge style for positive status (green badge)'
         },
         warning: { 
           label: 'Release', 
           text: 'Beta',
-          style: 'warning',
+          variant: 'warning',
           description: 'Warning badge style for cautionary labels (orange/yellow badge)'
         },
         error: { 
           label: 'Build', 
           text: 'Failed',
-          style: 'error',
+          variant: 'error',
           description: 'Error badge style for error status (red badge)'
         }
       }
