@@ -1,7 +1,7 @@
 {
 	"settings": {
-		"effect": "breathing",
-		"speed": 1,
+		"effect": "off",
+		"speed": 100,
 		"brightness": 100,
 		"color": "#FF0000",
 		"autoTest": false,

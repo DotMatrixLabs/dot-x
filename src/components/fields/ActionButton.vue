@@ -26,7 +26,7 @@ export default {
       type: String,
       default: 'Click'
     },
-    style: {
+    variant: {
       type: String,
       default: '', // primary, secondary, danger
       validator: (value) => ['', 'primary', 'secondary', 'danger'].includes(value)
@@ -39,7 +39,7 @@ export default {
     buttonClass() {
       const baseClass = `btn btn-md ${this.disabled ? 'btn-disabled' : ''}`;
       
-      switch (this.style) {
+      switch (this.variant) {
         case 'primary':
           return `${baseClass} btn-primary`;
         case 'secondary':
