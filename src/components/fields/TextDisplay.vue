@@ -20,14 +20,14 @@
       description: { type: String, default: '' },
       value: { type: String, default: '' },
       text: { type: String, default: '' },
-      style: { type: String, default: 'default' }, // default | muted | info | success | warning | error
+      variant: { type: String, default: 'default' }, // default | muted | info | success | warning | error
     },
     computed: {
       displayedText() {
         return (this.text ?? this.value) || '';
       },
       styleClass() {
-        switch (this.style) {
+        switch (this.variant) {
           case 'muted':
             return 'opacity-60';
           case 'info':

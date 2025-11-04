@@ -345,7 +345,7 @@ export class SettingsBuilder {
       type: 'button',
       label: '',
       text: '',
-      style: 'primary',
+      variant: 'primary',
       buttonTitle: 'Apply',
     } as ButtonField;
 
@@ -537,7 +537,7 @@ export class SettingsBuilder {
       type: 'text_display',
       label: '',
       text: '',
-      style: 'default',
+      variant: 'default',
     } as TextField;
 
     const section = this.ensureCurrentSection();
@@ -602,7 +602,7 @@ export class SettingsBuilder {
       type: 'badge',
       label: '',
       text: '',
-      style: 'default',
+      variant: 'default',
     } as BadgeField;
 
     const section = this.ensureCurrentSection();
@@ -1335,8 +1335,8 @@ export class ButtonFieldHandle {
    * @param style - The button style (primary, secondary, danger)
    * @returns The ButtonFieldHandle for method chaining
    */
-  setStyle(style: ButtonField['style']): this {
-    (this.component as any).style = style;
+  setStyle(style: ButtonField['variant']): this {
+    (this.component as any).variant = style;
     this.notifyChange?.();
     return this;
   }
@@ -1505,8 +1505,8 @@ export class TextFieldHandle {
    * @param style - The text style (default, muted, info, success, warning, error)
    * @returns The TextFieldHandle for method chaining
    */
-  setStyle(style: TextField['style']): this {
-    (this.component as any).style = style;
+  setStyle(style: TextField['variant']): this {
+    (this.component as any).variant = style;
     this.notifyChange?.();
     return this;
   }
@@ -1578,8 +1578,8 @@ export class BadgeFieldHandle {
    * @param style - The badge style (default, muted, info, success, warning, error)
    * @returns The BadgeFieldHandle for method chaining
    */
-  setStyle(style: BadgeField['style']): this {
-    (this.component as any).style = style;
+  setStyle(style: BadgeField['variant']): this {
+    (this.component as any).variant = style;
     this.notifyChange?.();
     return this;
   }
