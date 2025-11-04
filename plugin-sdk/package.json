@@ -18,10 +18,10 @@
     "node": ">=16"
   },
   "scripts": {
-    "docs:clean": "powershell -NoProfile -Command \"Remove-Item -Recurse -Force 'D:/dotmatrixlabs-docs/docs/plugin-sdk/reference' -ErrorAction SilentlyContinue\"",
-    "docs:build": "yarn run docs:clean && node ./scripts/generate-docs.mjs \"D:/dotmatrixlabs-docs/docs/plugin-sdk/reference\"",
-    "docs:build:old": "yarn run docs:clean && typedoc --options ./typedoc.json --out \"D:/dotmatrixlabs-docs/docs/plugin-sdk/reference\" && node ./scripts/split-docs.mjs \"D:/dotmatrixlabs-docs/docs/plugin-sdk/reference\"",
-    "docs:watch": "typedoc --options ./typedoc.json --out \"D:/dotmatrixlabs-docs/docs/plugin-sdk/reference\" --watch"
+    "docs:generate": "node ./scripts/generate-docs.mjs",
+    "docs:sync": "node ./scripts/sync-components.mjs",
+    "docs:build": "node ./scripts/build-docs.mjs",
+    "docs:build:fast": "node ./scripts/build-docs.mjs --skip-typedoc"
   },
   "dependencies": {
     "conf": "^14.0.0",

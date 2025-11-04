@@ -37,7 +37,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Configuration
-const outputDir = process.argv[2] || resolve(__dirname, '../../dotmatrixlabs-docs/docs/plugin-sdk/reference');
+const outputDir = process.argv[2] || resolve(__dirname, '../../../dotmatrixlabs-docs/docs/plugin-sdk/reference');
 const typedocConfigPath = resolve(__dirname, '../typedoc.json');
 const tempJsonPath = resolve(__dirname, '../temp-typedoc.json');
 const projectRoot = resolve(__dirname, '..');
@@ -529,9 +529,92 @@ function generateMethodDetails(methods) {
 }
 
 /**
+ * Load component metadata for live examples
+ */
+function loadComponentMetadata() {
+  try {
+    // Path from plugin-sdk/scripts/ to src/components/fields/metadata.ts
+    const metadataPath = resolve(__dirname, '../../src/components/fields/metadata.ts');
+    if (!existsSync(metadataPath)) {
+      console.warn(`   ⚠️  Metadata file not found at: ${metadataPath}`);
+      return null;
+    }
+    const metadataContent = readFileSync(metadataPath, 'utf-8');
+    
+    // Extract the COMPONENT_METADATA object and convert to JS
+    const jsContent = metadataContent
+      .replace(/export const/g, 'const')
+      .replace(/export type[^;]+;/g, '');
+    
+    const tempPath = resolve(__dirname, '../temp-metadata-docs.mjs');
+    writeFileSync(tempPath, jsContent + '\nexport { COMPONENT_METADATA };');
+    
+    // Use dynamic import (we're in an ES module)
+    return tempPath;
+  } catch (e) {
+    console.warn('⚠️  Could not load component metadata:', e.message);
+    return null;
+  }
+}
+
+/**
+ * Generate Live Examples section based on component metadata
+ */
+function generateLiveExamplesSection(item, metadata) {
+  if (!metadata) {
+    return '';
+  }
+  
+  // Map display names to metadata keys
+  const nameToKey = {
+    'Badge Field': 'badge',
+    'Button Field': 'button',
+    'Input Field': 'input',
+    'Select Field': 'select',
+    'Switch Field': 'switch',
+    'Text Field': 'text_display'
+  };
+  
+  const metadataKey = nameToKey[item.displayName];
+  
+  if (!metadataKey || !metadata[metadataKey]) {
+    return '';
+  }
+  
+  const componentMeta = metadata[metadataKey];
+  if (!componentMeta.docs || !componentMeta.docs.examples) {
+    return '';
+  }
+  
+  const examples = Object.keys(componentMeta.docs.examples);
+  if (examples.length === 0) {
+    return '';
+  }
+  
+  const lines = [
+    '### Live Examples',
+    '',
+    '::: details View Examples',
+    '<ClientOnly>'
+  ];
+  
+  for (const exampleName of examples) {
+    const kebabName = exampleName.replace(/_/g, '-');
+    const componentName = `demo-${metadataKey.replace(/_/g, '-')}-${kebabName}`;
+    lines.push(`  <${componentName} />`);
+  }
+  
+  lines.push('</ClientOnly>');
+  lines.push(':::');
+  lines.push('');
+  
+  return lines.join('\n');
+}
+
+/**
  * Generate detailed documentation for an item
  */
-function generateItemDetails(item) {
+function generateItemDetails(item, componentMetadata = null) {
   const lines = [];
   
   // Main heading with display name
@@ -542,6 +625,15 @@ function generateItemDetails(item) {
   if (item.description) {
     lines.push(item.description);
     lines.push('');
+  }
+  
+  // Live Examples (inject after description for SettingsBuilder Components)
+  if (item.categories.includes('SettingsBuilder Components')) {
+    const liveExamplesSection = generateLiveExamplesSection(item, componentMetadata);
+    if (liveExamplesSection) {
+      // Split the section string and push each line individually
+      lines.push(...liveExamplesSection.split('\n'));
+    }
   }
   
   // See also references
@@ -620,6 +712,28 @@ function generateItemDetails(item) {
   return lines.join('\n');
 }
 
+// Load component metadata for live examples
+console.log('\n📦 Loading component metadata...');
+const metadataPath = loadComponentMetadata();
+let componentMetadata = null;
+
+if (metadataPath) {
+  try {
+    const metadataModule = await import(`file://${metadataPath}`);
+    componentMetadata = metadataModule.COMPONENT_METADATA;
+    console.log('   ✅ Component metadata loaded');
+    
+    // Clean up temp file
+    if (existsSync(metadataPath)) {
+      unlinkSync(metadataPath);
+    }
+  } catch (e) {
+    console.warn('   ⚠️  Could not import metadata:', e.message);
+  }
+} else {
+  console.log('   ℹ️  No component metadata found (live examples will be skipped)');
+}
+
 // Generate a file for each category
 const generatedFiles = [];
 
@@ -636,7 +750,7 @@ for (const category of categoryOrder) {
   const content = [
     generateFrontmatter(category, items),
     generateOverviewTable(items),
-    items.map(item => generateItemDetails(item)).join('\n---\n\n')
+    items.map(item => generateItemDetails(item, componentMetadata)).join('\n---\n\n')
   ].join('\n');
   
   writeFileSync(filepath, content, 'utf-8');
