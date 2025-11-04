@@ -27,7 +27,6 @@ type SimpleConfig = {
 /**
  * Declarative description of a settings section containing UI components.
  * 
- * @category SettingsBuilder Components
  *
  * @property {string} key - Stable identifier for the section.
  * @property {string} [name] - Human-readable section name; shown in UI.
@@ -41,7 +40,6 @@ type SimpleConfig = {
 export type UISection = {
   key: string;
   name?: string;
-  title?: string; // back-compat display name
   disabled?: boolean;
   hidden?: boolean;
   expandable?: boolean;
@@ -966,6 +964,7 @@ export class SettingsBuilder {
  * Provides methods to configure section properties like name, visibility, and expandability.
  * 
  * @displayName Section
+ * @order first
  * @category SettingsBuilder Components
  */
 export class SectionHandle {
@@ -1040,7 +1039,6 @@ export class SectionHandle {
  * modal. These buttons can be assigned to device channels (sliders, knobs, buttons) and
  * can have their own settings UI.
  * 
- * @category Action Mapper Modal
  * 
  * @example
  * ```typescript
@@ -1781,7 +1779,6 @@ export function createSettingsBuilder(): SettingsBuilder {
  * Factory function for creating an action mapper. Usually not needed as
  * the plugin class provides `this.actionmapper` automatically.
  *
- * @category Action Mapper Modal
  * 
  * @returns New ActionMapper instance
  * 
