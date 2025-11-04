@@ -6,6 +6,7 @@
   "categoryOrder": [
     "Plugin Lifecycle",
     "Settings Page",
+    "SettingsBuilder Components",
     "Action Mapper Modal",
     "Global UI",
     "Storing Data",
@@ -25,7 +26,8 @@
     "@related",
     "@category",
     "@since",
-    "@order"
+    "@order",
+    "@see"
   ]
 }
 

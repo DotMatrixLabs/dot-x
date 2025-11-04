@@ -387,6 +387,7 @@ class Plugin {
        * Adds settings to the plugin settings page.
        * 
        * @category Settings Page
+       * @see SettingsBuilder Components - For all available UI components
        * 
        * @param buildFn - The function to build the settings.
        * @returns The settings page builder.
