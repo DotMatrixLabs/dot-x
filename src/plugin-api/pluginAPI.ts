@@ -9,6 +9,7 @@ import { uiManager } from './ui';
 import { useStore } from '../store/store';
 import { useDeckerStore } from "../store/deckerStore.ts";
 import EventBus from '../js/eventBus.js';
+import RGBController from '../ts/RGBController';
 
 export class PluginAPI {
   private static instance: PluginAPI | null = null;
@@ -188,6 +189,39 @@ export class PluginAPI {
             request_id: request.request_id,
             success: false,
             error: `Failed to get sliders: ${error instanceof Error ? error.message : String(error)}`
+          };
+        }
+      } else if (request.method.startsWith('rgb.')) {
+        // Handle RGB control methods
+        const methodName = request.method.split('.')[1];
+        
+        try {
+          if (methodName === 'setEffect') {
+            const { effectName, speed, brightness, color } = request.params;
+            RGBController.setEffect(effectName, speed, brightness, color);
+            response = {
+              request_id: request.request_id,
+              success: true,
+              data: { effectName, speed, brightness, color }
+            };
+          } else if (methodName === 'getAvailableEffects') {
+            response = {
+              request_id: request.request_id,
+              success: true,
+              data: { effects: RGBController.effects }
+            };
+          } else {
+            response = {
+              request_id: request.request_id,
+              success: false,
+              error: `Unknown RGB method: ${methodName}`
+            };
+          }
+        } catch (error) {
+          response = {
+            request_id: request.request_id,
+            success: false,
+            error: `RGB control error: ${error instanceof Error ? error.message : String(error)}`
           };
         }
       } else {

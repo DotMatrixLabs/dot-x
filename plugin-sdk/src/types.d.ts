@@ -273,6 +273,34 @@ export type SystemEvent =
   | 'plugin-unloaded'
   | 'settings-changed';
 
+// --- RGB Control Types ---
+
+/**
+ * Available RGB lighting effects for the Decker device.
+ */
+export type RGBEffect = 
+  | 'rainbow'
+  | 'static'
+  | 'off'
+  | 'lightningStorm'
+  | 'candle'
+  | 'perimeter'
+  | 'breathing';
+
+/**
+ * RGB control options for setting LED effects.
+ */
+export interface RGBOptions {
+  /** The lighting effect to apply */
+  effect: RGBEffect;
+  /** Animation speed (0-100) */
+  speed: number;
+  /** LED brightness (0-100) */
+  brightness: number;
+  /** Color in hex format (e.g., '#FF0000' for red) */
+  color: string;
+}
+
 // --- Slider Action (System Utilities) Types ---
 //TODO: Rename to Channel Action
 export interface SystemUtilButton {

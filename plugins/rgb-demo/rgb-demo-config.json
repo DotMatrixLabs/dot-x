@@ -1,0 +1,11 @@
+{
+	"settings": {
+		"effect": "breathing",
+		"speed": 1,
+		"brightness": 100,
+		"color": "#FF0000",
+		"autoTest": false,
+		"sliderControlsRGB": false,
+		"rgbControlMode": "disabled"
+	}
+}

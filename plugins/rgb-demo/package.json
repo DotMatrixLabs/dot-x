@@ -1,0 +1,17 @@
+{
+  "name": "rgb-demo",
+  "version": "1.0.0",
+  "main": "main.ts",
+  "type": "commonjs",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "esbuild main.ts --bundle --outfile=main.js --format=cjs --platform=node --target=node16 --minify"
+  },
+  "author": "DotX Team",
+  "license": "MIT",
+  "description": "RGB lighting control demo plugin for Decker device",
+  "dependencies": {
+    "esbuild": "^0.25.6"
+  }
+}
+
