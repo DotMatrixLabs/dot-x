@@ -592,6 +592,16 @@ console.log('\n📂 Phase 3: Grouping by category...');
 const typedocConfig = JSON.parse(readFileSync(typedocConfigPath, 'utf-8'));
 const categoryOrder = typedocConfig.categoryOrder.filter(c => c !== '*');
 
+// Read docs configuration for outline and ordering
+const docsConfigPath = resolve(__dirname, '../docs-config.json');
+let docsConfig = { outlineEnabled: [], fileOrder: {} };
+if (existsSync(docsConfigPath)) {
+  docsConfig = JSON.parse(readFileSync(docsConfigPath, 'utf-8'));
+  console.log('   ✅ Loaded docs-config.json');
+} else {
+  console.log('   ℹ️  No docs-config.json found (using defaults)');
+}
+
 // Group items by category
 const categoryMap = new Map();
 
@@ -662,15 +672,27 @@ function escapeTableCell(text) {
 function generateFrontmatter(category, items) {
   const related = [...new Set(items.flatMap(item => item.related))].filter(Boolean);
   
-  return [
+  const frontmatterLines = [
     '---',
     `title: ${category}`,
     `category: ${categoryToFilename(category).replace('.md', '')}`,
     `description: Documentation for ${category} components and utilities`,
-    related.length > 0 ? `related: [${related.join(', ')}]` : null,
-    '---',
-    ''
-  ].filter(Boolean).join('\n');
+    related.length > 0 ? `related: [${related.join(', ')}]` : null
+  ];
+  
+  // Add outline: deep if this category is in the outlineEnabled list
+  if (docsConfig.outlineEnabled.includes(category)) {
+    frontmatterLines.push('outline: deep');
+  }
+  
+  // Add order if specified in fileOrder
+  if (docsConfig.fileOrder[category] !== undefined) {
+    frontmatterLines.push(`order: ${docsConfig.fileOrder[category]}`);
+  }
+  
+  frontmatterLines.push('---', '');
+  
+  return frontmatterLines.filter(Boolean).join('\n');
 }
 
 /**
