@@ -22,7 +22,7 @@ import EventBus from '../js/eventBus';
         props: {
             plugin: {
                 type: Object,
-                required: true
+                required: true,
             }
         },
         data() {
@@ -40,6 +40,14 @@ import EventBus from '../js/eventBus';
             
         },
         computed: {
+        },
+        watch: {
+            plugin: {
+                handler() {
+                    this.loadSettings();
+                },
+                immediate: false,
+            }
         },
         created() {
         },
