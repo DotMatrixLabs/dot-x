@@ -1,14 +1,19 @@
 <template>
 	<div class="flex flex-col h-full w-full p-4 gap-4">
 		<!-- Plugin system options -->
-		<div class="flex items-center justify-between">
-			<div class="">
-				<h2 class="">Install plugins</h2>
-				<p class="text-xs px-0 label-text">Browse and install plugins to extend what Dot X can do</p>
+		<div class="relative">
+			<div class="flex items-center justify-between opacity-10 pointer-events-none">
+				<div class="">
+					<h2 class="">Install plugins</h2>
+					<p class="text-xs px-0 label-text">Browse and install plugins to extend what Dot X can do</p>
+				</div>
+				<button class="btn btn-primary btn-xs" @click="installNewPlugin">
+					Browse Plugins
+				</button>
 			</div>
-			<button class="btn btn-primary btn-xs" @click="installNewPlugin">
-				Browse Plugins
-			</button>
+			<div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+				<span class="bg-white/10 backdrop-blur-md text-base-content text-sm px-3 py-1 rounded-md z-20">Coming soon!</span>
+			</div>
 		</div>
 
 		<!-- Plugin list -->
