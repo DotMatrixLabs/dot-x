@@ -24,11 +24,11 @@
       </div>
 
       <div class="shrink-0 flex items-center gap-1">
-        <div class="tooltip tooltip-bottom" data-tip="Marketplace">
+        <!-- <div class="tooltip tooltip-bottom" data-tip="Marketplace">
           <a :href="marketplaceHref" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-xs btn-square">
             <i class="fa-solid fa-store" />
           </a>
-        </div>
+        </div> -->
         <div class="tooltip tooltip-bottom" data-tip="Logs">
           <button class="btn btn-ghost btn-xs btn-square" @click="openLogs">
             <i class="fa-solid fa-file-lines" />
