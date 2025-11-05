@@ -334,5 +334,9 @@ export default {
 }
 </script>
 
-<style lang="scss" scoped>
+<style scoped>
+.tooltip {
+    --tooltip-color: hsl(var(--b3));
+    --tooltip-text-color: hsl(var(--sc));
+}
 </style>
