@@ -129,6 +129,83 @@ function isDocumented(item) {
 }
 
 /**
+ * Extract nested @param tags from blockTags
+ * Looks for @param tags with names like "params.message"
+ */
+function extractNestedParams(comment, parentParamName) {
+  if (!comment?.blockTags) return [];
+  
+  const nestedParams = [];
+  const prefix = `${parentParamName}.`;
+  
+  for (const tag of comment.blockTags) {
+    if (tag.tag === '@param' && tag.name) {
+      // Check if this is a nested param using the name field (e.g., "params.message")
+      if (tag.name.startsWith(prefix)) {
+        const nestedName = tag.name.substring(prefix.length);
+        const description = tag.content ? tag.content.map(c => c.text || '').join('').trim() : '';
+        
+        nestedParams.push({
+          name: nestedName,
+          description: description
+        });
+      }
+    }
+  }
+  
+  return nestedParams;
+}
+
+/**
+ * Extract parameter types from markdown table in the full comment text
+ * This is a fallback to get type information when available
+ */
+function extractTypesFromTable(comment) {
+  if (!comment?.summary) return {};
+  
+  const fullText = comment.summary.map(part => part.text || '').join('');
+  const types = {};
+  
+  // Look for markdown table with Parameter and Type columns
+  const lines = fullText.split('\n');
+  let inTable = false;
+  let headerSeen = false;
+  
+  for (const line of lines) {
+    const trimmed = line.trim();
+    
+    if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
+      if (trimmed.includes('Parameter') && trimmed.includes('Type')) {
+        inTable = true;
+        continue;
+      }
+      
+      if (trimmed.includes('---')) {
+        headerSeen = true;
+        continue;
+      }
+      
+      if (inTable && headerSeen) {
+        const cells = trimmed.split('|').map(c => c.trim()).filter(Boolean);
+        
+        if (cells.length >= 2) {
+          const paramName = cells[0].replace(/`/g, '').trim();
+          const paramType = cells[1].replace(/`/g, '').replace(/\\\|/g, '|').trim();
+          
+          if (paramName && paramType) {
+            types[paramName] = paramType;
+          }
+        }
+      }
+    } else if (inTable && headerSeen) {
+      break;
+    }
+  }
+  
+  return types;
+}
+
+/**
  * Parse parameter information
  */
 function parseParameters(item) {
@@ -283,6 +360,104 @@ function processItem(item) {
           description: getDescription(prop.comment)
         }));
     }
+  } else if (item.kind === 256 && item.children) { // Interface
+    // Extract properties from interface (treat method properties as methods)
+    for (const child of item.children) {
+      if (child.kind === 1024) { // Property
+        // Check if it's a function property (method signature)
+        if (child.type?.type === 'reflection' && child.type.declaration?.signatures) {
+          // Treat as a method
+          const sig = child.type.declaration.signatures[0];
+          const comment = child.comment || sig.comment;
+          
+          // Build parameters array
+          let parameters = [];
+          
+          if (sig.parameters) {
+            // Extract type information from markdown table if available
+            const typeMap = extractTypesFromTable(comment);
+            
+            for (const p of sig.parameters) {
+              // Check for nested @param tags (e.g., @param params.message)
+              const nestedParams = extractNestedParams(comment, p.name);
+              
+              if (nestedParams.length > 0) {
+                // Has nested parameters - expand them with types from table
+                for (const nested of nestedParams) {
+                  parameters.push({
+                    name: nested.name,
+                    type: typeMap[nested.name] || 'any',
+                    description: nested.description,
+                    optional: false
+                  });
+                }
+              } else if (p.type?.type === 'reference' && p.type.name) {
+                // Parameter is a reference type - try to look it up and expand its properties
+                const typeDef = findTypeDefinition(p.type.name);
+                
+                if (typeDef && typeDef.children) {
+                  // Found the type definition - extract its properties
+                  for (const prop of typeDef.children) {
+                    if (prop.kind === 1024) { // Property
+                      const propType = formatType(prop.type);
+                      const propDesc = getDescription(prop.comment);
+                      const isOptional = prop.flags?.isOptional || false;
+                      
+                      parameters.push({
+                        name: prop.name,
+                        type: typeMap[prop.name] || propType,
+                        description: propDesc,
+                        optional: isOptional
+                      });
+                    }
+                  }
+                } else {
+                  // Couldn't expand - use the parameter as-is
+                  parameters.push({
+                    name: p.name,
+                    type: formatType(p.type),
+                    description: getDescription(p.comment),
+                    optional: p.flags?.isOptional || false
+                  });
+                }
+              } else {
+                // No nested parameters and not a reference type - use the parameter as-is
+                parameters.push({
+                  name: p.name,
+                  type: formatType(p.type),
+                  description: getDescription(p.comment),
+                  optional: p.flags?.isOptional || false
+                });
+              }
+            }
+          }
+          
+          const method = {
+            name: child.name,
+            signature: formatMethodSignature({
+              name: child.name,
+              signatures: [sig]
+            }),
+            description: getDescription(comment),
+            parameters: parameters,
+            returns: {
+              type: formatType(sig.type),
+              description: getTagValue(comment, 'returns')
+            },
+            examples: getExamples(comment),
+            see: getAllTagValues(comment, 'see')
+          };
+          processed.methods.push(method);
+        } else if (isDocumented(child)) {
+          // Regular property
+          processed.properties.push({
+            name: child.name,
+            type: formatType(child.type),
+            description: getDescription(child.comment)
+          });
+        }
+      }
+    }
   } else if (item.kind === 64 && item.signatures) { // Function
     const sig = item.signatures[0];
     processed.parameters = parseParameters(item);
@@ -311,6 +486,28 @@ function processAllItems(item, results = []) {
   }
   
   return results;
+}
+
+// Store the full typedoc data for type lookups
+let typedocDataGlobal = typedocData;
+
+/**
+ * Find a type definition in the TypeDoc JSON
+ */
+function findTypeDefinition(typeName) {
+  function search(item) {
+    if (item.name === typeName && (item.kind === 256 || item.kind === 4194304)) {
+      return item;
+    }
+    if (item.children) {
+      for (const child of item.children) {
+        const result = search(child);
+        if (result) return result;
+      }
+    }
+    return null;
+  }
+  return search(typedocDataGlobal);
 }
 
 // Process the TypeDoc output
@@ -500,8 +697,14 @@ function generateMethodDetails(methods) {
     if (method.parameters.length > 0) {
       lines.push('**Parameters:**');
       lines.push('');
+      lines.push('| Name | Type | Required | Description |');
+      lines.push('|------|------|----------|-------------|');
       for (const param of method.parameters) {
-        lines.push(`- \`${param.name}\` (${param.type})${param.optional ? ' - Optional' : ''}: ${param.description || 'No description'}`);
+        const paramName = escapeTableCell(param.name);
+        const paramType = escapeTableCell(param.type);
+        const required = param.optional ? 'No' : 'Yes';
+        const desc = escapeTableCell(param.description || 'No description');
+        lines.push(`| \`${paramName}\` | \`${paramType}\` | ${required} | ${desc} |`);
       }
       lines.push('');
     }
