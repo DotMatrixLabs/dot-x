@@ -1,8 +1,14 @@
 import { defineStore } from "pinia";
 import PluginsStore from "../ts/plugins";
+import { invoke } from "@tauri-apps/api/core";
+
+interface StoreState {
+    activePlugins: Set<string>;
+    enabledPlugins: Set<string>;
+}
 
 export const useStore = defineStore('store', {
-    state: () => ({
+    state: (): StoreState => ({
         activePlugins: new Set<string>(),
         enabledPlugins: new Set<string>(),
     }),
@@ -39,6 +45,13 @@ export const useStore = defineStore('store', {
                 next.add(pluginId);
                 this.enabledPlugins = next;
                 await PluginsStore.setEnabledPluginIds(Array.from(this.enabledPlugins));
+                
+                // Start the plugin
+                try {
+                    await invoke('start_plugin', { pluginId });
+                } catch (error) {
+                    console.error(`Failed to start plugin ${pluginId}:`, error);
+                }
             }
         },
         async disablePluginId(pluginId: string) {
@@ -47,6 +60,13 @@ export const useStore = defineStore('store', {
                 next.delete(pluginId);
                 this.enabledPlugins = next;
                 await PluginsStore.setEnabledPluginIds(Array.from(this.enabledPlugins));
+                
+                // Stop the plugin
+                try {
+                    await invoke('stop_plugin', { pluginId });
+                } catch (error) {
+                    console.error(`Failed to stop plugin ${pluginId}:`, error);
+                }
             }
         },
         isPluginEnabled(pluginId: string) {
