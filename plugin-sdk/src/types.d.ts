@@ -2,8 +2,11 @@
 // Note: This file represents the public types used by the plugin SDK
 
 export interface ToastParams {
+  /** The message to display */
   message: string;
+  /** Visual style of the toast (default: 'info') */
   type?: 'info' | 'success' | 'warning' | 'error';
+  /** Auto-dismiss duration in milliseconds (default: 3000) */
   duration?: number;
 }
 

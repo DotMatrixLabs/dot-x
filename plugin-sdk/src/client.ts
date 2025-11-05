@@ -91,12 +91,12 @@ export interface DeviceChanges {
  * Global UI methods for doing things like showing notifications and dialogs on top of the application window.
  * 
  * @category Global UI
+ * 
  */
 export interface UIApi {
+
   /**
    * Displays a toast notification to the user.
-   * 
-   * @category Global UI
    * 
    * @param params - Toast configuration
    * @param params.message - Message text to display
@@ -111,6 +111,9 @@ export interface UIApi {
    * | `message` | `string` | Yes | - | The message to display |
    * | `type` | `'info' \| 'success' \| 'warning' \| 'error'` | No | `'info'` | Visual style of the toast |
    * | `duration` | `number` | No | `3000` | Auto-dismiss duration in milliseconds |
+   * 
+   * @category Global UI
+   * @displayName showToast
    * 
    * @example
    * ```typescript

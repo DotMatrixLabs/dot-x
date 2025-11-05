@@ -27,7 +27,10 @@
     "@category",
     "@since",
     "@order",
-    "@see"
+    "@see",
+    "@param",
+    "@returns",
+    "@example"
   ]
 }
 
