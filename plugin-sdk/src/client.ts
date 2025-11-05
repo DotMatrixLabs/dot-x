@@ -434,8 +434,6 @@ export class APIClient {
   
   /**
    * Global UI methods for showing notifications and dialogs.
-   * 
-   * @category Global UI
    */
   get ui(): UIApi {
     return {
