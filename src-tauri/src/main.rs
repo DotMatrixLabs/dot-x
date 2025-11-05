@@ -436,7 +436,7 @@ fn main() {
     let tray_menu = build_menu();
 
     let client = sentry_tauri::sentry::init((
-        "https://473d7b762855b5baa461a7921a5f95cc@sentry-ingest.frogbyte.io/4",
+        "http://4e7acf1ba609c747863f8e3117f062e2@sentry-ingest.frogbyte.io/3",
         sentry_tauri::sentry::ClientOptions {
             release: sentry_tauri::sentry::release_name!(),
             attach_stacktrace: true,
