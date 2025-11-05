@@ -61,6 +61,9 @@ export class PluginAPI {
       // Setup event listeners for plugin events
       await this.setupTauriEventListeners();
       
+      // Sync active plugins with backend to handle renderer resets
+      await this.syncActivePlugins();
+      
       this.isInitialized = true;
       console.log(`Plugin API Server initialized on port ${this.serverPort}`);
       
@@ -301,6 +304,20 @@ export class PluginAPI {
     } catch (e) {
       console.error('Failed to get connected plugins', e);
       return [] as any[];
+    }
+  }
+
+  /**
+   * Sync the active plugins list with currently connected plugins from the backend.
+   * This ensures the store stays in sync even if the renderer resets.
+   */
+  private async syncActivePlugins() {
+    try {
+      const connectedPlugins = await this.getConnectedPlugins();
+      const pluginIds = connectedPlugins.map(plugin => plugin.id);
+      useStore().setActivePlugins(pluginIds);
+    } catch (error) {
+      console.error('Failed to sync active plugins:', error);
     }
   }
 
