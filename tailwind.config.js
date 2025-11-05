@@ -8,12 +8,13 @@ module.exports = {
   ],
   theme: {
     colors: {
-      'primary': '#202124',
+      'primary': '#1a1a1a',
       'secondary': '#292A2D',
       'secondaryLight': '#555555',
-      'accent': '#CC051C',
-      'hover-accent': '#A80316',
+      'accent': '#7033d9',
+      'hover-accent': '#5a28ad',
       'hover-white': '#D2D2D2',
+      'brand-white': '#f9f9fb',
       transparent: 'transparent',
       gray: colors.gray,
       blue: colors.blue,
@@ -25,37 +26,55 @@ module.exports = {
       yellow: colors.yellow,
       black: colors.black,
     },
-    extend: {},
+    extend: {
+      fontFamily: {
+        'sans': ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+        'heading': ['Poppins', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+      },
+    },
   },
   plugins: [require("daisyui")],
   daisyui: {
-    base: false,
-    themes: true,
-    // themes: [
-    //   {
-    //     mytheme: {
-    //       "primary": "#6f57d8",
-    //       "secondary": "#f6d860",
-    //       "accent": "#8467ff",
-    //       "neutral": "#3d4451",
-    //       "base-100": "#181818",
-    //       "base-200": "#1f1f1f",
-    //       "base-300": "#333333",
-    //       "base-content": "#ffffff",
-    //       "info": "#2094f3",
-
-    //       "--rounded-box": "1rem", // border radius rounded-box utility class, used in card and other large boxes
-    //       "--rounded-btn": "0.5rem", // border radius rounded-btn utility class, used in buttons and similar element
-    //       "--rounded-badge": "1.9rem", // border radius rounded-badge utility class, used in badges and similar
-    //       "--animation-btn": "0.25s", // duration of animation when you click on button
-    //       "--animation-input": "0.2s", // duration of animation for inputs like checkbox, toggle, radio, etc
-    //       "--btn-text-case": "uppercase", // set default text transform for buttons
-    //       "--btn-focus-scale": "0.95", // scale transform of button when you focus on it
-    //       "--border-btn": "1px", // border width of buttons
-    //       "--tab-border": "1px", // border width of tabs
-    //       "--tab-radius": "0.5rem", // border radius of tabs
-    //     },
-    //   },
-    // ],
+    base: true,
+    themes: [
+      {
+        light: {
+          ...require("daisyui/src/theming/themes")["light"],
+          primary: "#7033d9", // DML accent
+          secondary: "#dadada", // DML secondary Light
+          "secondary-content": "#1a1a1a",
+          accent: "#7033d9",
+          neutral: colors.gray[700],
+          "base-100": "#f9f9fb", // DML white
+          "base-200": colors.gray[100],
+          "base-300": colors.gray[200],
+          info: colors.blue[500],
+          success: colors.green[500],
+          warning: colors.yellow[500],
+          error: colors.red[500],
+        },
+      },
+      {
+        dark: {
+          ...require("daisyui/src/theming/themes")["dark"],
+          primary: "#7033d9",
+          "primary-content": "#f9f9fb",
+          secondary: "#292A2D",
+          "secondary-content": "#f9f9fb",
+          accent: "#7033d9",
+          "accent-content": "#f9f9fb",
+          neutral: colors.gray[800],
+          "neutral-content": "#f9f9fb",
+          "base-100": "#202020", // Mica base color
+          "base-200": "#2b2b2b", // layer 1 - cards, buttons, etc.
+          "base-300": "#434343", // layer 2 - deeper cards, etc.
+          "base-content": "#f9f9fb",
+          info: colors.blue[400],
+          success: colors.green[400],
+          warning: colors.yellow[400],
+          error: colors.red[400],
+        },
+      },
+    ],
   },
 }
