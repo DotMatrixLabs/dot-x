@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import Stats from '../ts/stats.ts';
+import ConfigStore from '../ts/config.ts';
 
 export const useDeckerStore = defineStore('decker', {
   state: () => ({
@@ -7,10 +8,14 @@ export const useDeckerStore = defineStore('decker', {
     prevSliders: [] as number[], //used to detect changes
     connected: false as boolean,
     channelSettings: {} as any,
+    deviceType: 'Unknown' as string,
+    rgbBrightness: 100 as number,
   }),
   getters: {
     getSliders: (state) => state.sliders,
     getConnectionState: (state) => state.connected,
+    getDeviceType: (state) => state.deviceType,
+    getRGBBrightness: (state) => state.rgbBrightness,
   },
   actions: {
     setSliders(sliders: number[]) {
@@ -37,6 +42,21 @@ export const useDeckerStore = defineStore('decker', {
 
     updateChannelSetting(channelID: string, newSettings = {}) {
       this.channelSettings[channelID] = newSettings;
+    },
+
+    setDeviceType(type: string) {
+      this.deviceType = type;
+    },
+
+    async setBrightness(brightness: number) {
+      this.rgbBrightness = brightness;
+      await ConfigStore.set("RGBBrightness", brightness);
+      await ConfigStore.save();
+    },
+
+    async loadBrightness() {
+      const savedBrightness = await ConfigStore.get("RGBBrightness") ?? 100;
+      this.rgbBrightness = savedBrightness;
     }
   }
 
