@@ -719,7 +719,10 @@ function generateMethodTable(methods) {
       .map(p => `${p.name}${p.optional ? '?' : ''}: ${escapeTableCell(p.type)}`)
       .join(', ');
     const params = paramList || '-';
-    const desc = escapeTableCell(method.description || 'Method for this component');
+    // Extract only the first sentence for the table to avoid breaking table layout
+    const fullDesc = method.description || 'Method for this component';
+    const firstSentence = fullDesc.split(/[.!?]\s/)[0] + (fullDesc.includes('.') ? '.' : '');
+    const desc = escapeTableCell(firstSentence);
     lines.push(`| \`${method.name}()\` | ${params} | ${desc} |`);
   }
   
