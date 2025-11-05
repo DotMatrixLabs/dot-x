@@ -1033,13 +1033,18 @@ export class SectionHandle {
 }
 
 /**
- * Builder for creating System Utilities action buttons.
+ * Builder for configuring the Action Mapper modal.
  * 
- * The ActionMapper allows plugins to register custom buttons in the System Utilities
- * modal. These buttons can be assigned to device channels (sliders, knobs, buttons) and
- * can have their own settings UI.
+ * The action mapper modal is the modal where the user can configure the behavior and map a channel/slider to an action.
+ * 
+ * ![Action Mapper Modal](/assets/images/choose-program.png)
  * 
  * 
+ * The action mapper can be accessed via the `this.actionmapper` property in the plugin class.
+ * 
+ * @displayName Action Mapper
+ * @order first
+ * @category Action Mapper Modal
  * @example
  * ```typescript
  * // Create a simple action button
@@ -1052,29 +1057,6 @@ export class SectionHandle {
  *     // Call your MIDI/API to toggle mic
  *   });
  * 
- * // Action button with settings
- * const eqButton = this.actionmapper
- *   .addSystemUtilButton('equalizer')
- *   .setTitle('EQ')
- *   .setIcon('fas fa-sliders-h fa-lg')
- *   .onClick(({ selected, channel }) => {
- *     const settings = this.config.get(`eq.channel${channel}`);
- *     // Apply EQ settings
- *   });
- * 
- * // Add per-button settings
- * eqButton.addSettings((settings) => {
- *   settings.addSection('eq').setName('Equalizer Settings');
- *   
- *   settings.addSelect('preset')
- *     .setLabel('Preset')
- *     .setOptions(['Flat', 'Bass Boost', 'Treble Boost'])
- *     .setValue('Flat');
- *   
- *   settings.addSwitch('enabled')
- *     .setLabel('Enable EQ')
- *     .setValue(true);
- * });
  * ```
  */
 export class ActionMapper {
@@ -1088,18 +1070,18 @@ export class ActionMapper {
     this.configStore = configStore;
   }
 
+  /**
+   * Adds a system utility button to the action mapper.
+   * 
+   * @param id - The id of the button
+   * @returns The SystemUtilButtonHandle for method chaining
+   */
   addSystemUtilButton(id: string): SystemUtilButtonHandle {
     const btn: SystemUtilButton = { id, title: '' };
     this.buttons.push(btn);
     return new SystemUtilButtonHandle(btn, this.createNotifier(), this.configStore);
   }
 
-
-  /**
-   * Builds and returns the action mappings for registered buttons.
-   *
-   * @returns {ActionMappings}
-   */
   build(): ActionMappings {
     return {
       buttons: this.buttons.map((b) => {
@@ -1113,12 +1095,6 @@ export class ActionMapper {
     };
   }
 
-  /**
-   * Enables mutation notifications for nested handles.
-   *
-   * @returns {void}
-   * @internal
-   */
   enableNotifications(): void {
     this.notificationsEnabled = true;
   }

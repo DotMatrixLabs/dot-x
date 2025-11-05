@@ -9,7 +9,7 @@
 	"action": {
 		"bolt": {
 			"selectedByChannel": {
-				"0": true
+				"0": false
 			}
 		}
 	}
