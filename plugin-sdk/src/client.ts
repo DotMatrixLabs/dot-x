@@ -86,6 +86,64 @@ export interface DeviceChanges {
   values: Array<{ value: number }>;
 }
 
+
+/**
+ * Global UI methods for doing things like showing notifications and dialogs on top of the application window.
+ * 
+ * @category Global UI
+ */
+export interface UIApi {
+  /**
+   * Displays a toast notification to the user.
+   * 
+   * @category Global UI
+   * 
+   * @param params - Toast configuration
+   * @param params.message - Message text to display
+   * @param params.type - Notification type: 'info', 'success', 'warning', or 'error'
+   * @param params.duration - Duration in milliseconds before auto-dismiss (default: 3000)
+   * @returns Promise that resolves when the toast is shown
+   * 
+   * ## Parameters
+   * 
+   * | Parameter | Type | Required | Default | Description |
+   * |-----------|------|----------|---------|-------------|
+   * | `message` | `string` | Yes | - | The message to display |
+   * | `type` | `'info' \| 'success' \| 'warning' \| 'error'` | No | `'info'` | Visual style of the toast |
+   * | `duration` | `number` | No | `3000` | Auto-dismiss duration in milliseconds |
+   * 
+   * @example
+   * ```typescript
+   * // Success notification
+   * await this.ui.showToast({
+   *   message: 'Settings saved successfully!',
+   *   type: 'success',
+   *   duration: 3000
+   * });
+   * 
+   * // Error notification
+   * await this.ui.showToast({
+   *   message: 'Failed to connect to server',
+   *   type: 'error',
+   *   duration: 5000
+   * });
+   * 
+   * // Warning notification
+   * await this.ui.showToast({
+   *   message: 'This feature is experimental',
+   *   type: 'warning'
+   * });
+   * 
+   * // Info notification (default)
+   * await this.ui.showToast({
+   *   message: 'Processing your request...',
+   *   type: 'info'
+   * });
+   * ```
+   */
+  showToast: (params: ToastParams) => Promise<void>;
+}
+
 /**
  * Internal API client for Socket.IO communication with Dot X application.
  * 
@@ -368,69 +426,14 @@ export class APIClient {
     return 'disconnected';
   }
   
-  /**
-   * @internal
-   */
-  get settings() {
-    return {
-    };
-  }
   
   /**
    * Global UI methods for showing notifications and dialogs.
    * 
    * @category Global UI
    */
-  get ui() {
+  get ui(): UIApi {
     return {
-      /**
-       * Displays a toast notification to the user.
-       * 
-       * @category Global UI
-       * 
-       * @param params - Toast configuration
-       * @param params.message - Message text to display
-       * @param params.type - Notification type: 'info', 'success', 'warning', or 'error'
-       * @param params.duration - Duration in milliseconds before auto-dismiss (default: 3000)
-       * @returns Promise that resolves when the toast is shown
-       * 
-       * ## Parameters
-       * 
-       * | Parameter | Type | Required | Default | Description |
-       * |-----------|------|----------|---------|-------------|
-       * | `message` | `string` | Yes | - | The message to display |
-       * | `type` | `'info' \| 'success' \| 'warning' \| 'error'` | No | `'info'` | Visual style of the toast |
-       * | `duration` | `number` | No | `3000` | Auto-dismiss duration in milliseconds |
-       * 
-       * @example
-       * ```typescript
-       * // Success notification
-       * await this.ui.showToast({
-       *   message: 'Settings saved successfully!',
-       *   type: 'success',
-       *   duration: 3000
-       * });
-       * 
-       * // Error notification
-       * await this.ui.showToast({
-       *   message: 'Failed to connect to server',
-       *   type: 'error',
-       *   duration: 5000
-       * });
-       * 
-       * // Warning notification
-       * await this.ui.showToast({
-       *   message: 'This feature is experimental',
-       *   type: 'warning'
-       * });
-       * 
-       * // Info notification (default)
-       * await this.ui.showToast({
-       *   message: 'Processing your request...',
-       *   type: 'info'
-       * });
-       * ```
-       */
       showToast: (params: ToastParams) => this.call('ui.showToast', params),
     };
   }
