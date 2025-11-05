@@ -54,8 +54,6 @@ class Plugin {
   /**
    * Global UI methods for showing toasts, modals, and confirmations.
    * 
-   * @category Global UI
-   * 
    * @example
    * ```typescript
    * // Show a success toast
