@@ -1,5 +1,6 @@
 import { invoke } from '@tauri-apps/api/tauri';
 import SelectedApps from './appsToControl';
+import { useDeckerStore } from '../store/deckerStore';
 
 /**
  * Class for controlling system volume and audio sessions.
@@ -11,6 +12,9 @@ class SystemVolumeController {
     private lastSetVolumeApp: string;
     private brightnessTimeoutId: NodeJS.Timeout | null = null;
     private latestBrightnessValue: number;
+    private rgbBrightnessTimeoutId: NodeJS.Timeout | null = null;
+    private latestRGBBrightnessValue: number;
+    private lastRGBBrightnessExecutionTime: number;
 
     constructor() {
         this.lastActiveWindowExecutionTime = 0;
@@ -19,6 +23,9 @@ class SystemVolumeController {
         this.lastSetVolumeApp = "";
         this.brightnessTimeoutId = null;
         this.latestBrightnessValue = 0;
+        this.rgbBrightnessTimeoutId = null;
+        this.latestRGBBrightnessValue = 0;
+        this.lastRGBBrightnessExecutionTime = 0;
     }
 
     /**
@@ -155,6 +162,41 @@ class SystemVolumeController {
                 await invoke('set_screen_brightness', { brightness: this.latestBrightnessValue, screens: ["all"] });
             }, 500 - (currentTime - this.lastSetVolumeExecutionTime));
         }
+
+        if (apps.includes("device brightness")) {
+            const currentTime = Date.now();
+            const deckerStore = useDeckerStore();
+        
+            // Store the latest RGB brightness value
+            this.latestRGBBrightnessValue = volume;
+        
+            // If the throttling interval has passed, send the RGB brightness value immediately
+            if (currentTime - this.lastRGBBrightnessExecutionTime >= 100) {
+                this.lastRGBBrightnessExecutionTime = currentTime;
+                await this.setRGBBrightness(this.latestRGBBrightnessValue);
+                await deckerStore.setBrightness(Math.round(volume * 100));
+            }
+        
+            // Clear the previous timeout if it exists
+            if (this.rgbBrightnessTimeoutId) {
+                clearTimeout(this.rgbBrightnessTimeoutId);
+            }
+        
+            // Schedule the last value to be sent after the throttling interval
+            this.rgbBrightnessTimeoutId = setTimeout(async () => {
+                this.lastRGBBrightnessExecutionTime = Date.now();
+                await this.setRGBBrightness(this.latestRGBBrightnessValue);
+                await deckerStore.setBrightness(Math.round(this.latestRGBBrightnessValue * 100));
+            }, 100 - (currentTime - this.lastRGBBrightnessExecutionTime));
+        }
+    }
+
+    private async setRGBBrightness(volume: number): Promise<void> {
+        // Convert volume (0-1) to brightness (0-255)
+        const brightness = parseInt((volume * 255).toString());
+        
+        // Send brightness command directly to device
+        await invoke('send_decker_command', { command: 'rgb-control', options: { brightness } });
     }
 
 
