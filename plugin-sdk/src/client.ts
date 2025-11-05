@@ -91,6 +91,8 @@ export interface DeviceChanges {
  * Global UI methods for doing things like showing notifications and dialogs on top of the application window.
  * 
  * @category Global UI
+ * @displayName this.ui (UIApi)
+ * @order first
  * 
  */
 export interface UIApi {

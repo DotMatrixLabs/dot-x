@@ -326,14 +326,18 @@ function processItem(item) {
     512: 'Enum',
     64: 'Function',
     32: 'Variable',
-    4194304: 'Type Alias'
+    4194304: 'Type Alias',
+    1024: 'Property'
   };
+  
+  // Check if this property is actually a method signature
+  const isMethodProperty = item.kind === 1024 && item.type?.type === 'reflection' && item.type.declaration?.signatures;
   
   const processed = {
     id: item.id,
     name: item.name,
     displayName: getTagValue(item.comment, 'displayName') || item.name,
-    kind: kindMap[item.kind] || 'Unknown',
+    kind: isMethodProperty ? 'Method' : (kindMap[item.kind] || 'Unknown'),
     description: getDescription(item.comment),
     categories: categories,
     since: getTagValue(item.comment, 'since'),
@@ -465,6 +469,70 @@ function processItem(item) {
       type: formatType(sig.type),
       description: getTagValue(sig.comment, 'returns')
     };
+  } else if (isMethodProperty) { // Method property from interface
+    const sig = item.type.declaration.signatures[0];
+    const comment = item.comment || sig.comment;
+    
+    // Build parameters array using the same logic as interface method extraction
+    let parameters = [];
+    
+    if (sig.parameters) {
+      const typeMap = extractTypesFromTable(comment);
+      
+      for (const p of sig.parameters) {
+        const nestedParams = extractNestedParams(comment, p.name);
+        
+        if (nestedParams.length > 0) {
+          for (const nested of nestedParams) {
+            parameters.push({
+              name: nested.name,
+              type: typeMap[nested.name] || 'any',
+              description: nested.description,
+              optional: false
+            });
+          }
+        } else if (p.type?.type === 'reference' && p.type.name) {
+          const typeDef = findTypeDefinition(p.type.name);
+          
+          if (typeDef && typeDef.children) {
+            for (const prop of typeDef.children) {
+              if (prop.kind === 1024) {
+                const propType = formatType(prop.type);
+                const propDesc = getDescription(prop.comment);
+                const isOptional = prop.flags?.isOptional || false;
+                
+                parameters.push({
+                  name: prop.name,
+                  type: typeMap[prop.name] || propType,
+                  description: propDesc,
+                  optional: isOptional
+                });
+              }
+            }
+          } else {
+            parameters.push({
+              name: p.name,
+              type: formatType(p.type),
+              description: getDescription(p.comment),
+              optional: p.flags?.isOptional || false
+            });
+          }
+        } else {
+          parameters.push({
+            name: p.name,
+            type: formatType(p.type),
+            description: getDescription(p.comment),
+            optional: p.flags?.isOptional || false
+          });
+        }
+      }
+    }
+    
+    processed.parameters = parameters;
+    processed.returns = {
+      type: formatType(sig.type),
+      description: getTagValue(comment, 'returns')
+    };
   }
   
   return processed;
@@ -473,7 +541,7 @@ function processItem(item) {
 /**
  * Recursively process all items
  */
-function processAllItems(item, results = []) {
+function processAllItems(item, results = [], parentKind = null) {
   const processed = processItem(item);
   if (processed) {
     results.push(processed);
@@ -481,7 +549,7 @@ function processAllItems(item, results = []) {
   
   if (item.children) {
     for (const child of item.children) {
-      processAllItems(child, results);
+      processAllItems(child, results, item.kind);
     }
   }
   
@@ -880,18 +948,25 @@ function generateItemDetails(item, componentMetadata = null) {
     lines.push('');
   }
   
-  // Methods table
-  if (item.methods.length > 0) {
+  // Methods table and details (only for Classes, not Interfaces)
+  // Interface methods are documented as separate top-level items for TOC visibility
+  if (item.methods.length > 0 && item.kind === 'Class') {
     lines.push(generateMethodTable(item.methods));
     lines.push(generateMethodDetails(item.methods));
   }
   
-  // For functions, show parameters and returns
-  if (item.kind === 'Function' && item.parameters.length > 0) {
+  // For functions and methods, show parameters and returns
+  if ((item.kind === 'Function' || item.kind === 'Method') && item.parameters.length > 0) {
     lines.push('### Parameters');
     lines.push('');
+    lines.push('| Name | Type | Required | Description |');
+    lines.push('|------|------|----------|-------------|');
     for (const param of item.parameters) {
-      lines.push(`- **${param.name}** (${param.type})${param.optional ? ' - Optional' : ''}: ${param.description || 'No description'}`);
+      const paramName = escapeTableCell(param.name);
+      const paramType = escapeTableCell(param.type);
+      const required = param.optional ? 'No' : 'Yes';
+      const desc = escapeTableCell(param.description || 'No description');
+      lines.push(`| \`${paramName}\` | \`${paramType}\` | ${required} | ${desc} |`);
     }
     lines.push('');
     
