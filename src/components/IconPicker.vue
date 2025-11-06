@@ -1,7 +1,7 @@
 <template>
     <div class="flex flex-row w-full justify-center">
         <div class="flex flex-col items-center justify-center">
-            <button @click="modalOpen = true" class="rounded-full w-24 h-12 bg-gray-500 dark:bg-gray-400 border-0 bg-opacity-40 dark:bg-opacity-30 dark:ring-opacity-50 px-0 btn">
+            <button @click="modalOpen = true" class="rounded-full w-24 h-12 bg-base-300 border-0 bg-opacity-40 dark:ring-opacity-50 px-0 btn">
                 <span v-if="!currentSelectedIcon">Select</span>
                 <span :key="currentSelectedIcon" v-else><i class="fa-2xl" :class="currentSelectedIcon" /></span>
             </button>
@@ -18,7 +18,7 @@
                 <div class="mt-3">
                     <RecycleScroller class="w-full h-48 px-4 overflow-y-scroll" :gridItems="9" :items="iconsFiltered" :item-size="52" key-field="title" :prerender="0"
                     v-slot="{ item }">
-                        <div @click="selectIcon(item?.title)" :class="currentSelectedIcon == item?.title ? 'bg-primary hover:opacity-70' : 'hover:bg-gray-800'" :key="item?.title" :title="item?.title" class=" transition-all active:scale-105 m-1 cursor-pointer h-12 w-12 p-2 flex flex-col justify-center items-center rounded-md">
+                        <div @click="selectIcon(item?.title)" :class="currentSelectedIcon == item?.title ? 'bg-primary hover:opacity-70' : 'hover:bg-base-300'" :key="item?.title" :title="item?.title" class=" transition-all active:scale-105 m-1 cursor-pointer h-12 w-12 p-2 flex flex-col justify-center items-center rounded-md">
                             <i class="fa-2xl" :class="item?.title" />
                         </div>
                     </RecycleScroller>
