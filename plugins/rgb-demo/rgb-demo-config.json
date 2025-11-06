@@ -1,6 +1,6 @@
 {
 	"settings": {
-		"effect": "rainbow",
+		"effect": "static",
 		"speed": 80,
 		"brightness": 100,
 		"color": "#0000FF",
