@@ -1,0 +1,19 @@
+{
+	"settings": {
+		"brokerIP": "192.168.68.14",
+		"brokerPort": 1883,
+		"topicPrefix": "dotx",
+		"username": "",
+		"password": "",
+		"clientId": "dotx-mqtt-0xol22esb",
+		"useSsl": false,
+		"keepalive": 60,
+		"qos": 0,
+		"cleanSession": true,
+		"autoReconnect": true,
+		"reconnectInterval": 5,
+		"publishRateLimit": 100,
+		"homeAssistantEnabled": true,
+		"autoConnect": true
+	}
+}

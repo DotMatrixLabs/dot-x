@@ -7,5 +7,12 @@
 		"autoTest": false,
 		"sliderControlsRGB": false,
 		"rgbControlMode": "disabled"
+	},
+	"action": {
+		"cycleRGB": {
+			"selectedByChannel": {
+				"0": true
+			}
+		}
 	}
 }

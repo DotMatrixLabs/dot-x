@@ -1,0 +1,303 @@
+import { CreateSettingsParams } from '../../plugin-sdk/src/types';
+import { MQTTSettings, ConnectionState } from './types';
+
+/**
+ * Build the settings UI for the MQTT plugin
+ */
+export function buildSettingsUI(
+  settings: CreateSettingsParams,
+  currentSettings: MQTTSettings,
+  connectionState: ConnectionState,
+  onSave: (settings: MQTTSettings) => void,
+  onConnect: () => void,
+  onDisconnect: () => void
+) {
+  // Track settings changes locally
+  const localSettings: Partial<MQTTSettings> = { ...currentSettings };
+  
+  // ===== CONNECTION SECTION =====
+  const connectionSection = settings.addSection('connection')
+    .setName('Connection Settings');
+  
+  // Status badge
+  const statusBadge = settings.addBadge('connectionStatus')
+    .setLabel('Connection Status')
+    .setText(getStatusText(connectionState))
+    .setStyle(getStatusStyle(connectionState))
+    .setDesc('Current MQTT broker connection state');
+  
+  // Broker IP
+  settings.addInput('brokerIP')
+    .setType('text')
+    .setLabel('Broker IP Address')
+    .setPlaceholder('192.168.1.100')
+    .setValue(currentSettings.brokerIP)
+    .setRequired(true)
+    .setDesc('IP address of the MQTT broker')
+    .onChange((data) => {
+      localSettings.brokerIP = data.value;
+    });
+  
+  // Broker Port
+  settings.addInput('brokerPort')
+    .setType('number')
+    .setLabel('Broker Port')
+    .setPlaceholder('1883')
+    .setValue(currentSettings.brokerPort)
+    .setRequired(true)
+    .setDesc('Port number (default: 1883, SSL: 8883)')
+    .onChange((data) => {
+      localSettings.brokerPort = parseInt(data.value) || 1883;
+    });
+  
+  // Topic Prefix
+  settings.addInput('topicPrefix')
+    .setType('text')
+    .setLabel('Topic Prefix')
+    .setPlaceholder('dotx')
+    .setValue(currentSettings.topicPrefix)
+    .setRequired(true)
+    .setDesc('Base topic prefix for all messages')
+    .onChange((data) => {
+      localSettings.topicPrefix = data.value;
+    });
+  
+  // ===== AUTHENTICATION SECTION =====
+  const authSection = settings.addSection('authentication')
+    .setExpandable(true)
+    .setExpanded(false)
+    .setName('Authentication');
+  
+  settings.addText('authInfo')
+    .setLabel('Authentication')
+    .setText('Optional username and password for broker authentication')
+    .setStyle('muted');
+  
+  // Username
+  settings.addInput('username')
+    .setType('text')
+    .setLabel('Username')
+    .setPlaceholder('Leave empty if not required')
+    .setValue(currentSettings.username)
+    .setDesc('MQTT broker username (optional)')
+    .onChange((data) => {
+      localSettings.username = data.value;
+    });
+  
+  // Password
+  settings.addInput('password')
+    .setType('text')
+    .setLabel('Password')
+    .setPlaceholder('Leave empty if not required')
+    .setValue(currentSettings.password)
+    .setDesc('MQTT broker password (optional)')
+    .onChange((data) => {
+      localSettings.password = data.value;
+    });
+  
+  // Client ID
+  settings.addInput('clientId')
+    .setType('text')
+    .setLabel('Client ID')
+    .setPlaceholder('dotx-mqtt-plugin')
+    .setValue(currentSettings.clientId)
+    .setDesc('Unique identifier for this MQTT client')
+    .onChange((data) => {
+      localSettings.clientId = data.value;
+    });
+  
+  // ===== ADVANCED SECTION =====
+  const advancedSection = settings.addSection('advanced')
+    .setExpandable(true)
+    .setExpanded(false)
+    .setName('Advanced Settings');
+  
+  // SSL/TLS
+  settings.addSwitch('useSsl')
+    .setLabel('Enable SSL/TLS')
+    .setValue(currentSettings.useSsl)
+    .setDesc('Use encrypted connection (change port to 8883)')
+    .onChange((data) => {
+      localSettings.useSsl = data.value;
+    });
+  
+  // Keepalive
+  settings.addInput('keepalive')
+    .setType('number')
+    .setLabel('Keepalive Interval')
+    .setPlaceholder('60')
+    .setValue(currentSettings.keepalive)
+    .setDesc('Keepalive interval in seconds (default: 60)')
+    .onChange((data) => {
+      localSettings.keepalive = parseInt(data.value) || 60;
+    });
+  
+  // QoS
+  settings.addSelect('qos')
+    .setLabel('Quality of Service (QoS)')
+    .setOptions([
+      { value: '0', label: 'QoS 0 - At most once' },
+      { value: '1', label: 'QoS 1 - At least once' },
+      { value: '2', label: 'QoS 2 - Exactly once' }
+    ])
+    .setValue(currentSettings.qos.toString())
+    .setDesc('MQTT message delivery guarantee level')
+    .onChange((data) => {
+      localSettings.qos = parseInt(data.value) as 0 | 1 | 2;
+    });
+  
+  // Clean Session
+  settings.addSwitch('cleanSession')
+    .setLabel('Clean Session')
+    .setValue(currentSettings.cleanSession)
+    .setDesc('Start with a clean session (no stored subscriptions)')
+    .onChange((data) => {
+      localSettings.cleanSession = data.value;
+    });
+  
+  // Auto Reconnect
+  settings.addSwitch('autoReconnect')
+    .setLabel('Auto Reconnect')
+    .setValue(currentSettings.autoReconnect)
+    .setDesc('Automatically reconnect on connection loss')
+    .onChange((data) => {
+      localSettings.autoReconnect = data.value;
+    });
+  
+  // Reconnect Interval
+  settings.addInput('reconnectInterval')
+    .setType('number')
+    .setLabel('Reconnect Interval')
+    .setPlaceholder('5')
+    .setValue(currentSettings.reconnectInterval)
+    .setDesc('Seconds between reconnection attempts (default: 5)')
+    .onChange((data) => {
+      localSettings.reconnectInterval = parseInt(data.value) || 5;
+    });
+  
+  // Publish Rate Limit
+  settings.addInput('publishRateLimit')
+    .setType('number')
+    .setLabel('Publish Rate Limit')
+    .setPlaceholder('100')
+    .setValue(currentSettings.publishRateLimit)
+    .setDesc('Minimum milliseconds between publishes (default: 100)')
+    .onChange((data) => {
+      localSettings.publishRateLimit = parseInt(data.value) || 100;
+    });
+  
+  // ===== HOME ASSISTANT SECTION =====
+  const haSection = settings.addSection('homeassistant')
+    .setName('Home Assistant Integration');
+  
+  // HA Discovery Toggle
+  settings.addSwitch('homeAssistantEnabled')
+    .setLabel('Enable Home Assistant Discovery')
+    .setValue(currentSettings.homeAssistantEnabled)
+    .setDesc('Automatically create sensors in Home Assistant')
+    .onChange((data) => {
+      localSettings.homeAssistantEnabled = data.value;
+      // Update info text based on state
+      if (data.value) {
+        haInfoText.setText('When enabled, sensors will be automatically created in Home Assistant for each active channel. Each channel will appear as a separate sensor entity.');
+        haInfoText.setStyle('info');
+      } else {
+        haInfoText.setText('Home Assistant discovery is currently disabled. Enable it to automatically create sensor entities.');
+        haInfoText.setStyle('muted');
+      }
+    });
+  
+  // HA Info Text
+  const haInfoText = settings.addText('haInfo')
+    .setLabel('Discovery Information')
+    .setText(currentSettings.homeAssistantEnabled 
+      ? 'When enabled, sensors will be automatically created in Home Assistant for each active channel. Each channel will appear as a separate sensor entity.'
+      : 'Home Assistant discovery is currently disabled. Enable it to automatically create sensor entities.')
+    .setStyle(currentSettings.homeAssistantEnabled ? 'info' : 'muted');
+  
+  // ===== ACTIONS SECTION =====
+  const actionsSection = settings.addSection('actions')
+    .setName('Actions');
+  
+  // Auto Connect
+  settings.addSwitch('autoConnect')
+    .setLabel('Auto Connect on Startup')
+    .setValue(currentSettings.autoConnect)
+    .setDesc('Automatically connect when plugin loads')
+    .onChange((data) => {
+      localSettings.autoConnect = data.value;
+    });
+  
+  // Save Button
+  settings.addButton('saveButton')
+    .setTitle('Save Settings')
+    .setStyle('primary')
+    .onClick(() => {
+      const finalSettings: MQTTSettings = {
+        ...currentSettings,
+        ...localSettings
+      };
+      onSave(finalSettings);
+    });
+  
+  // Connect/Disconnect Button
+  const connectionButton = settings.addButton('connectionButton')
+    .setTitle(connectionState === 'connected' ? 'Disconnect' : 'Connect')
+    .setStyle(connectionState === 'connected' ? 'danger' : 'success')
+    .onClick(() => {
+      if (connectionState === 'connected') {
+        onDisconnect();
+      } else {
+        onConnect();
+      }
+    });
+  
+  // Return reference to status badge and connection button for external updates
+  return {
+    statusBadge,
+    connectionButton,
+    updateConnectionState: (state: ConnectionState) => {
+      statusBadge.setText(getStatusText(state));
+      statusBadge.setStyle(getStatusStyle(state));
+      connectionButton.setTitle(state === 'connected' ? 'Disconnect' : 'Connect');
+      connectionButton.setStyle(state === 'connected' ? 'danger' : 'success');
+    }
+  };
+}
+
+/**
+ * Get status text for connection state
+ */
+function getStatusText(state: ConnectionState): string {
+  switch (state) {
+    case 'disconnected':
+      return 'Disconnected';
+    case 'connecting':
+      return 'Connecting...';
+    case 'connected':
+      return 'Connected';
+    case 'error':
+      return 'Error';
+    default:
+      return 'Unknown';
+  }
+}
+
+/**
+ * Get badge style for connection state
+ */
+function getStatusStyle(state: ConnectionState): 'success' | 'error' | 'warning' | 'info' | 'muted' {
+  switch (state) {
+    case 'disconnected':
+      return 'muted';
+    case 'connecting':
+      return 'info';
+    case 'connected':
+      return 'success';
+    case 'error':
+      return 'error';
+    default:
+      return 'muted';
+  }
+}
+
