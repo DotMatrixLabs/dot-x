@@ -16,6 +16,16 @@
  *       settings.addInput('apiKey').setLabel('API Key').setType('password');
  *     });
  *     
+ *     // Monitor device connections
+ *     this.device.onConnect((device) => {
+ *       console.log('Device connected:', device.name);
+ *     });
+ *     
+ *     // Monitor device updates
+ *     this.device.onUpdate((data) => {
+ *       console.log('Values changed:', data.changes);
+ *     });
+ *     
  *     // Add action button
  *     this.actionmapper
  *       .addSystemUtilButton('myAction')
@@ -33,7 +43,8 @@
  * 
  * ## Main Features
  * 
- * - **Plugin Lifecycle**: onLoad, onUnload, onDeviceUpdate hooks
+ * - **Plugin Lifecycle**: onLoad, onUnload hooks
+ * - **Device Management**: Monitor device connections and value updates
  * - **Settings Page**: Rich UI builder with inputs, switches, buttons, and more
  * - **Action Mapper**: Register System Utilities buttons
  * - **Global UI**: Toast notifications and dialogs
@@ -103,6 +114,20 @@ export { RGBController, createRGBController } from './rgb';
  * @group RGB Control
  */
 export type { RGBEffect, RGBOptions } from './types';
+
+/**
+ * Device management API for monitoring device connections and updates.
+ * 
+ * @group Device Management
+ */
+export { DeviceAPI, createDeviceAPI } from './device';
+
+/**
+ * Device information and event types.
+ * 
+ * @group Device Management
+ */
+export type { DeviceInfo, DeviceChanges, DeviceConnectionCallback, DeviceUpdateCallback } from './device';
 
 /**
  * Default export for convenience - the Plugin base class.
