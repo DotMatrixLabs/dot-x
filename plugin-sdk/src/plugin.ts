@@ -4,6 +4,7 @@ import type { PluginAPI } from './types';
 import { SettingsBuilder, ActionMapper } from './ui';
 import type { SettingsSections } from './types';
 import { RGBController, createRGBController } from './rgb';
+import type { DeviceAPI } from './device';
 import * as fs from 'fs';
 import * as path from 'path';
 import Conf from 'conf';
@@ -12,7 +13,9 @@ import Conf from 'conf';
  * Base class for creating Dot X plugins.
  * 
  * Extend this class to create your own plugin. Override lifecycle methods like
- * `onLoad()`, `onUnload()`, and `onDeviceUpdate()` to implement your plugin's behavior.
+ * `onLoad()` and `onUnload()` to implement your plugin's behavior.
+ * 
+ * Use `this.device.onUpdate()` to respond to device value changes.
  * 
  * @category Plugin Lifecycle
  * 
@@ -31,6 +34,16 @@ import Conf from 'conf';
  *         .setLabel('API Key')
  *         .setType('password')
  *         .setValue(this.config.get('apiKey', ''));
+ *     });
+ *     
+ *     // Monitor device connections
+ *     this.device.onConnect((device) => {
+ *       console.log('Device connected:', device.name);
+ *     });
+ *     
+ *     // Monitor device updates
+ *     this.device.onUpdate((data) => {
+ *       console.log('Device values updated:', data.changes);
  *     });
  *     
  *     // Show notification
@@ -65,6 +78,28 @@ class Plugin {
    * ```
    */
   public ui: PluginAPI['ui'];
+  
+  /**
+   * Device management API for monitoring connections and updates.
+   * 
+   * @example
+   * ```typescript
+   * // Check connected devices
+   * const devices = await this.device.getConnected();
+   * console.log('Connected:', devices);
+   * 
+   * // Listen for device connections
+   * this.device.onConnect((device) => {
+   *   console.log('Device connected:', device.name);
+   * });
+   * 
+   * // Listen for value updates
+   * this.device.onUpdate((data) => {
+   *   console.log('Values changed:', data.changes);
+   * });
+   * ```
+   */
+  public device: DeviceAPI;
   
   /**
    * Action mapper for creating System Utilities buttons.
@@ -179,6 +214,7 @@ class Plugin {
     this.client = new APIClient(pluginInfo, config);
     // this.settings = this.client.settings;
     this.ui = this.client.ui as any;
+    this.device = this.client.device;
     this.rgb = createRGBController(this.client);
 
     // Initialize local config store in the same folder as the plugin's entry (main.js)
@@ -448,13 +484,6 @@ class Plugin {
         builder.enableNotifications();
       }
     };
-
-    // Register slider update callback to forward to plugin's onSlidersUpdate method
-    this.client.setDeviceUpdateCallback(async (data: DeviceChanges) => {
-      await this.onDeviceUpdate(data);
-      // Return the data to satisfy the client's internal requirements
-      return data;
-    });
   }
   
   // Get the underlying client for accessing connection methods
@@ -582,43 +611,6 @@ class Plugin {
   async onUnload() {
     console.log("Plugin unloaded");
     this.client.disconnect();
-  }
-
-  /**
-   * Called when device values (sliders, knobs, buttons) are updated.
-   * 
-   * Override this method to respond to device input changes. This is useful
-   * for implementing custom behaviors based on hardware control changes.
-   * 
-   * @category Plugin Lifecycle
-   * 
-   * @param data - Object containing the device changes
-   * @param data.changes - Array of changes with index, oldValue, and newValue
-   * @param data.values - Current values of all device controls
-   * 
-   * @example
-   * ```typescript
-   * async onDeviceUpdate(data) {
-   *   console.log('Device updated:', data);
-   *   
-   *   // Process each change
-   *   data.changes.forEach(change => {
-   *     console.log(`Control ${change.index} changed from ${change.oldValue} to ${change.newValue}`);
-   *     
-   *     // Respond to specific controls
-   *     if (change.index === 0 && change.newValue > 50) {
-   *       this.ui.showToast({
-   *         message: 'Volume is high!',
-   *         type: 'warning'
-   *       });
-   *     }
-   *   });
-   * }
-   * ```
-   */
-  async onDeviceUpdate(data: DeviceChanges): Promise<void> {
-    // Default implementation does nothing - plugins can override this
-    console.log("[HELLO WORLD PLUGIN?]: Sliders updated:", data);
   }
 }
 

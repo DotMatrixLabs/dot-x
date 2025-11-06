@@ -10,6 +10,7 @@ import { useStore } from '../store/store';
 import { useDeckerStore } from "../store/deckerStore.ts";
 import EventBus from '../js/eventBus.js';
 import RGBController from '../ts/RGBController';
+import ConfigStore from '../ts/config';
 
 export class PluginAPI {
   private static instance: PluginAPI | null = null;
@@ -112,6 +113,37 @@ export class PluginAPI {
       }
       // Handle the slider change event as needed
     });
+
+    // Listen for device connection state changes
+    EventBus.on('connectionChange', async (data: any) => {
+      try {
+        const deviceInfo = await this.getDeviceInfo();
+        if (data.connected) {
+          console.log('Broadcasting device connected event to plugins', deviceInfo);
+          await invoke('broadcast_to_plugins', { event: 'plugin.device_connected', data: deviceInfo });
+        } else {
+          console.log('Broadcasting device disconnected event to plugins', deviceInfo);
+          await invoke('broadcast_to_plugins', { event: 'plugin.device_disconnected', data: deviceInfo });
+        }
+      } catch (err) {
+        console.error('Failed to broadcast device connection event', err);
+      }
+    });
+  }
+
+  /**
+   * Get current device information
+   */
+  private async getDeviceInfo() {
+    const deckerStore = useDeckerStore();
+    const comPort = await ConfigStore.get('comPort') || 'Unknown';
+    
+    return {
+      name: 'Decker',
+      port: comPort,
+      state: deckerStore.connected ? 'connected' : 'disconnected',
+      connected_at: new Date().toISOString()
+    };
   }
 
   // Events from plugins
@@ -192,6 +224,23 @@ export class PluginAPI {
             request_id: request.request_id,
             success: false,
             error: `Failed to get sliders: ${error instanceof Error ? error.message : String(error)}`
+          };
+        }
+      } else if (request.method === 'device.getConnected') {
+        // Handle device connection status requests
+        try {
+          const deviceInfo = await this.getDeviceInfo();
+          const devices = deviceInfo.state === 'connected' ? [deviceInfo] : [];
+          response = {
+            request_id: request.request_id,
+            success: true,
+            data: { devices }
+          };
+        } catch (error) {
+          response = {
+            request_id: request.request_id,
+            success: false,
+            error: `Failed to get device info: ${error instanceof Error ? error.message : String(error)}`
           };
         }
       } else if (request.method.startsWith('rgb.')) {

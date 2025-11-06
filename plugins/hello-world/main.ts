@@ -1,39 +1,108 @@
 import Plugin, { runPlugin } from "../../plugin-sdk/src/index";
 
-console.log("Hello World!");
-
 export default class HelloWorldPlugin extends Plugin {
 
   private settings: any;
 
   async onLoad() {
-    console.log("Hello World Plugin loaded!");
-
     this.initConfig();
     this.getConfig();
+
+    // ===== DEVICE MANAGEMENT DEMO =====
+    
+    // Check currently connected devices
+    const devices = await this.device.getConnected();
+    
+    // Listen for device connections
+    this.device.onConnect((device) => {
+      this.ui.showToast({
+        message: `${device.name} connected on ${device.port}`,
+        type: 'success',
+        duration: 3000
+      });
+    });
+    
+    // Listen for device disconnections
+    this.device.onDisconnect((device) => {
+      this.ui.showToast({
+        message: `${device.name} disconnected`,
+        type: 'warning',
+        duration: 3000
+      });
+    });
+    
+    // Listen for device value updates (replaces onDeviceUpdate)
+    this.device.onUpdate((data) => {
+      // Process each change
+      data.changes.forEach(change => {
+        // Handle control changes here
+      });
+    });
 
     try {
       // Create a sectioned settings page using the imperative builder
       await this.settingsPage.addSettings((settings) => {
-        const general = settings.addSection('General');
+        
+        // ===== DEVICE MONITORING SECTION =====
+        const deviceSection = settings.addSection('Device Monitoring')
+          .setName('🔌 Device Monitoring');
 
-
+        // Update connection status badge based on device state
         const connectionStatus = settings.addBadge('connectionStatus')
-          .setLabel('Connection Status')
-          .setText(this.settings?.connectionStatus || 'Disconnected')
-          .setDesc('This connection status is used by the plugin when needed.')
-          .setStyle('success')
+          .setLabel('Device Connection Status')
+          .setText(devices.length > 0 ? `Connected: ${devices[0].name}` : 'No device connected')
+          .setDesc('Real-time device connection state using this.device API.')
+          .setStyle(devices.length > 0 ? 'success' : 'error');
+
+        // Update connection status when device connects/disconnects
+        this.device.onConnect((device) => {
+          connectionStatus.setText(`Connected: ${device.name}`);
+          connectionStatus.setStyle('success');
+        });
+        
+        this.device.onDisconnect(() => {
+          connectionStatus.setText('No device connected');
+          connectionStatus.setStyle('error');
+        });
+
+        // Show device port information
+        if (devices.length > 0) {
+          settings.addText('devicePort')
+            .setLabel('Device Port')
+            .setText(devices[0].port)
+            .setDesc('COM port where the device is connected.');
+        }
+
+        // Button to manually check device connection
+        settings.addButton('checkDevicesButton')
+          .setTitle('Check Connected Devices')
+          .onClick(async () => {
+            const connectedDevices = await this.device.getConnected();
+            
+            if (connectedDevices.length > 0) {
+              const deviceInfo = connectedDevices.map(d => `${d.name} (${d.port})`).join(', ');
+              this.ui.showToast({
+                message: `Connected: ${deviceInfo}`,
+                type: 'success',
+                duration: 4000
+              });
+            } else {
+              this.ui.showToast({
+                message: 'No devices connected',
+                type: 'info',
+                duration: 3000
+              });
+            }
+          });
+
+        // ===== GENERAL SECTION =====
+        const general = settings.addSection('General');
 
         const currentTime = settings.addText('currentTime')
           .setLabel('Current Time')
           .setText(new Date().toLocaleTimeString())
           .setDesc('This is the current time.')
           .setStyle('info')
-
-        // setInterval(() => {
-        //   currentTime.setText(new Date().toLocaleTimeString());
-        //   console.log('Current time updated:', new Date().toLocaleTimeString());
-        // }, 1000);
 
         const greeting = settings.addInput('customGreeting')
           .setType('ip_address')
@@ -43,7 +112,6 @@ export default class HelloWorldPlugin extends Plugin {
           .setRequired(true)
           .setDesc('This broker IP is used by the plugin when needed.')
           .onChange((data) => {
-            console.log('Broker IP changed:', data.value);
             greeting.setValue(data.value);
             this.config.set('settings.brokerIP', data.value);
           });
@@ -56,7 +124,6 @@ export default class HelloWorldPlugin extends Plugin {
             .setRequired(true)
             .setDesc('This broker port is used by the plugin when needed.')
             .onChange((data) => {
-              console.log('Broker port changed:', data.value);
               brokerPort.setValue(data.value);
               this.config.set('settings.brokerPort', data.value);
             });
@@ -72,7 +139,6 @@ export default class HelloWorldPlugin extends Plugin {
             .setValue(this.settings?.quality || 'medium')
             .setDesc('Select processing quality')
             .onChange(({ value }) => {
-              console.log('Quality changed:', value);
               quality.setValue(value);
               this.config.set('settings.quality', value);
             });
@@ -102,9 +168,8 @@ export default class HelloWorldPlugin extends Plugin {
           });
 
         settings.addButton('demoButton')
-          .setTitle('Log Message')
+          .setTitle('Toggle Section')
           .onClick(() => {
-            console.log('Button clicked!');
             demoSwitch.setValue(true);
           });
 
@@ -116,7 +181,6 @@ export default class HelloWorldPlugin extends Plugin {
           .setLabel('Debug Flag')
           .setValue(this.settings?.debug || false)
           .onChange((data) => {
-            console.log('Debug flag changed:', data.value);
             debug.setValue(data.value);
             greeting.setDisabled(data.value);
             this.config.set('settings.debug', data.value);
@@ -126,8 +190,6 @@ export default class HelloWorldPlugin extends Plugin {
             });
           });
       });
-      
-      console.log("Plugin settings created successfully!");
 
 
       const boltButton = this.actionmapper
@@ -135,7 +197,6 @@ export default class HelloWorldPlugin extends Plugin {
         .setTitle('Boltt')
         .setIcon('fas fa-lg fa-bolt')
         .onClick(({ selected, channel }) => {
-          console.log('Hello action clicked on channel', channel, 'selected:', selected);
           this.ui.showToast({ message: `Hello on ch ${channel} (${selected ? 'ON' : 'OFF'})`, type: 'success' });
         })
 
@@ -176,17 +237,8 @@ export default class HelloWorldPlugin extends Plugin {
     });
   }
 
-  async onDeviceUpdate(data: any) {
-    console.log("[HELLO WORLD PLUGIN??]: Device updated:", data);
-
-    // Process the device changes
-    data.changes.forEach(change => {
-      console.log(`Slider ${change.index} changed from ${change.oldValue} to ${change.newValue}`);
-    });
-  }
-
   async onUnload() {
-    console.log("Hello World Plugin shutting down...");
+    // Cleanup code here
   }
   
 }
