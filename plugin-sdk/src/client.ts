@@ -1,5 +1,6 @@
 import { io, Socket } from 'socket.io-client';
 import type { SettingsSections, CreateSettingsParams, ToastParams, ActionMappings, SystemUtilButton } from './types';
+import { DeviceAPI, createDeviceAPI, type DeviceInfo } from './device';
 
 /**
  * Plugin metadata for registration with the Dot X application.
@@ -159,7 +160,7 @@ export interface UIApi {
  * @category Advanced/Internal
  */
 export class APIClient {
-  private socket: Socket;
+  private socket!: Socket;
   private isRegistered = false;
   private pluginInfo: PluginInfo;
   private config: Required<ConnectionConfig>;
@@ -170,6 +171,7 @@ export class APIClient {
   private connectionPromise: Promise<void>;
   private settingsSchema?: SettingsSections;
   private actionMappings?: ActionMappings;
+  private deviceAPI: DeviceAPI;
   
   constructor(pluginInfo: PluginInfo, config: ConnectionConfig = {}) {
     this.pluginInfo = pluginInfo;
@@ -181,6 +183,7 @@ export class APIClient {
       registrationTimeout: config.registrationTimeout || 15000,
       apiTimeout: config.apiTimeout || 30000
     };
+    this.deviceAPI = createDeviceAPI((method, params) => this.call(method, params));
     this.connectionPromise = this.initializeConnection();
   }
   
@@ -193,6 +196,9 @@ export class APIClient {
 
   async onDeviceUpdate(data: DeviceChanges) {
     if (this.isDestroyed) return;
+    // Route through DeviceAPI to trigger all registered callbacks
+    await this.deviceAPI.triggerUpdate(data);
+    // Also call legacy callback if set (for backwards compatibility during transition)
     if (this.deviceUpdateCallback) {
       const result = await this.deviceUpdateCallback(data);
       return result || data;
@@ -236,6 +242,16 @@ export class APIClient {
         this.socket.on('plugin.device_update', (data: DeviceChanges) => {
           console.log('Received device update event');
           this.onDeviceUpdate(data);
+        });
+
+        this.socket.on('plugin.device_connected', (data: DeviceInfo) => {
+          console.log('Received device connected event', data);
+          this.deviceAPI.triggerConnect(data);
+        });
+
+        this.socket.on('plugin.device_disconnected', (data: DeviceInfo) => {
+          console.log('Received device disconnected event', data);
+          this.deviceAPI.triggerDisconnect(data);
         });
 
         // Request handler from app: single topic with method routing
@@ -439,6 +455,13 @@ export class APIClient {
     return {
       showToast: (params: ToastParams) => this.call('ui.showToast', params),
     };
+  }
+
+  /**
+   * Device management API for monitoring device connections and updates.
+   */
+  get device(): DeviceAPI {
+    return this.deviceAPI;
   }
   
   /**
