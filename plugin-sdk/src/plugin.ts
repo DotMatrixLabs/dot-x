@@ -3,8 +3,7 @@ import { APIClient, PluginInfo, ConnectionConfig, DeviceChanges } from './client
 import type { PluginAPI } from './types';
 import { SettingsBuilder, ActionMapper } from './ui';
 import type { SettingsSections } from './types';
-import { RGBController, createRGBController } from './rgb';
-import type { DeviceAPI } from './device';
+import { createDeviceAPI, type DeviceAPI } from './device';
 import * as fs from 'fs';
 import * as path from 'path';
 import Conf from 'conf';
@@ -97,6 +96,9 @@ class Plugin {
    * this.device.onUpdate((data) => {
    *   console.log('Values changed:', data.changes);
    * });
+   * 
+   * // Control RGB lighting
+   * await this.device.rgb.setEffect('rainbow', 75, 100, '#FFFFFF');
    * ```
    */
   public device: DeviceAPI;
@@ -174,39 +176,6 @@ class Plugin {
    */
   public config: PluginAPI['config'];
   
-  /**
-   * RGB controller for managing Decker device lighting effects.
-   * 
-   * Control the 8 RGB LEDs on the Decker device with various effects,
-   * colors, brightness levels, and animation speeds.
-   * 
-   * 
-   * @example
-   * ```typescript
-   * // Turn off RGB lights
-   * await this.rgb.turnOff();
-   * 
-   * // Set static red color
-   * await this.rgb.setEffect('static', 50, 100, '#FF0000');
-   * 
-   * // Enable rainbow effect
-   * await this.rgb.setEffect('rainbow', 75, 100, '#FFFFFF');
-   * 
-   * // Adjust brightness
-   * await this.rgb.setBrightness(50);
-   * 
-   * // Change color
-   * await this.rgb.setColor('#00FF00');
-   * 
-   * // Change animation speed
-   * await this.rgb.setSpeed(80);
-   * 
-   * // Get available effects
-   * const effects = this.rgb.getAvailableEffects();
-   * ```
-   */
-  public rgb: RGBController;
-  
   private client: APIClient;
   private configStore?: Conf<Record<string, any>>;
   
@@ -215,7 +184,6 @@ class Plugin {
     // this.settings = this.client.settings;
     this.ui = this.client.ui as any;
     this.device = this.client.device;
-    this.rgb = createRGBController(this.client);
 
     // Initialize local config store in the same folder as the plugin's entry (main.js)
     const entryDir = process.cwd();

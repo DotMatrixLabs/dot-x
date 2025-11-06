@@ -183,7 +183,7 @@ export class APIClient {
       registrationTimeout: config.registrationTimeout || 15000,
       apiTimeout: config.apiTimeout || 30000
     };
-    this.deviceAPI = createDeviceAPI((method, params) => this.call(method, params));
+    this.deviceAPI = createDeviceAPI((method, params) => this.call(method, params), this);
     this.connectionPromise = this.initializeConnection();
   }
   
@@ -395,7 +395,12 @@ export class APIClient {
       Technical details: ${error.message || error}`;
   }
   
-  private async call(method: string, params: any): Promise<any> {
+  /**
+   * Call an API method on the plugin server.
+   * 
+   * @internal
+   */
+  public async call(method: string, params: any): Promise<any> {
     
     if (!this.isRegistered) {
       throw new Error('Plugin registration failed');
