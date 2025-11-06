@@ -4,6 +4,8 @@
  * @category Device Management
  */
 
+import { RGBController, createRGBController } from './rgb';
+
 /**
  * Information about a connected device.
  * 
@@ -53,6 +55,7 @@ export type DeviceUpdateCallback = (data: DeviceChanges) => void | Promise<void>
  * 
  * @category Device Management
  * @displayName this.device (DeviceAPI)
+ * @order first
  * 
  * @example
  * ```typescript
@@ -95,9 +98,38 @@ export class DeviceAPI {
   private connectCallbacks: DeviceConnectionCallback[] = [];
   private disconnectCallbacks: DeviceConnectionCallback[] = [];
   private updateCallbacks: DeviceUpdateCallback[] = [];
+  
+  /**
+   * RGB controller for managing device lighting effects.
+   * 
+   * Control the 8 RGB LEDs on the Decker device with various effects,
+   * colors, brightness levels, and animation speeds.
+   * 
+   * @category RGB Control
+   * 
+   * @example
+   * ```typescript
+   * // Turn off RGB lights
+   * await this.device.rgb.turnOff();
+   * 
+   * // Set static red color
+   * await this.device.rgb.setEffect('static', 50, 100, '#FF0000');
+   * 
+   * // Enable rainbow effect
+   * await this.device.rgb.setEffect('rainbow', 75, 100, '#FFFFFF');
+   * 
+   * // Adjust brightness
+   * await this.device.rgb.setBrightness(50);
+   * 
+   * // Change color
+   * await this.device.rgb.setColor('#00FF00');
+   * ```
+   */
+  public rgb: RGBController;
 
-  constructor(apiCallFn: (method: string, params: any) => Promise<any>) {
+  constructor(apiCallFn: (method: string, params: any) => Promise<any>, client: any) {
     this.apiCallFn = apiCallFn;
+    this.rgb = createRGBController(client);
   }
 
   /**
@@ -298,7 +330,7 @@ export class DeviceAPI {
  * @internal
  * @category Device Management
  */
-export function createDeviceAPI(apiCallFn: (method: string, params: any) => Promise<any>): DeviceAPI {
-  return new DeviceAPI(apiCallFn);
+export function createDeviceAPI(apiCallFn: (method: string, params: any) => Promise<any>, client: any): DeviceAPI {
+  return new DeviceAPI(apiCallFn, client);
 }
 

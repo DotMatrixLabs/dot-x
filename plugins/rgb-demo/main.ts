@@ -25,7 +25,7 @@ export default class RGBDemoPlugin extends Plugin {
           .setLabel('RGB Effect')
           .setPlaceholder('Select an effect')
           .setOptions(
-            this.rgb.getAvailableEffects().map((effect: string) => ({
+            this.device.rgb.getAvailableEffects().map((effect: string) => ({
               value: effect,
               label: effect.charAt(0).toUpperCase() + effect.slice(1).replace(/([A-Z])/g, ' $1')
             }))
@@ -117,10 +117,10 @@ export default class RGBDemoPlugin extends Plugin {
             { value: '100', label: '100% - Maximum' }
           ])
           .setValue('100')
-          .setDesc('Calls this.rgb.setBrightness() with selected value')
+          .setDesc('Calls this.device.rgb.setBrightness() with selected value')
           .onChange(async (data) => {
             const brightness = parseInt(data.value);
-            await this.rgb.setBrightness(brightness);
+            await this.device.rgb.setBrightness(brightness);
             this.config.set('settings.brightness', brightness);
             brightnessInput.setValue(brightness);
           });
@@ -137,10 +137,10 @@ export default class RGBDemoPlugin extends Plugin {
             { value: '100', label: '100 - Slowest' }
           ])
           .setValue('50')
-          .setDesc('Calls this.rgb.setSpeed() with selected value (1=fastest, 100=slowest)')
+          .setDesc('Calls this.device.rgb.setSpeed() with selected value (1=fastest, 100=slowest)')
           .onChange(async (data) => {
             const speed = parseInt(data.value);
-            await this.rgb.setSpeed(speed);
+            await this.device.rgb.setSpeed(speed);
             this.config.set('settings.speed', speed);
             speedInput.setValue(speed);
           });
@@ -162,9 +162,9 @@ export default class RGBDemoPlugin extends Plugin {
             { value: '#800080', label: '🟪 Purple' }
           ])
           .setValue('#FFFFFF')
-          .setDesc('Calls this.rgb.setColor() with selected color')
+          .setDesc('Calls this.device.rgb.setColor() with selected color')
           .onChange(async (data) => {
-            await this.rgb.setColor(data.value);
+            await this.device.rgb.setColor(data.value);
             this.config.set('settings.color', data.value);
             colorInput.setValue(data.value);
           });
@@ -175,7 +175,7 @@ export default class RGBDemoPlugin extends Plugin {
           .setStyle('danger')
           .onClick(async () => {
             console.log('turnOff() test clicked!');
-            await this.rgb.turnOff();
+            await this.device.rgb.turnOff();
           });
 
         // ========== EFFECT TESTING SECTION ==========
@@ -218,7 +218,7 @@ export default class RGBDemoPlugin extends Plugin {
             const brightness = this.config.get('settings.brightness', 100) ?? 100;
             const color = this.config.get('settings.color', '#FFFFFF') ?? '#FFFFFF';
             
-            await this.rgb.setEffect(effect, speed, brightness, color);
+            await this.device.rgb.setEffect(effect, speed, brightness, color);
             effectSelect.setValue(effect);
             this.config.set('settings.effect', effect);
           });
@@ -238,7 +238,7 @@ export default class RGBDemoPlugin extends Plugin {
         settings.addButton('presetRainbow')
           .setTitle('🌈 Rainbow Spectrum')
           .onClick(async () => {
-            await this.rgb.setEffect('rainbow', 75, 100, '#FFFFFF');
+            await this.device.rgb.setEffect('rainbow', 75, 100, '#FFFFFF');
             effectSelect.setValue('rainbow');
             speedInput.setValue(75);
             brightnessInput.setValue(100);
@@ -247,7 +247,7 @@ export default class RGBDemoPlugin extends Plugin {
         settings.addButton('presetRedAlert')
           .setTitle('🚨 Red Alert')
           .onClick(async () => {
-            await this.rgb.setEffect('breathing', 80, 100, '#FF0000');
+            await this.device.rgb.setEffect('breathing', 80, 100, '#FF0000');
             effectSelect.setValue('breathing');
             colorInput.setValue('#FF0000');
             speedInput.setValue(80);
@@ -261,7 +261,7 @@ export default class RGBDemoPlugin extends Plugin {
         settings.addButton('presetCandlelight')
           .setTitle('🕯️ Warm Candlelight')
           .onClick(async () => {
-            await this.rgb.setEffect('candle', 50, 60, '#FFA500');
+            await this.device.rgb.setEffect('candle', 50, 60, '#FFA500');
             effectSelect.setValue('candle');
             colorInput.setValue('#FFA500');
             speedInput.setValue(50);
@@ -271,7 +271,7 @@ export default class RGBDemoPlugin extends Plugin {
         settings.addButton('presetStorm')
           .setTitle('⚡ Lightning Storm')
           .onClick(async () => {
-            await this.rgb.setEffect('lightningStorm', 90, 100, '#FFFFFF');
+            await this.device.rgb.setEffect('lightningStorm', 90, 100, '#FFFFFF');
             effectSelect.setValue('lightningStorm');
             speedInput.setValue(90);
             brightnessInput.setValue(100);
@@ -280,7 +280,7 @@ export default class RGBDemoPlugin extends Plugin {
         settings.addButton('presetNightMode')
           .setTitle('🌙 Night Mode')
           .onClick(async () => {
-            await this.rgb.setEffect('static', 0, 10, '#4169E1');
+            await this.device.rgb.setEffect('static', 0, 10, '#4169E1');
             effectSelect.setValue('static');
             colorInput.setValue('#4169E1');
             speedInput.setValue(0);
@@ -290,7 +290,7 @@ export default class RGBDemoPlugin extends Plugin {
         settings.addButton('presetPartyMode')
           .setTitle('🎉 Party Mode')
           .onClick(async () => {
-            await this.rgb.setEffect('perimeter', 100, 100, '#FF00FF');
+            await this.device.rgb.setEffect('perimeter', 100, 100, '#FF00FF');
             effectSelect.setValue('perimeter');
             colorInput.setValue('#FF00FF');
             speedInput.setValue(100);
@@ -303,7 +303,7 @@ export default class RGBDemoPlugin extends Plugin {
           .setExpanded(false)
           .setName('Current RGB State');
 
-        const currentState = this.rgb.getCurrentState();
+        const currentState = this.device.rgb.getCurrentState();
         
         settings.addBadge('currentEffect')
           .setLabel('Current Effect')
@@ -328,7 +328,7 @@ export default class RGBDemoPlugin extends Plugin {
         settings.addButton('refreshState')
           .setTitle('Refresh State Display')
           .onClick(() => {
-            const state = this.rgb.getCurrentState();
+            const state = this.device.rgb.getCurrentState();
             console.log('Current RGB state:', state);
           });
 
@@ -388,7 +388,7 @@ export default class RGBDemoPlugin extends Plugin {
           if (selected) {
             this.cycleToNextEffect();
           } else {
-            this.rgb.turnOff();
+            this.device.rgb.turnOff();
           }
         });
 
@@ -419,7 +419,7 @@ export default class RGBDemoPlugin extends Plugin {
     const color = this.config.get('settings.color', '#FFFFFF') ?? '#FFFFFF';
 
     try {
-      await this.rgb.setEffect(effect, speed, brightness, color);
+      await this.device.rgb.setEffect(effect, speed, brightness, color);
       console.log(`Applied RGB: ${effect}, speed: ${speed}, brightness: ${brightness}, color: ${color}`);
     } catch (error) {
       console.error('Error applying RGB settings:', error);
@@ -430,7 +430,7 @@ export default class RGBDemoPlugin extends Plugin {
    * Cycle to the next RGB effect
    */
   async cycleToNextEffect() {
-    const effects = this.rgb.getAvailableEffects();
+    const effects = this.device.rgb.getAvailableEffects();
     this.currentEffectIndex = (this.currentEffectIndex + 1) % effects.length;
     const nextEffect = effects[this.currentEffectIndex];
     
@@ -439,7 +439,7 @@ export default class RGBDemoPlugin extends Plugin {
     const brightness = this.config.get('settings.brightness', 100) ?? 100;
     const color = this.config.get('settings.color', '#FFFFFF') ?? '#FFFFFF';
     
-    await this.rgb.setEffect(nextEffect, speed, brightness, color);
+    await this.device.rgb.setEffect(nextEffect, speed, brightness, color);
     this.config.set('settings.effect', nextEffect);
   }
 
@@ -447,7 +447,7 @@ export default class RGBDemoPlugin extends Plugin {
    * Get the current effect name
    */
   getCurrentEffectName(): string {
-    const effects = this.rgb.getAvailableEffects();
+    const effects = this.device.rgb.getAvailableEffects();
     return effects[this.currentEffectIndex] || 'rainbow';
   }
 
@@ -544,7 +544,7 @@ export default class RGBDemoPlugin extends Plugin {
           const color = this.hslToHex(hue, 100, 50);
           
           console.log(`[Hue Mode] Slider 0 changed to ${change.newValue}, setting color to ${color}`);
-          this.rgb.setColor(color);
+          this.device.rgb.setColor(color);
         }
       });
     } else if (rgbControlMode === 'rgb-mix') {
@@ -564,7 +564,7 @@ export default class RGBDemoPlugin extends Plugin {
       const color = this.rgbToHex(r, g, b);
       
       console.log(`[RGB Mix Mode] R:${r}, G:${g}, B:${b} -> ${color}`);
-      this.rgb.setColor(color);
+      this.device.rgb.setColor(color);
     }
   }
 
@@ -598,7 +598,7 @@ export default class RGBDemoPlugin extends Plugin {
     // Stop auto-testing if running
     this.stopAutoTesting();
     // Turn off RGB lights when plugin unloads
-    await this.rgb.turnOff();
+    await this.device.rgb.turnOff();
   }
   
 }
