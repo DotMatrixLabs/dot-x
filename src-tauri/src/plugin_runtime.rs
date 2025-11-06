@@ -118,20 +118,84 @@ where
   });
 }
 
-fn resolve_plugins_dir(app_handle: &AppHandle) -> Option<PathBuf> {
+pub fn has_valid_plugins(dir: &Path) -> bool {
+  // Check if directory contains at least one valid plugin
+  // (subfolder with manifest.json and main.js)
+  if let Ok(entries) = fs::read_dir(dir) {
+    for entry in entries.flatten() {
+      let path = entry.path();
+      if path.is_dir() {
+        let has_manifest = path.join("manifest.json").exists();
+        let has_main = path.join("main.js").exists();
+        if has_manifest && has_main {
+          return true;
+        }
+      }
+    }
+  }
+  false
+}
+
+pub fn resolve_plugins_dir(app_handle: &AppHandle) -> Option<PathBuf> {
   let path_resolver = app_handle.path();
-  if let Ok(p) = path_resolver.resolve("../plugins", tauri::path::BaseDirectory::Resource) {
-    if p.exists() { return Some(p); }
+  
+  // Strategy 1: Try explicit DOTX_PLUGINS_PATH environment variable
+  if let Ok(p) = std::env::var("DOTX_PLUGINS_PATH") {
+    let path = PathBuf::from(p);
+    if path.exists() && has_valid_plugins(&path) { 
+      return Some(path); 
+    }
   }
-  if let Ok(p) = path_resolver.resolve("plugins", tauri::path::BaseDirectory::Resource) {
-    if p.exists() { return Some(p); }
-  }
+  
+  // Strategy 2: Try plugins relative to current working directory (dev mode - prioritize this)
   if let Ok(cwd) = std::env::current_dir() {
     let candidate = cwd.join("plugins");
-    if candidate.exists() { return Some(candidate); }
-    let candidate = cwd.join("..\\plugins");
-    if candidate.exists() { return Some(candidate); }
+    if candidate.exists() && has_valid_plugins(&candidate) { 
+      return Some(candidate); 
+    }
+    
+    let candidate = cwd.join("..").join("plugins");
+    if candidate.exists() && has_valid_plugins(&candidate) {
+      if let Ok(normalized) = candidate.canonicalize() {
+        return Some(normalized);
+      }
+    }
   }
+  
+  // Strategy 3: Try relative to app executable location
+  if let Ok(exe_path) = std::env::current_exe() {
+    if let Some(exe_dir) = exe_path.parent() {
+      // Check ../plugins (one level up from executable - common in dev)
+      let candidate = exe_dir.join("..").join("plugins");
+      if candidate.exists() && has_valid_plugins(&candidate) { 
+        if let Ok(normalized) = candidate.canonicalize() {
+          return Some(normalized);
+        }
+      }
+      
+      // Check plugins next to executable
+      let candidate = exe_dir.join("plugins");
+      if candidate.exists() && has_valid_plugins(&candidate) { 
+        return Some(candidate); 
+      }
+    }
+  }
+  
+  // Strategy 4: Try ../plugins relative to Resource (works in bundled app)
+  if let Ok(p) = path_resolver.resolve("../plugins", tauri::path::BaseDirectory::Resource) {
+    if p.exists() && has_valid_plugins(&p) { 
+      return Some(p); 
+    }
+  }
+  
+  // Strategy 5: Try plugins relative to Resource (works if bundled in resources)
+  if let Ok(p) = path_resolver.resolve("plugins", tauri::path::BaseDirectory::Resource) {
+    if p.exists() && has_valid_plugins(&p) { 
+      return Some(p); 
+    }
+  }
+  
+  error!("No plugins directory with valid plugins found in any expected location!");
   None
 }
 
