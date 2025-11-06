@@ -129,7 +129,7 @@ export class DeviceAPI {
 
   constructor(apiCallFn: (method: string, params: any) => Promise<any>, client: any) {
     this.apiCallFn = apiCallFn;
-    this.rgb = createRGBController(client);
+    this.rgb = createRGBController(client, () => this.isConnected());
   }
 
   /**
@@ -163,6 +163,29 @@ export class DeviceAPI {
       console.error('Failed to get connected devices:', error);
       return [];
     }
+  }
+
+  /**
+   * Checks if any device is currently connected.
+   * 
+   * @returns Promise that resolves to true if at least one device is connected, false otherwise
+   * 
+   * @category Device Management
+   * @displayName isConnected
+   * 
+   * @example
+   * ```typescript
+   * // Check if device is connected before performing operations
+   * if (await this.device.isConnected()) {
+   *   await this.device.rgb.setEffect('rainbow', 75, 100, '#FFFFFF');
+   * } else {
+   *   console.log('No device connected');
+   * }
+   * ```
+   */
+  async isConnected(): Promise<boolean> {
+    const devices = await this.getConnected();
+    return devices.length > 0;
   }
 
   /**
