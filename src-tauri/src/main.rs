@@ -6,7 +6,6 @@ use serde_json::{json, Value};
 use tauri::{AppHandle, Manager, WebviewWindow, Wry};
 use std::fs;
 use std::fs::File;
-use std::path::PathBuf;
 use windows_volume_control::{AudioController, CoinitMode};
 use tauri_plugin_autostart::MacosLauncher;
 use midir::{MidiOutput};
@@ -19,6 +18,7 @@ mod midi;
 mod power_monitor;
 mod plugin_server;
 mod plugin_runtime;
+use plugin_runtime::resolve_plugins_dir;
 use once_cell::sync::OnceCell;
 use tauri::menu::{Menu, MenuBuilder, MenuItemBuilder, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent};
@@ -87,24 +87,6 @@ struct Payload {
 #[derive(serde::Serialize)]
 struct MidiPortNames {
     names: Vec<String>,
-}
-fn resolve_plugins_dir(app_handle: &AppHandle) -> Option<PathBuf> {
-  // Try resources path (bundled)
-  let path_resolver = app_handle.path();
-  if let Ok(path) = path_resolver.resolve("../plugins", tauri::path::BaseDirectory::Resource) {
-    if path.exists() { return Some(path); }
-  }
-  if let Ok(path) = path_resolver.resolve("plugins", tauri::path::BaseDirectory::Resource) {
-    if path.exists() { return Some(path); }
-  }
-  // Try working dir variants (dev)
-  if let Ok(cwd) = std::env::current_dir() {
-    let candidate = cwd.join("plugins");
-    if candidate.exists() { return Some(candidate); }
-    let candidate = cwd.join("..\\plugins");
-    if candidate.exists() { return Some(candidate); }
-  }
-  None
 }
 
 #[tauri::command]
