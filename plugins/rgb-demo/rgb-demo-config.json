@@ -1,9 +1,9 @@
 {
 	"settings": {
-		"effect": "breathing",
+		"effect": "rainbow",
 		"speed": 80,
 		"brightness": 100,
-		"color": "#FF0000",
+		"color": "#0000FF",
 		"autoTest": false,
 		"sliderControlsRGB": false,
 		"rgbControlMode": "disabled"
