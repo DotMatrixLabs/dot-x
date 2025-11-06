@@ -68,6 +68,7 @@ import { mapState } from 'pinia';
 import { useStore } from '../store/store';
 import { useToast } from 'vue-toastification';
 import PluginLogsModal from '../components/PluginLogsModal.vue';
+import EventBus from '../js/eventBus';
 
 export default {
   name: 'PluginHeader',
@@ -163,6 +164,8 @@ export default {
         await invoke('restart_plugin', { pluginId: this.plugin.id });
         const toast = useToast();
         toast.success(`${this.plugin?.name || this.plugin?.id} restarted`);
+        // Reload settings after successful restart
+        EventBus.emit('plugin:settingsUpdated', { pluginId: this.plugin.id });
       } catch (e) {
         console.error('Failed to restart plugin', e);
         const toast = useToast();
