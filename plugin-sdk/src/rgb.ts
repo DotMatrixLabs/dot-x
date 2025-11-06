@@ -36,6 +36,7 @@ import type { RGBEffect } from './types';
  */
 export class RGBController {
   private client: APIClient;
+  private checkConnection: () => Promise<boolean>;
   
   /**
    * Available RGB lighting effects.
@@ -60,9 +61,11 @@ export class RGBController {
   /**
    * @internal
    * @param client - The API client for communication with Dot X
+   * @param checkConnection - Function to check if a device is connected
    */
-  constructor(client: APIClient) {
+  constructor(client: APIClient, checkConnection: () => Promise<boolean>) {
     this.client = client;
+    this.checkConnection = checkConnection;
   }
 
   /**
@@ -79,6 +82,7 @@ export class RGBController {
    * @returns Promise that resolves when the effect is applied
    * 
    * @throws {Error} If the effect name is not recognized
+   * @throws {Error} If no device is connected
    * 
    * @example
    * ```typescript
@@ -101,6 +105,12 @@ export class RGBController {
     brightness: number,
     color: string
   ): Promise<void> {
+    // Check if device is connected
+    const isConnected = await this.checkConnection();
+    if (!isConnected) {
+      throw new Error('Cannot set RGB effect: No device is connected');
+    }
+
     if (!this.effects.includes(effectName)) {
       throw new Error(`Unknown RGB effect: ${effectName}. Available effects: ${this.effects.join(', ')}`);
     }
@@ -319,9 +329,10 @@ export class RGBController {
  * 
  * @internal
  * @param client - The API client for communication
+ * @param checkConnection - Function to check if a device is connected
  * @returns A new RGBController instance
  */
-export function createRGBController(client: APIClient): RGBController {
-  return new RGBController(client);
+export function createRGBController(client: APIClient, checkConnection: () => Promise<boolean>): RGBController {
+  return new RGBController(client, checkConnection);
 }
 
