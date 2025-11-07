@@ -47,6 +47,31 @@ export default class HelloWorldPlugin extends Plugin {
         const deviceSection = settings.addSection('Device Monitoring')
           .setName('🔌 Device Monitoring');
 
+        // Info banner example - Info variant
+        settings.addInfo('deviceInfo')
+          .setText('Device monitoring shows real-time connection status and updates.')
+          .setStyle('info');
+
+        // Info banner example - Error variant (shown when no device)
+        const deviceErrorInfo = settings.addInfo('deviceError')
+          .setText('')
+          .setStyle('error');
+        
+        // Show error if no device connected
+        if (devices.length === 0) {
+          deviceErrorInfo.setText('No device connected. Please connect a device to continue.');
+        }
+
+        // Update error info when device connects/disconnects
+        this.device.onConnect(() => {
+          deviceErrorInfo.setText(''); // Hide error when connected
+        });
+        
+        this.device.onDisconnect(() => {
+          deviceErrorInfo.setText('Device disconnected. Please reconnect to continue.')
+            .setStyle('error');
+        });
+
         // Update connection status badge based on device state
         const connectionStatus = settings.addBadge('connectionStatus')
           .setLabel('Device Connection Status')
@@ -97,6 +122,11 @@ export default class HelloWorldPlugin extends Plugin {
 
         // ===== GENERAL SECTION =====
         const general = settings.addSection('General');
+
+        // Info banner example - Success variant
+        settings.addInfo('autoSaveInfo')
+          .setText('Your changes are saved automatically when you update any field.')
+          .setStyle('success');
 
         const currentTime = settings.addText('currentTime')
           .setLabel('Current Time')
@@ -177,6 +207,11 @@ export default class HelloWorldPlugin extends Plugin {
           .setExpandable(true)
           .setName('Advanced')
         
+        // Info banner example - Warning variant
+        settings.addInfo('advancedWarning')
+          .setText('Modifying advanced settings may affect plugin behavior. Use with caution.')
+          .setStyle('warning');
+        
         const debug = settings.addSwitch('debug')
           .setLabel('Debug Flag')
           .setValue(this.settings?.debug || false)
@@ -188,7 +223,21 @@ export default class HelloWorldPlugin extends Plugin {
               message: 'Debug flag changed to: ' + data.value,
               type: 'info',
             });
+            
+            // Dynamically update info banner based on debug state
+            if (data.value) {
+              debugInfo.setText('Debug mode is enabled. Additional logging is active.')
+                .setStyle('info');
+            } else {
+              debugInfo.setText('Debug mode is disabled.')
+                .setStyle('default');
+            }
           });
+
+        // Info banner example - Dynamic updates and Error variant (when needed)
+        const debugInfo = settings.addInfo('debugInfo')
+          .setText('Debug mode is currently disabled.')
+          .setStyle('default');
       });
 
 

@@ -1,15 +1,16 @@
 <template>
   <div class="w-full max-w-lg m-auto">
-    <div :class="['alert', 'border-l-4', 'flex', 'items-start', 'gap-3', alertClass, borderClass]">
+    <div :class="['alert', 'border', 'flex', 'items-start', 'gap-3', 'my-1', alertClass, borderClass]">
       <svg 
+        v-if="variant !== 'default'"
         xmlns="http://www.w3.org/2000/svg" 
-        class="flex-shrink-0 w-5 h-5 mt-0.5" 
+        :class="['flex-shrink-0', 'w-5', 'h-5', 'mt-0.5', iconClass]" 
         fill="none" 
         viewBox="0 0 24 24" 
         stroke="currentColor"
       >
         <path 
-          v-if="variant === 'info' || variant === 'default'"
+          v-if="variant === 'info'"
           stroke-linecap="round" 
           stroke-linejoin="round" 
           stroke-width="2" 
@@ -37,7 +38,7 @@
           d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
         />
       </svg>
-      <span class="text-sm">{{ displayedText }}</span>
+      <span :class="['text-sm', textClass]">{{ displayedText }}</span>
     </div>
   </div>
 </template>
@@ -55,18 +56,7 @@ export default {
       return (this.text ?? this.value) || '';
     },
     alertClass() {
-      switch (this.variant) {
-        case 'info':
-          return 'alert-info';
-        case 'success':
-          return 'alert-success';
-        case 'warning':
-          return 'alert-warning';
-        case 'error':
-          return 'alert-error';
-        default:
-          return '';
-      }
+      return 'bg-transparent';
     },
     borderClass() {
       switch (this.variant) {
@@ -80,6 +70,34 @@ export default {
           return 'border-error';
         default:
           return 'border-base-300';
+      }
+    },
+    iconClass() {
+      switch (this.variant) {
+        case 'info':
+          return 'text-info opacity-80';
+        case 'success':
+          return 'text-success opacity-80';
+        case 'warning':
+          return 'text-warning opacity-80';
+        case 'error':
+          return 'text-error opacity-80';
+        default:
+          return 'opacity-70';
+      }
+    },
+    textClass() {
+      switch (this.variant) {
+        case 'info':
+          return 'text-info opacity-90';
+        case 'success':
+          return 'text-success opacity-90';
+        case 'warning':
+          return 'text-warning opacity-90';
+        case 'error':
+          return 'text-error opacity-90';
+        default:
+          return 'opacity-80';
       }
     }
   }

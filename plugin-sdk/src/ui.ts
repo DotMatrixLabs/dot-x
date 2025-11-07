@@ -10,7 +10,7 @@
  *
  * @module ui
  */
-import type { SettingsSections, InputField, ButtonField, SwitchField, SelectField, SettingsComponent, TextField, BadgeField, SystemUtilButton, ActionMappings } from './types';
+import type { SettingsSections, InputField, ButtonField, SwitchField, SelectField, SettingsComponent, TextField, BadgeField, InfoField, SystemUtilButton, ActionMappings } from './types';
 
 /**
  * Minimal config store interface used for persisting small key/value maps.
@@ -66,6 +66,7 @@ export type UISection = {
  * | Select | `addSelect(key)` | Dropdown menu for selecting from options |
  * | Text | `addText(key)` | Read-only text display with styling |
  * | Badge | `addBadge(key)` | Status badge with colored styling |
+ * | Info | `addInfo(key)` | Full-width alert banner for displaying messages |
  * 
  * @example
  * ```typescript
@@ -130,6 +131,15 @@ export type UISection = {
  *     .setLabel('Version')
  *     .setText('1.0.0')
  *     .setStyle('info');
+ *   
+ *   // Add info banners for important messages
+ *   settings.addInfo('autoSave')
+ *     .setText('Your changes are saved automatically')
+ *     .setStyle('info');
+ *   
+ *   settings.addInfo('warning')
+ *     .setText('Modifying these settings may affect performance')
+ *     .setStyle('warning');
  *   
  *   // Add an expandable advanced section
  *   settings.addSection('advanced')
@@ -608,6 +618,68 @@ export class SettingsBuilder {
     section.components.push(component);
     return new BadgeFieldHandle(component, this.createNotifier());
   }
+
+  /**
+   * Adds a full-width info banner for displaying messages, warnings, and alerts.
+   * 
+   * @category SettingsBuilder Components
+   *
+   * @param key - Unique identifier for the info element
+   * @returns Handle for configuring the info display
+   * 
+   * ## InfoFieldHandle Methods
+   * 
+   * | Method | Parameters | Required | Description |
+   * |--------|------------|----------|-------------|
+   * | `setText(text)` | `string` | Yes | Sets the message text content |
+   * | `setStyle(style)` | `'default' \| 'info' \| 'success' \| 'warning' \| 'error'` | No | Sets the alert color/style |
+   * 
+   * @example
+   * ```typescript
+   * // Info message
+   * settings.addInfo('autoSaveNote')
+   *   .setText('Your changes are saved automatically')
+   *   .setStyle('info');
+   * 
+   * // Success message
+   * settings.addInfo('success')
+   *   .setText('Configuration validated successfully')
+   *   .setStyle('success');
+   * 
+   * // Warning message
+   * settings.addInfo('performanceWarning')
+   *   .setText('This setting may affect system performance')
+   *   .setStyle('warning');
+   * 
+   * // Error message
+   * const errorInfo = settings.addInfo('connectionError')
+   *   .setText('Unable to connect to server')
+   *   .setStyle('error');
+   * 
+   * // Update info dynamically
+   * function updateConnectionStatus(connected: boolean) {
+   *   if (connected) {
+   *     errorInfo.setText('Connected successfully').setStyle('success');
+   *   } else {
+   *     errorInfo.setText('Connection lost').setStyle('error');
+   *   }
+   * }
+   * ```
+   */
+  addInfo(key: string): InfoFieldHandle {
+    const field: InfoField = {
+      type: 'info',
+      label: '',
+      text: '',
+      variant: 'default',
+    } as InfoField;
+
+    const section = this.ensureCurrentSection();
+    const component: SettingsComponent = { key, ...(field as any) };
+    section.components.push(component);
+    return new InfoFieldHandle(component, this.createNotifier());
+  }
+
   /**
    * Builds and returns the constructed {@link SettingsSections} schema.
    *
@@ -1589,6 +1661,55 @@ export class BadgeFieldHandle {
    * @returns The BadgeFieldHandle for method chaining
    */
   assign(props: Partial<BadgeField>): this {
+    Object.assign(this.component as any, props);
+    this.notifyChange?.();
+    return this;
+  }
+}
+
+/**
+ * Handle for configuring an info display field.
+ * 
+ * Returned by {@link SettingsBuilder.addInfo}. Provides methods to configure
+ * info properties like text content and style.
+ * 
+ * @displayName Info Field
+ * @category SettingsBuilder Components
+ */
+export class InfoFieldHandle {
+  constructor(private component: SettingsComponent, private notifyChange?: () => void) {}
+
+  /**
+   * Sets the text content of the info banner.
+   * 
+   * @param text - The text to display in the info banner
+   * @returns The InfoFieldHandle for method chaining
+   */
+  setText(text: string): this {
+    (this.component as any).text = text;
+    this.notifyChange?.();
+    return this;
+  }
+
+  /**
+   * Sets the visual style and color of the info banner.
+   * 
+   * @param style - The info style (default, info, success, warning, error)
+   * @returns The InfoFieldHandle for method chaining
+   */
+  setStyle(style: InfoField['variant']): this {
+    (this.component as any).variant = style;
+    this.notifyChange?.();
+    return this;
+  }
+
+  /**
+   * Bulk assigns multiple properties to the info field.
+   * 
+   * @param props - Object containing properties to assign
+   * @returns The InfoFieldHandle for method chaining
+   */
+  assign(props: Partial<InfoField>): this {
     Object.assign(this.component as any, props);
     this.notifyChange?.();
     return this;
