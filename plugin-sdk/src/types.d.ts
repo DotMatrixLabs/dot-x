@@ -72,7 +72,13 @@ export interface BadgeField extends BaseSettingsField {
   variant?: 'default' | 'muted' | 'info' | 'success' | 'warning' | 'error';
 }
 
-export type SettingsField = InputField | ButtonField | SwitchField | SelectField | TextField | BadgeField;
+export interface InfoField extends BaseSettingsField {
+  type: 'info';
+  text?: string;
+  variant?: 'default' | 'info' | 'success' | 'warning' | 'error';
+}
+
+export type SettingsField = InputField | ButtonField | SwitchField | SelectField | TextField | BadgeField | InfoField;
 
 export type SettingsComponent = { key: string } & SettingsField;
 export interface SettingsSection {
