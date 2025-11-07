@@ -186,6 +186,38 @@ export function buildSettingsUI(
       localSettings.publishRateLimit = parseInt(data.value) || 100;
     });
   
+  // ===== CHANNEL SELECTION SECTION =====
+  const channelSection = settings.addSection('channels')
+    .setName('Channel Selection');
+  
+  // Channel Selection Mode
+  settings.addSelect('channelSelectionMode')
+    .setLabel('Channel Publishing Mode')
+    .setOptions([
+      { value: 'all', label: 'Send All Channels' },
+      { value: 'button', label: 'Use System Util Button to Select Channels' }
+    ])
+    .setValue(currentSettings.channelSelectionMode)
+    .setDesc('Choose how to select which channels to publish')
+    .onChange((data) => {
+      localSettings.channelSelectionMode = data.value as 'all' | 'button';
+      if (data.value === 'all') {
+        channelModeInfo.setText('All device slider changes will be published to MQTT automatically.');
+        channelModeInfo.setStyle('info');
+      } else {
+        channelModeInfo.setText('Use the "MQTT Channels" button in the action mapper to select which channels to publish. Click on individual channels to toggle them.');
+        channelModeInfo.setStyle('warning');
+      }
+    });
+  
+  // Channel mode info text
+  const channelModeInfo = settings.addText('channelModeInfo')
+    .setLabel('How It Works')
+    .setText(currentSettings.channelSelectionMode === 'all' 
+      ? 'All device slider changes will be published to MQTT automatically.'
+      : 'Use the "MQTT Channels" button in the action mapper to select which channels to publish. Click on individual channels to toggle them.')
+    .setStyle(currentSettings.channelSelectionMode === 'all' ? 'info' : 'warning');
+  
   // ===== HOME ASSISTANT SECTION =====
   const haSection = settings.addSection('homeassistant')
     .setName('Home Assistant Integration');

@@ -55,6 +55,13 @@ A DotX plugin that publishes device slider values to an MQTT broker in real-time
 - **Reconnect Interval**: Seconds between reconnection attempts (default: 5)
 - **Publish Rate Limit**: Minimum milliseconds between publishes (default: 100)
 
+### Channel Selection
+
+Choose how to select which channels to publish:
+
+- **Send All Channels**: All device slider changes are published automatically
+- **Use System Util Button**: Use the "MQTT Channels" button to manually select which channels to publish
+
 ### Home Assistant Integration
 
 Enable **Home Assistant Discovery** to automatically create sensor entities in Home Assistant.
@@ -70,17 +77,24 @@ When enabled:
 ### Basic Operation
 
 1. Configure your MQTT broker settings in the plugin settings page
-2. Click **Save Settings** to persist your configuration
-3. Click **Connect** to establish connection to the broker
-4. Device slider changes will be automatically published
+2. Choose your channel selection mode (Send All or Use Button)
+3. Click **Save Settings** to persist your configuration
+4. Click **Connect** to establish connection to the broker
+5. Device slider changes will be published based on your selection mode
 
-### Channel Selection
+### Channel Selection Modes
 
-Use the **MQTT Channels** system utility button to select which channels to publish:
+**Send All Channels Mode:**
+- All device slider changes are automatically published to MQTT
+- No need to select individual channels
+- Simple and straightforward
 
-1. Click the button on a channel to toggle selection
-2. When channels are selected, only those channels will be published
-3. When no channels are selected, all channels are published
+**Button Selection Mode:**
+1. Enable "Use System Util Button to Select Channels" in settings
+2. Click the **MQTT Channels** button in the action mapper
+3. Click the button on individual channels to toggle them on/off
+4. Only selected channels will be published to MQTT
+5. A toast notification shows your current selection
 
 ### Auto Connect
 

@@ -24,6 +24,9 @@ export interface MQTTSettings {
   // Home Assistant
   homeAssistantEnabled: boolean;
   
+  // Channel selection
+  channelSelectionMode: 'all' | 'button';
+  
   // Connection behavior
   autoConnect: boolean;
 }
@@ -32,13 +35,6 @@ export interface MQTTSettings {
  * MQTT connection state
  */
 export type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'error';
-
-/**
- * Channel selection tracking
- */
-export interface ChannelSelection {
-  [channelIndex: number]: boolean;
-}
 
 /**
  * Home Assistant sensor configuration
