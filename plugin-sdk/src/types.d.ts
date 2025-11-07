@@ -76,6 +76,7 @@ export interface InfoField extends BaseSettingsField {
   type: 'info';
   text?: string;
   variant?: 'default' | 'info' | 'success' | 'warning' | 'error';
+  showIcon?: boolean;
 }
 
 export type SettingsField = InputField | ButtonField | SwitchField | SelectField | TextField | BadgeField | InfoField;

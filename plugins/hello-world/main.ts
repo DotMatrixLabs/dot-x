@@ -238,6 +238,12 @@ export default class HelloWorldPlugin extends Plugin {
         const debugInfo = settings.addInfo('debugInfo')
           .setText('Debug mode is currently disabled.')
           .setStyle('default');
+
+        // Info banner example - Without icon using useIcon(false)
+        settings.addInfo('simpleNote')
+          .setText('Note: This plugin demonstrates all available field components.')
+          .setStyle('default')
+          .useIcon(false);
       });
 
 
