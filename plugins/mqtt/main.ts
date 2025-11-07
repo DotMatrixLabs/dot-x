@@ -2,13 +2,13 @@ import Plugin, { runPlugin } from "../../plugin-sdk/src/index";
 import { MQTTClient } from "./src/mqtt-client";
 import { HomeAssistantDiscovery } from "./src/homeassistant";
 import { buildSettingsUI } from "./src/settings";
-import { MQTTSettings, ConnectionState, ChannelSelection, DeviceUpdateData } from "./src/types";
+import { MQTTSettings, ConnectionState, DeviceUpdateData } from "./src/types";
 
 export default class MQTTPlugin extends Plugin {
   private settings!: MQTTSettings;
   private mqttClient!: MQTTClient;
   private haDiscovery!: HomeAssistantDiscovery;
-  private selectedChannels: ChannelSelection = {};
+  private channelButton: any; // SystemUtilButton handle
   private connectionState: ConnectionState = 'disconnected';
   private settingsUIUpdateFn?: (state: ConnectionState) => void;
 
@@ -83,24 +83,62 @@ export default class MQTTPlugin extends Plugin {
     });
     
     // Add system utility button for channel selection
-    this.actionmapper
+    this.channelButton = this.actionmapper
       .addSystemUtilButton('mqttChannelSelect')
       .setTitle('MQTT Channels')
       .setIcon('fas fa-lg fa-network-wired')
       .onClick(({ selected, channel }) => {
         console.log(`[MQTT Plugin] Channel ${channel} ${selected ? 'selected' : 'deselected'}`);
         
-        // Toggle channel selection
-        if (selected) {
-          this.selectedChannels[channel] = true;
-        } else {
-          delete this.selectedChannels[channel];
+        // Only work if in button mode
+        if (this.settings.channelSelectionMode !== 'button') {
+          this.ui.showToast({
+            message: 'Channel selection is disabled. Enable "Use System Util Button" in settings.',
+            type: 'warning',
+            duration: 3000
+          });
+          return;
         }
         
-        // Log selected channels
-        const selectedList = Object.keys(this.selectedChannels).map(k => parseInt(k));
+        // Get current selected channels using built-in method
+        const selectedMap = this.channelButton.getSelectedMap();
+        const selectedList = Object.keys(selectedMap)
+          .filter(k => selectedMap[k])
+          .map(k => parseInt(k));
+        
         console.log(`[MQTT Plugin] Selected channels:`, selectedList);
+        
+        // Show toast with current selection
+        if (selectedList.length > 0) {
+          this.ui.showToast({
+            message: `Selected channels: ${selectedList.join(', ')}`,
+            type: 'info',
+            duration: 2000
+          });
+        } else {
+          this.ui.showToast({
+            message: 'No channels selected',
+            type: 'info',
+            duration: 2000
+          });
+        }
       });
+    
+    // Add settings to the button (required for it to be visible/functional)
+    this.channelButton.addSettings((settings) => {
+      settings.addSection('info').setName('Channel Selection');
+      settings.addText('buttonInfo')
+        .setLabel('Usage')
+        .setText('Click this button on channels you want to publish to MQTT. Selected channels will be highlighted.')
+        .setStyle('info');
+      
+      settings.addText('currentMode')
+        .setLabel('Current Mode')
+        .setText(this.settings.channelSelectionMode === 'button' 
+          ? 'Button mode is ACTIVE' 
+          : 'Button mode is DISABLED - Enable in plugin settings')
+        .setStyle(this.settings.channelSelectionMode === 'button' ? 'success' : 'warning');
+    });
     
     // Listen for device updates
     this.device.onUpdate((data) => {
@@ -127,18 +165,20 @@ export default class MQTTPlugin extends Plugin {
       return;
     }
     
-    // Check if any channels are selected
-    const hasSelection = Object.keys(this.selectedChannels).length > 0;
-    
     // Process each change
     for (const change of data.changes) {
       const channelIndex = change.index;
       const value = change.newValue;
       
-      // Skip if channel not selected (when selection exists)
-      if (hasSelection && !this.selectedChannels[channelIndex]) {
-        continue;
+      // Check channel selection mode
+      if (this.settings.channelSelectionMode === 'button') {
+        // In button mode, only publish selected channels
+        // Use built-in isSelected method
+        if (!this.channelButton.isSelected(channelIndex)) {
+          continue; // Skip unselected channels
+        }
       }
+      // In 'all' mode, publish everything (no filtering needed)
       
       try {
         // Publish to MQTT
@@ -254,6 +294,7 @@ export default class MQTTPlugin extends Plugin {
       reconnectInterval: savedSettings?.reconnectInterval || 5,
       publishRateLimit: savedSettings?.publishRateLimit || 100,
       homeAssistantEnabled: savedSettings?.homeAssistantEnabled || false,
+      channelSelectionMode: savedSettings?.channelSelectionMode || 'all',
       autoConnect: savedSettings?.autoConnect || false
     };
   }
@@ -336,6 +377,11 @@ export default class MQTTPlugin extends Plugin {
               type: "boolean",
               default: false,
               description: "Enable Home Assistant discovery"
+            },
+            channelSelectionMode: {
+              type: "string",
+              default: "all",
+              description: "Channel selection mode: all or button"
             },
             autoConnect: {
               type: "boolean",
