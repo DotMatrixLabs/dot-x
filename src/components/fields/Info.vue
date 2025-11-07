@@ -2,7 +2,7 @@
   <div class="w-full max-w-lg m-auto">
     <div :class="['alert', 'border', 'flex', 'items-start', 'gap-3', 'my-1', alertClass, borderClass]">
       <svg 
-        v-if="variant !== 'default'"
+        v-if="shouldShowIcon"
         xmlns="http://www.w3.org/2000/svg" 
         :class="['flex-shrink-0', 'w-5', 'h-5', 'mt-0.5', iconClass]" 
         fill="none" 
@@ -50,10 +50,15 @@ export default {
     value: { type: String, default: '' },
     text: { type: String, default: '' },
     variant: { type: String, default: 'default' }, // default | info | success | warning | error
+    showIcon: { type: Boolean, default: true },
   },
   computed: {
     displayedText() {
       return (this.text ?? this.value) || '';
+    },
+    shouldShowIcon() {
+      // Hide icon if showIcon is false OR if variant is default
+      return this.showIcon && this.variant !== 'default';
     },
     alertClass() {
       return 'bg-transparent';
