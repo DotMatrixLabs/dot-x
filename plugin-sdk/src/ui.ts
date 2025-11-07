@@ -633,6 +633,7 @@ export class SettingsBuilder {
    * |--------|------------|----------|-------------|
    * | `setText(text)` | `string` | Yes | Sets the message text content |
    * | `setStyle(style)` | `'default' \| 'info' \| 'success' \| 'warning' \| 'error'` | No | Sets the alert color/style |
+   * | `useIcon(show)` | `boolean` | No | Controls whether to display the icon |
    * 
    * @example
    * ```typescript
@@ -655,6 +656,12 @@ export class SettingsBuilder {
    * const errorInfo = settings.addInfo('connectionError')
    *   .setText('Unable to connect to server')
    *   .setStyle('error');
+   * 
+   * // Info without icon
+   * settings.addInfo('note')
+   *   .setText('This is a simple note without an icon')
+   *   .setStyle('default')
+   *   .useIcon(false);
    * 
    * // Update info dynamically
    * function updateConnectionStatus(connected: boolean) {
@@ -1699,6 +1706,18 @@ export class InfoFieldHandle {
    */
   setStyle(style: InfoField['variant']): this {
     (this.component as any).variant = style;
+    this.notifyChange?.();
+    return this;
+  }
+
+  /**
+   * Controls whether the icon is displayed in the info banner.
+   * 
+   * @param show - Whether to show the icon (default: true)
+   * @returns The InfoFieldHandle for method chaining
+   */
+  useIcon(show: boolean): this {
+    (this.component as any).showIcon = show;
     this.notifyChange?.();
     return this;
   }
