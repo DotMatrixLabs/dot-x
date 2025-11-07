@@ -440,6 +440,42 @@ export const COMPONENT_METADATA = {
       }
     }
   },
+  info: {
+    registryKey: 'info',
+    baseProps: {},
+    category: 'display',
+    docs: {
+      title: 'Info Display',
+      description: 'Full-width alert banner for displaying information, suggestions, warnings, and errors',
+      examples: {
+        default: { 
+          text: 'This is a general information message',
+          variant: 'default',
+          description: 'Default info style with neutral colors'
+        },
+        info: { 
+          text: 'Your changes have been saved automatically',
+          variant: 'info',
+          description: 'Info style for informational messages (blue with info icon)'
+        },
+        success: { 
+          text: 'Configuration validated successfully. All settings are correct.',
+          variant: 'success',
+          description: 'Success style for positive feedback (green with check icon)'
+        },
+        warning: { 
+          text: 'This setting may affect system performance. Use with caution.',
+          variant: 'warning',
+          description: 'Warning style for cautionary messages (orange/yellow with warning icon)'
+        },
+        error: { 
+          text: 'Unable to connect to server. Please check your network connection.',
+          variant: 'error',
+          description: 'Error style for error messages (red with error icon)'
+        }
+      }
+    }
+  },
   password_pin: {
     registryKey: 'password_pin',
     baseProps: {},
