@@ -1,6 +1,6 @@
 {
 	"settings": {
-		"effect": "static",
+		"effect": "off",
 		"speed": 80,
 		"brightness": 100,
 		"color": "#0000FF",
@@ -11,7 +11,7 @@
 	"action": {
 		"cycleRGB": {
 			"selectedByChannel": {
-				"0": true
+				"0": false
 			}
 		}
 	}
