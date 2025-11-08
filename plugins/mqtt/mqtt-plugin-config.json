@@ -13,8 +13,8 @@
 		"autoReconnect": true,
 		"reconnectInterval": 5,
 		"publishRateLimit": 100,
-		"homeAssistantEnabled": false,
-		"channelSelectionMode": "button",
+		"homeAssistantEnabled": true,
+		"channelSelectionMode": "all",
 		"autoConnect": true
 	}
 }

@@ -31,6 +31,15 @@ export class HomeAssistantDiscovery {
   }
   
   /**
+   * Update device information (call when device info is available)
+   */
+  updateDeviceInfo(deviceName: string, devicePort: string) {
+    this.deviceName = deviceName;
+    // Optionally update deviceId to include port for uniqueness
+    // this.deviceId = `${deviceName.toLowerCase().replace(/\s+/g, '_')}_${devicePort}`;
+  }
+  
+  /**
    * Generate Home Assistant sensor configuration
    */
   private generateSensorConfig(channelIndex: number): HASensorConfig {
@@ -46,7 +55,7 @@ export class HomeAssistantDiscovery {
       device: {
         identifiers: [this.deviceId],
         name: this.deviceName,
-        manufacturer: 'DotMatrix Labs',
+        manufacturer: 'DotMatrixLabs',
         model: 'Decker'
       }
     };
