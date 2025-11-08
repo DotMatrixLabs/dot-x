@@ -317,6 +317,8 @@ export interface SystemUtilButton {
   id: string;            // Stable identifier (unique per plugin)
   title: string;         // Display title under the circular button
   icon?: string;         // Optional icon class (e.g., 'fas fa-bolt fa-lg')
+  hidden?: boolean;      // Global hidden state - when true, button will not appear in selector
+  disabled?: boolean;    // Global disabled state - when true, button appears but cannot be clicked
   onClick?: (evt: { selected: boolean; channel: number | string }) => void;  // Callback provided by plugin; replaced with actionId by client
   actionId?: string;     // Runtime-assigned action id registered in the client
   // Per-channel selection map; keys are channel identifiers (usually slider indices)
