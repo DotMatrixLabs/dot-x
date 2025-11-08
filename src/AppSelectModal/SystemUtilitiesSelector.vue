@@ -2,7 +2,7 @@
     <div class="flex flex-col gap-4 w-full h-64 overflow-y-scroll p-2">
         <div class="grid grid-cols-3 w-1/2 m-auto gap-2">
             <div class="flex flex-col justify-start items-center" v-for="utility in mergedUtilities" :key="utility.id">
-                <button :disabled="(utility.id === 'output' && deviceSelectors.output.devices.length === 0) || (utility.id === 'input' && deviceSelectors.input.devices.length === 0)" @click="setActiveUtility(utility.id)" class="btn btn-circle"
+                <button :disabled="(utility.id === 'output' && deviceSelectors.output.devices.length === 0) || (utility.id === 'input' && deviceSelectors.input.devices.length === 0) || (utility.isPlugin && utility.raw?.disabled)" @click="setActiveUtility(utility.id)" class="btn btn-circle"
                     :class="getUtilityActiveClass(utility)">
                     <i :class="utility.icon"></i>
                 </button>
@@ -117,7 +117,9 @@ export default {
         mergedUtilities() {
             return [
                 ...this.utilities,
-                ...(this.pluginButtons || []).map(btn => ({ id: btn.actionId || btn.id, title: btn.title || btn.id, icon: btn.icon || 'fas fa-lg fa-bolt', isPlugin: true, raw: btn }))
+                ...(this.pluginButtons || [])
+                    .filter(btn => !btn.hidden)
+                    .map(btn => ({ id: btn.actionId || btn.id, title: btn.title || btn.id, icon: btn.icon || 'fas fa-lg fa-bolt', isPlugin: true, raw: btn }))
             ];
         },
         selectedPluginButtonsWithSettings() {

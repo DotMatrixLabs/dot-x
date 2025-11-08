@@ -875,6 +875,52 @@ export class SettingsBuilder {
       this.notifyChange?.();
       return this;
     }
+
+    /**
+     * Sets the hidden state of the system utility button.
+     * When hidden, the button will not appear in the System Utilities selector.
+     * 
+     * @param hidden - Whether the button should be hidden
+     * @returns The SystemUtilButtonHandle for method chaining
+     * 
+     * @example
+     * ```typescript
+     * const button = this.actionmapper.addSystemUtilButton('feature')
+     *   .setTitle('Advanced Feature')
+     *   .setHidden(true); // Initially hidden
+     * 
+     * // Show it later when conditions are met
+     * button.setHidden(false);
+     * ```
+     */
+    setHidden(hidden: boolean): this {
+      this.button.hidden = hidden;
+      this.notifyChange?.();
+      return this;
+    }
+
+    /**
+     * Sets the disabled state of the system utility button.
+     * When disabled, the button appears but cannot be clicked.
+     * 
+     * @param disabled - Whether the button should be disabled
+     * @returns The SystemUtilButtonHandle for method chaining
+     * 
+     * @example
+     * ```typescript
+     * const button = this.actionmapper.addSystemUtilButton('feature')
+     *   .setTitle('Feature')
+     *   .setDisabled(true); // Initially disabled
+     * 
+     * // Enable it when ready
+     * button.setDisabled(false);
+     * ```
+     */
+    setDisabled(disabled: boolean): this {
+      this.button.disabled = disabled;
+      this.notifyChange?.();
+      return this;
+    }
   
     /**
      * Sets the click handler of the system utility button.
