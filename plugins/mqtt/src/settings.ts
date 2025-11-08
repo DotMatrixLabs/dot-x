@@ -68,10 +68,9 @@ export function buildSettingsUI(
     .setExpanded(false)
     .setName('Authentication');
   
-  settings.addText('authInfo')
-    .setLabel('Authentication')
+  settings.addInfo('authInfo')
     .setText('Optional username and password for broker authentication')
-    .setStyle('muted');
+    .setStyle('info');
   
   // Username
   settings.addInput('username')
@@ -211,8 +210,7 @@ export function buildSettingsUI(
     });
   
   // Channel mode info text
-  const channelModeInfo = settings.addText('channelModeInfo')
-    .setLabel('How It Works')
+  const channelModeInfo = settings.addInfo('channelModeInfo')
     .setText(currentSettings.channelSelectionMode === 'all' 
       ? 'All device slider changes will be published to MQTT automatically.'
       : 'Use the "MQTT Channels" button in the action mapper to select which channels to publish. Click on individual channels to toggle them.')
@@ -235,17 +233,16 @@ export function buildSettingsUI(
         haInfoText.setStyle('info');
       } else {
         haInfoText.setText('Home Assistant discovery is currently disabled. Enable it to automatically create sensor entities.');
-        haInfoText.setStyle('muted');
+        haInfoText.setStyle('default');
       }
     });
   
   // HA Info Text
-  const haInfoText = settings.addText('haInfo')
-    .setLabel('Discovery Information')
+  const haInfoText = settings.addInfo('haInfo')
     .setText(currentSettings.homeAssistantEnabled 
       ? 'When enabled, sensors will be automatically created in Home Assistant for each active channel. Each channel will appear as a separate sensor entity.'
       : 'Home Assistant discovery is currently disabled. Enable it to automatically create sensor entities.')
-    .setStyle(currentSettings.homeAssistantEnabled ? 'info' : 'muted');
+    .setStyle(currentSettings.homeAssistantEnabled ? 'info' : 'default');
   
   // ===== ACTIONS SECTION =====
   const actionsSection = settings.addSection('actions')

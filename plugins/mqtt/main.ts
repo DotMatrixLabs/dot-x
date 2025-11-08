@@ -160,7 +160,13 @@ export default class MQTTPlugin extends Plugin {
    * Handle device slider updates
    */
   private async handleDeviceUpdate(data: DeviceUpdateData) {
-    // Only process if connected
+    // Only process if device is connected
+    const deviceConnected = await this.device.isConnected();
+    if (!deviceConnected) {
+      return;
+    }
+    
+    // Only process if MQTT client is connected
     if (!this.mqttClient.isConnected()) {
       return;
     }
@@ -258,7 +264,25 @@ export default class MQTTPlugin extends Plugin {
   private async publishHomeAssistantDiscovery() {
     console.log("[MQTT Plugin] Publishing Home Assistant discovery...");
     
+    // Check if device is connected
+    const deviceConnected = await this.device.isConnected();
+    if (!deviceConnected) {
+      console.log("[MQTT Plugin] Device not connected, skipping HA discovery");
+      return;
+    }
+    
     try {
+      // Get connected device information
+      const devices = await this.device.getConnected();
+      const deviceInfo = devices.length > 0 ? devices[0] : null;
+      
+      if (deviceInfo) {
+        console.log("[MQTT Plugin] Publishing HA discovery for device:", deviceInfo.name);
+        
+        // Update HA discovery with actual device info
+        this.haDiscovery.updateDeviceInfo(deviceInfo.name, deviceInfo.port);
+      }
+      
       // Publish discovery for channels 0-7 (assuming 8 channels)
       // You can adjust this based on device capabilities
       const channels = Array.from({ length: 8 }, (_, i) => i);
