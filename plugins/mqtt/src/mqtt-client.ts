@@ -123,7 +123,9 @@ export class MQTTClient {
   async disconnect(): Promise<void> {
     return new Promise((resolve) => {
       if (this.client) {
-        this.client.end(false, {}, () => {
+        // Force close connection and prevent auto-reconnect
+        // The first parameter 'true' forces immediate disconnect without waiting for in-flight messages
+        this.client.end(true, {}, () => {
           this.client = null;
           this.setConnectionState('disconnected');
           resolve();

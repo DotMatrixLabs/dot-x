@@ -12,8 +12,17 @@ export function buildSettingsUI(
   onConnect: () => void,
   onDisconnect: () => void
 ) {
-  // Track settings changes locally
+  // Track settings changes locally and autosave
   const localSettings: Partial<MQTTSettings> = { ...currentSettings };
+  
+  // Helper to autosave settings
+  const autosave = () => {
+    const finalSettings: MQTTSettings = {
+      ...currentSettings,
+      ...localSettings
+    };
+    onSave(finalSettings);
+  };
   
   // ===== CONNECTION SECTION =====
   const connectionSection = settings.addSection('connection')
@@ -26,6 +35,18 @@ export function buildSettingsUI(
     .setStyle(getStatusStyle(connectionState))
     .setDesc('Current MQTT broker connection state');
   
+  // Connect/Disconnect Button
+  const connectionButton = settings.addButton('connectionButton')
+    .setTitle(connectionState === 'connected' ? 'Disconnect' : 'Connect')
+    .setStyle(connectionState === 'connected' ? 'danger' : 'success')
+    .onClick(() => {
+      if (connectionState === 'connected') {
+        onDisconnect();
+      } else {
+        onConnect();
+      }
+    });
+  
   // Broker IP
   settings.addInput('brokerIP')
     .setType('text')
@@ -36,6 +57,7 @@ export function buildSettingsUI(
     .setDesc('IP address of the MQTT broker')
     .onChange((data) => {
       localSettings.brokerIP = data.value;
+      autosave();
     });
   
   // Broker Port
@@ -48,6 +70,7 @@ export function buildSettingsUI(
     .setDesc('Port number (default: 1883, SSL: 8883)')
     .onChange((data) => {
       localSettings.brokerPort = parseInt(data.value) || 1883;
+      autosave();
     });
   
   // Topic Prefix
@@ -60,6 +83,7 @@ export function buildSettingsUI(
     .setDesc('Base topic prefix for all messages')
     .onChange((data) => {
       localSettings.topicPrefix = data.value;
+      autosave();
     });
   
   // ===== AUTHENTICATION SECTION =====
@@ -81,6 +105,7 @@ export function buildSettingsUI(
     .setDesc('MQTT broker username (optional)')
     .onChange((data) => {
       localSettings.username = data.value;
+      autosave();
     });
   
   // Password
@@ -92,6 +117,7 @@ export function buildSettingsUI(
     .setDesc('MQTT broker password (optional)')
     .onChange((data) => {
       localSettings.password = data.value;
+      autosave();
     });
   
   // Client ID
@@ -103,6 +129,7 @@ export function buildSettingsUI(
     .setDesc('Unique identifier for this MQTT client')
     .onChange((data) => {
       localSettings.clientId = data.value;
+      autosave();
     });
   
   // ===== ADVANCED SECTION =====
@@ -118,6 +145,7 @@ export function buildSettingsUI(
     .setDesc('Use encrypted connection (change port to 8883)')
     .onChange((data) => {
       localSettings.useSsl = data.value;
+      autosave();
     });
   
   // Keepalive
@@ -129,6 +157,7 @@ export function buildSettingsUI(
     .setDesc('Keepalive interval in seconds (default: 60)')
     .onChange((data) => {
       localSettings.keepalive = parseInt(data.value) || 60;
+      autosave();
     });
   
   // QoS
@@ -143,6 +172,7 @@ export function buildSettingsUI(
     .setDesc('MQTT message delivery guarantee level')
     .onChange((data) => {
       localSettings.qos = parseInt(data.value) as 0 | 1 | 2;
+      autosave();
     });
   
   // Clean Session
@@ -152,6 +182,7 @@ export function buildSettingsUI(
     .setDesc('Start with a clean session (no stored subscriptions)')
     .onChange((data) => {
       localSettings.cleanSession = data.value;
+      autosave();
     });
   
   // Auto Reconnect
@@ -161,6 +192,7 @@ export function buildSettingsUI(
     .setDesc('Automatically reconnect on connection loss')
     .onChange((data) => {
       localSettings.autoReconnect = data.value;
+      autosave();
     });
   
   // Reconnect Interval
@@ -172,6 +204,7 @@ export function buildSettingsUI(
     .setDesc('Seconds between reconnection attempts (default: 5)')
     .onChange((data) => {
       localSettings.reconnectInterval = parseInt(data.value) || 5;
+      autosave();
     });
   
   // Publish Rate Limit
@@ -183,6 +216,7 @@ export function buildSettingsUI(
     .setDesc('Minimum milliseconds between publishes (default: 100)')
     .onChange((data) => {
       localSettings.publishRateLimit = parseInt(data.value) || 100;
+      autosave();
     });
   
   // ===== CHANNEL SELECTION SECTION =====
@@ -207,6 +241,7 @@ export function buildSettingsUI(
         channelModeInfo.setText('Use the "MQTT Channels" button in the action mapper to select which channels to publish. Click on individual channels to toggle them.');
         channelModeInfo.setStyle('warning');
       }
+      autosave();
     });
   
   // Channel mode info text
@@ -235,6 +270,7 @@ export function buildSettingsUI(
         haInfoText.setText('Home Assistant discovery is currently disabled. Enable it to automatically create sensor entities.');
         haInfoText.setStyle('default');
       }
+      autosave();
     });
   
   // HA Info Text
@@ -244,9 +280,9 @@ export function buildSettingsUI(
       : 'Home Assistant discovery is currently disabled. Enable it to automatically create sensor entities.')
     .setStyle(currentSettings.homeAssistantEnabled ? 'info' : 'default');
   
-  // ===== ACTIONS SECTION =====
-  const actionsSection = settings.addSection('actions')
-    .setName('Actions');
+  // ===== STARTUP SECTION =====
+  const startupSection = settings.addSection('startup')
+    .setName('Startup Settings');
   
   // Auto Connect
   settings.addSwitch('autoConnect')
@@ -255,30 +291,7 @@ export function buildSettingsUI(
     .setDesc('Automatically connect when plugin loads')
     .onChange((data) => {
       localSettings.autoConnect = data.value;
-    });
-  
-  // Save Button
-  settings.addButton('saveButton')
-    .setTitle('Save Settings')
-    .setStyle('primary')
-    .onClick(() => {
-      const finalSettings: MQTTSettings = {
-        ...currentSettings,
-        ...localSettings
-      };
-      onSave(finalSettings);
-    });
-  
-  // Connect/Disconnect Button
-  const connectionButton = settings.addButton('connectionButton')
-    .setTitle(connectionState === 'connected' ? 'Disconnect' : 'Connect')
-    .setStyle(connectionState === 'connected' ? 'danger' : 'success')
-    .onClick(() => {
-      if (connectionState === 'connected') {
-        onDisconnect();
-      } else {
-        onConnect();
-      }
+      autosave();
     });
   
   // Return reference to status badge and connection button for external updates
