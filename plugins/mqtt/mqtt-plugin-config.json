@@ -16,5 +16,12 @@
 		"homeAssistantEnabled": true,
 		"channelSelectionMode": "button",
 		"autoConnect": true
+	},
+	"action": {
+		"mqttChannelSelect": {
+			"selectedByChannel": {
+				"0": true
+			}
+		}
 	}
 }

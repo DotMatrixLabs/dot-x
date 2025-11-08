@@ -90,19 +90,9 @@ export default class MQTTPlugin extends Plugin {
       .setHidden(this.settings.channelSelectionMode === 'all') // Hide if in "all" mode
       .onClick(({ selected, channel }) => {
         console.log(`[MQTT Plugin] Channel ${channel} ${selected ? 'selected' : 'deselected'}`);
-        
-        // Only work if in button mode
-        if (this.settings.channelSelectionMode !== 'button') {
-          this.ui.showToast({
-            message: 'Channel selection is disabled. Enable "Use System Util Button" in settings.',
-            type: 'warning',
-            duration: 3000
-          });
-          return;
-        }
-        
         // Get current selected channels using built-in method
         const selectedMap = this.channelButton.getSelectedMap();
+        console.log(`[MQTT Plugin] Selected map:`, selectedMap);
         const selectedList = Object.keys(selectedMap)
           .filter(k => selectedMap[k])
           .map(k => parseInt(k));
@@ -125,21 +115,7 @@ export default class MQTTPlugin extends Plugin {
         }
       });
     
-    // Add settings to the button (required for it to be visible/functional)
-    this.channelButton.addSettings((settings) => {
-      settings.addSection('info').setName('Channel Selection');
-      settings.addText('buttonInfo')
-        .setLabel('Usage')
-        .setText('Click this button on channels you want to publish to MQTT. Selected channels will be highlighted.')
-        .setStyle('info');
-      
-      settings.addText('currentMode')
-        .setLabel('Current Mode')
-        .setText(this.settings.channelSelectionMode === 'button' 
-          ? 'Button mode is ACTIVE' 
-          : 'Button mode is DISABLED - Enable in plugin settings')
-        .setStyle(this.settings.channelSelectionMode === 'button' ? 'success' : 'warning');
-    });
+
     
     // Listen for device updates
     this.device.onUpdate((data) => {
@@ -227,7 +203,7 @@ export default class MQTTPlugin extends Plugin {
     this.ui.showToast({
       message: 'Settings saved successfully',
       type: 'success',
-      duration: 3000
+      duration: 1000
     });
   }
 
@@ -288,9 +264,9 @@ export default class MQTTPlugin extends Plugin {
         this.haDiscovery.updateDeviceInfo(deviceInfo.name, deviceInfo.port);
       }
       
-      // Publish discovery for channels 0-7 (assuming 8 channels)
+      // Publish discovery for channels 0-4
       // You can adjust this based on device capabilities
-      const channels = Array.from({ length: 8 }, (_, i) => i);
+      const channels = Array.from({ length: 5 }, (_, i) => i);
       await this.haDiscovery.publishDiscoveryForChannels(channels);
       
       console.log("[MQTT Plugin] Home Assistant discovery published");
