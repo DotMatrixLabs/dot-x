@@ -87,6 +87,7 @@ export default class MQTTPlugin extends Plugin {
       .addSystemUtilButton('mqttChannelSelect')
       .setTitle('MQTT Channels')
       .setIcon('fas fa-lg fa-network-wired')
+      .setHidden(this.settings.channelSelectionMode === 'all') // Hide if in "all" mode
       .onClick(({ selected, channel }) => {
         console.log(`[MQTT Plugin] Channel ${channel} ${selected ? 'selected' : 'deselected'}`);
         
@@ -218,6 +219,10 @@ export default class MQTTPlugin extends Plugin {
     
     // Update HA discovery topic prefix
     this.haDiscovery.updateTopicPrefix(this.settings.topicPrefix);
+    
+    // Update button visibility based on channel selection mode
+    // Hide button when "publish all" mode is active, show when "button" mode is active
+    this.channelButton.setHidden(this.settings.channelSelectionMode === 'all');
     
     this.ui.showToast({
       message: 'Settings saved successfully',
