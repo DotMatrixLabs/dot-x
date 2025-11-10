@@ -224,12 +224,11 @@ export class APIClient {
           reconnection: true
         });
         
-        // Attach core listeners as early as possible to avoid races where
-        // the app emits events immediately after registration.
-        // These listeners are idempotent per-socket instance.
+
         this.socket.on('plugin.action', (data: { action: string; params?: any }) => {
           console.log('Received action!', data);
           const cb = this.actionCallbacks.get(data.action);
+          console.log('Action callback:', cb);
           if (cb) {
             try {
               cb(data.params);
@@ -275,14 +274,14 @@ export class APIClient {
           ack(response);
         });
 
-        this.socket.onAny((eventName, ...args) => {
+        this.socket.onAny((eventName, ...args) => { //TODO: remove this before release
           console.log(`Received event: ${eventName} with arguments:`, args);
         });
         
         const registrationTimeoutId = setTimeout(() => {
           if (!this.isRegistered) {
             const errorMsg = this.retryCount >= this.config.maxRetries 
-              ? `Plugin registration failed after ${this.config.maxRetries} attempts. Make sure the DotX application is running and the plugin server is started.`
+              ? `Plugin registration failed after ${this.config.maxRetries} attempts. Make sure Dot X is running and the plugin server is started.`
               : 'Plugin registration timeout - server may not be running';
             reject(new Error(errorMsg));
           }
@@ -535,11 +534,28 @@ export class APIClient {
   /**
    * Stores the latest sectioned schema for plugin settings.
    * 
+   * This method is called whenever the plugin creates or updates its settings page UI
+   * via this.createSettingsPage() or this.settingsPage.addSettings().
+   * 
+   * It processes the settings schema by:
+   * 1. Registering callbacks for interactive components (buttons, inputs, etc.)
+   * 2. Replacing function references with actionId strings for serialization
+   * 3. Clearing stale settings callbacks from previous schema versions
+   * 
+   * IMPORTANT: This method only clears settings-related callbacks (action_*, change_*)
+   * while preserving SystemUtilButton callbacks (channel_action_*) that were registered
+   * separately via setActionMappings(). This prevents callbacks from being lost when
+   * settings are updated after action mappings have been initialized.
+   * 
    * @internal
    */
   public setSectionedSchema(schema: SettingsSections) {
-    // Reset callbacks to avoid leaking stale handlers across schema updates
-    this.actionCallbacks.clear();
+    // Reset only settings-related callbacks to avoid leaking stale handlers across schema updates
+    // Keep channel_action_ callbacks intact (those belong to SystemUtilButton)
+    Array.from(this.actionCallbacks.keys())
+      .filter(key => key.startsWith('action_') || key.startsWith('change_'))
+      .forEach(key => this.actionCallbacks.delete(key));
+    
     this.settingsSchema = this.prepareSectionedSchemaWithActionIds(schema);
   }
 
