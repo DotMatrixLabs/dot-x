@@ -14,13 +14,16 @@
 		"reconnectInterval": 5,
 		"publishRateLimit": 100,
 		"homeAssistantEnabled": true,
-		"channelSelectionMode": "button",
+		"channelSelectionMode": "all",
 		"autoConnect": true
 	},
 	"action": {
 		"mqttChannelSelect": {
 			"selectedByChannel": {
-				"0": true
+				"0": true,
+				"1": false,
+				"2": true,
+				"4": true
 			}
 		}
 	}

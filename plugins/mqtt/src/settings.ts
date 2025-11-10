@@ -10,7 +10,8 @@ export function buildSettingsUI(
   connectionState: ConnectionState,
   onSave: (settings: MQTTSettings) => void,
   onConnect: () => void,
-  onDisconnect: () => void
+  onDisconnect: () => void,
+  channelButton: any
 ) {
   // Track settings changes locally and autosave
   const localSettings: Partial<MQTTSettings> = { ...currentSettings };
@@ -237,9 +238,11 @@ export function buildSettingsUI(
       if (data.value === 'all') {
         channelModeInfo.setText('All device slider changes will be published to MQTT automatically.');
         channelModeInfo.setStyle('info');
+        updateChannelsSelectedList('all');
       } else {
         channelModeInfo.setText('Use the "MQTT Channels" button in the action mapper to select which channels to publish. Click on individual channels to toggle them.');
         channelModeInfo.setStyle('warning');
+        updateChannelsSelectedList('button');
       }
       autosave();
     });
@@ -250,7 +253,33 @@ export function buildSettingsUI(
       ? 'All device slider changes will be published to MQTT automatically.'
       : 'Use the "MQTT Channels" button in the action mapper to select which channels to publish. Click on individual channels to toggle them.')
     .setStyle(currentSettings.channelSelectionMode === 'all' ? 'info' : 'warning');
+
+
+    const channelsSelectedList = settings.addText('channelsSelectedList')
+    .setLabel('Channels Selected')
+    .setText('No channels selected')
+    .setDesc('List of channels that are currently selected')
   
+
+  // Function to get a string list of selected channels
+  function updateChannelsSelectedList(channelSelectionMode: 'all' | 'button') {
+    console.log('channelSelectionMode', channelSelectionMode);
+    if (channelSelectionMode === 'all') {
+      channelsSelectedList.setText('All channels');
+    } else {
+      // Get selected channels from button
+      const selectedMap = channelButton.getSelectedMap();
+      let selectedList = Object.keys(selectedMap)
+        .filter(k => selectedMap[k])
+        .map(k => parseInt(k));
+      // Add 1 to each value (convert from 0-indexed to 1-indexed)
+      selectedList = selectedList.map(k => k + 1);
+      channelsSelectedList.setText(selectedList.length > 0 ? selectedList.join(', ') : 'None');
+    }
+  }
+
+  updateChannelsSelectedList(currentSettings.channelSelectionMode as 'all' | 'button');
+ 
   // ===== HOME ASSISTANT SECTION =====
   const haSection = settings.addSection('homeassistant')
     .setName('Home Assistant Integration');
@@ -303,6 +332,9 @@ export function buildSettingsUI(
       statusBadge.setStyle(getStatusStyle(state));
       connectionButton.setTitle(state === 'connected' ? 'Disconnect' : 'Connect');
       connectionButton.setStyle(state === 'connected' ? 'danger' : 'success');
+    },
+    updateChannelsSelectedList: () => {
+      updateChannelsSelectedList(localSettings.channelSelectionMode as 'all' | 'button' || currentSettings.channelSelectionMode);
     }
   };
 }

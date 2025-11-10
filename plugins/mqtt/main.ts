@@ -11,6 +11,7 @@ export default class MQTTPlugin extends Plugin {
   private channelButton: any; // SystemUtilButton handle
   private connectionState: ConnectionState = 'disconnected';
   private settingsUIUpdateFn?: (state: ConnectionState) => void;
+  private updateChannelsListFn?: () => void;
 
   async onLoad() {
     console.log("[MQTT Plugin] Loading...");
@@ -67,6 +68,20 @@ export default class MQTTPlugin extends Plugin {
       }
     });
     
+    // Add system utility button for channel selection (before settings UI)
+    this.channelButton = this.actionmapper
+      .addSystemUtilButton('mqttChannelSelect')
+      .setTitle('MQTT Channel')
+      .setIcon('fas fa-lg fa-network-wired')
+      .setHidden(this.settings.channelSelectionMode === 'all') // Hide if in "all" mode
+      .onClick(({ selected, channel }) => {
+        console.log(`[MQTT Plugin] Channel ${channel} ${selected ? 'selected' : 'deselected'}`);
+        // Update the settings UI channel list dynamically
+        if (this.updateChannelsListFn) {
+          this.updateChannelsListFn();
+        }
+      });
+    
     // Build settings UI
     await this.settingsPage.addSettings((settings) => {
       const ui = buildSettingsUI(
@@ -75,45 +90,14 @@ export default class MQTTPlugin extends Plugin {
         this.connectionState,
         (newSettings) => this.handleSaveSettings(newSettings),
         () => this.handleConnect(),
-        () => this.handleDisconnect()
+        () => this.handleDisconnect(),
+        this.channelButton
       );
       
-      // Store update function for later use
+      // Store update functions for later use
       this.settingsUIUpdateFn = ui.updateConnectionState;
+      this.updateChannelsListFn = ui.updateChannelsSelectedList;
     });
-    
-    // Add system utility button for channel selection
-    this.channelButton = this.actionmapper
-      .addSystemUtilButton('mqttChannelSelect')
-      .setTitle('MQTT Channels')
-      .setIcon('fas fa-lg fa-network-wired')
-      .setHidden(this.settings.channelSelectionMode === 'all') // Hide if in "all" mode
-      .onClick(({ selected, channel }) => {
-        console.log(`[MQTT Plugin] Channel ${channel} ${selected ? 'selected' : 'deselected'}`);
-        // Get current selected channels using built-in method
-        const selectedMap = this.channelButton.getSelectedMap();
-        console.log(`[MQTT Plugin] Selected map:`, selectedMap);
-        const selectedList = Object.keys(selectedMap)
-          .filter(k => selectedMap[k])
-          .map(k => parseInt(k));
-        
-        console.log(`[MQTT Plugin] Selected channels:`, selectedList);
-        
-        // Show toast with current selection
-        if (selectedList.length > 0) {
-          this.ui.showToast({
-            message: `Selected channels: ${selectedList.join(', ')}`,
-            type: 'info',
-            duration: 2000
-          });
-        } else {
-          this.ui.showToast({
-            message: 'No channels selected',
-            type: 'info',
-            duration: 2000
-          });
-        }
-      });
     
 
     
