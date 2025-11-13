@@ -45,24 +45,14 @@ export default {
     }),
 
     backgroundColor() {
-      if(this.isWin10 && this.colorScheme === "dark") {
-        return "bg-gray-900";
-      } else if (this.isWin10) {
-        return "bg-white";
-      } else {
-        return "bg-transparent";
-      }
+      if(this.isWin10) return "bg-base-100";
+      return "bg-transparent";
     },
 
     
     backgroundColorTopBar() {
-      if(this.isWin10 && this.colorScheme === "dark") {
-        return "bg-gray-900 bg-opacity-20";
-      } else if (this.isWin10) {
-        return "bg-white";
-      } else {
-        return "bg-black bg-opacity-10 ";
-      }
+      if(this.isWin10) return "bg-base-400 bg-opacity-20";
+      return "bg-black bg-opacity-10 ";
     },
 
 
@@ -146,38 +136,3 @@ export default {
   },
 };
 </script>
-
-<style>
-
-:root, [data-theme] {
-  background: none !important;
-  background-color: transparent !important;
-}
-
-@media (prefers-color-scheme: light) {
-  .modal-box  {
-    background: rgba(255, 255, 255, 0.9) !important;
-    background-color: none !important;
-    color: black !important;
-    border-radius: 16px;
-    box-shadow: 0 4px 30px rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(9.2px);
-    -webkit-backdrop-filter: blur(9.2px);
-    border: 1px solid rgba(166, 166, 166, 0.3);
-  }
-}
-
-
-@media (prefers-color-scheme: dark) {
-  .modal-box  {
-    background: rgba(23, 23, 23, 0.95) !important;
-    background-color: none !important;
-    border-radius: 16px;
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-    backdrop-filter: blur(9.2px);
-    -webkit-backdrop-filter: blur(9.2px);
-    border: 1px solid rgba(44, 44, 44, 0.3);
-  }
-}
-
-</style>
