@@ -18,9 +18,7 @@
         <div class="flex flex-row w-full justify-between px-2">
             <span class="shrink-0 pt-1">MIDI documentation: </span>
             <div class="flex justify-evenly items-center">
-                <a href="https://dml.gg/midi" target="_blank" rel="noopener noreferrer">
-                    <button class="btn btn-sm">Docs<i class="fa-solid fa-book fa-lg"></i></button>
-                </a>
+                <button @click="openLink('https://dml.gg/midi')" class="btn btn-sm">Docs<i class="fa-solid fa-book fa-lg"></i></button>
             </div>
         </div>
     </div>
@@ -32,8 +30,10 @@ import Decker from "../ts/decker.ts";
 import ConfigStore from "../ts/config.ts";
 import decker from "../ts/decker.ts";
 import { trackEvent } from "@aptabase/tauri";
+import { openLink } from "../ts/helpers.ts";
 
 const toast = useToast();
+const openLinkMethod = openLink;
 
 
 export default {
@@ -48,6 +48,7 @@ export default {
 
 
     methods: {
+        openLink: openLinkMethod,
         deviceName(device){
             return `${device}`;
         },
