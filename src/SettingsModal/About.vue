@@ -2,7 +2,7 @@
     <div class="flex flex-col justify-between items-center w-full">
         <div class="flex flex-row w-full justify-between px-2 mt-4">
             <span class="my-auto">Running version {{appVersion}}</span>
-            <button @click="checkForUpdates" class="btn btn-xs">{{updaterStatus ?? "Check for updates" }}</button>
+            <button @click="checkForUpdates" class="btn btn-xs">{{ buttonLabel }}</button>
         </div>
         <div class="flex flex-row w-full justify-between px-2 mt-4">
             <span class="my-auto">Read the docs</span>
@@ -32,33 +32,44 @@
 
 <script>
 
-import tauriConf from "../../src-tauri/tauri.conf.json";
-import { checkUpdate } from '@tauri-apps/api/updater';
+import { useUpdateStore } from '../store/updateStore';
+import { userCheckForUpdates } from '../ts/updater';
 
 export default {
     name: "About",
     data() {
         return {
-            appVersion: tauriConf.package.version,
-            updaterStatus: null,
+            store: useUpdateStore(),
+            labelOverride: null,
+            labelResetTimer: null,
+        }
+    },
+    computed: {
+        appVersion() { return this.store.currentVersion; },
+        buttonLabel() {
+            if (this.labelOverride) return this.labelOverride;
+            return 'Check for updates';
         }
     },
     methods: {
         async checkForUpdates() {
-            this.checkingForUpdates = true;
-            const update = await checkUpdate();
-            console.log('Update:', update);
-            if(update.shouldUpdate === false) {
-                this.updaterStatus = 'No updates available';
+            const result = await userCheckForUpdates();
+            console.log(result);
+            if (result === 'none') {
+                this.labelOverride = 'No updates available';
+                if (this.labelResetTimer) clearTimeout(this.labelResetTimer);
+                this.labelResetTimer = setTimeout(() => {
+                    this.labelOverride = null;
+                    this.labelResetTimer = null;
+                }, 3000);
             }
-            setTimeout(() => {
-                this.updaterStatus = null;
-            }, 2000);
         }
-
     },
-    mounted() {
-
+    beforeUnmount() {
+        if (this.labelResetTimer) {
+            clearTimeout(this.labelResetTimer);
+            this.labelResetTimer = null;
+        }
     },
 }
 </script>
