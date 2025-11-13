@@ -1,7 +1,7 @@
 <template>
     <div class="grid grid-cols-1 w-1/2 m-auto gap-4 p-2">
         
-        <div class="flex flex-col justify-center items-center" v-for="device in devices">
+        <div class="flex flex-col justify-center items-center" v-for="device in devices" :key="device.id">
             <button :disabled="(device.id === 'master' || device.id === 'mic') && !sessions?.includes(device.id)" @click="setActiveDevice(device.id)" class="btn btn-wide"
                 :class="activeDevices?.includes(device.id) ? 'btn-primary' : ''">
                 <div v-if="activeDevices?.includes(device.id)">
@@ -35,7 +35,7 @@
 
         <div class="flex w-full justify-center px-2 mt-4 opacity-50">
             <i class="fa-solid fa-book fa-lg mr-2"></i>
-            <a href="https://dml.gg/midi" target="_blank" rel="noopener noreferrer" class="mb-2 text-sm hover:underline opacity-80 text-center first-letter:">MIDI documentation</a>
+            <span @click="openLink('https://dml.gg/midi')" class="mb-2 text-sm hover:underline opacity-80 text-center first-letter: cursor-pointer">MIDI documentation</span>
         </div>
     </div>
 </template>
@@ -47,6 +47,9 @@ import SelectedApps from "../ts/appsToControl.ts";
 import SystemVolumeController from "../ts/volumeControl.ts";
 import Decker from "../ts/decker.ts";
 import config from "../ts/config";
+import { openLink } from "../ts/helpers.ts";
+
+const openLinkMethod = openLink;
 
 export default {
 
@@ -70,6 +73,7 @@ export default {
     },
 
     methods: {
+        openLink: openLinkMethod,
         async setActiveDevice(device) {
             await SelectedApps.toggleApps(this.currentSliderID.toString(), device);
             this.getActiveDevices();
@@ -93,13 +97,16 @@ export default {
         },
 
         async getMIDISettings() {
-            // Read MIDIConfiguration from config.get(MIDIConfiguration), if it exists. If not, set it to an empty array.
-
+            // Read MIDIConfiguration from config.get(MIDIConfiguration), if it exists. If not, set it to default values.
             this.MIDIConfiguration = await config.get("midiConfiguration") ?? [];
-            if(this.MIDIConfiguration[this.currentSliderID] === undefined || this.MIDIConfiguration[this.currentSliderID] === null) this.MIDIConfiguration[this.currentSliderID] = {}; // If the MIDI configuration for the current slider doesn't exist, create it
+            if(this.MIDIConfiguration[this.currentSliderID] === undefined || this.MIDIConfiguration[this.currentSliderID] === null) {
+                this.MIDIConfiguration[this.currentSliderID] = {};
+                this.MIDIConfiguration[this.currentSliderID].channel = `${this.currentSliderID + 1}`; // By default, the channel is the slider ID/number
+                this.MIDIConfiguration[this.currentSliderID].CCValue = `7`; // By default, the CC value is 7
+                await config.set("midiConfiguration", this.MIDIConfiguration);
+            }
             this.channelInput = this.MIDIConfiguration[this.currentSliderID]?.channel ?? `${this.currentSliderID + 1}`; // By default, the channel is the slider ID/number
             this.CCValueInput = this.MIDIConfiguration[this.currentSliderID]?.CCValue ?? `7`; // By default, the CC value is 7
-            console.log(`[Slider ${this.currentSliderID +1}]: Channel: ${this.channelInput}, CC Value: ${this.CCValueInput}`);
         },
 
         async setCCValue() {
