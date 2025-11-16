@@ -8,7 +8,7 @@
         <ul class="menu rounded-box menu-compact p-2 flex flex-row w-full justify-center gap-2">
           <template v-for="tab in tabs" :key="tab">
             <li v-if="!tab.hide">
-              <a @click="selectTab(tab)" class="w-full text-center" :class="{ active: tab.isActive }">{{ tab.name }}</a>
+              <a @click="selectTab(tab)" class="w-full text-center rounded-md text-base-content hover:bg-base-300 active:bg-accent" :class="{ active: tab.isActive }">{{ tab.name }}</a>
             </li>
           </template>
         </ul>
@@ -28,12 +28,10 @@
 </template>
 
 <script>
-// import BoardManager from "../../js/boardManager.js";
-// import StorageHandler from "../../js/storage.mjs";
+
 import { useToast } from "vue-toastification";
 
 import _ from "lodash";
-// import LoadingSpinner from "../assets/loadingSpinner.vue";
 
 import Programs from "./Programs.vue"
 import SystemUtilitiesSelector from "./SystemUtilitiesSelector.vue"
@@ -41,14 +39,7 @@ import Midi from "./Midi.vue"
 import config from "../ts/config";
 import Settings from "./Settings.vue";
 
-// import { useMicrophoneStore } from "../store/microphoneStore";
-
-
 const toast = useToast();
-
-
-// const boardManager = new BoardManager();
-// const store = new StorageHandler();
 
 export default {
   components: {
@@ -118,5 +109,3 @@ export default {
   },
 };
 </script>
-
-<style></style>
