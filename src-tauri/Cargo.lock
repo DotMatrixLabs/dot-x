@@ -6568,6 +6568,7 @@ dependencies = [
 [[package]]
 name = "windows-volume-control"
 version = "0.1.1"
+source = "git+https://github.com/Frogbyte-io/windows-volume-control.git?branch=main#5f863a2bbf8ddbdded8a41a30f44770ea420b95a"
 dependencies = [
  "log",
  "windows 0.44.0",

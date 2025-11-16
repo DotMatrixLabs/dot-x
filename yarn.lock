@@ -1718,10 +1718,9 @@ license-checker@^25.0.1:
     spdx-satisfies "^4.0.0"
     treeify "^1.1.0"
 
-"license-checker@git+https://github.com/mwittig/license-checker.git#d546e3f738e14c62e732346fa355162d46700893":
+"license-checker@git+https://github.com/mwittig/license-checker#d546e3f738e14c62e732346fa355162d46700893":
   version "1.0.0"
-  resolved "git+ssh://git@github.com/mwittig/license-checker.git#d546e3f738e14c62e732346fa355162d46700893"
-  integrity sha512-CeZEQfhSiqkTkY6wbGFBo3ki7iMSo4+m46xjZ0Ou84CbEu8fhoFaz8H8Nsr/KtPscdQeZNFgdgWWUPKikKDupg==
+  resolved "git+https://github.com/mwittig/license-checker#d546e3f738e14c62e732346fa355162d46700893"
   dependencies:
     chalk "~0.5.1"
     mkdirp "^0.3.5"
