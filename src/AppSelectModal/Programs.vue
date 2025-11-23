@@ -1,7 +1,7 @@
 <template>
     <HelpBox ref="helpBox" class="p-12" />
     <!-- Apps -->
-    <div class="flex flex-row m-auto mb-2 justify-center items-center">
+    <div class="flex flex-row m-auto mb-2 justify-between items-center">
         <div class="h-full">
             <label class="label cursor-pointer">
                 <span class="text-xs mx-2">All Apps</span> 
@@ -14,8 +14,8 @@
             <i class="fas fa-info h-3 w-3"></i>
         </button>
     </div>
-    <div class="flex flex-col overflow-y-auto overflow-x-hidden h-40 w-full p-4 bg-base-200 rounded-lg relative">
-        <div v-if="loading" class="absolute bg-gray-900 h-full w-full left-0 top-0 bg-opacity-50">
+    <div class="flex flex-col overflow-y-auto overflow-x-hidden h-52 w-full p-4 bg-base-200 bg-opacity-80 rounded-lg relative">
+        <div v-if="loading" class="absolute bg-base-200 h-full w-full left-0 top-0 bg-opacity-50">
             <div class="absolute transform left-1/2 -translate-x-1/2 top-1/2">
                 <LoadingSpinner />
             </div>
@@ -47,7 +47,7 @@ import { useToast } from "vue-toastification";
 
 const toast = useToast();
 
-import { invoke } from "@tauri-apps/api/tauri";
+import { invoke } from "@tauri-apps/api/core";
 
 export default {
 
@@ -246,5 +246,3 @@ export default {
 
 }
 </script>
-
-<style lang="scss" scoped></style>

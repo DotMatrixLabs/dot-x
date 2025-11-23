@@ -1,15 +1,20 @@
-use std::{thread::{self}, time::Duration, sync::{mpsc, Mutex}};
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::io::{self, Cursor, Read};
-use log::{error, warn, info};
-use serde::{Serialize, Deserialize};
-use serde_json;
+use log::{error, info, warn};
 use rmp_serde::{Deserializer, Serializer};
-use std::collections::BTreeMap;
 use serde::ser::SerializeMap;
-use tauri::Window;
-use serialport::{available_ports, SerialPortType};
+use serde::{Deserialize, Serialize};
+use serde_json;
 use serde_json::Value;
+use serialport::{available_ports, SerialPortType};
+use std::collections::BTreeMap;
+use std::io::{self, Cursor, Read};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::{
+    sync::{mpsc, Mutex},
+    thread::{self},
+    time::Duration,
+};
+use tauri::Emitter;
+use tauri::WebviewWindow;
 
 pub static mut COMPUTER_SLEEPING: bool = false;
 
@@ -26,7 +31,7 @@ pub mod decker {
 }
 #[derive(Clone, serde::Serialize)]
 struct Payload {
-  message: String,
+    message: String,
 }
 
 // Define a struct to match the JSON structure
@@ -39,8 +44,7 @@ pub struct SliderData {
     pub slider5: u32,
 }
 
-#[derive(Debug)]
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 #[serde(untagged)]
 enum MessageData {
     Slider(SliderData),
@@ -63,30 +67,30 @@ enum DataType {
     Device(DeviceData),
 }
 
-
 impl<'de> Deserialize<'de> for MessageData {
     fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
-        {
-            // Deserialize into a serde_json::Value first
-            let value: serde_json::Value = serde_json::Value::deserialize(deserializer)?;
+    {
+        // Deserialize into a serde_json::Value first
+        let value: serde_json::Value = serde_json::Value::deserialize(deserializer)?;
 
-            // Try to deserialize as SliderData first
-            if let Ok(map) = serde_json::from_value::<BTreeMap<String, u32>>(value.clone()) {
-                return Ok(MessageData::Slider(SliderData {
-                    slider1: *map.get("slider1").unwrap_or(&0),
-                    slider2: *map.get("slider2").unwrap_or(&0),
-                    slider3: *map.get("slider3").unwrap_or(&0),
-                    slider4: *map.get("slider4").unwrap_or(&0),
-                    slider5: *map.get("slider5").unwrap_or(&0),
-                }));
-            }
-
-            // If deserialization as SliderData fails, try to deserialize as DeviceData
-            let device_data = serde_json::from_value::<DeviceData>(value).map_err(serde::de::Error::custom)?;
-            Ok(MessageData::Device(device_data))
+        // Try to deserialize as SliderData first
+        if let Ok(map) = serde_json::from_value::<BTreeMap<String, u32>>(value.clone()) {
+            return Ok(MessageData::Slider(SliderData {
+                slider1: *map.get("slider1").unwrap_or(&0),
+                slider2: *map.get("slider2").unwrap_or(&0),
+                slider3: *map.get("slider3").unwrap_or(&0),
+                slider4: *map.get("slider4").unwrap_or(&0),
+                slider5: *map.get("slider5").unwrap_or(&0),
+            }));
         }
+
+        // If deserialization as SliderData fails, try to deserialize as DeviceData
+        let device_data =
+            serde_json::from_value::<DeviceData>(value).map_err(serde::de::Error::custom)?;
+        Ok(MessageData::Device(device_data))
+    }
 }
 
 impl Serialize for SliderData {
@@ -104,8 +108,10 @@ impl Serialize for SliderData {
     }
 }
 
-
-fn deserialize_slider_data(data: &[u8], inverted: bool) -> std::result::Result<DataType, Box<dyn std::error::Error>> {
+fn deserialize_slider_data(
+    data: &[u8],
+    inverted: bool,
+) -> std::result::Result<DataType, Box<dyn std::error::Error>> {
     // Create a cursor for the data source
     let cursor = Cursor::new(data);
 
@@ -126,14 +132,13 @@ fn deserialize_slider_data(data: &[u8], inverted: bool) -> std::result::Result<D
             }
             Ok(DataType::Slider(slider_data))
         }
-        MessageData::Device(device_data) => {
-            Ok(DataType::Device(device_data))
-        }
+        MessageData::Device(device_data) => Ok(DataType::Device(device_data)),
     }
 }
 
-
-fn serialize_decker_data(json_string: &str) -> std::result::Result<Vec<u8>, Box<dyn std::error::Error>> {
+fn serialize_decker_data(
+    json_string: &str,
+) -> std::result::Result<Vec<u8>, Box<dyn std::error::Error>> {
     // Parse the JSON string into a serde_json::Value
     let value: Value = serde_json::from_str(json_string)?;
 
@@ -149,11 +154,8 @@ fn serialize_decker_data(json_string: &str) -> std::result::Result<Vec<u8>, Box<
     Ok(buf)
 }
 
-
-
 //TODO: https://tauri.app/v1/guides/features/events/
 // To subscribe to slider changes in frontend and emit changes from backend when values from sliders update.
-
 
 #[derive(serde::Serialize)]
 pub struct USBDevice {
@@ -167,7 +169,7 @@ pub struct USBDevice {
 
 #[tauri::command]
 pub fn get_devices() -> Vec<USBDevice> {
-    let mut usb_devices = Vec::new();  // Create an empty vector to store USB devices
+    let mut usb_devices = Vec::new(); // Create an empty vector to store USB devices
 
     match available_ports() {
         Ok(ports) => {
@@ -179,12 +181,16 @@ pub fn get_devices() -> Vec<USBDevice> {
                             port_type: "USB".to_string(),
                             vid: info.vid,
                             pid: info.pid,
-                            manufacturer: info.manufacturer.as_ref().map_or("", String::as_str).to_string(),
+                            manufacturer: info
+                                .manufacturer
+                                .as_ref()
+                                .map_or("", String::as_str)
+                                .to_string(),
                             product: info.product.as_ref().map_or("", String::as_str).to_string(),
                         };
-                        usb_devices.push(device);  // Add the USB device to the vector
+                        usb_devices.push(device); // Add the USB device to the vector
                     }
-                    _ => {}  // Ignore non-USB ports
+                    _ => {} // Ignore non-USB ports
                 }
             }
         }
@@ -211,10 +217,17 @@ pub fn start_background_thread() {
     SHOULD_RUN.store(true, Ordering::Relaxed);
 }
 
-pub fn initialize_decker(window: Window, port_name: &str, inverted: bool) -> std::result::Result<(), std::io::Error> {
+pub fn initialize_decker(
+    window: WebviewWindow,
+    port_name: &str,
+    inverted: bool,
+) -> std::result::Result<(), std::io::Error> {
     if unsafe { COMPUTER_SLEEPING } {
         error!("Computer is sleeping, skipping connect");
-        return Err(std::io::Error::new(std::io::ErrorKind::Other, "Computer is sleeping"));
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            "Computer is sleeping",
+        ));
     }
     let baud_rate: u32 = 115_200;
 
@@ -242,10 +255,17 @@ pub fn initialize_decker(window: Window, port_name: &str, inverted: bool) -> std
                 return Err(e.into());
             }
 
-            let (tx, rx): (mpsc::Sender<String>, mpsc::Receiver<String>) = mpsc::channel();            // Spawn a thread to handle incoming data
+            let (tx, rx): (mpsc::Sender<String>, mpsc::Receiver<String>) = mpsc::channel(); // Spawn a thread to handle incoming data
             thread::spawn(move || {
                 let mut serial_buf: Vec<u8> = vec![0; 100];
-                window.emit("connection-change", Payload { message: "connected".to_string() }).unwrap();
+                if let Err(err) = window.emit(
+                    "connection-change",
+                    Payload {
+                        message: "connected".to_string(),
+                    },
+                ) {
+                    error!("Failed to emit connection-change event: {}", err);
+                }
                 loop {
                     if !SHOULD_RUN.load(Ordering::Relaxed) {
                         break;
@@ -257,7 +277,14 @@ pub fn initialize_decker(window: Window, port_name: &str, inverted: bool) -> std
                                 if let Err(e) = port.write_data_terminal_ready(false) {
                                     error!("Failed to set DTR to false: {}", e);
                                 }
-                                window.emit("connection-change", Payload { message: "disconnected".to_string() }).unwrap();
+                                if let Err(err) = window.emit(
+                                    "connection-change",
+                                    Payload {
+                                        message: "disconnected".to_string(),
+                                    },
+                                ) {
+                                    error!("Failed to emit connection-change event: {}", err);
+                                }
                                 std::mem::drop(port); // Drop the port to close it
                                 info!("Disconnected");
                                 panic!("Disconnected");
@@ -279,11 +306,10 @@ pub fn initialize_decker(window: Window, port_name: &str, inverted: bool) -> std
                                     eprintln!("Failed to serialize data: {}", e);
                                 }
                             }
-
                         }
                         Err(_) => {}
                     }
-                    
+
                     match port.read(serial_buf.as_mut_slice()) {
                         Ok(t) => {
                             let received: Vec<u8> = serial_buf[..t].to_vec();
@@ -293,28 +319,41 @@ pub fn initialize_decker(window: Window, port_name: &str, inverted: bool) -> std
                                 Ok(data) => {
                                     match data {
                                         DataType::Slider(slider_data) => {
-                                            let json_data = match serde_json::to_string(&slider_data) {
-                                                Ok(json) => json,
-                                                Err(e) => {
-                                                    error!("Failed to serialize slider data: {}", e);
-                                                    return;
-                                                }
-                                             };
+                                            let json_data =
+                                                match serde_json::to_string(&slider_data) {
+                                                    Ok(json) => json,
+                                                    Err(e) => {
+                                                        error!(
+                                                            "Failed to serialize slider data: {}",
+                                                            e
+                                                        );
+                                                        return;
+                                                    }
+                                                };
                                             unsafe { decker::slider_values = slider_data }
-                                            if let Err(e) = window.emit("slider-change", Payload { message: json_data }) {
+                                            if let Err(e) = window.emit(
+                                                "slider-change",
+                                                Payload { message: json_data },
+                                            ) {
                                                 error!("Failed to emit slider-change event: {}", e);
                                             }
                                         }
                                         DataType::Device(device_data) => {
-                                            let json_data = match serde_json::to_string(&device_data) {
-                                                Ok(json) => json,
-                                                Err(e) => {
-                                                    error!("Failed to serialize device data: {}", e);
-                                                    return;
-                                                }
-                                            };
+                                            let json_data =
+                                                match serde_json::to_string(&device_data) {
+                                                    Ok(json) => json,
+                                                    Err(e) => {
+                                                        error!(
+                                                            "Failed to serialize device data: {}",
+                                                            e
+                                                        );
+                                                        return;
+                                                    }
+                                                };
                                             // Perform tasks specific to DeviceData
-                                            if let Err(e) = window.emit("device-info", Payload { message: json_data }) {
+                                            if let Err(e) = window
+                                                .emit("device-info", Payload { message: json_data })
+                                            {
                                                 error!("Failed to emit device-info event: {}", e);
                                             }
                                         }
@@ -331,7 +370,14 @@ pub fn initialize_decker(window: Window, port_name: &str, inverted: bool) -> std
                             if let Err(e) = port.write_data_terminal_ready(false) {
                                 error!("Failed to set DTR to false: {}", e);
                             }
-                            window.emit("connection-change", Payload { message: "disconnected".to_string() }).unwrap();
+                            if let Err(err) = window.emit(
+                                "connection-change",
+                                Payload {
+                                    message: "disconnected".to_string(),
+                                },
+                            ) {
+                                error!("Failed to emit connection-change event: {}", err);
+                            }
                             std::mem::drop(port); // Drop the port to close it
                             error!("An error occurred while reading serial data: {:?}", e);
                             panic!("An error occurred while reading serial data: {:?}", e);
@@ -344,7 +390,6 @@ pub fn initialize_decker(window: Window, port_name: &str, inverted: bool) -> std
             *SENDER.lock().unwrap() = Some(tx);
 
             Ok(())
-
         }
         Err(e) => {
             eprintln!("Failed to open \"{}\". Error: {}", port_name, e);
@@ -384,7 +429,6 @@ pub struct Command {
     pub command: String,
 }
 
-
 #[derive(Serialize, Deserialize)]
 pub struct Options {
     effect: Option<String>,
@@ -405,7 +449,7 @@ pub fn send_decker_command(command: &str, options: Option<Options>) {
     };
 
     // Serialize the options using serde
-     let options_str = match serde_json::to_string(&options) {
+    let options_str = match serde_json::to_string(&options) {
         Ok(s) => s,
         Err(e) => {
             error!("Failed to serialize options: {}", e);
@@ -414,7 +458,10 @@ pub fn send_decker_command(command: &str, options: Option<Options>) {
     };
 
     // Concatenate the command and options into a single string
-    let payload = format!(r#"{{ "command": "{}", "options": {} }}"#, command, options_str);
+    let payload = format!(
+        r#"{{ "command": "{}", "options": {} }}"#,
+        command, options_str
+    );
     println!("Sending: {}", payload);
     // Send the payload through the global sender
     if let Some(sender) = sender.as_ref() {
