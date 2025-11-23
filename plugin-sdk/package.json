@@ -3,13 +3,14 @@
   "version": "1.0.0",
   "description": "SDK for developing Dot X plugins",
   "main": "src/index.ts",
-  "types": "src/index.ts",
+  "types": "dist/index.d.ts",
   "bin": {
     "create-dotx-plugin": "./bin/create-dotx-plugin.js"
   },
   "files": [
     "bin/",
     "src/",
+    "dist/",
     "README.md",
     "LICENSE",
     "package.json"
@@ -18,6 +19,7 @@
     "node": ">=16"
   },
   "scripts": {
+    "build": "tsc --declaration --emitDeclarationOnly --outDir dist",
     "docs:generate": "node ./scripts/generate-docs.mjs",
     "docs:sync": "node ./scripts/sync-components.mjs",
     "docs:build": "node ./scripts/build-docs.mjs",
