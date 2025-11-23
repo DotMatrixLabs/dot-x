@@ -1,11 +1,11 @@
-import { CreateSettingsParams } from '../../plugin-sdk/src/types';
+import { SettingsBuilder } from '../../plugin-sdk/src/index';
 import { MQTTSettings, ConnectionState } from './types';
 
 /**
  * Build the settings UI for the MQTT plugin
  */
 export function buildSettingsUI(
-  settings: CreateSettingsParams,
+  settings: SettingsBuilder,
   currentSettings: MQTTSettings,
   connectionState: ConnectionState,
   onSave: (settings: MQTTSettings) => void,
