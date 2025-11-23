@@ -2,10 +2,10 @@ pub mod midi {
     use crate::{decker, get_app_handle};
     use log::{debug, error, info, trace};
     use midir::{MidiOutput, MidiOutputConnection, MidiOutputPort};
-    use tauri::Manager;
     use std::error::Error;
     use std::thread;
     use std::time::Duration;
+    use tauri::Emitter;
     pub static mut ENABLED: bool = true;
     pub struct Midi {
         pub name: String,
@@ -28,15 +28,15 @@ pub mod midi {
                 previous_slider5: 0,
             }
         }
-    }   
+    }
 
     fn map_to_range(input: u32) -> u8 {
         // Ensure that the input is within the 0-1023 range
         let clamped_input = input.min(1023);
-    
+
         // Map the clamped input to the 0-127 range
         let mapped_value = (clamped_input as f64 / 1023.0 * 127.0).round() as u8;
-    
+
         mapped_value
     }
 
@@ -49,14 +49,19 @@ pub mod midi {
         Ok(available_ports)
     }
 
-    pub fn new(_name: &str, midi_output_port: u32, midi_sliders: Vec<i32>, midi_configuration: Vec<(String, String)>) -> Result<(), Box<dyn Error>> {
+    pub fn new(
+        _name: &str,
+        midi_output_port: u32,
+        midi_sliders: Vec<i32>,
+        midi_configuration: Vec<(String, String)>,
+    ) -> Result<(), Box<dyn Error>> {
         let mut Midi = Midi::new("Decker");
         let midi_out = MidiOutput::new("Decker Output")?;
         let output_ports = get_available_output_ports()?;
         if output_ports.is_empty() {
             error!("No available MIDI output ports.");
         }
-        if output_ports.len() -1 < midi_output_port as usize {
+        if output_ports.len() - 1 < midi_output_port as usize {
             eprintln!("The selected MIDI port doesn't exist.");
             Err("The selected MIDI port doesn't exist.")?;
         }
@@ -70,15 +75,20 @@ pub mod midi {
                 let _thread_handle = thread::spawn(move || {
                     debug!("starting midi thread");
                     loop {
-                        unsafe { 
+                        unsafe {
                             if !ENABLED {
                                 debug!("detaching midi thread");
                                 let app_handle = get_app_handle();
-                                app_handle.emit_all("midi_detached", {});
+                                if let Err(err) = app_handle.emit("midi_detached", {}) {
+                                    log::error!(
+                                        "Failed to emit midi_detached event from MidiController: {}",
+                                        err
+                                    );
+                                }
                                 conn_out.close();
                                 break;
                             }
-                            // println!("Current slider values: {:?}", decker::decker::slider_values); 
+                            // println!("Current slider values: {:?}", decker::decker::slider_values);
                             for i in 1..=5 {
                                 let current_slider = match i {
                                     1 => decker::decker::slider_values.slider1,
@@ -88,7 +98,7 @@ pub mod midi {
                                     5 => decker::decker::slider_values.slider5,
                                     _ => unreachable!(), // Should never happen
                                 };
-                            
+
                                 let previous_slider = match i {
                                     1 => &mut Midi.previous_slider1,
                                     2 => &mut Midi.previous_slider2,
@@ -97,28 +107,38 @@ pub mod midi {
                                     5 => &mut Midi.previous_slider5,
                                     _ => unreachable!(), // Should never happen
                                 };
-                                
+
                                 // Check if the slider has moved more than 2 units, prevents jitter
-                                if current_slider.checked_sub(2).map_or(false, |result| result > *previous_slider) ||
-                                current_slider.checked_add(2).map_or(false, |result| result < *previous_slider) {
+                                if current_slider
+                                    .checked_sub(2)
+                                    .map_or(false, |result| result > *previous_slider)
+                                    || current_slider
+                                        .checked_add(2)
+                                        .map_or(false, |result| result < *previous_slider)
+                                {
                                     // Check if the slider is MIDI enabled, -1 because the sliders are 1 indexed here, but 0 indexed in the midi_sliders array coming from the frontend
-                                    if midi_sliders.contains(&(i - 1)) { 
+                                    if midi_sliders.contains(&(i - 1)) {
                                         // Filter the midi_configuration array to only include the current slider
                                         let CCValueParsed: u8;
                                         let channel: u8;
-                                        if let Some(_element) = midi_configuration.get(i as usize - 1) {
+                                        if let Some(_element) =
+                                            midi_configuration.get(i as usize - 1)
+                                        {
                                             let filtered_vec: Vec<_> = midi_configuration
-                                            .iter()
-                                            .enumerate()
-                                            .filter(|(index, _)| *index == i as usize - 1) // -1 because the sliders are 1 indexed here, but 0 indexed in the midi_configuration array coming from the frontend
-                                            .map(|(_, tuple)| tuple.clone())
-                                            .collect();
-                                            let (channelFromTuple, CCValueFromTuple) = filtered_vec[0].clone(); // The filtered_vec should only contain one element, so we can safely unwrap it I think
+                                                .iter()
+                                                .enumerate()
+                                                .filter(|(index, _)| *index == i as usize - 1) // -1 because the sliders are 1 indexed here, but 0 indexed in the midi_configuration array coming from the frontend
+                                                .map(|(_, tuple)| tuple.clone())
+                                                .collect();
+                                            let (channelFromTuple, CCValueFromTuple) =
+                                                filtered_vec[0].clone(); // The filtered_vec should only contain one element, so we can safely unwrap it I think
                                             if channelFromTuple == "" {
                                                 trace!("channelFromTuple is empty, setting to default {}", i);
                                                 channel = i as u8;
                                             } else {
-                                                trace!("channelFromTuple is not empty, parsing to u8");
+                                                trace!(
+                                                    "channelFromTuple is not empty, parsing to u8"
+                                                );
                                                 channel = channelFromTuple.parse::<u8>().unwrap();
                                             }
 
@@ -127,26 +147,35 @@ pub mod midi {
                                                 CCValueParsed = 7;
                                             } else {
                                                 trace!("CCValueFromTuple is not empty, parsing to u8/hex");
-                                                CCValueParsed = u8::from_str_radix(&CCValueFromTuple, 10).unwrap();
+                                                CCValueParsed =
+                                                    u8::from_str_radix(&CCValueFromTuple, 10)
+                                                        .unwrap();
                                             }
                                         } else {
                                             trace!("MIDI Configuration doesn't exist for slider {}, setting to default CC value 07 and channel {}", i, i);
                                             CCValueParsed = 7;
                                             channel = i as u8;
                                         }
-                                        println!("Sending MIDI message: {:?} {:?} {:?}", CCValueParsed, channel, map_to_range(current_slider));
-                                        let _ = conn_out.send(&[0xB0 | (channel - 1 & 0x0F), CCValueParsed, map_to_range(current_slider)]);
+                                        println!(
+                                            "Sending MIDI message: {:?} {:?} {:?}",
+                                            CCValueParsed,
+                                            channel,
+                                            map_to_range(current_slider)
+                                        );
+                                        let _ = conn_out.send(&[
+                                            0xB0 | (channel - 1 & 0x0F),
+                                            CCValueParsed,
+                                            map_to_range(current_slider),
+                                        ]);
                                     }
                                     *previous_slider = current_slider;
                                 }
                             }
-                            
                         }
                         // Add a small sleep duration to reduce CPU usage
                         thread::sleep(Duration::from_millis(50));
                     }
                 });
-
             }
             Err(e) => {
                 println!("Connection to {} failed: {:?}", Midi.name, e);

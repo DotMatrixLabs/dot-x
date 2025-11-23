@@ -4,11 +4,6 @@
       <template v-for="(slider, index) in (sliders.length > 0 ? sliders : 5)" :key="index">
         <div class="flex flex-col justify-center">
           <Slider :midiEnabledGlobal="midiEnabledGlobal" :midiEnabled="midiEnabled[index]" :class="sliders.length === 0 || connectionState === false ? 'opacity-50' : 'opacity-100'" :slider-val="slider" class="h-full w-full" />
-          <div v-if="sliders.length === 0 || connectionState === false" class="p-2 bg-base-200 rounded-md shadow-md ring-1 ring-gray-500 absolute text-center -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2">
-            <h1>Device not connected</h1>
-          <!-- If MIDI is enabled, show a message to inform that no programs or groups will have their volume applied. Only MIDI messages will work. -->
-          </div>
-
           <button @click="$emit('app-click', index)"
             class="m-auto rounded-full w-24 h-12 mt-12 mx-1">
             <div class="">
@@ -17,6 +12,9 @@
           </button>
         </div>
       </template>
+      <div v-if="sliders.length === 0 || connectionState === false" class="p-2 bg-gray-500 dark:bg-gray-400 border-0 bg-opacity-40 dark:bg-opacity-20 backdrop-blur-lg rounded-md shadow-md ring-1 ring-gray-500 absolute text-center -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2">
+        <h1>Device not connected</h1>
+      </div>
     </div>
   </div>
 </template>
@@ -29,7 +27,7 @@ import SelectedApps from "./ts/appsToControl.ts";
 import Decker from "./ts/decker.ts";
 import configStore from "./ts/config.ts";
 import { useDeckerStore } from "./store/deckerStore.ts";
-import { invoke } from "@tauri-apps/api/tauri";
+import { invoke } from "@tauri-apps/api/core";
 import ChannelLabel from "./components/ChannelLabel.vue";
 
 import { mapState } from "pinia"; 

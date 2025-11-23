@@ -29,7 +29,7 @@
             <div v-if="settings?.selectedLabelType === 'text'" class="flex flex-row w-full justify-between px-2 ">
                 <span class="my-auto label-text w-24 mr-3 mt-1">Text: </span>
                 <div class="w-full flex flex-col justify-center items-center">
-                    <input v-model="settings.labelText" :class="labelTextInputTextSize" maxlength="12" @change="inputChange('labelText', $event.target.value)" type="text" placeholder="Enter name" class="input rounded-full w-24 h-12 bg-gray-500 dark:bg-gray-400 border-0 bg-opacity-40 dark:bg-opacity-30 dark:ring-opacity-50 px-0 cursor-text btn"/>
+                    <input v-model="settings.labelText" :class="labelTextInputTextSize" maxlength="12" @change="inputChange('labelText', $event.target.value)" type="text" placeholder="Enter name" class="input rounded-full w-24 h-12 bg-base-300 border-0 bg-opacity-40 dark:ring-opacity-50 px-0 cursor-text btn"/>
                 </div>
             </div>
             <div v-else-if="settings?.selectedLabelType === 'icon'" class="flex flex-row w-full justify-between px-2 ">
@@ -39,7 +39,7 @@
             <div v-else-if="settings?.selectedLabelType === 'image'" class="flex flex-row w-full justify-between px-2 ">
                 <span class="my-auto label-text mt-1 w-12">Image: </span>
                 <div class="flex flex-col items-center justify-center">
-                    <button @click="requestFile" class="rounded-full w-24 h-12 bg-gray-500 dark:bg-gray-400 border-0 bg-opacity-40 dark:bg-opacity-30 dark:ring-opacity-50 px-0 btn">
+                    <button @click="requestFile" class="rounded-full w-24 h-12 bg-base-300 border-0 bg-opacity-40 dark:ring-opacity-50 px-0 btn">
                         <img :class="imageClass" v-if="imageSrc" :src="imageSrc" @load="checkImageWidth"/>
                         <span v-else>Select</span>
                     </button>
@@ -54,7 +54,7 @@
 <script>
 import channelSettings from "../ts/channelSettings.ts";
 import IconPicker from "../components/IconPicker.vue";
-import { open } from '@tauri-apps/api/dialog';
+import { open } from '@tauri-apps/plugin-dialog';
 import { copyFileToAppdata, getImage, getImageSize, removeFileFromAppdata } from '../ts/helpers.ts';
 import Alert from "../components/Alert.vue";
 

@@ -1,15 +1,21 @@
-import { Store } from "tauri-plugin-store-api";
-import { invoke } from "@tauri-apps/api/tauri";
+import { Store } from "@tauri-apps/plugin-store";
+import { invoke } from "@tauri-apps/api/core";
 
 
 class ConfigStore {
-    private store: Store;
+    private store!: Store;
 
     constructor() {
-        this.store = new Store("config.json");
+    }
+
+    private async ensureLoaded() {
+        if (!this.store) {
+            this.store = await Store.load("config.json");
+        }
     }
 
     async set(key: string, value: any) {
+        await this.ensureLoaded();
         await this.store.set(key, value);
         await this.save();
     }
@@ -27,15 +33,18 @@ class ConfigStore {
     }
 
     async get(key: string): Promise<any> {
+        await this.ensureLoaded();
         return await this.store.get(key);
     }
 
     async delete(key: string) {
+        await this.ensureLoaded();
         await this.store.delete(key);
     }
 
     async has(key: string) {
-       return await this.store.has(key);
+        await this.ensureLoaded();
+        return await this.store.has(key);
     }
 
 
@@ -44,6 +53,7 @@ class ConfigStore {
     }
 
     async save() {
+        await this.ensureLoaded();
         await this.store.save();
     }
 
