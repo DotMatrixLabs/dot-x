@@ -132,20 +132,91 @@ export default class MQTTPlugin extends Plugin {
       return;
     }
     
-    // Process each change
+    // Debug logging to investigate channel indexing issue
+    console.log('[MQTT Plugin] Device update received:', {
+      changesCount: data.changes.length,
+      changes: data.changes.map(c => ({ index: c.index, oldValue: c.oldValue, newValue: c.newValue })),
+      valuesCount: data.values.length,
+      values: data.values.map((v, i) => ({ arrayIndex: i, value: v.value }))
+    });
+    
+    // Check if all changes have index 0 (bug workaround)
+    const allChangesHaveIndexZero = data.changes.length > 0 && data.changes.every(c => c.index === 0);
+    const hasMultipleValues = data.values.length > 1;
+    
+    // In 'all' mode: publish all channel values whenever any change occurs
+    // This also works around the bug where change.index is always 0
+    if (this.settings.channelSelectionMode === 'all') {
+      console.log('[MQTT Plugin] "All channels" mode - publishing all values from data.values array');
+      for (let i = 0; i < data.values.length; i++) {
+        const channelIndex = i;
+        const value = data.values[i].value;
+        
+        try {
+          // Publish to MQTT
+          if (this.settings.homeAssistantEnabled) {
+            // Use Home Assistant discovery
+            await this.haDiscovery.publishState(channelIndex, value);
+          } else {
+            // Standard MQTT publish
+            const topic = `${this.settings.topicPrefix}/channel/${channelIndex}`;
+            const payload = JSON.stringify({ value: value.toFixed(2) });
+            await this.mqttClient.publish(topic, payload);
+          }
+        } catch (error) {
+          console.error(`[MQTT Plugin] Error publishing channel ${channelIndex}:`, error);
+        }
+      }
+      return; // Exit early since we've published all values
+    }
+    
+    // Button mode: only publish selected channels that changed
+    // If we detect the index bug (all changes are index 0), try to match by value
+    if (allChangesHaveIndexZero && hasMultipleValues) {
+      console.log('[MQTT Plugin] Detected index bug in button mode - attempting to match changes by value');
+      // Try to match each change's newValue with values array to find correct index
+      for (const change of data.changes) {
+        // Find which channel in values array matches this change's newValue
+        const matchingIndex = data.values.findIndex(v => Math.abs(v.value - change.newValue) < 0.01);
+        const channelIndex = matchingIndex >= 0 ? matchingIndex : change.index; // Fallback to change.index if no match
+        const value = change.newValue;
+        
+        console.log(`[MQTT Plugin] Processing change: matched channelIndex=${channelIndex}, value=${value}`);
+        
+        // Only publish if this channel is selected
+        if (!this.channelButton.isSelected(channelIndex)) {
+          continue; // Skip unselected channels
+        }
+        
+        try {
+          // Publish to MQTT
+          if (this.settings.homeAssistantEnabled) {
+            // Use Home Assistant discovery
+            await this.haDiscovery.publishState(channelIndex, value);
+          } else {
+            // Standard MQTT publish
+            const topic = `${this.settings.topicPrefix}/channel/${channelIndex}`;
+            const payload = JSON.stringify({ value: value.toFixed(2) });
+            await this.mqttClient.publish(topic, payload);
+          }
+        } catch (error) {
+          console.error(`[MQTT Plugin] Error publishing channel ${channelIndex}:`, error);
+        }
+      }
+      return; // Exit early
+    }
+    
+    // Normal processing: iterate through changes (when indices are correct)
     for (const change of data.changes) {
       const channelIndex = change.index;
       const value = change.newValue;
       
-      // Check channel selection mode
-      if (this.settings.channelSelectionMode === 'button') {
-        // In button mode, only publish selected channels
-        // Use built-in isSelected method
-        if (!this.channelButton.isSelected(channelIndex)) {
-          continue; // Skip unselected channels
-        }
+      console.log(`[MQTT Plugin] Processing change: channelIndex=${channelIndex}, value=${value}`);
+      
+      // In button mode, only publish selected channels
+      if (!this.channelButton.isSelected(channelIndex)) {
+        continue; // Skip unselected channels
       }
-      // In 'all' mode, publish everything (no filtering needed)
       
       try {
         // Publish to MQTT
