@@ -596,7 +596,6 @@ async fn main() {
 
             // This gets any command line arguments passed to the app
             let matches = app.cli().matches().unwrap_or_default();
-            panic!("test");
             if let Some(hidden) = matches.args.get("hidden") {
                 if hidden.value == Value::Bool(true) {
                     let _ = window.hide();
