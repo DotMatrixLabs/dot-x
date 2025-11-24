@@ -494,7 +494,7 @@ fn setup_panic_handler(client: Client) {
 #[tokio::main]
 async fn main() {
     let client = sentry::init((
-        "http://4e7acf1ba609c747863f8e3117f062e2@sentry-ingest.frogbyte.io/3",
+        "https://4e7acf1ba609c747863f8e3117f062e2@sentry-ingest.frogbyte.io/3",
         sentry::ClientOptions {
             release: sentry::release_name!(),
             attach_stacktrace: true,
@@ -596,6 +596,7 @@ async fn main() {
 
             // This gets any command line arguments passed to the app
             let matches = app.cli().matches().unwrap_or_default();
+            panic!("test");
             if let Some(hidden) = matches.args.get("hidden") {
                 if hidden.value == Value::Bool(true) {
                     let _ = window.hide();
