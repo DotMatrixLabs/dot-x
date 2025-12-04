@@ -494,7 +494,7 @@ fn setup_panic_handler(client: Client) {
 #[tokio::main]
 async fn main() {
     let client = sentry::init((
-        "https://473d7b762855b5baa461a7921a5f95cc@sentry-ingest.frogbyte.io/4",
+        "https://4e7acf1ba609c747863f8e3117f062e2@sentry-ingest.frogbyte.io/3",
         sentry::ClientOptions {
             release: sentry::release_name!(),
             attach_stacktrace: true,
