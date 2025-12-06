@@ -217,8 +217,8 @@
   },
   {
     "name": "async-executor",
-    "version": "1.11.0",
-    "authors": "Stjepan Glavina <stjepang@gmail.com>|John Nunley <dev@notgull.net>",
+    "version": "1.8.0",
+    "authors": "Stjepan Glavina <stjepang@gmail.com>",
     "repository": "https://github.com/smol-rs/async-executor",
     "license": "Apache-2.0 OR MIT",
     "license_file": null,
@@ -244,7 +244,7 @@
   },
   {
     "name": "async-io",
-    "version": "2.5.0",
+    "version": "2.2.1",
     "authors": "Stjepan Glavina <stjepang@gmail.com>",
     "repository": "https://github.com/smol-rs/async-io",
     "license": "Apache-2.0 OR MIT",
@@ -262,7 +262,7 @@
   },
   {
     "name": "async-lock",
-    "version": "3.4.1",
+    "version": "3.2.0",
     "authors": "Stjepan Glavina <stjepang@gmail.com>",
     "repository": "https://github.com/smol-rs/async-lock",
     "license": "Apache-2.0 OR MIT",
@@ -280,7 +280,7 @@
   },
   {
     "name": "async-recursion",
-    "version": "1.1.1",
+    "version": "1.0.5",
     "authors": "Robert Usher <266585+dcchut@users.noreply.github.com>",
     "repository": "https://github.com/dcchut/async-recursion",
     "license": "Apache-2.0 OR MIT",
@@ -298,7 +298,7 @@
   },
   {
     "name": "async-task",
-    "version": "4.7.1",
+    "version": "4.5.0",
     "authors": "Stjepan Glavina <stjepang@gmail.com>",
     "repository": "https://github.com/smol-rs/async-task",
     "license": "Apache-2.0 OR MIT",
@@ -307,7 +307,7 @@
   },
   {
     "name": "async-trait",
-    "version": "0.1.89",
+    "version": "0.1.74",
     "authors": "David Tolnay <dtolnay@gmail.com>",
     "repository": "https://github.com/dtolnay/async-trait",
     "license": "Apache-2.0 OR MIT",
@@ -358,15 +358,6 @@
     "license": "MIT",
     "license_file": null,
     "description": "Auto launch any application or executable at startup. Supports Windows, macOS, and Linux."
-  },
-  {
-    "name": "backoff",
-    "version": "0.4.0",
-    "authors": "Tibor Benke <ihrwein@gmail.com>",
-    "repository": "https://github.com/ihrwein/backoff",
-    "license": "Apache-2.0 OR MIT",
-    "license_file": null,
-    "description": "Retry operations with exponential backoff policy."
   },
   {
     "name": "backtrace",
@@ -451,7 +442,7 @@
   },
   {
     "name": "blocking",
-    "version": "1.6.2",
+    "version": "1.5.1",
     "authors": "Stjepan Glavina <stjepang@gmail.com>",
     "repository": "https://github.com/smol-rs/blocking",
     "license": "Apache-2.0 OR MIT",
@@ -487,16 +478,16 @@
   },
   {
     "name": "brotli",
-    "version": "3.4.0",
+    "version": "7.0.0",
     "authors": "Daniel Reiter Horn <danielrh@dropbox.com>|The Brotli Authors",
     "repository": "https://github.com/dropbox/rust-brotli",
-    "license": "BSD-3-Clause OR MIT",
+    "license": "BSD-3-Clause AND MIT",
     "license_file": null,
     "description": "A brotli compressor and decompressor that with an interface avoiding the rust stdlib. This makes it suitable for embedded devices and kernels. It is designed with a pluggable allocator so that the standard lib's allocator may be employed. The default build also includes a stdlib allocator and stream interface. Disable this with --features=no-stdlib. All included code is safe."
   },
   {
     "name": "brotli-decompressor",
-    "version": "2.5.1",
+    "version": "4.0.3",
     "authors": "Daniel Reiter Horn <danielrh@dropbox.com>|The Brotli Authors",
     "repository": "https://github.com/dropbox/rust-brotli-decompressor",
     "license": "BSD-3-Clause OR MIT",
@@ -568,7 +559,7 @@
   },
   {
     "name": "bytes",
-    "version": "1.5.0",
+    "version": "1.10.1",
     "authors": "Carl Lerche <me@carllerche.com>|Sean McArthur <sean@seanmonstar.com>",
     "repository": "https://github.com/tokio-rs/bytes",
     "license": "MIT",
@@ -1098,17 +1089,8 @@
     "description": "Rust wrapper for Apple's Grand Central Dispatch."
   },
   {
-    "name": "doc-comment",
-    "version": "0.3.3",
-    "authors": "Guillaume Gomez <guillaume1.gomez@gmail.com>",
-    "repository": "https://github.com/GuillaumeGomez/doc-comment",
-    "license": "MIT",
-    "license_file": null,
-    "description": "Macro to generate doc comments"
-  },
-  {
     "name": "dot_x",
-    "version": "1.2.3",
+    "version": "1.3.0-1",
     "authors": "you",
     "repository": "",
     "license": "",
@@ -1171,7 +1153,7 @@
   },
   {
     "name": "enumflags2",
-    "version": "0.7.12",
+    "version": "0.7.8",
     "authors": "maik klein <maikklein@googlemail.com>|Maja Kądziołka <maya@compilercrim.es>",
     "repository": "https://github.com/meithecatte/enumflags2",
     "license": "Apache-2.0 OR MIT",
@@ -1180,7 +1162,7 @@
   },
   {
     "name": "enumflags2_derive",
-    "version": "0.7.12",
+    "version": "0.7.8",
     "authors": "maik klein <maikklein@googlemail.com>|Maja Kądziołka <maya@compilercrim.es>",
     "repository": "https://github.com/meithecatte/enumflags2",
     "license": "Apache-2.0 OR MIT",
@@ -1198,8 +1180,8 @@
   },
   {
     "name": "errno",
-    "version": "0.3.13",
-    "authors": "Chris Wong <lambda.fairy@gmail.com>|Dan Gohman <dev@sunfishcode.online>",
+    "version": "0.3.8",
+    "authors": "Chris Wong <lambda.fairy@gmail.com>",
     "repository": "https://github.com/lambda-fairy/rust-errno",
     "license": "Apache-2.0 OR MIT",
     "license_file": null,
@@ -1233,28 +1215,10 @@
     "description": "Notify async tasks or threads"
   },
   {
-    "name": "event-listener",
-    "version": "5.4.1",
-    "authors": "Stjepan Glavina <stjepang@gmail.com>|John Nunley <dev@notgull.net>",
-    "repository": "https://github.com/smol-rs/event-listener",
-    "license": "Apache-2.0 OR MIT",
-    "license_file": null,
-    "description": "Notify async tasks or threads"
-  },
-  {
     "name": "event-listener-strategy",
     "version": "0.4.0",
     "authors": "John Nunley <dev@notgull.net>",
     "repository": "https://github.com/smol-rs/event-listener",
-    "license": "Apache-2.0 OR MIT",
-    "license_file": null,
-    "description": "Block or poll on event_listener easily"
-  },
-  {
-    "name": "event-listener-strategy",
-    "version": "0.5.4",
-    "authors": "John Nunley <dev@notgull.net>",
-    "repository": "https://github.com/smol-rs/event-listener-strategy",
     "license": "Apache-2.0 OR MIT",
     "license_file": null,
     "description": "Block or poll on event_listener easily"
@@ -1323,15 +1287,6 @@
     "description": "Find the set of shared libraries loaded in the current process with a cross platform API"
   },
   {
-    "name": "firmata-rs",
-    "version": "0.4.1",
-    "authors": "Tiemen Schuijbroek <t.j.l.schuijbroek@ratio-case.nl>",
-    "repository": "https://gitlab.com/Tiemen/firmata-rs",
-    "license": "Apache-2.0 OR MIT",
-    "license_file": null,
-    "description": "A Firmata protocol client library."
-  },
-  {
     "name": "flate2",
     "version": "1.0.28",
     "authors": "Alex Crichton <alex@alexcrichton.com>|Josh Triplett <josh@joshtriplett.org>",
@@ -1339,6 +1294,15 @@
     "license": "Apache-2.0 OR MIT",
     "license_file": null,
     "description": "DEFLATE compression and decompression exposed as Read/BufRead/Write streams. Supports miniz_oxide and multiple zlib implementations. Supports zlib, gzip, and raw deflate streams."
+  },
+  {
+    "name": "fluent-uri",
+    "version": "0.1.4",
+    "authors": "Scallop Ye <yescallop@gmail.com>",
+    "repository": "https://github.com/yescallop/fluent-uri-rs",
+    "license": "MIT",
+    "license_file": null,
+    "description": "A generic URI parser that strictly adheres to IETF RFC 3986."
   },
   {
     "name": "fnv",
@@ -1477,7 +1441,7 @@
   },
   {
     "name": "futures-lite",
-    "version": "2.6.1",
+    "version": "2.1.0",
     "authors": "Stjepan Glavina <stjepang@gmail.com>|Contributors to futures-rs",
     "repository": "https://github.com/smol-rs/futures-lite",
     "license": "Apache-2.0 OR MIT",
@@ -1765,7 +1729,7 @@
   },
   {
     "name": "hashbrown",
-    "version": "0.15.5",
+    "version": "0.14.3",
     "authors": "Amanieu d'Antras <amanieu@gmail.com>",
     "repository": "https://github.com/rust-lang/hashbrown",
     "license": "Apache-2.0 OR MIT",
@@ -1776,6 +1740,15 @@
     "name": "heck",
     "version": "0.4.1",
     "authors": "Without Boats <woboats@gmail.com>",
+    "repository": "https://github.com/withoutboats/heck",
+    "license": "Apache-2.0 OR MIT",
+    "license_file": null,
+    "description": "heck is a case conversion library."
+  },
+  {
+    "name": "heck",
+    "version": "0.5.0",
+    "authors": null,
     "repository": "https://github.com/withoutboats/heck",
     "license": "Apache-2.0 OR MIT",
     "license_file": null,
@@ -1800,15 +1773,6 @@
     "description": "Hermit system calls definitions."
   },
   {
-    "name": "hermit-abi",
-    "version": "0.5.2",
-    "authors": "Stefan Lankes",
-    "repository": "https://github.com/hermit-os/hermit-rs",
-    "license": "Apache-2.0 OR MIT",
-    "license_file": null,
-    "description": "Hermit system calls definitions."
-  },
-  {
     "name": "hex",
     "version": "0.4.3",
     "authors": "KokaKiwi <kokakiwi@kokakiwi.net>",
@@ -1825,15 +1789,6 @@
     "license": "MIT",
     "license_file": null,
     "description": "Cross-platform system's host name functions"
-  },
-  {
-    "name": "html5ever",
-    "version": "0.25.2",
-    "authors": "The html5ever Project Developers",
-    "repository": "https://github.com/servo/html5ever",
-    "license": "Apache-2.0 OR MIT",
-    "license_file": null,
-    "description": "High-performance browser-grade HTML5 parser"
   },
   {
     "name": "html5ever",
@@ -1855,7 +1810,7 @@
   },
   {
     "name": "http",
-    "version": "1.1.0",
+    "version": "1.3.1",
     "authors": "Alex Crichton <alex@alexcrichton.com>|Carl Lerche <me@carllerche.com>|Sean McArthur <sean@seanmonstar.com>",
     "repository": "https://github.com/hyperium/http",
     "license": "Apache-2.0 OR MIT",
@@ -1900,7 +1855,7 @@
   },
   {
     "name": "httparse",
-    "version": "1.8.0",
+    "version": "1.10.1",
     "authors": "Sean McArthur <sean@seanmonstar.com>",
     "repository": "https://github.com/seanmonstar/httparse",
     "license": "Apache-2.0 OR MIT",
@@ -1927,12 +1882,12 @@
   },
   {
     "name": "hyper",
-    "version": "1.3.1",
+    "version": "1.6.0",
     "authors": "Sean McArthur <sean@seanmonstar.com>",
     "repository": "https://github.com/hyperium/hyper",
     "license": "MIT",
     "license_file": null,
-    "description": "A fast and correct HTTP library."
+    "description": "A protective and efficient HTTP library for all."
   },
   {
     "name": "hyper-tls",
@@ -1981,7 +1936,7 @@
   },
   {
     "name": "ico",
-    "version": "0.3.0",
+    "version": "0.4.0",
     "authors": "Matthew D. Steele <mdsteele@alum.mit.edu>",
     "repository": "https://github.com/mdsteele/rust-ico",
     "license": "MIT",
@@ -2035,9 +1990,9 @@
   },
   {
     "name": "indexmap",
-    "version": "2.10.0",
+    "version": "2.1.0",
     "authors": null,
-    "repository": "https://github.com/indexmap-rs/indexmap",
+    "repository": "https://github.com/bluss/indexmap",
     "license": "Apache-2.0 OR MIT",
     "license_file": null,
     "description": "A hash table with consistent order and fast iteration."
@@ -2079,6 +2034,15 @@
     "description": "A low-level I/O ownership and borrowing library"
   },
   {
+    "name": "io-uring",
+    "version": "0.7.9",
+    "authors": "quininer <quininer@live.com>",
+    "repository": "https://github.com/tokio-rs/io-uring",
+    "license": "Apache-2.0 OR MIT",
+    "license_file": null,
+    "description": "The low-level `io_uring` userspace interface for Rust"
+  },
+  {
     "name": "ipnet",
     "version": "2.9.0",
     "authors": "Kris Price <kris@krisprice.nz>",
@@ -2116,7 +2080,7 @@
   },
   {
     "name": "itoa",
-    "version": "1.0.9",
+    "version": "1.0.15",
     "authors": "David Tolnay <dtolnay@gmail.com>",
     "repository": "https://github.com/dtolnay/itoa",
     "license": "Apache-2.0 OR MIT",
@@ -2170,7 +2134,7 @@
   },
   {
     "name": "json-patch",
-    "version": "1.2.0",
+    "version": "2.0.0",
     "authors": "Ivan Dubrov <dubrov.ivan@gmail.com>",
     "repository": "https://github.com/idubrov/json-patch",
     "license": "Apache-2.0 OR MIT",
@@ -2178,13 +2142,13 @@
     "description": "RFC 6902, JavaScript Object Notation (JSON) Patch"
   },
   {
-    "name": "kuchiki",
-    "version": "0.8.1",
-    "authors": "Simon Sapin <simon.sapin@exyr.org>",
-    "repository": "https://github.com/SimonSapin/kuchiki",
-    "license": "MIT",
+    "name": "jsonptr",
+    "version": "0.4.7",
+    "authors": "chance dinkins",
+    "repository": "https://github.com/chanced/jsonptr",
+    "license": "Apache-2.0 OR MIT",
     "license_file": null,
-    "description": "(朽木) HTML/XML tree manipulation library"
+    "description": "Data structures and logic for resolving, assigning, and deleting by JSON Pointers (RFC 6901)"
   },
   {
     "name": "kuchikiki",
@@ -2224,7 +2188,7 @@
   },
   {
     "name": "libc",
-    "version": "0.2.175",
+    "version": "0.2.174",
     "authors": "The Rust Project Developers",
     "repository": "https://github.com/rust-lang/libc",
     "license": "Apache-2.0 OR MIT",
@@ -2288,15 +2252,6 @@
   {
     "name": "linux-raw-sys",
     "version": "0.4.12",
-    "authors": "Dan Gohman <dev@sunfishcode.online>",
-    "repository": "https://github.com/sunfishcode/linux-raw-sys",
-    "license": "Apache-2.0 OR Apache-2.0 WITH LLVM-exception OR MIT",
-    "license_file": null,
-    "description": "Generated bindings for Linux's userspace API"
-  },
-  {
-    "name": "linux-raw-sys",
-    "version": "0.9.4",
     "authors": "Dan Gohman <dev@sunfishcode.online>",
     "repository": "https://github.com/sunfishcode/linux-raw-sys",
     "license": "Apache-2.0 OR Apache-2.0 WITH LLVM-exception OR MIT",
@@ -2374,15 +2329,6 @@
     "license": "MIT",
     "license_file": null,
     "description": "Structs for handling malloc'd memory passed to Rust."
-  },
-  {
-    "name": "markup5ever",
-    "version": "0.10.1",
-    "authors": "The html5ever Project Developers",
-    "repository": "https://github.com/servo/html5ever",
-    "license": "Apache-2.0 OR MIT",
-    "license_file": null,
-    "description": "Common code for xml5ever and html5ever"
   },
   {
     "name": "markup5ever",
@@ -2521,7 +2467,7 @@
   },
   {
     "name": "mio",
-    "version": "0.8.10",
+    "version": "1.0.4",
     "authors": "Carl Lerche <me@carllerche.com>|Thomas de Zeeuw <thomasdezeeuw@gmail.com>|Tokio Contributors <team@tokio.rs>",
     "repository": "https://github.com/tokio-rs/mio",
     "license": "MIT",
@@ -2662,15 +2608,6 @@
     "license": "Apache-2.0 OR MIT",
     "license_file": null,
     "description": "Numeric traits for generic mathematics"
-  },
-  {
-    "name": "num_cpus",
-    "version": "1.16.0",
-    "authors": "Sean McArthur <sean@seanmonstar.com>",
-    "repository": "https://github.com/seanmonstar/num_cpus",
-    "license": "Apache-2.0 OR MIT",
-    "license_file": null,
-    "description": "Get the number of CPUs on a machine."
   },
   {
     "name": "num_enum",
@@ -3079,7 +3016,7 @@
   },
   {
     "name": "polling",
-    "version": "3.10.0",
+    "version": "3.3.1",
     "authors": "Stjepan Glavina <stjepang@gmail.com>|John Nunley <dev@notgull.net>",
     "repository": "https://github.com/smol-rs/polling",
     "license": "Apache-2.0 OR MIT",
@@ -3124,7 +3061,7 @@
   },
   {
     "name": "proc-macro-crate",
-    "version": "3.3.0",
+    "version": "3.1.0",
     "authors": "Bastian Köcher <git@kchr.de>",
     "repository": "https://github.com/bkchr/proc-macro-crate",
     "license": "Apache-2.0 OR MIT",
@@ -3160,7 +3097,7 @@
   },
   {
     "name": "proc-macro2",
-    "version": "1.0.101",
+    "version": "1.0.95",
     "authors": "David Tolnay <dtolnay@gmail.com>|Alex Crichton <alex@alexcrichton.com>",
     "repository": "https://github.com/dtolnay/proc-macro2",
     "license": "Apache-2.0 OR MIT",
@@ -3501,15 +3438,6 @@
     "description": "Safe Rust bindings to POSIX/Unix/Linux/Winsock2-like syscalls"
   },
   {
-    "name": "rustix",
-    "version": "1.0.8",
-    "authors": "Dan Gohman <dev@sunfishcode.online>|Jakub Konka <kubkon@jakubkonka.com>",
-    "repository": "https://github.com/bytecodealliance/rustix",
-    "license": "Apache-2.0 OR Apache-2.0 WITH LLVM-exception OR MIT",
-    "license_file": null,
-    "description": "Safe Rust bindings to POSIX/Unix/Linux/Winsock-like syscalls"
-  },
-  {
     "name": "rustls-pemfile",
     "version": "2.1.2",
     "authors": null,
@@ -3763,7 +3691,7 @@
   },
   {
     "name": "serde_repr",
-    "version": "0.1.20",
+    "version": "0.1.17",
     "authors": "David Tolnay <dtolnay@gmail.com>",
     "repository": "https://github.com/dtolnay/serde-repr",
     "license": "Apache-2.0 OR MIT",
@@ -3808,7 +3736,7 @@
   },
   {
     "name": "serialize-to-javascript",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "authors": "Chip Reed <chip@chip.sh>",
     "repository": "https://github.com/chippers/serialize-to-javascript",
     "license": "Apache-2.0 OR MIT",
@@ -3817,7 +3745,7 @@
   },
   {
     "name": "serialize-to-javascript-impl",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "authors": "Chip Reed <chip@chip.sh>",
     "repository": "https://github.com/chippers/serialize-to-javascript",
     "license": "Apache-2.0 OR MIT",
@@ -3933,24 +3861,6 @@
     "description": "Rust custom-derive macro for Default with more control on the fields"
   },
   {
-    "name": "snafu",
-    "version": "0.7.5",
-    "authors": "Jake Goulding <jake.goulding@gmail.com>",
-    "repository": "https://github.com/shepmaster/snafu",
-    "license": "Apache-2.0 OR MIT",
-    "license_file": null,
-    "description": "An ergonomic error handling library"
-  },
-  {
-    "name": "snafu-derive",
-    "version": "0.7.5",
-    "authors": "Jake Goulding <jake.goulding@gmail.com>",
-    "repository": "https://github.com/shepmaster/snafu",
-    "license": "Apache-2.0 OR MIT",
-    "license_file": null,
-    "description": "An ergonomic error handling library"
-  },
-  {
     "name": "socket2",
     "version": "0.4.10",
     "authors": "Alex Crichton <alex@alexcrichton.com>|Thomas de Zeeuw <thomasdezeeuw@gmail.com>",
@@ -4051,7 +3961,7 @@
   },
   {
     "name": "syn",
-    "version": "2.0.106",
+    "version": "2.0.104",
     "authors": "David Tolnay <dtolnay@gmail.com>",
     "repository": "https://github.com/dtolnay/syn",
     "license": "Apache-2.0 OR MIT",
@@ -4078,7 +3988,7 @@
   },
   {
     "name": "sys-locale",
-    "version": "0.2.4",
+    "version": "0.3.2",
     "authors": "1Password",
     "repository": "https://github.com/1Password/sys-locale",
     "license": "Apache-2.0 OR MIT",
@@ -4141,7 +4051,7 @@
   },
   {
     "name": "tauri",
-    "version": "1.5.3",
+    "version": "1.8.3",
     "authors": "Tauri Programme within The Commons Conservancy",
     "repository": "https://github.com/tauri-apps/tauri",
     "license": "Apache-2.0 OR MIT",
@@ -4150,7 +4060,7 @@
   },
   {
     "name": "tauri-codegen",
-    "version": "1.4.1",
+    "version": "1.4.6",
     "authors": "Tauri Programme within The Commons Conservancy",
     "repository": "https://github.com/tauri-apps/tauri/tree/dev/core/tauri-codegen",
     "license": "Apache-2.0 OR MIT",
@@ -4159,7 +4069,7 @@
   },
   {
     "name": "tauri-macros",
-    "version": "1.4.2",
+    "version": "1.4.7",
     "authors": "Tauri Programme within The Commons Conservancy",
     "repository": "https://github.com/tauri-apps/tauri",
     "license": "Apache-2.0 OR MIT",
@@ -4213,7 +4123,7 @@
   },
   {
     "name": "tauri-runtime",
-    "version": "0.14.1",
+    "version": "0.14.6",
     "authors": "Tauri Programme within The Commons Conservancy",
     "repository": "https://github.com/tauri-apps/tauri",
     "license": "Apache-2.0 OR MIT",
@@ -4222,7 +4132,7 @@
   },
   {
     "name": "tauri-runtime-wry",
-    "version": "0.14.2",
+    "version": "0.14.11",
     "authors": "Tauri Programme within The Commons Conservancy",
     "repository": "https://github.com/tauri-apps/tauri",
     "license": "Apache-2.0 OR MIT",
@@ -4231,7 +4141,7 @@
   },
   {
     "name": "tauri-utils",
-    "version": "1.5.1",
+    "version": "1.6.2",
     "authors": "Tauri Programme within The Commons Conservancy",
     "repository": "https://github.com/tauri-apps/tauri",
     "license": "Apache-2.0 OR MIT",
@@ -4366,7 +4276,7 @@
   },
   {
     "name": "tokio",
-    "version": "1.34.0",
+    "version": "1.46.1",
     "authors": "Tokio Contributors <team@tokio.rs>",
     "repository": "https://github.com/tokio-rs/tokio",
     "license": "MIT",
@@ -4375,7 +4285,7 @@
   },
   {
     "name": "tokio-macros",
-    "version": "2.2.0",
+    "version": "2.5.0",
     "authors": "Tokio Contributors <team@tokio.rs>",
     "repository": "https://github.com/tokio-rs/tokio",
     "license": "MIT",
@@ -4411,8 +4321,8 @@
   },
   {
     "name": "toml_datetime",
-    "version": "0.6.11",
-    "authors": null,
+    "version": "0.6.5",
+    "authors": "Alex Crichton <alex@alexcrichton.com>",
     "repository": "https://github.com/toml-rs/toml",
     "license": "Apache-2.0 OR MIT",
     "license_file": null,
@@ -4431,15 +4341,6 @@
     "name": "toml_edit",
     "version": "0.21.0",
     "authors": "Andronik Ordian <write@reusable.software>|Ed Page <eopage@gmail.com>",
-    "repository": "https://github.com/toml-rs/toml",
-    "license": "Apache-2.0 OR MIT",
-    "license_file": null,
-    "description": "Yet another format-preserving TOML parser."
-  },
-  {
-    "name": "toml_edit",
-    "version": "0.22.27",
-    "authors": null,
     "repository": "https://github.com/toml-rs/toml",
     "license": "Apache-2.0 OR MIT",
     "license_file": null,
@@ -4518,15 +4419,6 @@
     "description": "Utilities for implementing and composing `tracing` subscribers."
   },
   {
-    "name": "treediff",
-    "version": "4.0.2",
-    "authors": "Sebastian Thiel <byronimo@gmail.com>",
-    "repository": "https://github.com/Byron/treediff-rs",
-    "license": "Apache-2.0 OR MIT",
-    "license_file": null,
-    "description": "Find the difference between arbitrary data structures"
-  },
-  {
     "name": "try-lock",
     "version": "0.2.4",
     "authors": "Sean McArthur <sean@seanmonstar.com>",
@@ -4555,7 +4447,7 @@
   },
   {
     "name": "uds_windows",
-    "version": "1.1.0",
+    "version": "1.0.2",
     "authors": "Azure IoT Edge Devs|Harald Hoyer <harald@redhat.com>",
     "repository": "https://github.com/haraldh/rust_uds_windows",
     "license": "MIT",
@@ -5013,26 +4905,8 @@
     "description": "The interface macro for the windows crate"
   },
   {
-    "name": "windows-link",
-    "version": "0.1.3",
-    "authors": "Microsoft",
-    "repository": "https://github.com/microsoft/windows-rs",
-    "license": "Apache-2.0 OR MIT",
-    "license_file": null,
-    "description": "Linking for Windows"
-  },
-  {
     "name": "windows-sys",
     "version": "0.42.0",
-    "authors": "Microsoft",
-    "repository": "https://github.com/microsoft/windows-rs",
-    "license": "Apache-2.0 OR MIT",
-    "license_file": null,
-    "description": "Rust for Windows"
-  },
-  {
-    "name": "windows-sys",
-    "version": "0.45.0",
     "authors": "Microsoft",
     "repository": "https://github.com/microsoft/windows-rs",
     "license": "Apache-2.0 OR MIT",
@@ -5059,7 +4933,7 @@
   },
   {
     "name": "windows-sys",
-    "version": "0.60.2",
+    "version": "0.59.0",
     "authors": "Microsoft",
     "repository": "https://github.com/microsoft/windows-rs",
     "license": "Apache-2.0 OR MIT",
@@ -5087,15 +4961,6 @@
   {
     "name": "windows-targets",
     "version": "0.52.6",
-    "authors": "Microsoft",
-    "repository": "https://github.com/microsoft/windows-rs",
-    "license": "Apache-2.0 OR MIT",
-    "license_file": null,
-    "description": "Import libs for Windows"
-  },
-  {
-    "name": "windows-targets",
-    "version": "0.53.3",
     "authors": "Microsoft",
     "repository": "https://github.com/microsoft/windows-rs",
     "license": "Apache-2.0 OR MIT",
@@ -5157,15 +5022,6 @@
     "description": "Import lib for Windows"
   },
   {
-    "name": "windows_aarch64_gnullvm",
-    "version": "0.53.0",
-    "authors": "Microsoft",
-    "repository": "https://github.com/microsoft/windows-rs",
-    "license": "Apache-2.0 OR MIT",
-    "license_file": null,
-    "description": "Import lib for Windows"
-  },
-  {
     "name": "windows_aarch64_msvc",
     "version": "0.37.0",
     "authors": "Microsoft",
@@ -5211,15 +5067,6 @@
     "description": "Import lib for Windows"
   },
   {
-    "name": "windows_aarch64_msvc",
-    "version": "0.53.0",
-    "authors": "Microsoft",
-    "repository": "https://github.com/microsoft/windows-rs",
-    "license": "Apache-2.0 OR MIT",
-    "license_file": null,
-    "description": "Import lib for Windows"
-  },
-  {
     "name": "windows_i686_gnu",
     "version": "0.37.0",
     "authors": "Microsoft",
@@ -5258,15 +5105,6 @@
   {
     "name": "windows_i686_gnu",
     "version": "0.52.6",
-    "authors": "Microsoft",
-    "repository": "https://github.com/microsoft/windows-rs",
-    "license": "Apache-2.0 OR MIT",
-    "license_file": null,
-    "description": "Import lib for Windows"
-  },
-  {
-    "name": "windows_i686_gnu",
-    "version": "0.53.0",
     "authors": "Microsoft",
     "repository": "https://github.com/microsoft/windows-rs",
     "license": "Apache-2.0 OR MIT",
@@ -5283,15 +5121,6 @@
     "description": "Import lib for Windows"
   },
   {
-    "name": "windows_i686_gnullvm",
-    "version": "0.53.0",
-    "authors": "Microsoft",
-    "repository": "https://github.com/microsoft/windows-rs",
-    "license": "Apache-2.0 OR MIT",
-    "license_file": null,
-    "description": "Import lib for Windows"
-  },
-  {
     "name": "windows_i686_msvc",
     "version": "0.37.0",
     "authors": "Microsoft",
@@ -5330,15 +5159,6 @@
   {
     "name": "windows_i686_msvc",
     "version": "0.52.6",
-    "authors": "Microsoft",
-    "repository": "https://github.com/microsoft/windows-rs",
-    "license": "Apache-2.0 OR MIT",
-    "license_file": null,
-    "description": "Import lib for Windows"
-  },
-  {
-    "name": "windows_i686_msvc",
-    "version": "0.53.0",
     "authors": "Microsoft",
     "repository": "https://github.com/microsoft/windows-rs",
     "license": "Apache-2.0 OR MIT",
@@ -5391,15 +5211,6 @@
     "description": "Import lib for Windows"
   },
   {
-    "name": "windows_x86_64_gnu",
-    "version": "0.53.0",
-    "authors": "Microsoft",
-    "repository": "https://github.com/microsoft/windows-rs",
-    "license": "Apache-2.0 OR MIT",
-    "license_file": null,
-    "description": "Import lib for Windows"
-  },
-  {
     "name": "windows_x86_64_gnullvm",
     "version": "0.42.2",
     "authors": "Microsoft",
@@ -5420,15 +5231,6 @@
   {
     "name": "windows_x86_64_gnullvm",
     "version": "0.52.6",
-    "authors": "Microsoft",
-    "repository": "https://github.com/microsoft/windows-rs",
-    "license": "Apache-2.0 OR MIT",
-    "license_file": null,
-    "description": "Import lib for Windows"
-  },
-  {
-    "name": "windows_x86_64_gnullvm",
-    "version": "0.53.0",
     "authors": "Microsoft",
     "repository": "https://github.com/microsoft/windows-rs",
     "license": "Apache-2.0 OR MIT",
@@ -5474,15 +5276,6 @@
   {
     "name": "windows_x86_64_msvc",
     "version": "0.52.6",
-    "authors": "Microsoft",
-    "repository": "https://github.com/microsoft/windows-rs",
-    "license": "Apache-2.0 OR MIT",
-    "license_file": null,
-    "description": "Import lib for Windows"
-  },
-  {
-    "name": "windows_x86_64_msvc",
-    "version": "0.53.0",
     "authors": "Microsoft",
     "repository": "https://github.com/microsoft/windows-rs",
     "license": "Apache-2.0 OR MIT",
@@ -5492,15 +5285,6 @@
   {
     "name": "winnow",
     "version": "0.5.25",
-    "authors": null,
-    "repository": "https://github.com/winnow-rs/winnow",
-    "license": "MIT",
-    "license_file": null,
-    "description": "A byte-oriented, zero-copy, parser combinators library"
-  },
-  {
-    "name": "winnow",
-    "version": "0.7.12",
     "authors": null,
     "repository": "https://github.com/winnow-rs/winnow",
     "license": "MIT",
@@ -5554,7 +5338,7 @@
   },
   {
     "name": "wry",
-    "version": "0.24.6",
+    "version": "0.24.11",
     "authors": "Tauri Programme within The Commons Conservancy",
     "repository": "https://github.com/tauri-apps/wry",
     "license": "Apache-2.0 OR MIT",
