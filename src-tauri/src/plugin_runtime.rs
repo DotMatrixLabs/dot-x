@@ -1,4 +1,4 @@
-use std::{ collections::{HashMap, VecDeque}, fs, path::{Path, PathBuf}, };
+use std::{ collections::{HashMap, HashSet, VecDeque}, fs, path::{Path, PathBuf}, };
 use log::{error, info, warn};
 use once_cell::sync::OnceCell;
 use serde_json::Value;
@@ -223,6 +223,83 @@ fn find_plugin_dir_by_id(app_handle: &AppHandle, plugin_id: &str) -> Option<Path
   None
 }
 
+fn read_permissions_from_manifest(dir: &Path) -> (Vec<String>, Vec<String>) {
+  let manifest_path = dir.join("manifest.json");
+  if !manifest_path.exists() {
+    return (Vec::new(), vec![format!("manifest.json not found in {}", dir.display())]);
+  }
+
+  let contents = match fs::read_to_string(&manifest_path) {
+    Ok(c) => c,
+    Err(e) => return (Vec::new(), vec![format!("Failed to read {}: {}", manifest_path.display(), e)]),
+  };
+
+  let json: Value = match serde_json::from_str(&contents) {
+    Ok(v) => v,
+    Err(e) => return (Vec::new(), vec![format!("Failed to parse {}: {}", manifest_path.display(), e)]),
+  };
+
+  let permissions_value = json.get("permissions");
+  let permissions_array = match permissions_value.and_then(|v| v.as_array()) {
+    Some(a) => a,
+    None => return (Vec::new(), vec![format!("permissions must be an array in {}", manifest_path.display())]),
+  };
+
+  let mut normalized: HashSet<String> = HashSet::new();
+  let mut warnings: Vec<String> = Vec::new();
+
+  for entry in permissions_array {
+    match entry.as_str() {
+      Some(s) => {
+        let p = s.trim().to_lowercase();
+        if !p.is_empty() {
+          normalized.insert(p);
+        }
+      }
+      None => warnings.push(format!("Non-string permission in {}", manifest_path.display())),
+    }
+  }
+
+  (normalized.into_iter().collect(), warnings)
+}
+
+fn build_deno_permission_args(plugin_dir: &Path, permissions: &[String]) -> Vec<String> {
+  let mut flags: Vec<String> = Vec::new();
+  let mut seen: HashSet<String> = HashSet::new();
+
+  let defaults = vec![
+    format!("--allow-read={}", plugin_dir.display()),
+    format!("--allow-write={}", plugin_dir.display()),
+  ];
+
+  for flag in defaults {
+    if seen.insert(flag.clone()) {
+      flags.push(flag);
+    }
+  }
+
+  for perm in permissions {
+    let flag = match perm.as_str() {
+      "net" | "network" => Some("--allow-net".to_string()),
+      "env" => Some("--allow-env".to_string()),
+      "run" => Some("--allow-run".to_string()),
+      "ffi" => Some("--allow-ffi".to_string()),
+      "sys" => Some("--allow-sys".to_string()),
+      "read" => Some("--allow-read".to_string()),
+      "write" => Some("--allow-write".to_string()),
+      _ => None,
+    };
+
+    if let Some(f) = flag {
+      if seen.insert(f.clone()) {
+        flags.push(f);
+      }
+    }
+  }
+
+  flags
+}
+
 async fn is_running(plugin_id: &str) -> bool {
   let table = process_table();
   let map = table.read().await;
@@ -257,13 +334,23 @@ async fn spawn_deno_process(app_handle: &AppHandle, dir: &Path, plugin_id: &str)
   }
   let port_str = if port > 0 { port.to_string() } else { "3001".to_string() };
 
-  // Spawn `deno run --allow-all main.js` with stdout/stderr piped
+  let (manifest_permissions, manifest_warnings) = read_permissions_from_manifest(dir);
+  for w in manifest_warnings {
+    warn!("{}", w);
+  }
+  let permission_flags = build_deno_permission_args(dir, &manifest_permissions);
+
+  // Spawn `deno run ... main.js` with stdout/stderr piped
   let deno_bin = resolve_deno_path(app_handle).unwrap_or_else(|| PathBuf::from("deno"));
   let mut cmd = Command::new(deno_bin);
   cmd.arg("run")
-    .arg("--allow-all")
-    .arg("--unstable-detect-cjs")
-    .arg("main.js")
+    .arg("--unstable-detect-cjs");
+
+  for flag in &permission_flags {
+    cmd.arg(flag);
+  }
+
+  cmd.arg("main.js")
     .current_dir(dir)
     .env("DOTX_PLUGIN_ID", plugin_id)
     .env("DOTX_PLUGIN_PORT", &port_str)

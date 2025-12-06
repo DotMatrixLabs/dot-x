@@ -17,13 +17,6 @@
     { "title": "Sponsor", "icon": "fa-solid fa-heart", "url": "https://github.com/sponsors/dotmatrixlabs" },
     { "title": "Docs", "icon": "fa-solid fa-book", "url": "https://dotx.dev/docs/plugins/hello-world" }
   ],
-  "permissions": [
-    "network",
-    "filesystem.read",
-    "filesystem.write",
-    "ui.overlay",
-    "settings.read",
-    "settings.write"
-  ],
+  "permissions": [],
   "license": "MIT"
 }
