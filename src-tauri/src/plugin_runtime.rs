@@ -1,5 +1,5 @@
 use std::{ collections::{HashMap, VecDeque}, fs, path::{Path, PathBuf}, };
-use log::{error, info};
+use log::{error, info, warn};
 use once_cell::sync::OnceCell;
 use serde_json::Value;
 use std::sync::Arc;
@@ -8,6 +8,7 @@ use tauri::Emitter;
 use tokio::{process::Command, sync::RwLock, io::{AsyncBufReadExt, BufReader, AsyncWriteExt, AsyncRead}};
 use tokio::fs as async_fs;
 use chrono::Local;
+use crate::plugin_server::get_active_port;
 
 // Global process table: plugin_id -> Child process
 static PROCESS_TABLE: OnceCell<Arc<RwLock<HashMap<String, tokio::process::Child>>>> = OnceCell::new();
@@ -249,6 +250,13 @@ async fn spawn_deno_process(app_handle: &AppHandle, dir: &Path, plugin_id: &str)
     return Err(format!("main.js not found for plugin {}", plugin_id));
   }
 
+  // Get the active plugin server port
+  let port = get_active_port();
+  if port == 0 {
+    warn!("Plugin server port not yet available, using default 3001 for plugin {}", plugin_id);
+  }
+  let port_str = if port > 0 { port.to_string() } else { "3001".to_string() };
+
   // Spawn `deno run --allow-all main.js` with stdout/stderr piped
   let deno_bin = resolve_deno_path(app_handle).unwrap_or_else(|| PathBuf::from("deno"));
   let mut cmd = Command::new(deno_bin);
@@ -258,9 +266,11 @@ async fn spawn_deno_process(app_handle: &AppHandle, dir: &Path, plugin_id: &str)
     .arg("main.js")
     .current_dir(dir)
     .env("DOTX_PLUGIN_ID", plugin_id)
+    .env("DOTX_PLUGIN_PORT", &port_str)
     .stdout(std::process::Stdio::piped())
     .stderr(std::process::Stdio::piped());
 
+  info!("Starting plugin {} with port {}", plugin_id, port_str);
   cmd.spawn().map_err(|e| format!("Failed to start Deno for {}: {}", plugin_id, e))
 }
 
