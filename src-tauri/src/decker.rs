@@ -13,7 +13,8 @@ use std::{
     thread::{self},
     time::Duration,
 };
-use tauri::Window;
+use tauri::Emitter;
+use tauri::WebviewWindow;
 
 pub static mut COMPUTER_SLEEPING: bool = false;
 
@@ -217,7 +218,7 @@ pub fn start_background_thread() {
 }
 
 pub fn initialize_decker(
-    window: Window,
+    window: WebviewWindow,
     port_name: &str,
     inverted: bool,
 ) -> std::result::Result<(), std::io::Error> {
@@ -257,14 +258,14 @@ pub fn initialize_decker(
             let (tx, rx): (mpsc::Sender<String>, mpsc::Receiver<String>) = mpsc::channel(); // Spawn a thread to handle incoming data
             thread::spawn(move || {
                 let mut serial_buf: Vec<u8> = vec![0; 100];
-                window
-                    .emit(
-                        "connection-change",
-                        Payload {
-                            message: "connected".to_string(),
-                        },
-                    )
-                    .unwrap();
+                if let Err(err) = window.emit(
+                    "connection-change",
+                    Payload {
+                        message: "connected".to_string(),
+                    },
+                ) {
+                    error!("Failed to emit connection-change event: {}", err);
+                }
                 loop {
                     if !SHOULD_RUN.load(Ordering::Relaxed) {
                         break;
@@ -276,14 +277,14 @@ pub fn initialize_decker(
                                 if let Err(e) = port.write_data_terminal_ready(false) {
                                     error!("Failed to set DTR to false: {}", e);
                                 }
-                                window
-                                    .emit(
-                                        "connection-change",
-                                        Payload {
-                                            message: "disconnected".to_string(),
-                                        },
-                                    )
-                                    .unwrap();
+                                if let Err(err) = window.emit(
+                                    "connection-change",
+                                    Payload {
+                                        message: "disconnected".to_string(),
+                                    },
+                                ) {
+                                    error!("Failed to emit connection-change event: {}", err);
+                                }
                                 std::mem::drop(port); // Drop the port to close it
                                 info!("Disconnected");
                                 panic!("Disconnected");
@@ -369,14 +370,14 @@ pub fn initialize_decker(
                             if let Err(e) = port.write_data_terminal_ready(false) {
                                 error!("Failed to set DTR to false: {}", e);
                             }
-                            window
-                                .emit(
-                                    "connection-change",
-                                    Payload {
-                                        message: "disconnected".to_string(),
-                                    },
-                                )
-                                .unwrap();
+                            if let Err(err) = window.emit(
+                                "connection-change",
+                                Payload {
+                                    message: "disconnected".to_string(),
+                                },
+                            ) {
+                                error!("Failed to emit connection-change event: {}", err);
+                            }
                             std::mem::drop(port); // Drop the port to close it
                             error!("An error occurred while reading serial data: {:?}", e);
                             panic!("An error occurred while reading serial data: {:?}", e);
