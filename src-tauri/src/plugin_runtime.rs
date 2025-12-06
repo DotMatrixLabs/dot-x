@@ -263,28 +263,68 @@ fn read_permissions_from_manifest(dir: &Path) -> (Vec<String>, Vec<String>) {
   (normalized.into_iter().collect(), warnings)
 }
 
-fn build_deno_permission_args(plugin_dir: &Path, permissions: &[String]) -> Vec<String> {
+fn build_deno_permission_args(plugin_dir: &Path, permissions: &[String], port: u16) -> Vec<String> {
   let mut flags: Vec<String> = Vec::new();
   let mut seen: HashSet<String> = HashSet::new();
+  let mut net_scopes: HashSet<String> = HashSet::new();
+  let mut allow_all_net = false;
+  let mut allow_env_all = true; // default: full env for SDK / node compat
+  let mut allow_sys_all = false;
+  let mut sys_scopes: HashSet<String> = HashSet::new();
+  sys_scopes.insert("homedir".to_string());
+  sys_scopes.insert("uid".to_string());
+  sys_scopes.insert("gid".to_string());
+  sys_scopes.insert("userInfo".to_string());
 
-  let defaults = vec![
-    format!("--allow-read={}", plugin_dir.display()),
-    format!("--allow-write={}", plugin_dir.display()),
-  ];
+  let mut path_variants: Vec<String> = Vec::new();
+  let original = plugin_dir.to_string_lossy().to_string();
+  path_variants.push(original.clone());
+  path_variants.push(original.replace("\\", "/"));
 
-  for flag in defaults {
-    if seen.insert(flag.clone()) {
-      flags.push(flag);
+  if let Ok(canon) = plugin_dir.canonicalize() {
+    let canon_str = canon.to_string_lossy().to_string();
+    path_variants.push(canon_str.clone());
+    path_variants.push(canon_str.replace("\\", "/"));
+    if let Some(stripped) = canon_str.strip_prefix(r"\\?\") {
+      let stripped_owned = stripped.to_string();
+      path_variants.push(stripped_owned.clone());
+      path_variants.push(stripped_owned.replace("\\", "/"));
     }
   }
 
+  let mut seen_paths: HashSet<String> = HashSet::new();
+  for p in path_variants {
+    if seen_paths.insert(p.clone()) {
+      let read_flag = format!("--allow-read={}", p);
+      let write_flag = format!("--allow-write={}", p);
+      if seen.insert(read_flag.clone()) {
+        flags.push(read_flag);
+      }
+      if seen.insert(write_flag.clone()) {
+        flags.push(write_flag);
+      }
+    }
+  }
+
+  net_scopes.insert(format!("127.0.0.1:{}", port));
+  net_scopes.insert(format!("localhost:{}", port));
+
   for perm in permissions {
     let flag = match perm.as_str() {
-      "net" | "network" => Some("--allow-net".to_string()),
-      "env" => Some("--allow-env".to_string()),
+      "net" | "network" => {
+        allow_all_net = true;
+        None
+      }
+      "env" => {
+        allow_env_all = true;
+        None
+      }
       "run" => Some("--allow-run".to_string()),
       "ffi" => Some("--allow-ffi".to_string()),
-      "sys" => Some("--allow-sys".to_string()),
+      "sys" => {
+        allow_sys_all = true;
+        None
+      }
       "read" => Some("--allow-read".to_string()),
       "write" => Some("--allow-write".to_string()),
       _ => None,
@@ -294,6 +334,36 @@ fn build_deno_permission_args(plugin_dir: &Path, permissions: &[String]) -> Vec<
       if seen.insert(f.clone()) {
         flags.push(f);
       }
+    }
+  }
+
+  if allow_all_net {
+    if seen.insert("--allow-net".to_string()) {
+      flags.push("--allow-net".to_string());
+    }
+  } else if !net_scopes.is_empty() {
+    let joined = net_scopes.into_iter().collect::<Vec<String>>().join(",");
+    let scoped = format!("--allow-net={}", joined);
+    if seen.insert(scoped.clone()) {
+      flags.push(scoped);
+    }
+  }
+
+  if allow_env_all {
+    if seen.insert("--allow-env".to_string()) {
+      flags.push("--allow-env".to_string());
+    }
+  }
+
+  if allow_sys_all {
+    if seen.insert("--allow-sys".to_string()) {
+      flags.push("--allow-sys".to_string());
+    }
+  } else if !sys_scopes.is_empty() {
+    let joined = sys_scopes.into_iter().collect::<Vec<String>>().join(",");
+    let scoped = format!("--allow-sys={}", joined);
+    if seen.insert(scoped.clone()) {
+      flags.push(scoped);
     }
   }
 
@@ -332,13 +402,14 @@ async fn spawn_deno_process(app_handle: &AppHandle, dir: &Path, plugin_id: &str)
   if port == 0 {
     warn!("Plugin server port not yet available, using default 3001 for plugin {}", plugin_id);
   }
-  let port_str = if port > 0 { port.to_string() } else { "3001".to_string() };
+  let safe_port = if port > 0 { port } else { 3001 };
+  let port_str = safe_port.to_string();
 
   let (manifest_permissions, manifest_warnings) = read_permissions_from_manifest(dir);
   for w in manifest_warnings {
     warn!("{}", w);
   }
-  let permission_flags = build_deno_permission_args(dir, &manifest_permissions);
+  let permission_flags = build_deno_permission_args(dir, &manifest_permissions, safe_port);
 
   // Spawn `deno run ... main.js` with stdout/stderr piped
   let deno_bin = resolve_deno_path(app_handle).unwrap_or_else(|| PathBuf::from("deno"));
