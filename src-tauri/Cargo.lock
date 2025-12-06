@@ -3822,8 +3822,8 @@ dependencies = [
 
 [[package]]
 name = "psp"
-version = "0.1.0"
-source = "git+https://github.com/Frogbyte-io/psp?branch=listen-to-modern-standby#436e7fcbba1cac4f70bf430cebe156596a27d607"
+version = "0.2.0"
+source = "git+https://github.com/Frogbyte-io/psp#a222ef8a8254d9ba17e5f80a7f6f0863f46e28af"
 dependencies = [
  "cocoa 0.24.1",
  "core-foundation",
