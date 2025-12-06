@@ -6,32 +6,34 @@ use midir::MidiOutput;
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::fmt;
-use std::path::PathBuf;
 use tauri::AppHandle;
+use tauri::Manager;
+use tauri::WebviewWindow;
 use tauri::Wry;
-use tauri::{Manager, Window};
 use tauri_plugin_autostart::MacosLauncher;
-use tauri_plugin_store::{with_store, StoreCollection};
- 
+use tauri_plugin_notification::NotificationExt;
+use tauri_plugin_store::StoreExt;
+use windows_volume_control::AudioController;
+use windows_volume_control::CoinitMode;
 mod decker;
 mod midi;
 mod power_monitor;
 mod audio;
 use once_cell::sync::OnceCell;
-use tauri::api::notification::Notification;
-use tauri::{CustomMenuItem, SystemTray, SystemTrayEvent, SystemTrayMenu, SystemTrayMenuItem};
-use window_shadows::set_shadow;
+use tauri::menu::{Menu, MenuBuilder, MenuItemBuilder, PredefinedMenuItem};
+use tauri::tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent};
+#[cfg(target_os = "windows")]
 use window_vibrancy::{apply_blur, apply_mica};
 
 use active_win_pos_rs::get_active_window;
 use brightness::{Brightness, BrightnessDevice};
 use chrono::Local;
 use futures::TryStreamExt;
-use sentry_tauri::sentry::{self, ClientInitGuard};
+use sentry::{self, Client};
 use std::thread;
 use std::time::Duration;
 use tauri_plugin_aptabase::EventTracker;
- 
+use tauri_plugin_cli::CliExt;
 
 static APP: OnceCell<tauri::AppHandle> = OnceCell::new();
 
@@ -297,7 +299,7 @@ async fn show_brightness(dev: &BrightnessDevice) -> Result<(), brightness::Error
 }
 
 #[tauri::command]
-fn connect_decker(window: Window, port_name: &str, inverted: bool) -> Result<(), Error> {
+fn connect_decker(window: WebviewWindow, port_name: &str, inverted: bool) -> Result<(), Error> {
     println!(
         "Connecting Decker at port: {}, inverted: {}",
         port_name, inverted
@@ -314,28 +316,71 @@ fn disconnect_decker() -> Result<(), Error> {
     Ok(())
 }
 
-fn build_menu() -> SystemTrayMenu {
-    let menuitem_quit = CustomMenuItem::new("quit".to_string(), "Quit");
-    let menuitem_show = CustomMenuItem::new("show".to_string(), "Show");
-    let menuitem_hide = CustomMenuItem::new("hide".to_string(), "Hide");
-    SystemTrayMenu::new()
-        .add_item(menuitem_show)
-        .add_item(menuitem_hide)
-        .add_native_item(SystemTrayMenuItem::Separator)
-        .add_item(menuitem_quit)
+fn build_tray(app: &tauri::AppHandle<Wry>) -> tauri::Result<(Menu<Wry>, TrayIcon<Wry>)> {
+    let show = MenuItemBuilder::with_id("show", "Show").build(app)?;
+    let hide = MenuItemBuilder::with_id("hide", "Hide").build(app)?;
+    let quit = MenuItemBuilder::with_id("quit", "Quit").build(app)?;
+    let menu = MenuBuilder::new(app)
+        .items(&[&show, &hide, &PredefinedMenuItem::separator(app)?, &quit])
+        .build()?;
+
+    let tray = TrayIconBuilder::new()
+        .menu(&menu)
+        .icon(app.default_window_icon().unwrap().clone())
+        .on_menu_event(|app, event| match event.id().as_ref() {
+            "quit" => {
+                info!("Quitting Dot X");
+                let app_handle = app.clone();
+                tauri::async_runtime::spawn(async move {
+                    let _ = app_handle.track_event("app_exited", None);
+                });
+                std::process::exit(0);
+            }
+            "hide" => {
+                info!("Hiding Dot X");
+                trace!("HIDING!");
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.hide();
+                }
+            }
+            "show" => {
+                info!("Showing Dot X");
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.show();
+                    let _ = window.unminimize();
+                    let _ = window.set_focus();
+                }
+            }
+            _ => {}
+        })
+        .on_tray_icon_event(|tray, event| match event {
+            TrayIconEvent::Click {
+                button: MouseButton::Left,
+                button_state: MouseButtonState::Up,
+                ..
+            } => {
+                let app = tray.app_handle();
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.show();
+                    let _ = window.unminimize();
+                    let _ = window.set_focus();
+                }
+            }
+            _ => {}
+        })
+        .build(app)?;
+
+    Ok((menu, tray))
 }
 
-fn show_notification(title: &str, body: &str) {
+fn show_notification(app: &tauri::AppHandle, title: &str, body: &str) {
     info!(
         "Showing notification || Title: {} | Message: {}",
         title, body
     );
-    let context = tauri::generate_context!("tauri.conf.json");
-    Notification::new(&context.config().tauri.bundle.identifier)
-        .title(title)
-        .body(body)
-        .show()
-        .unwrap();
+    if let Err(err) = app.notification().builder().title(title).body(body).show() {
+        error!("Failed to show notification: {err}");
+    }
 }
 
 #[derive(Clone, serde::Serialize)]
@@ -347,13 +392,13 @@ struct InstancePayload {
 fn start_aptabase_heartbeat(app: tauri::AppHandle) {
     thread::spawn(move || {
         loop {
-            app.track_event("app_heartbeat💓", None);
+            let _ = app.track_event("app_heartbeat💓", None);
             thread::sleep(Duration::from_secs(1 * 60 * 59)); //heartbeat every hour (I'm concerned exactly 1 hour will make a new session, so I'm doing 59 minutes - you got a problem with that? That's what I thought.)
         }
     });
 }
 
-fn setup_panic_handler(client: ClientInitGuard) {
+fn setup_panic_handler(client: Client) {
     std::panic::set_hook(Box::new(move |panic_info| {
         let timestamp = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
         let panic_message = format!("[{}] Panic occurred: {}", timestamp, panic_info);
@@ -368,25 +413,31 @@ fn setup_panic_handler(client: ClientInitGuard) {
     }));
 }
 
-fn main() {
-    let tray_menu = build_menu();
-
-    let client = sentry_tauri::sentry::init((
-        "https://473d7b762855b5baa461a7921a5f95cc@sentry-ingest.frogbyte.io/4",
-        sentry_tauri::sentry::ClientOptions {
-            release: sentry_tauri::sentry::release_name!(),
+#[tokio::main]
+async fn main() {
+    let client = sentry::init((
+        "https://4e7acf1ba609c747863f8e3117f062e2@sentry-ingest.frogbyte.io/3",
+        sentry::ClientOptions {
+            release: sentry::release_name!(),
             attach_stacktrace: true,
             ..Default::default()
         },
     ));
 
     // Initialize minidump first
-    let _guard = sentry_tauri::minidump::init(&client);
+    let _guard = tauri_plugin_sentry::minidump::init(&client);
 
     // Then set up panic handler
-    setup_panic_handler(client);
+    setup_panic_handler(client.clone());
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_os::init())
+        .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_log::Builder::new().build())
+        .plugin(tauri_plugin_cli::init())
+        .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![
             get_installed_apps,
             audio::get_all_session_names,
@@ -405,70 +456,31 @@ fn main() {
             audio::get_input_devices
         ])
         .plugin(tauri_plugin_aptabase::Builder::new("A-EU-7429874879").build()) // 👈 this is where you enter your App Key
-        .plugin(tauri_plugin_log::Builder::default().build())
-        .plugin(sentry_tauri::plugin())
+        .plugin(tauri_plugin_sentry::init(&client))
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_autostart::init(
             MacosLauncher::LaunchAgent,
             Some(vec!["--hidden"]),
         ))
         .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
-            let window = app.get_window("main").unwrap();
-            if window.is_visible().unwrap() == false {
-                window.show().unwrap();
-                show_notification("Dot X", "Dot X is already running");
+            if let Some(window) = app.get_webview_window("main") {
+                if matches!(window.is_visible(), Ok(false)) {
+                    let _ = window.show();
+                    show_notification(app, "Dot X", "Dot X is already running");
+                }
+                if matches!(window.is_minimized(), Ok(true)) {
+                    let _ = window.unminimize();
+                }
+                let _ = window.set_focus();
+            } else {
+                error!("Main window not found during single-instance handling");
             }
-            if window.is_minimized().unwrap() {
-                window.unminimize().unwrap();
-            }
-            window.set_focus().unwrap();
         }))
-        .system_tray(SystemTray::new().with_menu(tray_menu))
-        .on_system_tray_event(|app, event| match event {
-            SystemTrayEvent::LeftClick {
-                position: _,
-                size: _,
-                ..
-            } => {
-                let window = app.get_window("main").unwrap();
-                window.show().unwrap();
-                if window.is_minimized().unwrap() {
-                    window.unminimize().unwrap();
-                }
-                window.set_focus().unwrap();
-            }
-            SystemTrayEvent::MenuItemClick { id, .. } => match id.as_str() {
-                "quit" => {
-                    info!("Quitting Dot X");
-                    app.track_event("app_exited", None);
-                    app.flush_events_blocking();
-                    std::process::exit(0);
-                }
-                "hide" => {
-                    info!("Hiding Dot X");
-                    trace!("HIDING!");
-                    let window = app.get_window("main").unwrap();
-                    window.hide().unwrap();
-                }
-                "show" => {
-                    info!("Showing Dot X");
-                    let window = app.get_window("main").unwrap();
-                    window.show().unwrap();
-                    if window.is_minimized().unwrap() {
-                        window.unminimize().unwrap();
-                    }
-                    window.set_focus().unwrap();
-                }
-                _ => {}
-            },
-            _ => {}
-        })
-        .on_window_event(|event| match event.event() {
-            tauri::WindowEvent::CloseRequested { api, .. } => {
-                event.window().hide().unwrap();
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                let _ = window.hide();
                 api.prevent_close();
             }
-            _ => {}
         })
         .setup(|app| {
             {
@@ -478,47 +490,45 @@ fn main() {
             let mut props_map = HashMap::new();
             props_map.insert("slider_amount".to_string(), Value::String("5".to_string()));
 
-            // Convert the HashMap to a serde_json::Value
+            // Convert the HashMap to a serde_json::Value and send event on async runtime
             let props_value = json!(props_map);
-            app.track_event("app_started", Some(props_value));
-            app.flush_events_blocking();
-            let window = app.get_window("main").unwrap();
-            #[cfg(any(windows, target_os = "macos"))]
-            set_shadow(&window, true).unwrap();
-
+            {
+                let app_handle = app.handle().clone();
+                tauri::async_runtime::spawn(async move {
+                    let _ = app_handle.track_event("app_started", Some(props_value));
+                });
+            }
+            let Some(window) = app.get_webview_window("main") else {
+                error!("Main window not found during setup");
+                return Ok(());
+            };
             #[cfg(target_os = "macos")]
             apply_vibrancy(&window, NSVisualEffectMaterial::HudWindow, None, None)
                 .expect("Unsupported platform! 'apply_vibrancy' is only supported on macOS");
 
             #[cfg(target_os = "windows")]
-            apply_mica(&window, None).unwrap_or_else(|_| {
-                let _ = apply_blur(&window, Some((25, 10, 30, 255)));
-            });
-
-            // This gets any command line arguments passed to the app
-            match app.get_cli_matches() {
-                // `matches` here is a Struct with { args, subcommand }.
-                // `args` is `HashMap<String, ArgData>` where `ArgData` is a struct with { value, occurrences }.
-                // `subcommand` is `Option<Box<SubcommandMatches>>` where `SubcommandMatches` is a struct with { name, matches }.
-                Ok(matches) => {
-                    //if hidden is true, hide the window, else show it
-                    if let Some(arg_data) = matches.args.get("hidden") {
-                        if arg_data.value == Value::Bool(true) {
-                            window.hide().unwrap();
-                        } else {
-                            window.show().unwrap();
-                        }
-                    }
+            {
+                if let Err(err) = apply_mica(&window, None) {
+                    trace!("Mica application failed: {err:?}, falling back to blur");
+                    let _ = apply_blur(&window, Some((25, 10, 30, 255)));
                 }
-                Err(_) => {}
             }
 
-            info!(
-                "Starting Dot X with version {:?}",
-                sentry_tauri::sentry::release_name!()
-            );
+            let (_menu, _tray) = build_tray(&app.handle())?;
 
-            APP.set(app.handle()).expect("error setting up app");
+            // This gets any command line arguments passed to the app
+            let matches = app.cli().matches().unwrap_or_default();
+            if let Some(hidden) = matches.args.get("hidden") {
+                if hidden.value == Value::Bool(true) {
+                    let _ = window.hide();
+                } else {
+                    let _ = window.show();
+                }
+            }
+
+            info!("Starting Dot X with version {:?}", sentry::release_name!());
+
+            APP.set(app.handle().clone()).expect("error setting up app");
             Ok(())
         })
         .run(tauri::generate_context!())
@@ -531,16 +541,14 @@ fn get_app_handle() -> &'static AppHandle {
 
 fn get_suspend_dim_enabled() -> bool {
     let app_handle = get_app_handle();
-    let stores = app_handle.state::<StoreCollection<Wry>>();
-    let path = PathBuf::from("config.json");
-
-    let mut result = false;
-    let _ = with_store(app_handle.clone(), stores, path, |store| {
-        if let Some(value) = store.get("suspendDimEnabled") {
-            result = value.as_bool().unwrap_or(false);
+    match app_handle.store("config.json") {
+        Ok(store) => store
+            .get("suspendDimEnabled")
+            .and_then(|value| value.as_bool())
+            .unwrap_or(false),
+        Err(err) => {
+            error!("Failed to open config store: {err}");
+            false
         }
-        Ok(())
-    });
-
-    result
+    }
 }
