@@ -44,7 +44,7 @@ lazy_static = "1.4.0"
 chrono = "0.4"
 brightness = "0.5.0"
 futures = "0.3.31"
-psp = { git = "https://github.com/Frogbyte-io/psp", branch = "listen-to-modern-standby" }
+psp = { git = "https://github.com/Frogbyte-io/psp"}
 #psp = { path = "../../psp" }
 
 [features]
