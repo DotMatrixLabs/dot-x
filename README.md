@@ -19,9 +19,9 @@ Desktop interface for DotMatrixLabs Decker physical volume mixer built with Taur
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) 18+ and [Yarn](https://yarnpkg.com/)
-- [Rust](https://rustup.rs/) 1.75.0 - Can not be higher! This is due to Win 7 compatibility
-- Windows 7/10/11
+- [Node.js](https://nodejs.org/) 22+ and [Yarn](https://yarnpkg.com/)
+- [Rust](https://rustup.rs/) 1.90.0
+- Windows 10/11
 
 ### Setup
 
