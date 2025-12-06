@@ -1,12 +1,56 @@
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU16, Ordering};
 use tokio::sync::{mpsc, RwLock};
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter};
-use log::{info, error, debug};
+use log::{info, error, debug, warn};
 use socketioxide::{SocketIo, extract::{SocketRef, Data, AckSender}};
 use serde_json::Value;
 use futures_util::{pin_mut, StreamExt};
+
+// Constants for port range
+const DEFAULT_PORT: u16 = 3001;
+const PORT_RANGE_START: u16 = 3001;
+const PORT_RANGE_END: u16 = 3099;
+
+// Global atomic to store the actual port being used
+static ACTIVE_PORT: AtomicU16 = AtomicU16::new(0);
+
+/// Get the currently active plugin server port
+pub fn get_active_port() -> u16 {
+    ACTIVE_PORT.load(Ordering::SeqCst)
+}
+
+/// Set the active plugin server port
+fn set_active_port(port: u16) {
+    ACTIVE_PORT.store(port, Ordering::SeqCst);
+}
+
+/// Find an available port in the given range
+async fn find_available_port(preferred: u16) -> Result<u16, String> {
+    // First try the preferred port
+    if let Ok(listener) = tokio::net::TcpListener::bind(format!("127.0.0.1:{}", preferred)).await {
+        drop(listener);
+        return Ok(preferred);
+    }
+    
+    warn!("Preferred port {} is busy, searching for available port...", preferred);
+    
+    // Try ports in range
+    for port in PORT_RANGE_START..=PORT_RANGE_END {
+        if port == preferred {
+            continue; // Already tried
+        }
+        if let Ok(listener) = tokio::net::TcpListener::bind(format!("127.0.0.1:{}", port)).await {
+            drop(listener);
+            info!("Found available port: {}", port);
+            return Ok(port);
+        }
+    }
+    
+    Err(format!("No available port found in range {}-{}", PORT_RANGE_START, PORT_RANGE_END))
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SliderState {
@@ -75,6 +119,19 @@ impl PluginServer {
             return Ok(());
         }
 
+        // Find an available port
+        let actual_port = find_available_port(self.port).await
+            .map_err(|e| Box::new(std::io::Error::new(std::io::ErrorKind::AddrInUse, e)) as Box<dyn std::error::Error + Send + Sync>)?;
+        
+        // Update port if different from requested
+        if actual_port != self.port {
+            info!("Using port {} instead of requested port {}", actual_port, self.port);
+            self.port = actual_port;
+        }
+        
+        // Store the active port globally
+        set_active_port(self.port);
+
         let connections = Arc::clone(&self.connections);
         let app_handle = self.app_handle.clone();
         let pending_requests = Arc::clone(&self.pending_requests);
@@ -83,7 +140,7 @@ impl PluginServer {
         let (layer, io) = SocketIo::new_layer();
         self.io = Some(io.clone());
         
-        println!("plugin server started");
+        println!("plugin server started on port {}", self.port);
 
         // Handle plugin connections
         io.ns("/", {
@@ -408,7 +465,7 @@ pub fn get_plugin_server() -> Option<Arc<RwLock<PluginServer>>> {
 
 // Tauri commands
 #[tauri::command]
-pub async fn start_plugin_server(app_handle: AppHandle, port: u16) -> Result<bool, String> {
+pub async fn start_plugin_server(app_handle: AppHandle, port: u16) -> Result<u16, String> {
     println!("Starting plugin server on port {}", port);
     
     // Initialize server if it doesn't exist
@@ -417,23 +474,24 @@ pub async fn start_plugin_server(app_handle: AppHandle, port: u16) -> Result<boo
     }
     
     if let Some(server_arc) = get_plugin_server() {
-        let is_running = {
+        let (is_running, current_port) = {
             let server = server_arc.read().await;
-            let x = *server.is_running.read().await; 
-            x
+            let running = *server.is_running.read().await;
+            (running, server.port)
         };
         
         if is_running {
-            println!("Plugin server is already running on port {}", port);
-            return Ok(true);
+            println!("Plugin server is already running on port {}", current_port);
+            return Ok(current_port);
         }
         
         println!("Starting plugin server...");
         let mut server = server_arc.write().await;
         match server.start().await {
             Ok(()) => {
-                println!("Plugin server started successfully on port {}", port);
-                Ok(true)
+                let actual_port = server.port;
+                println!("Plugin server started successfully on port {}", actual_port);
+                Ok(actual_port)
             }
             Err(e) => {
                 error!("Failed to start plugin server: {}", e);
@@ -512,5 +570,15 @@ pub async fn broadcast_to_plugins(event: String, data: Value) -> Result<String, 
         Ok("Broadcast sent".to_string())
     } else {
         Err("Plugin server not initialized".to_string())
+    }
+}
+
+#[tauri::command]
+pub async fn get_plugin_server_port() -> Result<u16, String> {
+    let port = get_active_port();
+    if port == 0 {
+        Err("Plugin server not started".to_string())
+    } else {
+        Ok(port)
     }
 }
