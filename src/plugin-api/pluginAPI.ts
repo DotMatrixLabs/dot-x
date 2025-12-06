@@ -27,7 +27,8 @@ export class PluginAPI {
       console.error('Failed to emit action', err);
     }
   }
-  private serverPort = 3001;
+  private preferredPort = 3001;
+  private serverPort = 0; // Actual port will be set after server starts
 
   private constructor() {
     this.setupEventHandlers();
@@ -55,9 +56,15 @@ export class PluginAPI {
     console.log('Initializing Plugin API Server...');
     
     try {
-      // Start the Rust WebSocket server
-      await invoke('start_plugin_server', { port: this.serverPort });
-      console.log('Plugin API Server started on port', this.serverPort);
+      // Start the Rust WebSocket server - it returns the actual port used
+      const actualPort = await invoke<number>('start_plugin_server', { port: this.preferredPort });
+      this.serverPort = actualPort;
+      
+      if (actualPort !== this.preferredPort) {
+        console.log(`Plugin API Server started on port ${actualPort} (preferred port ${this.preferredPort} was busy)`);
+      } else {
+        console.log('Plugin API Server started on port', actualPort);
+      }
       
       // Setup event listeners for plugin events
       await this.setupTauriEventListeners();
@@ -74,6 +81,13 @@ export class PluginAPI {
       console.error('Failed to initialize Plugin API Server:', error);
       throw error;
     }
+  }
+
+  /**
+   * Get the current plugin server port
+   */
+  public getServerPort(): number {
+    return this.serverPort;
   }
 
   /**

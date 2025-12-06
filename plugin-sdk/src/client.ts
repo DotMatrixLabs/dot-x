@@ -2,6 +2,61 @@ import { io, Socket } from 'socket.io-client';
 import type { SettingsSections, CreateSettingsParams, ToastParams, ActionMappings, SystemUtilButton } from './types';
 import { DeviceAPI, createDeviceAPI, type DeviceInfo } from './device';
 
+// Default port for backwards compatibility
+const DEFAULT_PORT = 3001;
+
+/**
+ * Gets the plugin server port from environment variable or returns default.
+ * Works in both Deno and Node.js environments.
+ * 
+ * @internal
+ */
+function getPluginServerPort(): number {
+  // Try Deno environment first
+  try {
+    // @ts-ignore - Deno global may not be defined in all environments
+    if (typeof Deno !== 'undefined' && Deno.env) {
+      // @ts-ignore
+      const port = Deno.env.get('DOTX_PLUGIN_PORT');
+      if (port) {
+        const parsed = parseInt(port, 10);
+        if (!isNaN(parsed) && parsed > 0) {
+          return parsed;
+        }
+      }
+    }
+  } catch (e) {
+    // Deno not available, try Node.js
+  }
+
+  // Try Node.js environment
+  try {
+    if (typeof process !== 'undefined' && process.env) {
+      const port = process.env.DOTX_PLUGIN_PORT;
+      if (port) {
+        const parsed = parseInt(port, 10);
+        if (!isNaN(parsed) && parsed > 0) {
+          return parsed;
+        }
+      }
+    }
+  } catch (e) {
+    // process not available
+  }
+
+  return DEFAULT_PORT;
+}
+
+/**
+ * Builds the default server URL using the dynamic port.
+ * 
+ * @internal
+ */
+function getDefaultServerUrl(): string {
+  const port = getPluginServerPort();
+  return `http://127.0.0.1:${port}`;
+}
+
 /**
  * Plugin metadata for registration with the Dot X application.
  * 
@@ -63,7 +118,7 @@ export interface ApiResponse {
  * ```
  */
 export interface ConnectionConfig {
-  /** Plugin server URL. Default: 'http://127.0.0.1:3001' */
+  /** Plugin server URL. Default: Uses DOTX_PLUGIN_PORT env var or 'http://127.0.0.1:3001' */
   serverUrl?: string;
   /** Maximum connection retry attempts. Default: 5 */
   maxRetries?: number;
@@ -175,14 +230,17 @@ export class APIClient {
   
   constructor(pluginInfo: PluginInfo, config: ConnectionConfig = {}) {
     this.pluginInfo = pluginInfo;
+    // Use dynamic port from environment variable, or fall back to default
+    const defaultUrl = getDefaultServerUrl();
     this.config = {
-      serverUrl: config.serverUrl || 'http://127.0.0.1:3001',
+      serverUrl: config.serverUrl || defaultUrl,
       maxRetries: config.maxRetries || 5,
       retryDelay: config.retryDelay || 2000,
       connectionTimeout: config.connectionTimeout || 10000,
       registrationTimeout: config.registrationTimeout || 15000,
       apiTimeout: config.apiTimeout || 30000
     };
+    console.log(`Plugin connecting to server at ${this.config.serverUrl}`);
     this.deviceAPI = createDeviceAPI((method, params) => this.call(method, params), this);
     this.connectionPromise = this.initializeConnection();
   }
