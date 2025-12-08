@@ -1,23 +1,26 @@
 <template>
-	<div class="flex flex-col h-full w-full p-4 gap-4">
+	<div class="flex flex-col h-full w-full p-4 gap-4 bg-base-100 text-base-content">
 		<!-- Plugin system options -->
-		<div class="relative">
-			<div class="flex items-center justify-between opacity-10 pointer-events-none">
-				<div class="">
-					<h2 class="">Install plugins</h2>
-					<p class="text-xs px-0 label-text">Browse and install plugins to extend what Dot X can do</p>
-				</div>
-				<button class="btn btn-primary btn-xs" @click="installNewPlugin">
-					Browse Plugins
-				</button>
+		<div v-if="!marketplaceOpen" class="flex items-center justify-between">
+			<div class="">
+				<h2 class="">Install plugins</h2>
+				<p class="text-xs px-0 label-text">Browse and install plugins to extend what Dot X can do</p>
 			</div>
-			<div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-				<span class="bg-white/10 backdrop-blur-md text-base-content text-sm px-3 py-1 rounded-md z-20">Coming soon!</span>
-			</div>
+			<button class="btn btn-primary btn-xs" @click="openMarketplace">
+				Browse Plugins
+			</button>
 		</div>
 
+		<!-- Marketplace -->
+		<PluginsMarketplace
+			v-else
+			:plugins="marketplacePlugins"
+			@close="closeMarketplace"
+			@download="downloadPlugin"
+		/>
+
 		<!-- Plugin list -->
-		<div class="flex flex-col overflow-y-auto">
+		<div v-if="!marketplaceOpen" class="flex flex-col overflow-y-auto">
 
 			<div class="flex flex-row justify-between">
 				<h3 class="">Installed plugins: </h3>
@@ -65,6 +68,7 @@
 				<h3 class="label-text text-center mt-2">No plugins installed</h3>
 			</div>
 		</div>
+
 	</div>
 </template>
 
@@ -72,13 +76,56 @@
 import { useStore } from '../store/store';
 import { mapState } from "pinia";
 import { invoke } from "@tauri-apps/api/core";
+import PluginsMarketplace from './Marketplace/PluginsMarketplace.vue';
 
 export default {
 	name: "Plugins",
+	components: {
+		PluginsMarketplace,
+	},
 
 	data() {
 		return {
 			plugins: [],
+			marketplaceOpen: false,
+			marketplacePlugins: [
+				{
+					id: 'hello-world',
+					name: 'Hello World',
+					description: 'Starter example showing Dot X plugin basics.',
+					author: 'Dot X Team',
+					tags: ['starter', 'example'],
+					downloads: 1280,
+					likes: 96,
+					createdAt: '2024-12-01',
+					isDownloading: false,
+					readme: 'Hello World Plugin\\n\\nThis is a placeholder README. It would normally be fetched from the plugin repository.\\n\\nFeatures:\\n- Demonstrates command registration\\n- Shows UI injection basics\\n\\nInstall from the marketplace to start building your own plugin.'
+				},
+				{
+					id: 'rgb-demo',
+					name: 'RGB Demo',
+					description: 'Showcase controlling RGB lighting with simple actions.',
+					author: 'Community',
+					tags: ['lighting', 'demo'],
+					downloads: 5420,
+					likes: 312,
+					createdAt: '2024-11-18',
+					isDownloading: false,
+					readme: 'RGB Demo\\n\\nPlaceholder README content. This would render the plugin README fetched from its repo.\\n\\nHighlights:\\n- Device discovery\\n- Scene presets\\n- Quick actions'
+				},
+				{
+					id: 'mqtt-tools',
+					name: 'MQTT Tools',
+					description: 'Integrate MQTT topics for automation and dashboards.',
+					author: 'Automation Labs',
+					tags: ['automation', 'network'],
+					downloads: 2876,
+					likes: 204,
+					createdAt: '2024-12-08',
+					isDownloading: false,
+					readme: 'MQTT Tools\\n\\nPlaceholder README pulled from the repo.\\n\\nIncludes:\\n- Broker connection helpers\\n- Topic subscriptions\\n- Publish utilities'
+				}
+			],
 		};
 	},
 	computed: {
@@ -86,6 +133,19 @@ export default {
 	},
 
 	methods: {
+		openMarketplace() {
+			this.marketplaceOpen = true;
+		},
+		closeMarketplace() {
+			this.marketplaceOpen = false;
+		},
+		downloadPlugin(plugin) {
+			if (plugin.isDownloading) return;
+			plugin.isDownloading = true;
+			setTimeout(() => {
+				plugin.isDownloading = false;
+			}, 1000);
+		},
 		async reloadPlugins() {
 			await this.fetchPlugins();
 			await this.loadEnabledState();
