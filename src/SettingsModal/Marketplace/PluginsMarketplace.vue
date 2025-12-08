@@ -37,26 +37,34 @@
 				class="card bg-base-200 hover:bg-base-300 cursor-pointer transition"
 				@click="selectedPlugin = plugin"
 			>
-				<div class="card-body p-4 gap-3">
+				<div class="card-body p-3 gap-2">
 					<div class="flex items-start justify-between gap-2">
-						<div class="flex flex-col gap-1">
+						<div class="flex flex-col gap-0.5">
 							<div class="flex items-center gap-2">
-								<h3 class="card-title text-sm leading-tight">{{ plugin.name }}</h3>
+								<h3 class="card-title text-sm font-semibold leading-tight text-base-content">{{ plugin.name }}</h3>
+								<span v-if="isInstalled(plugin.id)" class="badge badge-success badge-sm">Installed</span>
 							</div>
-							<p class="text-xs label-text">{{ plugin.description }}</p>
-							<p class="text-xs label-text">by {{ plugin.author }}</p>
+							<p class="text-xs text-base-content/80">{{ plugin.description }}</p>
+							<p class="text-xs text-base-content/60">by {{ plugin.author }}</p>
 						</div>
-						<div class="flex flex-col text-right text-xs label-text gap-1 min-w-[100px]">
+						<div class="flex flex-col text-right text-xs text-base-content/60 gap-1 min-w-[80px]">
 							<span><i class="fa-solid fa-download mr-1"></i>{{ plugin.downloads }}</span>
 							<span><i class="fa-solid fa-heart mr-1"></i>{{ plugin.likes }}</span>
 						</div>
 					</div>
-					<div class="flex flex-wrap gap-1">
-						<span v-for="tag in plugin.tags" :key="tag" class="badge badge-ghost badge-sm">{{ tag }}</span>
-					</div>
-					<div class="flex justify-end">
-						<button class="btn btn-primary btn-sm" @click.stop="$emit('download', plugin)">
+					<div class="flex items-center justify-between gap-2">
+						<div class="flex flex-wrap gap-1">
+							<span v-for="tag in plugin.tags" :key="tag" class="badge badge-ghost badge-sm">{{ tag }}</span>
+						</div>
+						<button 
+							:class="[
+								'btn btn-sm min-w-[100px]',
+								isInstalled(plugin.id) ? 'btn-ghost' : 'btn-primary'
+							]"
+							@click.stop="isInstalled(plugin.id) ? $emit('uninstall', plugin) : $emit('download', plugin)"
+						>
 							<span v-if="plugin.isDownloading" class="loading loading-spinner loading-xs"></span>
+							<span v-else-if="isInstalled(plugin.id)">Uninstall</span>
 							<span v-else>Download</span>
 						</button>
 					</div>
@@ -99,8 +107,9 @@ export default {
 	name: "PluginsMarketplace",
 	props: {
 		plugins: { type: Array, default: () => [] },
+		installedPluginIds: { type: Set, default: () => new Set() },
 	},
-	emits: ["close", "download"],
+	emits: ["close", "download", "uninstall"],
 	data() {
 		return {
 			searchQuery: "",
@@ -131,6 +140,11 @@ export default {
 
 			return list;
 		}
+	},
+	methods: {
+		isInstalled(pluginId) {
+			return this.installedPluginIds.has(pluginId);
+		},
 	},
 };
 </script>
