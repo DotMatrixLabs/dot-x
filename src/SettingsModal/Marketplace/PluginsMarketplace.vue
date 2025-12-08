@@ -1,17 +1,17 @@
 <template>
-	<div class="flex flex-col gap-3 h-full">
-		<div class="flex items-center gap-2">
+	<div class="flex flex-col gap-1.5 h-full">
+		<div class="flex items-center gap-1.5">
 			<button class="btn btn-ghost btn-sm" @click="$emit('close')">
 				<i class="fa-solid fa-arrow-left"></i>
 			</button>
-			<div class="flex flex-col">
+			<div class="flex flex-col gap-0.5">
 				<h2 class="text-lg font-semibold">Plugin Marketplace</h2>
 				<p class="text-xs label-text">Discover and explore community plugins</p>
 			</div>
 		</div>
 
-		<div class="flex flex-wrap items-center gap-2">
-			<div class="relative w-full sm:w-auto">
+		<div class="flex items-center justify-between gap-2">
+			<div class="relative flex-1">
 				<input
 					type="text"
 					class="input input-bordered input-sm pl-8 w-full"
@@ -42,7 +42,7 @@
 						<div class="flex flex-col gap-0.5">
 							<div class="flex items-center gap-2">
 								<h3 class="card-title text-sm font-semibold leading-tight text-base-content">{{ plugin.name }}</h3>
-								<span v-if="isInstalled(plugin.id)" class="badge badge-success badge-sm">Installed</span>
+								<span v-if="isInstalled(plugin.id)" class="badge badge-primary badge-sm">Installed</span>
 							</div>
 							<p class="text-xs text-base-content/80">{{ plugin.description }}</p>
 							<p class="text-xs text-base-content/60">by {{ plugin.author }}</p>
@@ -75,36 +75,26 @@
 			</div>
 		</div>
 
-		<div class="modal" :class="{ 'modal-open': !!selectedPlugin }">
-			<div class="modal-box max-w-4xl bg-base-200 text-base-content">
-				<div class="flex items-center gap-2 mb-3">
-					<button class="btn btn-ghost btn-sm" @click="selectedPlugin = null">
-						<i class="fa-solid fa-arrow-left"></i>
-					</button>
-					<div class="flex flex-col">
-						<h3 class="font-semibold text-lg leading-tight">{{ selectedPlugin?.name }}</h3>
-						<p class="text-xs label-text">by {{ selectedPlugin?.author }}</p>
-					</div>
-				</div>
-				<div class="flex flex-wrap gap-1 mb-2">
-					<span v-for="tag in selectedPlugin?.tags" :key="tag" class="badge badge-ghost badge-sm">{{ tag }}</span>
-				</div>
-				<div class="flex items-center gap-4 text-xs label-text mb-4">
-					<span><i class="fa-solid fa-download mr-1"></i>{{ selectedPlugin?.downloads }}</span>
-					<span><i class="fa-solid fa-heart mr-1"></i>{{ selectedPlugin?.likes }}</span>
-				</div>
-				<div class="prose max-w-none text-sm whitespace-pre-wrap">
-					{{ selectedPlugin?.readme }}
-				</div>
-			</div>
-			<div class="modal-backdrop" @click="selectedPlugin = null"></div>
-		</div>
+		<PluginDetailModal
+			:plugin="selectedPlugin"
+			:is-open="!!selectedPlugin"
+			:is-installed="selectedPlugin ? isInstalled(selectedPlugin.id) : false"
+			@close="selectedPlugin = null"
+			@download="handleDownload"
+			@uninstall="handleUninstall"
+			@like="handleLike"
+		/>
 	</div>
 </template>
 
 <script>
+import PluginDetailModal from './PluginDetailModal.vue';
+
 export default {
 	name: "PluginsMarketplace",
+	components: {
+		PluginDetailModal,
+	},
 	props: {
 		plugins: { type: Array, default: () => [] },
 		installedPluginIds: { type: Set, default: () => new Set() },
@@ -144,6 +134,23 @@ export default {
 	methods: {
 		isInstalled(pluginId) {
 			return this.installedPluginIds.has(pluginId);
+		},
+		handleDownload(plugin) {
+			this.$emit('download', plugin);
+		},
+		handleUninstall(plugin) {
+			this.$emit('uninstall', plugin);
+		},
+		handleLike({ pluginId, liked }) {
+			// Handle like action - could update plugin likes count or send to API
+			const plugin = this.plugins.find(p => p.id === pluginId);
+			if (plugin) {
+				if (liked) {
+					plugin.likes = (plugin.likes || 0) + 1;
+				} else {
+					plugin.likes = Math.max(0, (plugin.likes || 0) - 1);
+				}
+			}
 		},
 	},
 };
