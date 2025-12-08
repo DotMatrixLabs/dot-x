@@ -15,8 +15,10 @@
 		<PluginsMarketplace
 			v-else
 			:plugins="marketplacePlugins"
+			:installed-plugin-ids="installedPluginIds"
 			@close="closeMarketplace"
 			@download="downloadPlugin"
+			@uninstall="uninstallPlugin"
 		/>
 
 		<!-- Plugin list -->
@@ -130,6 +132,9 @@ export default {
 	},
 	computed: {
 		...mapState(useStore, ['activePlugins', 'enabledPlugins']),
+		installedPluginIds() {
+			return new Set(this.plugins.map(p => p.id));
+		},
 	},
 
 	methods: {
@@ -145,6 +150,10 @@ export default {
 			setTimeout(() => {
 				plugin.isDownloading = false;
 			}, 1000);
+		},
+		uninstallPlugin(plugin) {
+			// TODO: Implement uninstall logic
+			console.log('Uninstall plugin:', plugin.id);
 		},
 		async reloadPlugins() {
 			await this.fetchPlugins();
