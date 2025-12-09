@@ -26,7 +26,6 @@
 			>
 				<option value="newest">Newest</option>
 				<option value="downloads">Most Downloaded</option>
-				<option value="likes">Most Liked</option>
 			</select>
 		</div>
 
@@ -49,7 +48,6 @@
 						</div>
 						<div class="flex flex-col text-right text-xs text-base-content/60 gap-1 min-w-[80px]">
 							<span><i class="fa-solid fa-download mr-1"></i>{{ plugin.downloads }}</span>
-							<span><i class="fa-solid fa-heart mr-1"></i>{{ plugin.likes }}</span>
 						</div>
 					</div>
 					<div class="flex items-center justify-between gap-2">
@@ -82,7 +80,6 @@
 			@close="selectedPlugin = null"
 			@download="handleDownload"
 			@uninstall="handleUninstall"
-			@like="handleLike"
 		/>
 	</div>
 </template>
@@ -122,8 +119,6 @@ export default {
 
 			if (this.sortOption === "downloads") {
 				list.sort((a, b) => b.downloads - a.downloads);
-			} else if (this.sortOption === "likes") {
-				list.sort((a, b) => b.likes - a.likes);
 			} else {
 				list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 			}
@@ -140,17 +135,6 @@ export default {
 		},
 		handleUninstall(plugin) {
 			this.$emit('uninstall', plugin);
-		},
-		handleLike({ pluginId, liked }) {
-			// Handle like action - could update plugin likes count or send to API
-			const plugin = this.plugins.find(p => p.id === pluginId);
-			if (plugin) {
-				if (liked) {
-					plugin.likes = (plugin.likes || 0) + 1;
-				} else {
-					plugin.likes = Math.max(0, (plugin.likes || 0) - 1);
-				}
-			}
 		},
 	},
 };
