@@ -57,6 +57,16 @@
 						<i class="fa-solid fa-download opacity-70"></i>
 						<span class="label-text">{{ plugin?.downloads || 0 }}</span>
 					</div>
+					<div class="flex items-center gap-1.5">
+						<button 
+							class="btn btn-ghost btn-xs btn-square"
+							:class="{ 'text-error': isLiked }"
+							@click="toggleLike"
+						>
+							<i class="fa-solid fa-heart"></i>
+						</button>
+						<span class="label-text">{{ plugin?.likes || 0 }}</span>
+					</div>
 					<div v-if="lastUpdated" class="flex items-center gap-1.5">
 						<i class="fa-solid fa-clock opacity-70"></i>
 						<span class="label-text">Updated {{ lastUpdated }}</span>
@@ -154,10 +164,11 @@ export default {
 			default: false,
 		},
 	},
-	emits: ['close', 'download', 'uninstall'],
+	emits: ['close', 'download', 'uninstall', 'like'],
 	data() {
 		return {
 			showLogs: false,
+			likedPlugins: new Set(), // In a real app, this would come from a store/API
 		};
 	},
 	computed: {
@@ -228,6 +239,9 @@ export default {
 				return null;
 			}
 		},
+		isLiked() {
+			return this.likedPlugins.has(this.plugin?.id);
+		},
 	},
 	methods: {
 		close() {
@@ -239,6 +253,14 @@ export default {
 			} else {
 				this.$emit('download', this.plugin);
 			}
+		},
+		toggleLike() {
+			if (this.isLiked) {
+				this.likedPlugins.delete(this.plugin.id);
+			} else {
+				this.likedPlugins.add(this.plugin.id);
+			}
+			this.$emit('like', { pluginId: this.plugin.id, liked: this.isLiked });
 		},
 		async restartPlugin() {
 			if (!this.plugin?.id) return;
@@ -262,4 +284,3 @@ export default {
 	@apply bg-black/50 backdrop-blur-sm;
 }
 </style>
-
