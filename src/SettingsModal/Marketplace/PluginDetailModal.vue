@@ -103,7 +103,10 @@
 				</div>
 
 				<!-- README Content -->
-				<div v-if="readmeHtml" class="prose prose-sm max-w-none prose-headings:text-base-content prose-p:text-base-content/90 prose-a:text-primary prose-code:text-base-content prose-pre:bg-base-300 prose-pre:text-base-content">
+				<div v-if="loadingReadme" class="flex items-center justify-center py-8">
+					<span class="loading loading-spinner loading-md"></span>
+				</div>
+				<div v-else-if="readmeHtml" class="prose prose-sm max-w-none prose-headings:text-base-content prose-p:text-base-content/90 prose-a:text-primary prose-code:text-base-content prose-pre:bg-base-300 prose-pre:text-base-content">
 					<div v-html="readmeHtml"></div>
 				</div>
 				<div v-else-if="plugin?.readme" class="prose prose-sm max-w-none text-sm whitespace-pre-wrap text-base-content/90">
@@ -169,6 +172,8 @@ export default {
 		return {
 			showLogs: false,
 			likedPlugins: new Set(), // In a real app, this would come from a store/API
+			readmeContent: null,
+			loadingReadme: false,
 		};
 	},
 	computed: {
@@ -183,7 +188,7 @@ export default {
 			return this.plugin?.description || this.manifest.description || this.manifest.longDescription || null;
 		},
 		permissions() {
-			return this.manifest.permissions || [];
+			return this.plugin?.approved_permissions || this.manifest.permissions || [];
 		},
 		isRunning() {
 			try {
@@ -231,9 +236,10 @@ export default {
 			return formatRelativeTime(date);
 		},
 		readmeHtml() {
-			if (!this.plugin?.readme) return null;
+			const content = this.readmeContent || this.plugin?.readme;
+			if (!content) return null;
 			try {
-				return md.render(this.plugin.readme);
+				return md.render(content);
 			} catch (e) {
 				console.error('Failed to render markdown:', e);
 				return null;
@@ -273,6 +279,85 @@ export default {
 				console.error('Failed to restart plugin', e);
 				const toast = useToast();
 				toast.error(`Failed to restart ${this.plugin?.name || this.plugin?.id}`);
+			}
+		},
+		getReadmeUrl(repoUrl) {
+			if (!repoUrl) return null;
+			// Convert GitHub repo URL to raw README.md URL
+			// e.g., https://github.com/user/repo -> https://raw.githubusercontent.com/user/repo/main/README.md
+			try {
+				const url = new URL(repoUrl);
+				if (url.hostname === 'github.com') {
+					const pathParts = url.pathname.split('/').filter(p => p);
+					if (pathParts.length >= 2) {
+						const owner = pathParts[0];
+						const repo = pathParts[1];
+						// Try common branch names
+						const branches = ['main', 'master', 'develop'];
+						// For now, try main first - could be enhanced to detect branch
+						return `https://raw.githubusercontent.com/${owner}/${repo}/main/README.md`;
+					}
+				}
+			} catch (e) {
+				console.error('Failed to parse repo URL:', e);
+			}
+			return null;
+		},
+		async fetchReadme() {
+			if (!this.plugin?.repo || !this.isOpen) {
+				this.readmeContent = null;
+				return;
+			}
+
+			this.loadingReadme = true;
+			this.readmeContent = null;
+
+			try {
+				const readmeUrl = this.getReadmeUrl(this.plugin.repo);
+				if (!readmeUrl) {
+					this.loadingReadme = false;
+					return;
+				}
+
+				const response = await fetch(readmeUrl);
+				if (!response.ok) {
+					// Try alternative branch if main fails
+					if (readmeUrl.includes('/main/')) {
+						const altUrl = readmeUrl.replace('/main/', '/master/');
+						const altResponse = await fetch(altUrl);
+						if (altResponse.ok) {
+							this.readmeContent = await altResponse.text();
+							this.loadingReadme = false;
+							return;
+						}
+					}
+					throw new Error(`Failed to fetch README: ${response.statusText}`);
+				}
+
+				this.readmeContent = await response.text();
+			} catch (error) {
+				console.error('Failed to fetch README:', error);
+				this.readmeContent = null;
+			} finally {
+				this.loadingReadme = false;
+			}
+		},
+	},
+	watch: {
+		plugin: {
+			handler() {
+				if (this.isOpen) {
+					this.fetchReadme();
+				}
+			},
+			immediate: true,
+		},
+		isOpen(newVal) {
+			if (newVal && this.plugin) {
+				this.fetchReadme();
+			} else {
+				this.readmeContent = null;
+				this.loadingReadme = false;
 			}
 		},
 	},

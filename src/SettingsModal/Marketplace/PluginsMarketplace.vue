@@ -31,48 +31,53 @@
 		</div>
 
 		<div class="flex flex-col gap-2 overflow-y-auto pr-1">
-			<div
-				v-for="plugin in filteredPlugins"
-				:key="plugin.id"
-				class="card bg-base-200 hover:bg-base-300 cursor-pointer transition"
-				@click="selectedPlugin = plugin"
-			>
-				<div class="card-body p-3 gap-2">
-					<div class="flex items-start justify-between gap-2">
-						<div class="flex flex-col gap-0.5">
-							<div class="flex items-center gap-2">
-								<h3 class="card-title text-sm font-semibold leading-tight text-base-content">{{ plugin.name }}</h3>
-								<span v-if="isInstalled(plugin.id)" class="badge badge-primary badge-sm">Installed</span>
+			<div v-if="loading" class="flex items-center justify-center py-12">
+				<span class="loading loading-spinner loading-lg"></span>
+			</div>
+			<template v-else>
+				<div
+					v-for="plugin in filteredPlugins"
+					:key="plugin.id"
+					class="card bg-base-200 hover:bg-base-300 cursor-pointer transition"
+					@click="selectedPlugin = plugin"
+				>
+					<div class="card-body p-3 gap-2">
+						<div class="flex items-start justify-between gap-2">
+							<div class="flex flex-col gap-0.5">
+								<div class="flex items-center gap-2">
+									<h3 class="card-title text-sm font-semibold leading-tight text-base-content">{{ plugin.name }}</h3>
+									<span v-if="isInstalled(plugin.id)" class="badge badge-primary badge-sm">Installed</span>
+								</div>
+								<p class="text-xs text-base-content/80">{{ plugin.description }}</p>
+								<p class="text-xs text-base-content/60">by {{ plugin.author }}</p>
 							</div>
-							<p class="text-xs text-base-content/80">{{ plugin.description }}</p>
-							<p class="text-xs text-base-content/60">by {{ plugin.author }}</p>
+							<div class="flex flex-col text-right text-xs text-base-content/60 gap-1 min-w-[80px]">
+								<span><i class="fa-solid fa-download mr-1"></i>{{ plugin.downloads }}</span>
+								<span><i class="fa-solid fa-heart mr-1"></i>{{ plugin.likes }}</span>
+							</div>
 						</div>
-						<div class="flex flex-col text-right text-xs text-base-content/60 gap-1 min-w-[80px]">
-							<span><i class="fa-solid fa-download mr-1"></i>{{ plugin.downloads }}</span>
-							<span><i class="fa-solid fa-heart mr-1"></i>{{ plugin.likes }}</span>
+						<div class="flex items-center justify-between gap-2">
+							<div class="flex flex-wrap gap-1">
+								<span v-for="tag in plugin.tags" :key="tag" class="badge badge-ghost badge-sm">{{ tag }}</span>
+							</div>
+							<button 
+								:class="[
+									'btn btn-sm min-w-[100px]',
+									isInstalled(plugin.id) ? 'btn-ghost' : 'btn-primary'
+								]"
+								@click.stop="isInstalled(plugin.id) ? $emit('uninstall', plugin) : $emit('download', plugin)"
+							>
+								<span v-if="plugin.isDownloading" class="loading loading-spinner loading-xs"></span>
+								<span v-else-if="isInstalled(plugin.id)">Uninstall</span>
+								<span v-else>Download</span>
+							</button>
 						</div>
-					</div>
-					<div class="flex items-center justify-between gap-2">
-						<div class="flex flex-wrap gap-1">
-							<span v-for="tag in plugin.tags" :key="tag" class="badge badge-ghost badge-sm">{{ tag }}</span>
-						</div>
-						<button 
-							:class="[
-								'btn btn-sm min-w-[100px]',
-								isInstalled(plugin.id) ? 'btn-ghost' : 'btn-primary'
-							]"
-							@click.stop="isInstalled(plugin.id) ? $emit('uninstall', plugin) : $emit('download', plugin)"
-						>
-							<span v-if="plugin.isDownloading" class="loading loading-spinner loading-xs"></span>
-							<span v-else-if="isInstalled(plugin.id)">Uninstall</span>
-							<span v-else>Download</span>
-						</button>
 					</div>
 				</div>
-			</div>
-			<div v-if="filteredPlugins.length === 0" class="text-center text-sm label-text py-6">
-				No plugins match your filters.
-			</div>
+				<div v-if="filteredPlugins.length === 0" class="text-center text-sm label-text py-6">
+					No plugins match your filters.
+				</div>
+			</template>
 		</div>
 
 		<PluginDetailModal
@@ -96,7 +101,6 @@ export default {
 		PluginDetailModal,
 	},
 	props: {
-		plugins: { type: Array, default: () => [] },
 		installedPluginIds: { type: Set, default: () => new Set() },
 	},
 	emits: ["close", "download", "uninstall"],
@@ -105,11 +109,13 @@ export default {
 			searchQuery: "",
 			sortOption: "newest",
 			selectedPlugin: null,
+			allPlugins: [],
+			loading: false,
 		};
 	},
 	computed: {
 		filteredPlugins() {
-			let list = [...this.plugins];
+			let list = [...this.allPlugins];
 			const query = this.searchQuery.trim().toLowerCase();
 
 			if (query) {
@@ -121,17 +127,44 @@ export default {
 			}
 
 			if (this.sortOption === "downloads") {
-				list.sort((a, b) => b.downloads - a.downloads);
+				list.sort((a, b) => (b.downloads || 0) - (a.downloads || 0));
 			} else if (this.sortOption === "likes") {
-				list.sort((a, b) => b.likes - a.likes);
+				list.sort((a, b) => (b.likes || 0) - (a.likes || 0));
 			} else {
-				list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+				// Sort by generated_at from registry or fallback to downloads
+				list.sort((a, b) => {
+					if (a.generated_at && b.generated_at) {
+						return new Date(b.generated_at) - new Date(a.generated_at);
+					}
+					return (b.downloads || 0) - (a.downloads || 0);
+				});
 			}
 
 			return list;
 		}
 	},
 	methods: {
+		async fetchPlugins() {
+			this.loading = true;
+			try {
+				const response = await fetch('https://dotmatrixlabs.github.io/dot-x-plugins/marketplace-registry.json');
+				if (!response.ok) {
+					throw new Error(`Failed to fetch registry: ${response.statusText}`);
+				}
+				const data = await response.json();
+				this.allPlugins = (data.plugins || []).map(plugin => ({
+					...plugin,
+					likes: plugin.likes || 0,
+					downloads: plugin.downloads || 0,
+					isDownloading: false,
+				}));
+			} catch (error) {
+				console.error('Failed to fetch plugin registry:', error);
+				this.allPlugins = [];
+			} finally {
+				this.loading = false;
+			}
+		},
 		isInstalled(pluginId) {
 			return this.installedPluginIds.has(pluginId);
 		},
@@ -143,7 +176,7 @@ export default {
 		},
 		handleLike({ pluginId, liked }) {
 			// Handle like action - could update plugin likes count or send to API
-			const plugin = this.plugins.find(p => p.id === pluginId);
+			const plugin = this.allPlugins.find(p => p.id === pluginId);
 			if (plugin) {
 				if (liked) {
 					plugin.likes = (plugin.likes || 0) + 1;
@@ -152,6 +185,9 @@ export default {
 				}
 			}
 		},
+	},
+	mounted() {
+		this.fetchPlugins();
 	},
 };
 </script>
