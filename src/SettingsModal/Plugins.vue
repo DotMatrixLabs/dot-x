@@ -14,7 +14,6 @@
 		<!-- Marketplace -->
 		<PluginsMarketplace
 			v-else
-			:plugins="marketplacePlugins"
 			:installed-plugin-ids="installedPluginIds"
 			@close="closeMarketplace"
 			@download="downloadPlugin"
@@ -90,44 +89,6 @@ export default {
 		return {
 			plugins: [],
 			marketplaceOpen: false,
-			marketplacePlugins: [
-				{
-					id: 'hello-world',
-					name: 'Hello World',
-					description: 'Starter example showing Dot X plugin basics.',
-					author: 'Dot X Team',
-					tags: ['starter', 'example'],
-					downloads: 1280,
-					likes: 96,
-					createdAt: '2024-12-01',
-					isDownloading: false,
-					readme: 'Hello World Plugin\\n\\nThis is a placeholder README. It would normally be fetched from the plugin repository.\\n\\nFeatures:\\n- Demonstrates command registration\\n- Shows UI injection basics\\n\\nInstall from the marketplace to start building your own plugin.'
-				},
-				{
-					id: 'rgb-demo',
-					name: 'RGB Demo',
-					description: 'Showcase controlling RGB lighting with simple actions.',
-					author: 'Community',
-					tags: ['lighting', 'demo'],
-					downloads: 5420,
-					likes: 312,
-					createdAt: '2024-11-18',
-					isDownloading: false,
-					readme: 'RGB Demo\\n\\nPlaceholder README content. This would render the plugin README fetched from its repo.\\n\\nHighlights:\\n- Device discovery\\n- Scene presets\\n- Quick actions'
-				},
-				{
-					id: 'mqtt-tools',
-					name: 'MQTT Tools',
-					description: 'Integrate MQTT topics for automation and dashboards.',
-					author: 'Automation Labs',
-					tags: ['automation', 'network'],
-					downloads: 2876,
-					likes: 204,
-					createdAt: '2024-12-08',
-					isDownloading: false,
-					readme: 'MQTT Tools\\n\\nPlaceholder README pulled from the repo.\\n\\nIncludes:\\n- Broker connection helpers\\n- Topic subscriptions\\n- Publish utilities'
-				}
-			],
 		};
 	},
 	computed: {
