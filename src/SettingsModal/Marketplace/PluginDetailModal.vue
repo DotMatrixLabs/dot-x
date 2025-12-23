@@ -1,45 +1,81 @@
 <template>
 	<div v-if="isOpen" class="modal modal-open">
-		<div class="modal-box max-w-5xl max-h-[90vh] flex flex-col p-0 bg-base-200 text-base-content">
+		<div class="modal-box max-w-5xl h-[90vh] overflow-hidden flex flex-col p-0 bg-base-200 text-base-content">
 			<!-- Header -->
-			<div class="flex items-center justify-between px-6 py-4 border-b border-base-300">
-				<div class="flex items-center gap-3 flex-1 min-w-0">
-					<button class="btn btn-ghost btn-sm btn-square shrink-0" @click="close">
-						<i class="fa-solid fa-arrow-left"></i>
-					</button>
-					<div class="flex flex-col min-w-0 flex-1">
-						<div class="flex items-center gap-2 flex-wrap">
-							<h3 class="font-semibold text-lg leading-tight truncate">{{ plugin?.name }}</h3>
-							<div v-if="manifest?.version" class="badge badge-outline badge-sm shrink-0">v{{ manifest.version }}</div>
-							<div class="badge badge-ghost badge-sm shrink-0">ID: {{ plugin?.id }}</div>
-						</div>
-						<p class="text-xs label-text mt-0.5" v-if="author">
-							by <span class="font-medium">{{ author }}</span>
-						</p>
-					</div>
-					<div class="shrink-0 flex items-center gap-1">
-						<div v-if="isInstalled" class="tooltip tooltip-bottom" data-tip="Logs">
-							<button class="btn btn-ghost btn-sm btn-square" @click="showLogs = true">
-								<i class="fa-solid fa-file-lines" />
-							</button>
-						</div>
-						<div v-if="isInstalled" class="tooltip tooltip-bottom" data-tip="Restart">
-							<button class="btn btn-ghost btn-sm btn-square" @click="restartPlugin" :disabled="!plugin?.id">
-								<i class="fa-solid fa-rotate-right" />
-							</button>
-						</div>
-						<div v-if="isInstalled" class="badge badge-sm shrink-0" :class="statusClass">{{ statusLabel }}</div>
-						<button 
-							:class="[
-								'btn btn-sm min-w-[100px] shrink-0',
-								isInstalled ? 'btn-ghost' : 'btn-primary'
-							]"
-							@click="handleInstallAction"
-						>
-							<span v-if="plugin?.isDownloading" class="loading loading-spinner loading-xs"></span>
-							<span v-else-if="isInstalled">Uninstall</span>
-							<span v-else>Install</span>
+			<div class="px-6 py-4 border-b border-base-300">
+				<div class="flex items-start justify-between gap-4">
+					<!-- Left Column: Name, Version, ID, Author, Permissions -->
+					<div class="flex items-start gap-3 flex-1 min-w-0">
+						<button class="btn btn-ghost btn-sm btn-square shrink-0 mt-0.5" @click="close">
+							<i class="fa-solid fa-arrow-left"></i>
 						</button>
+						<div class="flex flex-col min-w-0 flex-1 gap-1.5">
+							<div class="flex items-center gap-2 flex-wrap">
+								<h3 class="font-semibold text-lg leading-tight truncate">{{ plugin?.name }}</h3>
+								<div v-if="manifest?.version" class="badge badge-outline badge-sm shrink-0">{{ manifest.version }}</div>
+								<div class="badge badge-ghost badge-sm shrink-0">ID: {{ plugin?.id }}</div>
+							</div>
+							<div class="flex items-center gap-2 flex-wrap">
+								<p class="text-xs label-text" v-if="author">
+									by <span class="font-medium">{{ author }}</span>
+								</p>
+								<!-- Permissions inline -->
+								<div v-if="permissions && permissions.length > 0" class="flex flex-wrap gap-1">
+									<div v-for="perm in permissions" :key="perm" class="badge badge-outline badge-xs opacity-70">{{ perm }}</div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<!-- Right Column: Downloads, Like, Status, Actions -->
+					<div class="shrink-0 flex flex-col items-end gap-2">
+						<div class="flex items-center gap-3 text-sm">
+							<div class="flex items-center gap-1.5">
+								<i class="fa-solid fa-download opacity-70"></i>
+								<span class="label-text">{{ plugin?.downloads || 0 }}</span>
+							</div>
+							<div class="flex items-center gap-1.5">
+								<div class="tooltip tooltip-bottom" :data-tip="isLiked ? 'Unlike' : 'Like'">
+									<button 
+										:class="[
+											'btn btn-xs',
+											isLiked ? 'btn-error' : 'btn-ghost'
+										]"
+										@click="toggleLike"
+									>
+										<i :class="isLiked ? 'fa-solid fa-heart' : 'fa-regular fa-heart'"></i>
+									</button>
+								</div>
+								<span class="label-text">{{ plugin?.likes || 0 }}</span>
+							</div>
+							<div v-if="lastUpdated" class="flex items-center gap-1.5">
+								<i class="fa-solid fa-clock opacity-70"></i>
+								<span class="label-text text-xs">{{ lastUpdated }}</span>
+							</div>
+						</div>
+						<div class="flex items-center gap-1">
+							<div v-if="isInstalled" class="tooltip tooltip-bottom" data-tip="Logs">
+								<button class="btn btn-ghost btn-sm btn-square" @click="showLogs = true">
+									<i class="fa-solid fa-file-lines" />
+								</button>
+							</div>
+							<div v-if="isInstalled" class="tooltip tooltip-bottom" data-tip="Restart">
+								<button class="btn btn-ghost btn-sm btn-square" @click="restartPlugin" :disabled="!plugin?.id">
+									<i class="fa-solid fa-rotate-right" />
+								</button>
+							</div>
+							<div v-if="isInstalled" class="badge badge-sm shrink-0" :class="statusClass">{{ statusLabel }}</div>
+							<button 
+								:class="[
+									'btn btn-sm min-w-[100px] shrink-0',
+									isInstalled ? 'btn-ghost' : 'btn-primary'
+								]"
+								@click="handleInstallAction"
+							>
+								<span v-if="plugin?.isDownloading" class="loading loading-spinner loading-xs"></span>
+								<span v-else-if="isInstalled">Uninstall</span>
+								<span v-else>Install</span>
+							</button>
+						</div>
 					</div>
 				</div>
 			</div>
@@ -49,38 +85,6 @@
 				<!-- Tags -->
 				<div v-if="plugin?.tags && plugin.tags.length > 0" class="flex flex-wrap gap-1 mb-4">
 					<span v-for="tag in plugin.tags" :key="tag" class="badge badge-ghost badge-sm">{{ tag }}</span>
-				</div>
-
-				<!-- Stats Row -->
-				<div class="flex items-center gap-4 text-sm mb-4">
-					<div class="flex items-center gap-1.5">
-						<i class="fa-solid fa-download opacity-70"></i>
-						<span class="label-text">{{ plugin?.downloads || 0 }}</span>
-					</div>
-					<div class="flex items-center gap-1.5">
-						<button 
-							class="btn btn-ghost btn-xs btn-square"
-							:class="{ 'text-error': isLiked }"
-							@click="toggleLike"
-						>
-							<i class="fa-solid fa-heart"></i>
-						</button>
-						<span class="label-text">{{ plugin?.likes || 0 }}</span>
-					</div>
-					<div v-if="lastUpdated" class="flex items-center gap-1.5">
-						<i class="fa-solid fa-clock opacity-70"></i>
-						<span class="label-text">Updated {{ lastUpdated }}</span>
-					</div>
-				</div>
-
-				<!-- Permissions -->
-				<div v-if="permissions && permissions.length > 0" class="mb-4">
-					<label class="label py-1">
-						<span class="label-text text-xs font-medium">Permissions</span>
-					</label>
-					<div class="flex flex-wrap gap-2">
-						<div v-for="perm in permissions" :key="perm" class="badge badge-outline badge-sm opacity-70">{{ perm }}</div>
-					</div>
 				</div>
 
 				<!-- Links Row -->
@@ -96,21 +100,15 @@
 						<i :class="[link.icon || 'fa-solid fa-link', 'mr-1']" /> {{ link.title || 'Link' }}
 					</a>
 				</div>
-
-				<!-- Description -->
-				<div v-if="description" class="mb-4">
-					<p class="text-sm text-base-content/90">{{ description }}</p>
-				</div>
-
 				<!-- README Content -->
 				<div v-if="loadingReadme" class="flex items-center justify-center py-8">
 					<span class="loading loading-spinner loading-md"></span>
 				</div>
-				<div v-else-if="readmeHtml" class="prose prose-sm max-w-none prose-headings:text-base-content prose-p:text-base-content/90 prose-a:text-primary prose-code:text-base-content prose-pre:bg-base-300 prose-pre:text-base-content">
+				<div
+					v-else-if="readmeHtml"
+					class="readme-prose"
+				>
 					<div v-html="readmeHtml"></div>
-				</div>
-				<div v-else-if="plugin?.readme" class="prose prose-sm max-w-none text-sm whitespace-pre-wrap text-base-content/90">
-					{{ plugin.readme }}
 				</div>
 			</div>
 
@@ -146,6 +144,7 @@ const md = new MarkdownIt({
 	html: true,
 	linkify: true,
 	typographer: true,
+	breaks: true,
 });
 
 export default {
@@ -281,21 +280,17 @@ export default {
 				toast.error(`Failed to restart ${this.plugin?.name || this.plugin?.id}`);
 			}
 		},
-		getReadmeUrl(repoUrl) {
+		parseGitHubRepo(repoUrl) {
 			if (!repoUrl) return null;
-			// Convert GitHub repo URL to raw README.md URL
-			// e.g., https://github.com/user/repo -> https://raw.githubusercontent.com/user/repo/main/README.md
 			try {
 				const url = new URL(repoUrl);
 				if (url.hostname === 'github.com') {
 					const pathParts = url.pathname.split('/').filter(p => p);
 					if (pathParts.length >= 2) {
-						const owner = pathParts[0];
-						const repo = pathParts[1];
-						// Try common branch names
-						const branches = ['main', 'master', 'develop'];
-						// For now, try main first - could be enhanced to detect branch
-						return `https://raw.githubusercontent.com/${owner}/${repo}/main/README.md`;
+						return {
+							owner: pathParts[0],
+							repo: pathParts[1],
+						};
 					}
 				}
 			} catch (e) {
@@ -313,28 +308,32 @@ export default {
 			this.readmeContent = null;
 
 			try {
-				const readmeUrl = this.getReadmeUrl(this.plugin.repo);
-				if (!readmeUrl) {
+				const repoInfo = this.parseGitHubRepo(this.plugin.repo);
+				if (!repoInfo) {
 					this.loadingReadme = false;
 					return;
 				}
 
-				const response = await fetch(readmeUrl);
+				const apiUrl = `https://api.github.com/repos/${repoInfo.owner}/${repoInfo.repo}/readme`;
+				const response = await fetch(apiUrl, {
+					headers: {
+						'Accept': 'application/vnd.github+json',
+						'X-GitHub-Api-Version': '2022-11-28',
+					},
+				});
+
 				if (!response.ok) {
-					// Try alternative branch if main fails
-					if (readmeUrl.includes('/main/')) {
-						const altUrl = readmeUrl.replace('/main/', '/master/');
-						const altResponse = await fetch(altUrl);
-						if (altResponse.ok) {
-							this.readmeContent = await altResponse.text();
-							this.loadingReadme = false;
-							return;
-						}
-					}
 					throw new Error(`Failed to fetch README: ${response.statusText}`);
 				}
 
-				this.readmeContent = await response.text();
+				const data = await response.json();
+				if (data.content && data.encoding === 'base64') {
+					// Decode base64 content
+					const decodedContent = atob(data.content);
+					this.readmeContent = decodedContent;
+				} else {
+					throw new Error('Unexpected response format from GitHub API');
+				}
 			} catch (error) {
 				console.error('Failed to fetch README:', error);
 				this.readmeContent = null;
@@ -367,5 +366,76 @@ export default {
 <style scoped>
 .modal-backdrop {
 	@apply bg-black/50 backdrop-blur-sm;
+}
+
+/* GitHub-ish README typography */
+.readme-prose {
+	@apply prose max-w-none text-sm leading-relaxed;
+}
+
+.readme-prose :deep(a) {
+	@apply text-primary underline underline-offset-2;
+}
+
+.readme-prose :deep(p),
+.readme-prose :deep(ul),
+.readme-prose :deep(ol),
+.readme-prose :deep(blockquote),
+.readme-prose :deep(pre),
+.readme-prose :deep(table) {
+	@apply my-3;
+}
+
+.readme-prose :deep(h1) {
+	@apply text-2xl font-semibold mt-0 mb-4 text-base-content;
+}
+.readme-prose :deep(h2) {
+	@apply text-xl font-semibold mt-8 mb-3 text-base-content;
+}
+.readme-prose :deep(h3) {
+	@apply text-lg font-semibold mt-6 mb-2 text-base-content;
+}
+.readme-prose :deep(h4) {
+	@apply text-base font-semibold mt-5 mb-2 text-base-content;
+}
+
+.readme-prose :deep(hr) {
+	@apply my-6 border-base-300;
+}
+
+.readme-prose :deep(blockquote) {
+	@apply border-l-4 border-base-300 pl-4 text-base-content/80;
+}
+
+.readme-prose :deep(ul) {
+	@apply list-disc pl-6;
+}
+.readme-prose :deep(ol) {
+	@apply list-decimal pl-6;
+}
+.readme-prose :deep(li) {
+	@apply my-1;
+}
+
+/* Inline code */
+.readme-prose :deep(code) {
+	@apply bg-base-300 text-base-content px-1 py-0.5 rounded;
+}
+.readme-prose :deep(code)::before,
+.readme-prose :deep(code)::after {
+	content: none;
+}
+
+/* Fenced code blocks */
+.readme-prose :deep(pre) {
+	@apply bg-base-300 text-base-content border border-base-300 rounded-box p-4 overflow-x-auto;
+}
+.readme-prose :deep(pre code) {
+	@apply bg-transparent p-0;
+}
+
+/* Images shouldn't blow out width */
+.readme-prose :deep(img) {
+	@apply max-w-full rounded-box;
 }
 </style>
