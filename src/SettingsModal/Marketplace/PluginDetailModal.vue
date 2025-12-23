@@ -315,6 +315,10 @@ export default {
 				}
 
 				const apiUrl = `https://api.github.com/repos/${repoInfo.owner}/${repoInfo.repo}/readme`;
+
+				// TODO: Currently API is limited to 60 requests per hour, so we should add a api key and cache the response.
+				// https://docs.github.com/en/rest/overview/resources-in-the-rest-api?apiVersion=2022-11-28#rate-limiting
+
 				const response = await fetch(apiUrl, {
 					headers: {
 						'Accept': 'application/vnd.github+json',
