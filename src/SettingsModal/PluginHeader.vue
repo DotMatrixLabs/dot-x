@@ -45,7 +45,7 @@
 
     <!-- Bottom actions row: up to 4 custom links -->
     <div class="flex flex-nowrap items-center gap-2 mt-2 overflow-x-auto pb-1">
-      <a v-for="(link, idx) in limitedLinks" :key="idx" :href="link.url" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-xs flex-shrink-0">
+      <a v-for="(link, idx) in limitedLinks" :key="idx" :href="link.url" @click.prevent="openLink(link.url)" rel="noopener noreferrer" class="btn btn-outline btn-xs flex-shrink-0">
         <i :class="[link.icon || 'fa-solid fa-link', 'mr-1']" /> {{ link.title || 'Link' }}
       </a>
     </div>
@@ -69,6 +69,7 @@ import { useStore } from '../store/store';
 import { useToast } from 'vue-toastification';
 import PluginLogsModal from '../components/PluginLogsModal.vue';
 import EventBus from '../js/eventBus';
+import { openLink } from '../ts/helpers';
 
 export default {
   name: 'PluginHeader',
@@ -154,6 +155,7 @@ export default {
     
   },
   methods: {
+    openLink,
     openLogs() {
       this.showLogs = true;
       this.$emit('logs-opened', { id: this.plugin.id });
