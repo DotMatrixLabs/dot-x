@@ -93,8 +93,8 @@
 						v-for="(link, idx) in limitedLinks" 
 						:key="idx" 
 						:href="link.url" 
-						target="_blank" 
-						rel="noopener noreferrer" 
+						@click.prevent="openLink(link.url)"
+						rel="noopener noreferrer"
 						class="btn btn-outline btn-xs flex-shrink-0"
 					>
 						<i :class="[link.icon || 'fa-solid fa-link', 'mr-1']" /> {{ link.title || 'Link' }}
@@ -107,6 +107,7 @@
 				<div
 					v-else-if="readmeHtml"
 					class="readme-prose"
+					@click="onReadmeClick"
 				>
 					<div v-html="readmeHtml"></div>
 				</div>
@@ -138,7 +139,7 @@ import { useToast } from 'vue-toastification';
 import PluginLogsModal from '../../components/PluginLogsModal.vue';
 import EventBus from '../../js/eventBus';
 import MarkdownIt from 'markdown-it';
-import { formatRelativeTime } from '../../ts/helpers';
+import { formatRelativeTime, openLink } from '../../ts/helpers';
 
 const md = new MarkdownIt({
 	html: true,
@@ -173,6 +174,7 @@ export default {
 			likedPlugins: new Set(), // In a real app, this would come from a store/API
 			readmeContent: null,
 			loadingReadme: false,
+			readmeHtmlUrl: null,
 		};
 	},
 	computed: {
@@ -249,8 +251,29 @@ export default {
 		},
 	},
 	methods: {
+		openLink,
 		close() {
 			this.$emit('close');
+		},
+		onReadmeClick(event) {
+			const anchor = event?.target?.closest?.('a');
+			if (!anchor) return;
+
+			const href = anchor.getAttribute('href');
+			if (!href) return;
+
+			event.preventDefault();
+
+			let url = href;
+			if (this.readmeHtmlUrl && !/^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(href)) {
+				try {
+					url = new URL(href, this.readmeHtmlUrl).toString();
+				} catch (e) {
+					return;
+				}
+			}
+
+			this.openLink(url);
 		},
 		handleInstallAction() {
 			if (this.isInstalled) {
@@ -301,11 +324,13 @@ export default {
 		async fetchReadme() {
 			if (!this.plugin?.repo || !this.isOpen) {
 				this.readmeContent = null;
+				this.readmeHtmlUrl = null;
 				return;
 			}
 
 			this.loadingReadme = true;
 			this.readmeContent = null;
+			this.readmeHtmlUrl = null;
 
 			try {
 				const repoInfo = this.parseGitHubRepo(this.plugin.repo);
@@ -331,6 +356,7 @@ export default {
 				}
 
 				const data = await response.json();
+				this.readmeHtmlUrl = data?.html_url || null;
 				if (data.content && data.encoding === 'base64') {
 					// Decode base64 content
 					const decodedContent = atob(data.content);
@@ -361,6 +387,7 @@ export default {
 			} else {
 				this.readmeContent = null;
 				this.loadingReadme = false;
+				this.readmeHtmlUrl = null;
 			}
 		},
 	},
