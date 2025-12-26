@@ -167,7 +167,7 @@ export default {
 			default: false,
 		},
 	},
-	emits: ['close', 'download', 'uninstall', 'like'],
+	emits: ['close', 'download', 'uninstall', 'like', 'installed', 'uninstalled'],
 	data() {
 		return {
 			showLogs: false,
@@ -275,11 +275,41 @@ export default {
 
 			this.openLink(url);
 		},
-		handleInstallAction() {
+		async handleInstallAction() {
 			if (this.isInstalled) {
-				this.$emit('uninstall', this.plugin);
+				await this.handleUninstall();
 			} else {
-				this.$emit('download', this.plugin);
+				await this.handleInstall();
+			}
+		},
+		async handleInstall() {
+			if (!this.plugin?.id || this.plugin.isDownloading) return;
+			this.plugin.isDownloading = true;
+			const toast = useToast();
+			try {
+				await invoke('install_marketplace_plugin', { pluginId: this.plugin.id });
+				toast.success(`Successfully installed ${this.plugin.name || this.plugin.id}`);
+				this.$emit('installed', this.plugin);
+			} catch (error) {
+				console.error('Failed to install plugin:', error);
+				toast.error(error || `Failed to install ${this.plugin.name || this.plugin.id}`);
+			} finally {
+				this.plugin.isDownloading = false;
+			}
+		},
+		async handleUninstall() {
+			if (!this.plugin?.id || this.plugin.isDownloading) return;
+			this.plugin.isDownloading = true;
+			const toast = useToast();
+			try {
+				await invoke('uninstall_marketplace_plugin', { pluginId: this.plugin.id });
+				toast.success(`Successfully uninstalled ${this.plugin.name || this.plugin.id}`);
+				this.$emit('uninstalled', this.plugin);
+			} catch (error) {
+				console.error('Failed to uninstall plugin:', error);
+				toast.error(error || `Failed to uninstall ${this.plugin.name || this.plugin.id}`);
+			} finally {
+				this.plugin.isDownloading = false;
 			}
 		},
 		toggleLike() {

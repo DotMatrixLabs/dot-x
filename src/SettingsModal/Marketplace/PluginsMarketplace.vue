@@ -65,11 +65,12 @@
 									'btn btn-sm min-w-[100px]',
 									isInstalled(plugin.id) ? 'btn-ghost' : 'btn-primary'
 								]"
-								@click.stop="isInstalled(plugin.id) ? $emit('uninstall', plugin) : $emit('download', plugin)"
+								@click.stop="isInstalled(plugin.id) ? handleUninstall(plugin) : handleInstall(plugin)"
+								:disabled="plugin.isDownloading"
 							>
 								<span v-if="plugin.isDownloading" class="loading loading-spinner loading-xs"></span>
 								<span v-else-if="isInstalled(plugin.id)">Uninstall</span>
-								<span v-else>Download</span>
+								<span v-else>Install</span>
 							</button>
 						</div>
 					</div>
@@ -88,11 +89,15 @@
 			@download="handleDownload"
 			@uninstall="handleUninstall"
 			@like="handleLike"
+			@installed="handlePluginInstalled"
+			@uninstalled="handlePluginUninstalled"
 		/>
 	</div>
 </template>
 
 <script>
+import { invoke } from '@tauri-apps/api/core';
+import { useToast } from 'vue-toastification';
 import PluginDetailModal from './PluginDetailModal.vue';
 
 export default {
@@ -103,7 +108,7 @@ export default {
 	props: {
 		installedPluginIds: { type: Set, default: () => new Set() },
 	},
-	emits: ["close", "download", "uninstall"],
+	emits: ["close", "download", "uninstall", "installed", "uninstalled"],
 	data() {
 		return {
 			searchQuery: "",
@@ -147,7 +152,7 @@ export default {
 		async fetchPlugins() {
 			this.loading = true;
 			try {
-				const response = await fetch('https://dotmatrixlabs.github.io/dot-x-plugins/marketplace-registry.json');
+				const response = await fetch('https://dml.gg/plugin-registry');
 				if (!response.ok) {
 					throw new Error(`Failed to fetch registry: ${response.statusText}`);
 				}
@@ -168,11 +173,38 @@ export default {
 		isInstalled(pluginId) {
 			return this.installedPluginIds.has(pluginId);
 		},
-		handleDownload(plugin) {
-			this.$emit('download', plugin);
+		async handleInstall(plugin) {
+			if (plugin.isDownloading) return;
+			plugin.isDownloading = true;
+			const toast = useToast();
+			try {
+				await invoke('install_marketplace_plugin', { pluginId: plugin.id });
+				toast.success(`Successfully installed ${plugin.name}`);
+				this.$emit('installed', plugin);
+			} catch (error) {
+				console.error('Failed to install plugin:', error);
+				toast.error(error || `Failed to install ${plugin.name}`);
+			} finally {
+				plugin.isDownloading = false;
+			}
 		},
-		handleUninstall(plugin) {
-			this.$emit('uninstall', plugin);
+		async handleUninstall(plugin) {
+			if (plugin.isDownloading) return;
+			plugin.isDownloading = true;
+			const toast = useToast();
+			try {
+				await invoke('uninstall_marketplace_plugin', { pluginId: plugin.id });
+				toast.success(`Successfully uninstalled ${plugin.name}`);
+				this.$emit('uninstalled', plugin);
+			} catch (error) {
+				console.error('Failed to uninstall plugin:', error);
+				toast.error(error || `Failed to uninstall ${plugin.name}`);
+			} finally {
+				plugin.isDownloading = false;
+			}
+		},
+		handleDownload(plugin) {
+			this.handleInstall(plugin);
 		},
 		handleLike({ pluginId, liked }) {
 			// Handle like action - could update plugin likes count or send to API
@@ -184,6 +216,12 @@ export default {
 					plugin.likes = Math.max(0, (plugin.likes || 0) - 1);
 				}
 			}
+		},
+		handlePluginInstalled(plugin) {
+			this.$emit('installed', plugin);
+		},
+		handlePluginUninstalled(plugin) {
+			this.$emit('uninstalled', plugin);
 		},
 	},
 	mounted() {
