@@ -6,6 +6,9 @@ use serde_json::{json, Value};
 use tauri::{AppHandle, Manager, WebviewWindow, Wry};
 use std::fs;
 use std::fs::File;
+use std::path::PathBuf;
+use sha2::{Sha256, Digest};
+use hex;
 use windows_volume_control::{AudioController, CoinitMode};
 use tauri_plugin_autostart::MacosLauncher;
 use midir::{MidiOutput};
@@ -18,7 +21,7 @@ mod midi;
 mod power_monitor;
 mod plugin_server;
 mod plugin_runtime;
-use plugin_runtime::resolve_plugins_dir;
+use plugin_runtime::{resolve_plugins_dir, ensure_plugins_dir};
 use once_cell::sync::OnceCell;
 use tauri::menu::{Menu, MenuBuilder, MenuItemBuilder, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent};
@@ -142,16 +145,173 @@ fn list_installed_plugins(app_handle: AppHandle) -> Result<Vec<serde_json::Value
 
 #[tauri::command]
 fn get_plugins_folder(app_handle: AppHandle) -> Result<String, String> {
-  let plugins_dir = resolve_plugins_dir(&app_handle).ok_or_else(|| "Plugins directory not found".to_string())?;
+  let plugins_dir = ensure_plugins_dir(&app_handle)?;
   Ok(plugins_dir.to_string_lossy().to_string())
 }
 
 #[tauri::command]
 async fn open_plugins_folder(app_handle: AppHandle) -> Result<(), String> {
-  let plugins_dir = resolve_plugins_dir(&app_handle).ok_or_else(|| "Plugins directory not found".to_string())?;
+  let plugins_dir = ensure_plugins_dir(&app_handle)?;
   use tauri_plugin_shell::ShellExt;
   // Shell open is deprecated, but we'll use it for now
   let _ = app_handle.shell().open(plugins_dir.to_string_lossy().to_string(), None);
+  Ok(())
+}
+
+#[tauri::command]
+async fn install_marketplace_plugin(app_handle: AppHandle, plugin_id: String) -> Result<(), String> {
+  // Fetch registry
+  let registry_url = "https://dml.gg/plugin-registry";
+  let response = reqwest::blocking::get(registry_url)
+    .map_err(|e| format!("Failed to fetch registry: {}", e))?;
+  let registry: Value = response.json()
+    .map_err(|e| format!("Failed to parse registry: {}", e))?;
+  
+  // Find plugin entry
+  let plugins = registry.get("plugins")
+    .and_then(|p| p.as_array())
+    .ok_or_else(|| "Registry plugins array not found".to_string())?;
+  
+  let plugin_entry = plugins.iter()
+    .find(|p| p.get("id").and_then(|id| id.as_str()) == Some(&plugin_id))
+    .ok_or_else(|| format!("Plugin {} not found in registry", plugin_id))?;
+  
+  let manifest_url = plugin_entry.get("manifest_url")
+    .and_then(|u| u.as_str())
+    .ok_or_else(|| "manifest_url not found".to_string())?;
+  let main_url = plugin_entry.get("main_url")
+    .and_then(|u| u.as_str())
+    .ok_or_else(|| "main_url not found".to_string())?;
+  let expected_hash = plugin_entry.get("integrity_hash")
+    .and_then(|h| h.as_str())
+    .ok_or_else(|| "integrity_hash not found".to_string())?;
+  
+  // Get plugins directory and create temp directory
+  let plugins_dir = ensure_plugins_dir(&app_handle)?;
+  let path_resolver = app_handle.path();
+  let app_data_dir = path_resolver.app_data_dir()
+    .map_err(|e| format!("App data dir not available: {}", e))?;
+  let temp_base = app_data_dir.join("plugins").join(".tmp");
+  fs::create_dir_all(&temp_base)
+    .map_err(|e| format!("Failed to create temp directory: {}", e))?;
+  
+  // Create unique temp directory for this install
+  let temp_dir = temp_base.join(format!("{}-{}", plugin_id, std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs()));
+  fs::create_dir_all(&temp_dir)
+    .map_err(|e| format!("Failed to create temp plugin directory: {}", e))?;
+  
+  // Download files
+  info!("Downloading manifest from {}", manifest_url);
+  let manifest_response = reqwest::blocking::get(manifest_url)
+    .map_err(|e| format!("Failed to download manifest: {}", e))?;
+  let manifest_content = manifest_response.text()
+    .map_err(|e| format!("Failed to read manifest content: {}", e))?;
+  
+  info!("Downloading main.js from {}", main_url);
+  let main_response = reqwest::blocking::get(main_url)
+    .map_err(|e| format!("Failed to download main.js: {}", e))?;
+  let main_content = main_response.text()
+    .map_err(|e| format!("Failed to read main.js content: {}", e))?;
+  
+  // Write to temp directory
+  let temp_manifest_path = temp_dir.join("manifest.json");
+  let temp_main_path = temp_dir.join("main.js");
+  fs::write(&temp_manifest_path, &manifest_content)
+    .map_err(|e| format!("Failed to write manifest.json: {}", e))?;
+  fs::write(&temp_main_path, &main_content)
+    .map_err(|e| format!("Failed to write main.js: {}", e))?;
+  
+  // Compute combined hash
+  let combined = format!("{}\n---SEPARATOR---\n{}", manifest_content, main_content);
+  let mut hasher = Sha256::new();
+  hasher.update(combined.as_bytes());
+  let hash_bytes = hasher.finalize();
+  let computed_hash = format!("sha256-{}", hex::encode(hash_bytes));
+  
+  // Validate hash
+  if computed_hash != expected_hash {
+    let _ = fs::remove_dir_all(&temp_dir);
+    return Err("Integrity mismatch detected between registry and downloaded files. Please try again later.".to_string());
+  }
+  
+  // Validate manifest id matches plugin_id
+  let manifest_json: Value = serde_json::from_str(&manifest_content)
+    .map_err(|e| format!("Failed to parse manifest.json: {}", e))?;
+  if let Some(manifest_id) = manifest_json.get("id").and_then(|id| id.as_str()) {
+    if manifest_id != plugin_id {
+      let _ = fs::remove_dir_all(&temp_dir);
+      return Err(format!("Manifest id '{}' does not match plugin id '{}'", manifest_id, plugin_id));
+    }
+  }
+  
+  // Move to plugins directory
+  let plugin_dir = plugins_dir.join(&plugin_id);
+  
+  // Remove existing plugin directory if it exists
+  if plugin_dir.exists() {
+    info!("Removing existing plugin directory: {}", plugin_dir.display());
+    fs::remove_dir_all(&plugin_dir)
+      .map_err(|e| format!("Failed to remove existing plugin directory: {}", e))?;
+  }
+  
+  // Create plugin directory
+  fs::create_dir_all(&plugin_dir)
+    .map_err(|e| format!("Failed to create plugin directory: {}", e))?;
+  
+  // Move files from temp to plugin directory
+  fs::rename(&temp_manifest_path, plugin_dir.join("manifest.json"))
+    .map_err(|e| format!("Failed to move manifest.json: {}", e))?;
+  fs::rename(&temp_main_path, plugin_dir.join("main.js"))
+    .map_err(|e| format!("Failed to move main.js: {}", e))?;
+  
+  // Clean up temp directory
+  let _ = fs::remove_dir_all(&temp_dir);
+  
+  info!("Successfully installed plugin: {}", plugin_id);
+  Ok(())
+}
+
+#[tauri::command]
+async fn uninstall_marketplace_plugin(app_handle: AppHandle, plugin_id: String) -> Result<(), String> {
+  // Stop plugin if running
+  let _ = plugin_runtime::stop_plugin(plugin_id.clone()).await;
+  
+  // Find plugin directory
+  let plugins_dir = ensure_plugins_dir(&app_handle)?;
+  let plugin_dir = plugins_dir.join(&plugin_id);
+  
+  if !plugin_dir.exists() {
+    return Err(format!("Plugin {} not found", plugin_id));
+  }
+  
+  // Remove plugin directory
+  fs::remove_dir_all(&plugin_dir)
+    .map_err(|e| format!("Failed to remove plugin directory: {}", e))?;
+  
+  // Remove from enabled plugins config
+  let path_resolver = app_handle.path();
+  let mut candidates: Vec<PathBuf> = Vec::new();
+  if let Ok(p) = path_resolver.app_data_dir() {
+    candidates.push(p.join("plugins.json"));
+  }
+  if let Ok(p) = path_resolver.app_config_dir() {
+    candidates.push(p.join("plugins.json"));
+  }
+  
+  for config_path in candidates {
+    if let Ok(content) = fs::read_to_string(&config_path) {
+      if let Ok(mut config) = serde_json::from_str::<Value>(&content) {
+        if let Some(enabled) = config.get_mut("enabled").and_then(|e| e.as_array_mut()) {
+          enabled.retain(|v| v.as_str() != Some(&plugin_id));
+          if let Ok(updated_content) = serde_json::to_string_pretty(&config) {
+            let _ = fs::write(&config_path, updated_content);
+          }
+        }
+      }
+    }
+  }
+  
+  info!("Successfully uninstalled plugin: {}", plugin_id);
   Ok(())
 }
 
@@ -673,7 +833,9 @@ async fn main() {
             plugin_runtime::clear_plugin_logs,
             list_installed_plugins,
             get_plugins_folder,
-            open_plugins_folder
+            open_plugins_folder,
+            install_marketplace_plugin,
+            uninstall_marketplace_plugin
         ])
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_os::init())

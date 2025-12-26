@@ -137,6 +137,24 @@ pub fn has_valid_plugins(dir: &Path) -> bool {
   false
 }
 
+pub fn ensure_plugins_dir(app_handle: &AppHandle) -> Result<PathBuf, String> {
+  let path_resolver = app_handle.path();
+  
+  // Prefer app_data_dir for writable location
+  let app_data_dir = path_resolver.app_data_dir()
+    .map_err(|e| format!("App data dir not available: {}", e))?;
+  let plugins_dir = app_data_dir.join("plugins");
+  
+  // Create directory if it doesn't exist
+  if !plugins_dir.exists() {
+    fs::create_dir_all(&plugins_dir)
+      .map_err(|e| format!("Failed to create plugins directory: {}", e))?;
+    info!("Created plugins directory at {}", plugins_dir.display());
+  }
+  
+  Ok(plugins_dir)
+}
+
 pub fn resolve_plugins_dir(app_handle: &AppHandle) -> Option<PathBuf> {
   let path_resolver = app_handle.path();
   
@@ -196,7 +214,12 @@ pub fn resolve_plugins_dir(app_handle: &AppHandle) -> Option<PathBuf> {
     }
   }
   
-  error!("No plugins directory with valid plugins found in any expected location!");
+  // Strategy 6: Fallback to app_data_dir/plugins (writable, can be empty)
+  if let Ok(p) = ensure_plugins_dir(app_handle) {
+    return Some(p);
+  }
+  
+  error!("No plugins directory found in any expected location!");
   None
 }
 

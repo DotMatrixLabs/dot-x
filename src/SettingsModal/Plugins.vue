@@ -18,6 +18,8 @@
 			@close="closeMarketplace"
 			@download="downloadPlugin"
 			@uninstall="uninstallPlugin"
+			@installed="handlePluginInstalled"
+			@uninstalled="handlePluginUninstalled"
 		/>
 
 		<!-- Plugin list -->
@@ -106,15 +108,20 @@ export default {
 			this.marketplaceOpen = false;
 		},
 		downloadPlugin(plugin) {
-			if (plugin.isDownloading) return;
-			plugin.isDownloading = true;
-			setTimeout(() => {
-				plugin.isDownloading = false;
-			}, 1000);
+			// Handled by PluginsMarketplace component now
 		},
 		uninstallPlugin(plugin) {
-			// TODO: Implement uninstall logic
-			console.log('Uninstall plugin:', plugin.id);
+			// Handled by PluginsMarketplace component now
+		},
+		async handlePluginInstalled(plugin) {
+			// Refresh installed plugins list
+			await this.fetchPlugins();
+			await this.loadEnabledState();
+		},
+		async handlePluginUninstalled(plugin) {
+			// Refresh installed plugins list
+			await this.fetchPlugins();
+			await this.loadEnabledState();
 		},
 		async reloadPlugins() {
 			await this.fetchPlugins();
