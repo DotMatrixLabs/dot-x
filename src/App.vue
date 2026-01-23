@@ -29,6 +29,9 @@ import { mapState } from "pinia";
 
 const toast = useToast();
 
+import SelectedApps from "./ts/appsToControl.ts";
+import ChannelSettings from "./ts/channelSettings.ts";
+
 export default {
   components: { TopBar, SettingsModal, SliderOverview, AppsModal, UpdatePrompt, WhatsNewModal },
   name: "App",
@@ -108,7 +111,6 @@ export default {
     appsToggled(id) {
       this.currentSliderID = id;
       this.appsModalOpen = !this.appsModalOpen;
-      this.$refs.sliderOverview.getSelectedApps();
     },
 
     async connectDecker() {
@@ -134,6 +136,8 @@ export default {
   mounted() {
     this.disableContextMenu();
     // this.getTheme();
+    SelectedApps.init();
+    ChannelSettings.init();
     this.connectDecker();
     Decker.detectDeviceChanges();
     Decker.initMidi();
