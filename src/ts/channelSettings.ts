@@ -14,7 +14,6 @@ class ChannelSettings {
     constructor() {
         this.store = new Store("channelSettings.json");
         this.getAllChannelSettings();
-        this.init();
     }
 
     /**

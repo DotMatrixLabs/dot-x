@@ -8,8 +8,8 @@ use tauri::AppHandle;
 use tauri::{ Manager, Window };
 use tauri_plugin_store::{with_store, StoreCollection};
 use tauri::Wry;
-use windows_volume_control::AudioController;
-use windows_volume_control::CoinitMode;
+use windows_volume_control::{AudioController, CoinitMode, VolumeMonitor};
+use std::sync::Mutex;
 use tauri_plugin_autostart::MacosLauncher;
 use midir::{MidiOutput};
 use std::collections::HashMap;
@@ -22,7 +22,7 @@ use tauri::{CustomMenuItem, SystemTrayMenu, SystemTrayMenuItem, SystemTray, Syst
 use tauri::api::notification::Notification;
 use window_vibrancy::{apply_blur, apply_mica};
 use window_shadows::set_shadow;
-use once_cell::sync::OnceCell;
+use once_cell::sync::{Lazy, OnceCell};
 
 use active_win_pos_rs::get_active_window;
 use tauri_plugin_aptabase::EventTracker;
@@ -30,11 +30,12 @@ use std::thread;
 use std::time::Duration;
 use sentry_tauri::sentry::{self, ClientInitGuard};
 use chrono::Local;
-use brightness::{Brightness, BrightnessDevice};
+use brightness::Brightness;
 use futures::{TryStreamExt};
 
 
 static APP: OnceCell<tauri::AppHandle> = OnceCell::new();
+static VOLUME_MONITOR: Lazy<Mutex<Option<VolumeMonitor>>> = Lazy::new(|| Mutex::new(None));
 
 // create the error type that represents all errors possible in our program
 #[derive(Debug, thiserror::Error)]
@@ -71,16 +72,6 @@ impl serde::Serialize for Error {
 #[derive(serde::Serialize)]
 struct CustomResponse {
   app_list: Vec<String>,
-}
-
-#[derive(serde::Serialize)]
-struct ControllerResponse {
-  response: Vec<String>,
-}
-
-#[derive(Clone, serde::Serialize)]
-struct Payload {
-  message: String,
 }
 
 #[derive(serde::Serialize)]
@@ -246,9 +237,16 @@ fn get_active_app_name() -> String {
 #[tauri::command]
 fn set_application_volume(name: &str, volume: f32) -> Result<(), Error> {
     unsafe {
-        let controller = get_initialized_audio_controller();
+        // Update expected volume BEFORE setting it to prevent feedback loop
+        {
+            let monitor_slot = VOLUME_MONITOR.lock().unwrap();
+            if let Some(monitor) = monitor_slot.as_ref() {
+                monitor.mark_setting(name);
+                let _ = monitor.update_expected_volume(name, volume);
+            }
+        }
 
-        // println!("All session names: {:?}", controller.get_all_session_names());
+        let controller = get_initialized_audio_controller();
 
         // Get the current session by name
         let current_sessions = controller.get_sessions_by_name(name.to_string());
@@ -256,8 +254,6 @@ fn set_application_volume(name: &str, volume: f32) -> Result<(), Error> {
         //if multiple sessions are found, change the volume for all of them
         if !current_sessions.is_empty() {
           for session in current_sessions {
-            println!("Setting volume for session: {}", name);
-            println!("{}", session.getVolume().to_string());
             if volume < 0.01 {
               session.setMute(true);
               // Also set application volume to 0. This is not actually needed, but it's visually pleasing since the slider is at 0 and makes it easier to see which applications are muted.
@@ -269,7 +265,164 @@ fn set_application_volume(name: &str, volume: f32) -> Result<(), Error> {
           }
         } else {
           // Handle the case where the session was not found (e.g., return an error)
+          let monitor_slot = VOLUME_MONITOR.lock().unwrap();
+          if let Some(monitor) = monitor_slot.as_ref() {
+              monitor.unmark_setting(name);
+          }
           return Err(Error::SessionNotFound);
+        }
+
+        {
+            let monitor_slot = VOLUME_MONITOR.lock().unwrap();
+            if let Some(monitor) = monitor_slot.as_ref() {
+                monitor.unmark_setting(name);
+            }
+        }
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+fn enable_volume_sync(window: Window) -> Result<(), Error> {
+    unsafe {
+        // Avoid spawning multiple polling threads / double-registering callbacks.
+        {
+            let monitor_slot = VOLUME_MONITOR.lock().unwrap();
+            if monitor_slot.is_some() {
+                info!("Volume sync already enabled");
+                return Ok(());
+            }
+        }
+        
+        // Create volume monitor
+        let mut monitor = VolumeMonitor::new();
+        
+        // Store monitor in global state
+        let mut monitor_slot = VOLUME_MONITOR.lock().unwrap();
+        *monitor_slot = Some(monitor);
+        
+        // Start polling thread for application sessions
+        start_volume_sync_polling();
+        
+        info!("Volume sync enabled");
+    }
+    
+    Ok(())
+}
+
+fn start_volume_sync_polling() {
+    thread::spawn(move || {
+        let mut last_controller_refresh = std::time::Instant::now()
+            .checked_sub(Duration::from_secs(10))
+            .unwrap_or_else(std::time::Instant::now);
+        let mut controller = unsafe { get_initialized_audio_controller() };
+
+        loop {
+            thread::sleep(Duration::from_millis(250));
+            
+            unsafe {
+                let monitor_slot = VOLUME_MONITOR.lock().unwrap();
+                if let Some(monitor) = monitor_slot.as_ref() {
+                    if !monitor.is_polling_active() {
+                        break;
+                    }
+
+                    // Prefer polling only sessions that need it (application sessions).
+                    let session_names = monitor.get_polling_session_names();
+                    drop(monitor_slot); // Release lock before getting controller
+                    
+                    // Refresh controller occasionally to pick up new/ended sessions.
+                    if last_controller_refresh.elapsed() > Duration::from_secs(2) {
+                        controller = get_initialized_audio_controller();
+                        last_controller_refresh = std::time::Instant::now();
+                    }
+
+                    // Check each session's volume and restore if needed
+                    for session_name in session_names {
+                        let expected_vol_opt = {
+                            let monitor_slot = VOLUME_MONITOR.lock().unwrap();
+                            monitor_slot.as_ref().and_then(|m| {
+                                if m.should_ignore_restore(&session_name) {
+                                    None
+                                } else {
+                                    m.get_expected_volume(&session_name)
+                                }
+                            })
+                        };
+                        
+                        if let Some(expected_vol) = expected_vol_opt {
+                            let sessions = controller.get_sessions_by_name(session_name.clone());
+                            if !sessions.is_empty() {
+                                let needs_restore = sessions.iter().any(|s| (s.getVolume() - expected_vol).abs() > 0.001);
+                                if needs_restore {
+                                    {
+                                        let monitor_slot = VOLUME_MONITOR.lock().unwrap();
+                                        if let Some(monitor) = monitor_slot.as_ref() {
+                                            monitor.mark_setting(&session_name);
+                                        }
+                                    }
+
+                                    for session in sessions {
+                                        session.setVolume(expected_vol);
+                                    }
+
+                                    {
+                                        let monitor_slot = VOLUME_MONITOR.lock().unwrap();
+                                        if let Some(monitor) = monitor_slot.as_ref() {
+                                            monitor.unmark_setting(&session_name);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    break;
+                }
+            }
+        }
+    });
+}
+
+#[tauri::command]
+fn disable_volume_sync() -> Result<(), Error> {
+    unsafe {
+        let mut monitor_slot = VOLUME_MONITOR.lock().unwrap();
+        if let Some(monitor) = monitor_slot.as_mut() {
+            let mut controller = get_initialized_audio_controller();
+            // Stop polling
+            monitor.stop_polling();
+            let _ = monitor.unregister_all_callbacks(&mut controller);
+        }
+        
+        // Clear the monitor
+        *monitor_slot = None;
+        
+        info!("Volume sync disabled");
+    }
+    
+    Ok(())
+}
+
+#[tauri::command]
+fn update_volume_sync_target(session_name: &str, volume: f32) -> Result<(), Error> {
+    unsafe {
+        let monitor_slot = VOLUME_MONITOR.lock().unwrap();
+        if let Some(monitor) = monitor_slot.as_ref() {
+            let _ = monitor.update_expected_volume(session_name, volume);
+        }
+    }
+    
+    Ok(())
+}
+
+#[tauri::command]
+fn update_volume_sync_mappings(session_names: Vec<String>) -> Result<(), Error> {
+    unsafe {
+        let monitor_slot = VOLUME_MONITOR.lock().unwrap();
+        if let Some(monitor) = monitor_slot.as_ref() {
+            monitor.set_mapped_sessions(session_names);
         }
     }
 
@@ -344,16 +497,7 @@ async fn set_brightness(percentage: u32) {
       .await
   {
       eprintln!("Error iterating over brightness devices: {:?}", e);
-  }
-}
-
-async fn show_brightness(dev: &BrightnessDevice) -> Result<(), brightness::Error> {
-  println!(
-      "Brightness of device {} is {}%",
-      dev.device_name().await?,
-      dev.get().await?
-  );
-  Ok(())
+    }
 }
 
 
@@ -394,12 +538,6 @@ fn show_notification(title: &str, body : &str) {
     .body(body)
     .show()
     .unwrap();
-}
-
-#[derive(Clone, serde::Serialize)]
-struct InstancePayload {
-  args: Vec<String>,
-  cwd: String,
 }
 
 
@@ -451,7 +589,7 @@ fn main() {
     setup_panic_handler(client);
 
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![get_installed_apps, get_all_session_names, set_application_volume, connect_decker, decker::get_devices, decker::send_decker_command, get_available_midi_output_port_names, attach_midi_device, detach_midi_device, get_active_app_name, disconnect_decker, set_screen_brightness, get_all_audio_devices, get_output_devices, get_input_devices ])
+        .invoke_handler(tauri::generate_handler![get_installed_apps, get_all_session_names, set_application_volume, connect_decker, decker::get_devices, decker::send_decker_command, get_available_midi_output_port_names, attach_midi_device, detach_midi_device, get_active_app_name, disconnect_decker, set_screen_brightness, get_all_audio_devices, get_output_devices, get_input_devices, enable_volume_sync, disable_volume_sync, update_volume_sync_target, update_volume_sync_mappings ])
         .plugin(tauri_plugin_aptabase::Builder::new("A-EU-7429874879").build()) // 👈 this is where you enter your App Key
         .plugin(tauri_plugin_log::Builder::default().build())
         .plugin(sentry_tauri::plugin())
@@ -491,6 +629,17 @@ fn main() {
                 info!("Quitting Dot X");
                 app.track_event("app_exited", None);
                 app.flush_events_blocking();
+
+                // Best-effort cleanup (stop polling and unregister callbacks) before exiting.
+                unsafe {
+                    let mut monitor_slot = VOLUME_MONITOR.lock().unwrap();
+                    if let Some(monitor) = monitor_slot.as_mut() {
+                        monitor.stop_polling();
+                        let mut controller = get_initialized_audio_controller();
+                        let _ = monitor.unregister_all_callbacks(&mut controller);
+                    }
+                    *monitor_slot = None;
+                }
                 std::process::exit(0);
               }
               "hide" => {
@@ -513,12 +662,14 @@ fn main() {
           }
           _ => {}
         })
-        .on_window_event(|event| match event.event() {
-          tauri::WindowEvent::CloseRequested { api, .. } => {
-              event.window().hide().unwrap();
-              api.prevent_close();
-          }
-          _ => {}
+        .on_window_event(|event| {
+            match event.event() {
+                tauri::WindowEvent::CloseRequested { api, .. } => {
+                    event.window().hide().unwrap();
+                    api.prevent_close();
+                }
+                _ => {}
+            }
         })
         .setup(|app| {
           {
@@ -564,6 +715,26 @@ fn main() {
 
         info!("Starting Dot X with version {:?}", sentry_tauri::sentry::release_name!());
 
+        // Check if volume sync was enabled and restore it
+        unsafe {
+            let stores = app.state::<StoreCollection<Wry>>();
+            let path = PathBuf::from("config.json");
+            let mut volume_sync_enabled = false;
+            let _ = with_store(app.handle().clone(), stores, path, |store| {
+                if let Some(value) = store.get("volumeSyncEnabled") {
+                    volume_sync_enabled = value.as_bool().unwrap_or(false);
+                }
+                Ok(())
+            });
+            
+            if volume_sync_enabled {
+                // Enable volume sync on startup
+                let window = app.get_window("main").unwrap();
+                if let Err(e) = enable_volume_sync(window) {
+                    error!("Failed to enable volume sync on startup: {:?}", e);
+                }
+            }
+        }
       
         APP.set(app.handle()).expect("error setting up app");
           Ok(())
