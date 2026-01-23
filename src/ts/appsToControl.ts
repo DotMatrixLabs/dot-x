@@ -1,5 +1,7 @@
 import { Store } from "tauri-plugin-store-api";
 import * as _ from "lodash";
+import ConfigStore from "./config";
+import { useDeckerStore } from "../store/deckerStore";
 
 /**
  * Class representing selected apps.
@@ -14,6 +16,21 @@ class SelectedApps {
         this.store = new Store("selectedApps.json");
     }
 
+    async init() {
+        const keys = await this.store.keys();
+        const allApps: Record<string, string[]> = {};
+        for (const key of keys) {
+            const apps = await this.store.get<string[]>(key);
+            if (apps) {
+                allApps[key] = apps;
+            }
+        }
+        useDeckerStore().setAllMappedApps(allApps);
+        
+        const volumeSyncEnabled = await ConfigStore.get("volumeSyncEnabled") || false;
+        useDeckerStore().setVolumeSyncEnabled(volumeSyncEnabled);
+    }
+
     /**
      * Toggles the specified apps or devices for a slider.
      * @param {string} sliderID - The ID of the slider.
@@ -23,7 +40,7 @@ class SelectedApps {
         console.log("toggleApps", sliderID, appNames);
 
         const key: string = sliderID.toString();
-        const currentApps: string[] = (await this.store.get(key)) || [];
+        const currentApps: string[] = (await this.store.get<string[]>(key)) || [];
 
         if (!Array.isArray(appNames)) {
             appNames = [appNames];
@@ -31,8 +48,10 @@ class SelectedApps {
 
         const updatedApps: string[] = _.xor(currentApps, appNames);
 
-        this.store.set(key, updatedApps);
+        await this.store.set(key, updatedApps);
         await this.store.save();
+
+        useDeckerStore().setMappedApps(key, updatedApps);
     }
 
     /**

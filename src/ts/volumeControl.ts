@@ -91,6 +91,12 @@ class SystemVolumeController {
             this.lastSetVolumeExecutionTime = currentTime;
             this.lastSetVolumeApp = name;
             await invoke('set_application_volume', { name, volume });
+            
+            // Notify volume sync system of the new target
+            const volumeSyncEnabled = useDeckerStore().volumeSyncEnabled;
+            if (volumeSyncEnabled) {
+                await invoke('update_volume_sync_target', { sessionName: name, volume });
+            }
         } catch (error) {
             console.log(error);
         }
@@ -114,7 +120,7 @@ class SystemVolumeController {
             //get all apps and remove the ones that are already mapped
             apps = await this.getAllSessionNames(false);
             const systemFeatures = ['master', 'output', 'input', 'mic'];
-            const mappedApps = await SelectedApps.getMappedApps();
+            const mappedApps = useDeckerStore().getAllMappedApps;
             if(!mappedApps) return;
             //remove system features
             apps = apps.filter((app) => !systemFeatures.includes(app));
