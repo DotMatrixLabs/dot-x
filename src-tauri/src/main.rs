@@ -306,6 +306,8 @@ fn enable_volume_sync(window: Window) -> Result<(), Error> {
         start_volume_sync_polling();
         
         info!("Volume sync enabled");
+        //send to aptabase for analytics
+        APP.get().unwrap().track_event("volume_sync_enabled", None);
     }
     
     Ok(())
