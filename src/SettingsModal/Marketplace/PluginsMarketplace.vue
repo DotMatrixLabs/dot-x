@@ -152,7 +152,7 @@ export default {
 		async fetchPlugins() {
 			this.loading = true;
 			try {
-				const response = await fetch('https://dml.gg/plugin-registry');
+				const response = await fetch('https://dotmatrixlabs.github.io/dot-x-plugins/marketplace-registry.json');
 				if (!response.ok) {
 					throw new Error(`Failed to fetch registry: ${response.statusText}`);
 				}
