@@ -21,7 +21,7 @@ mod midi;
 mod power_monitor;
 mod plugin_server;
 mod plugin_runtime;
-use plugin_runtime::{resolve_plugins_dir, ensure_plugins_dir};
+use plugin_runtime::{resolve_plugins_dir, ensure_plugins_dir, find_plugin_dir_by_id};
 use once_cell::sync::OnceCell;
 use tauri::menu::{Menu, MenuBuilder, MenuItemBuilder, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent};
@@ -276,13 +276,9 @@ async fn uninstall_marketplace_plugin(app_handle: AppHandle, plugin_id: String) 
   // Stop plugin if running
   let _ = plugin_runtime::stop_plugin(plugin_id.clone()).await;
   
-  // Find plugin directory
-  let plugins_dir = ensure_plugins_dir(&app_handle)?;
-  let plugin_dir = plugins_dir.join(&plugin_id);
-  
-  if !plugin_dir.exists() {
-    return Err(format!("Plugin {} not found", plugin_id));
-  }
+  // Find plugin directory (search all candidate locations, same as list_installed_plugins)
+  let plugin_dir = find_plugin_dir_by_id(&app_handle, &plugin_id)
+    .ok_or_else(|| format!("Plugin {} not found", plugin_id))?;
   
   // Remove plugin directory
   fs::remove_dir_all(&plugin_dir)

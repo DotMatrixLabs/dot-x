@@ -229,7 +229,7 @@ fn read_manifest_id(manifest_path: &Path) -> Option<String> {
   v.get("id").and_then(|x| x.as_str()).map(|s| s.to_string())
 }
 
-fn find_plugin_dir_by_id(app_handle: &AppHandle, plugin_id: &str) -> Option<PathBuf> {
+pub fn find_plugin_dir_by_id(app_handle: &AppHandle, plugin_id: &str) -> Option<PathBuf> {
   let plugins_dir = resolve_plugins_dir(app_handle)?;
   let read_dir = fs::read_dir(&plugins_dir).ok()?;
   for entry in read_dir.flatten() {
