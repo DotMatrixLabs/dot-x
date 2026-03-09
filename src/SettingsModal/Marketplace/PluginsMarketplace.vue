@@ -81,6 +81,7 @@
 			</template>
 		</div>
 
+		<Teleport to="body">
 		<PluginDetailModal
 			:plugin="selectedPlugin"
 			:is-open="!!selectedPlugin"
@@ -92,6 +93,7 @@
 			@installed="handlePluginInstalled"
 			@uninstalled="handlePluginUninstalled"
 		/>
+	</Teleport>
 	</div>
 </template>
 
