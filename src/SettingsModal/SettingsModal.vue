@@ -18,25 +18,67 @@
             </div>
           </div>
           <div class="flex flex-col overflow-y-auto flex-1 pt-0 pb-1 gap-0.5 px-2">
-            <button
-              v-for="tab in filteredTabs"
-              :key="tab"
-              @click="selectTab(tab)"
-              class="flex items-center w-full px-2 py-1.5 rounded-btn text-sm text-left hover:bg-base-content/10 transition-colors"
-              :class="activeTab === tab ? 'bg-primary text-primary-content hover:bg-primary' : ''"
-            >
-              {{ tab }}
-            </button>
-            <p v-if="filteredPluginTabs.length > 0" class="label-text text-xs mt-3 ml-1 mb-0.5">Plugins</p>
-            <button
-              v-for="plugin in filteredPluginTabs"
-              :key="plugin.id"
-              @click="openSettings(plugin)"
-              class="flex items-center w-full px-2 py-1.5 rounded-btn text-sm text-left hover:bg-base-content/10 transition-colors min-w-0"
-              :class="activeTab === 'PluginSettings' && activePlugin?.id === plugin.id ? 'bg-primary text-primary-content hover:bg-primary' : ''"
-            >
-              <span class="truncate">{{ plugin.name }}</span>
-            </button>
+            <template v-if="sidebarSearch.trim()">
+              <p v-if="filteredSettings.length === 0 && filteredTabs.length === 0 && filteredPluginTabs.length === 0" class="text-xs opacity-50 px-2 pt-2">No results</p>
+              <template v-if="filteredTabs.length > 0">
+                <p class="label-text text-xs mt-2 ml-1 mb-0.5 opacity-60">Tabs</p>
+                <button
+                  v-for="tab in filteredTabs"
+                  :key="tab"
+                  @click="selectTab(tab)"
+                  class="flex items-center w-full px-2 py-1.5 rounded-btn text-sm text-left hover:bg-base-content/10 transition-colors"
+                  :class="activeTab === tab ? 'bg-primary text-primary-content hover:bg-primary' : ''"
+                >
+                  {{ tab }}
+                </button>
+              </template>
+              <template v-if="filteredSettings.length > 0">
+                <p class="label-text text-xs mt-3 ml-1 mb-0.5 opacity-60">Settings</p>
+                <button
+                  v-for="setting in filteredSettings"
+                  :key="setting.tab + setting.label"
+                  @click="goToSetting(setting)"
+                  class="flex flex-col items-start w-full px-2 py-1.5 rounded-btn text-sm text-left hover:bg-base-content/10 transition-colors"
+                  :class="activeTab === setting.tab ? 'bg-primary text-primary-content hover:bg-primary' : ''"
+                >
+                  <span>{{ setting.label }}</span>
+                  <span class="text-xs opacity-60" :class="activeTab === setting.tab ? 'opacity-80' : ''">{{ setting.tabLabel || setting.tab }}</span>
+                </button>
+              </template>
+              <template v-if="filteredPluginTabs.length > 0">
+                <p class="label-text text-xs mt-3 ml-1 mb-0.5 opacity-60">Plugins</p>
+                <button
+                  v-for="plugin in filteredPluginTabs"
+                  :key="plugin.id"
+                  @click="openSettings(plugin)"
+                  class="flex items-center w-full px-2 py-1.5 rounded-btn text-sm text-left hover:bg-base-content/10 transition-colors min-w-0"
+                  :class="activeTab === 'PluginSettings' && activePlugin?.id === plugin.id ? 'bg-primary text-primary-content hover:bg-primary' : ''"
+                >
+                  <span class="truncate">{{ plugin.name }}</span>
+                </button>
+              </template>
+            </template>
+            <template v-else>
+              <button
+                v-for="tab in tabs"
+                :key="tab"
+                @click="selectTab(tab)"
+                class="flex items-center w-full px-2 py-1.5 rounded-btn text-sm text-left hover:bg-base-content/10 transition-colors"
+                :class="activeTab === tab ? 'bg-primary text-primary-content hover:bg-primary' : ''"
+              >
+                {{ tab }}
+              </button>
+              <p v-if="enabledPluginTabs.length > 0" class="label-text text-xs mt-3 ml-1 mb-0.5">Plugins</p>
+              <button
+                v-for="plugin in enabledPluginTabs"
+                :key="plugin.id"
+                @click="openSettings(plugin)"
+                class="flex items-center w-full px-2 py-1.5 rounded-btn text-sm text-left hover:bg-base-content/10 transition-colors min-w-0"
+                :class="activeTab === 'PluginSettings' && activePlugin?.id === plugin.id ? 'bg-primary text-primary-content hover:bg-primary' : ''"
+              >
+                <span class="truncate">{{ plugin.name }}</span>
+              </button>
+            </template>
           </div>
         </div>
         <div class="col-span-2 w-full px-6 pt-16 pb-3">
@@ -57,6 +99,7 @@ import PluginSettings from "./PluginSettings.vue";
 import { mapState } from "pinia";
 import { useStore } from "../store/store";
 import { invoke } from "@tauri-apps/api/core";
+import pluginAPI from "../plugin-api/pluginAPI";
 
 export default {
   name: "SettingsModal",
@@ -83,6 +126,26 @@ export default {
       plugins: [],
       activePlugin: null,
       sidebarSearch: "",
+      settingsIndex: [
+        { label: "Device", tab: "Device" },
+        { label: "RGB Effect", tab: "Device" },
+        { label: "Static color", tab: "Device" },
+        { label: "Breathing effect", tab: "Device" },
+        { label: "RGB Speed", tab: "Device" },
+        { label: "Brightness", tab: "Device" },
+        { label: "Turn off LEDs on Sleep", tab: "Device" },
+        { label: "Device Info", tab: "Device" },
+        { label: "Run on startup", tab: "General" },
+        { label: "Act when Decker disconnects", tab: "General" },
+        { label: "Inverted sliders", tab: "General" },
+        { label: "Reset Channel Settings", tab: "General" },
+        { label: "Reset All Settings", tab: "General" },
+        { label: "Enable MIDI Output", tab: "Midi" },
+        { label: "MIDI Port", tab: "Midi" },
+        { label: "MIDI documentation", tab: "Midi" },
+        { label: "Install plugins", tab: "Plugins" },
+        { label: "Uninstall plugins", tab: "Plugins" },
+      ],
     };
   },
 
@@ -106,6 +169,15 @@ export default {
       const q = this.sidebarSearch.trim().toLowerCase();
       if (!q) return this.enabledPluginTabs;
       return this.enabledPluginTabs.filter(p => p.name.toLowerCase().includes(q));
+    },
+    filteredSettings() {
+      const q = this.sidebarSearch.trim().toLowerCase();
+      if (!q) return [];
+      return this.settingsIndex.filter(s => {
+        const labelMatch = s.label.toLowerCase().includes(q);
+        const tabAlreadyShown = this.filteredTabs.includes(s.tab);
+        return labelMatch && !tabAlreadyShown;
+      });
     }
   },
 
@@ -124,13 +196,49 @@ export default {
         console.log(installed);
         if (Array.isArray(installed)) {
           this.plugins = installed;
+          await this.indexPluginSettings(installed);
         }
       } catch (e) {
         console.error('Failed to list installed plugins', e);
       }
     },
+    async indexPluginSettings(plugins) {
+      const enabledIds = Array.from(this.enabledPlugins || []);
+      for (const plugin of plugins) {
+        if (!enabledIds.includes(plugin.id)) continue;
+        try {
+          const settings = await pluginAPI.getPluginSettings(plugin.id);
+          if (!settings?.sections) continue;
+          for (const section of settings.sections) {
+            if (!section.components) continue;
+            for (const comp of section.components) {
+              const label = comp.label || comp.name || comp.title || comp.key;
+              if (!label) continue;
+              this.settingsIndex.push({ label, tab: 'PluginSettings', tabLabel: plugin.name, plugin });
+            }
+          }
+        } catch (e) {
+          // plugin settings unavailable, skip
+        }
+      }
+    },
     selectTab(selectedTab) {
       this.activeTab = selectedTab
+    },
+    async goToSetting(setting) {
+      if (setting.plugin) {
+        this.openSettings(setting.plugin);
+      } else {
+        this.selectTab(setting.tab);
+      }
+      await this.$nextTick();
+      await this.$nextTick();
+      const el = this.$el.querySelector(`[data-setting="${setting.label}"]`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add('setting-highlight');
+        setTimeout(() => el.classList.remove('setting-highlight'), 1400);
+      }
     },
     openSettings(plugin) {
       this.activeTab = "PluginSettings"
@@ -141,4 +249,13 @@ export default {
 };
 </script>
 
-<style></style>
+<style>
+@keyframes setting-flash {
+  0%   { background-color: oklch(var(--p) / 0.25); border-radius: 6px; }
+  70%  { background-color: oklch(var(--p) / 0.25); border-radius: 6px; }
+  100% { background-color: transparent; }
+}
+.setting-highlight {
+  animation: setting-flash 1.4s ease-out forwards;
+}
+</style>

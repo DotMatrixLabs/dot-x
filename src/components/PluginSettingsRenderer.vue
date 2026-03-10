@@ -12,6 +12,7 @@
                     :is="resolveComponent(comp.type)"
                     v-bind="buildComponentProps(comp, section)"
                     v-on="buildComponentListeners(comp)"
+                    :data-setting="comp.label || comp.name || comp.title || comp.key"
                   />
                 </template>
               </div>
@@ -26,6 +27,7 @@
                     :is="resolveComponent(comp.type)"
                     v-bind="buildComponentProps(comp, section)"
                     v-on="buildComponentListeners(comp)"
+                    :data-setting="comp.label || comp.name || comp.title || comp.key"
                   />
                 </template>
               </div>

@@ -2,7 +2,7 @@
     <div class="flex flex-col justify-between items-center h-full w-full overflow-y-auto">
         <StatsPanel v-if="statsModalOpen" :device="currentDevice" :modal-open="statsModalOpen" @close="statsToggled" />
         <!-- Device Selection -->
-        <div class="flex flex-row w-full justify-between px-2">
+        <div data-setting="Device" class="flex flex-row w-full justify-between px-2">
             <span class="shrink-0 pt-1">Device: </span>
             <select @change="deviceSelected" v-model="currentDevice"
                 class="select select-bordered select-sm w-2/3 mx-2 capitalize truncate">
@@ -21,7 +21,7 @@
         <div v-if="deviceType === 'Decker'" :class="connectionState ? '' : 'opacity-40 pointer-events-none'" class="w-full h-full rounded-lg px-2 ">
             <!-- RGB Control -->
             <div>
-                <div class="flex flex-row w-full justify-between mt-4">
+                <div data-setting="RGB Effect" class="flex flex-row w-full justify-between mt-4">
                     <span class="shrink-0 pt-1">RGB Effect: </span>
                     <select @change="rgbEffectChangeHandler" :value="currentRGBEffect"
                         class="select select-bordered select-sm w-2/3 mx-2 capitalize truncate">
@@ -31,24 +31,24 @@
                     </select>
                 </div>
                 <div v-if="currentRGBEffect === 'Static'" class="flex flex-col w-full mt-2">
-                    <div class="mb-4 flex justify-between items-center w-full">
+                    <div data-setting="Static color" class="mb-4 flex justify-between items-center w-full">
                         <span class="shrink-0">Choose static color: </span>
                         <input @input="colorChange" type="color" class="colorpicker bg-base-300 rounded-xl px-0.5" :value="selectedColor" />
                     </div>
-                    <div class="flex justify-between items-center w-full">
+                    <div data-setting="Breathing effect" class="flex justify-between items-center w-full">
                         <span class="shrink-0">Breathing effect: </span>
                         <input @change="toggleBreathing" type="checkbox" class="toggle toggle-primary" :checked="breathingEnabled"/>
                     </div>
                 </div>
-                <div v-if="(currentRGBEffect === 'Static' && breathingEnabled) || (currentRGBEffect !== 'Off' && currentRGBEffect !== 'Lightning Storm' && currentRGBEffect !== 'Static')" class="flex flex-row w-full justify-between mt-2">
+                <div data-setting="RGB Speed" v-if="(currentRGBEffect === 'Static' && breathingEnabled) || (currentRGBEffect !== 'Off' && currentRGBEffect !== 'Lightning Storm' && currentRGBEffect !== 'Static')" class="flex flex-row w-full justify-between mt-2">
                     <span class="shrink-0 pt-1">Speed: </span>
                     <input @change="speedChanged" v-model="speed" type="range" class="range range-xs range-primary w-1/2 m-auto rounded-xl px-0.5 mr-2" />
                 </div>
-                <div class="flex flex-row w-full justify-between mt-2">
+                <div data-setting="Brightness" class="flex flex-row w-full justify-between mt-2">
                     <span class="shrink-0 pt-1">Brightness: </span>
                     <input @change="brightnessChanged" v-model="brightness" type="range" class="range range-xs range-primary w-1/2 m-auto rounded-xl px-0.5 mr-2 " />
                 </div>
-                <div class="flex justify-between items-center w-full mt-2">
+                <div data-setting="Turn off LEDs on Sleep" class="flex justify-between items-center w-full mt-2">
                     <div class="flex flex-col">
                         <span class="shrink-0 pt-1">Turn off LEDs on Sleep</span>
                         <span class="text-xs opacity-50 pr-4">
@@ -59,7 +59,7 @@
                 </div>
             </div>
 
-            <div class="flex flex-col w-full items-center mt-3">
+            <div data-setting="Device Info" class="flex flex-col w-full items-center mt-3">
                 <span class="shrink-0 pt-1 font-bold">Device Info: </span>
                 <div class="divider mt-0"></div>
                 <div :key="infopoint" v-for="(infopoint, index) in deviceInfoPoints" class="flex text-sm flex-row w-full justify-between my-1">
