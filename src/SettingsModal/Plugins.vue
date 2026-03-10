@@ -1,4 +1,30 @@
 <template>
+	<!-- Permission approval dialog -->
+	<dialog class="modal" :class="{ 'modal-open': permissionDialog.show }">
+		<div class="modal-box max-w-sm">
+			<h3 class="font-bold text-base mb-1">Permission Request</h3>
+			<p class="text-sm label-text mb-3">
+				<span class="font-medium">{{ permissionDialog.plugin?.name || permissionDialog.plugin?.id }}</span>
+				is requesting access to the following:
+			</p>
+			<ul class="flex flex-col gap-1 mb-4">
+				<li
+					v-for="perm in permissionDialog.permissions"
+					:key="perm.key"
+					class="flex items-center gap-2 text-sm"
+				>
+					<i :class="perm.icon" class="w-4 text-center opacity-60"></i>
+					<span>{{ perm.label }}</span>
+				</li>
+			</ul>
+			<div class="modal-action mt-0">
+				<button class="btn btn-sm btn-ghost" @click="denyPermissions">Deny</button>
+				<button class="btn btn-sm btn-primary" @click="approvePermissions">Allow</button>
+			</div>
+		</div>
+		<div class="modal-backdrop" @click="denyPermissions"></div>
+	</dialog>
+
 	<div class="flex flex-col h-full w-full p-4 gap-4 bg-base-100 text-base-content">
 		<!-- Plugin system options -->
 		<div v-if="!marketplaceOpen" class="flex items-center justify-between">
@@ -91,10 +117,16 @@ export default {
 		return {
 			plugins: [],
 			marketplaceOpen: false,
+			permissionDialog: {
+				show: false,
+				plugin: null,
+				permissions: [],
+				resolve: null,
+			},
 		};
 	},
 	computed: {
-		...mapState(useStore, ['activePlugins', 'enabledPlugins']),
+		...mapState(useStore, ['activePlugins', 'enabledPlugins', 'approvedPlugins']),
 		installedPluginIds() {
 			return new Set(this.plugins.map(p => p.id));
 		},
@@ -133,9 +165,60 @@ export default {
 		async togglePlugin(plugin) {
 			const store = useStore();
 			if (plugin.enabled) {
+				// Check if permissions have been approved
+				if (!store.isPluginApproved(plugin.id)) {
+					const perms = plugin.manifest?.permissions || [];
+					if (perms.length > 0) {
+						const approved = await this.requestPermissionApproval(plugin);
+						if (!approved) {
+							// Revert toggle
+							plugin.enabled = false;
+							return;
+						}
+					}
+					await store.approvePlugin(plugin.id);
+				}
 				await store.enablePluginId(plugin.id);
 			} else {
 				await store.disablePluginId(plugin.id);
+			}
+		},
+		requestPermissionApproval(plugin) {
+			return new Promise((resolve) => {
+				this.permissionDialog.plugin = plugin;
+				this.permissionDialog.permissions = this.buildPermissionLabels(plugin.manifest?.permissions || []);
+				this.permissionDialog.resolve = resolve;
+				this.permissionDialog.show = true;
+			});
+		},
+		buildPermissionLabels(permissions) {
+			const map = {
+				net: { label: 'Network access', icon: 'fa-solid fa-network-wired' },
+				network: { label: 'Network access', icon: 'fa-solid fa-network-wired' },
+				env: { label: 'Environment variables', icon: 'fa-solid fa-terminal' },
+				read: { label: 'File system read', icon: 'fa-solid fa-folder-open' },
+				write: { label: 'File system write', icon: 'fa-solid fa-pen-to-square' },
+				run: { label: 'Run subprocesses', icon: 'fa-solid fa-play' },
+				ffi: { label: 'Native library access (FFI)', icon: 'fa-solid fa-plug' },
+				sys: { label: 'System information', icon: 'fa-solid fa-desktop' },
+			};
+			return permissions.map((p) => ({
+				key: p,
+				...(map[p.toLowerCase()] || { label: p, icon: 'fa-solid fa-shield' }),
+			}));
+		},
+		approvePermissions() {
+			this.permissionDialog.show = false;
+			if (this.permissionDialog.resolve) {
+				this.permissionDialog.resolve(true);
+				this.permissionDialog.resolve = null;
+			}
+		},
+		denyPermissions() {
+			this.permissionDialog.show = false;
+			if (this.permissionDialog.resolve) {
+				this.permissionDialog.resolve(false);
+				this.permissionDialog.resolve = null;
 			}
 		},
 		openSettings(plugin) {
