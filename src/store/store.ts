@@ -5,12 +5,14 @@ import { invoke } from "@tauri-apps/api/core";
 interface StoreState {
     activePlugins: Set<string>;
     enabledPlugins: Set<string>;
+    approvedPlugins: Set<string>;
 }
 
 export const useStore = defineStore('store', {
     state: (): StoreState => ({
         activePlugins: new Set<string>(),
         enabledPlugins: new Set<string>(),
+        approvedPlugins: new Set<string>(),
     }),
     getters: {
         getActivePlugins: (state) => state.activePlugins,
@@ -34,6 +36,17 @@ export const useStore = defineStore('store', {
         async loadEnabledPlugins() {
             const enabled = await PluginsStore.getEnabledPluginIds();
             this.enabledPlugins = new Set(enabled);
+            const approved = await PluginsStore.getApprovedPluginIds();
+            this.approvedPlugins = new Set(approved);
+        },
+        isPluginApproved(pluginId: string) {
+            return this.approvedPlugins.has(pluginId);
+        },
+        async approvePlugin(pluginId: string) {
+            await PluginsStore.approvePlugin(pluginId);
+            const next = new Set(this.approvedPlugins);
+            next.add(pluginId);
+            this.approvedPlugins = next;
         },
         async setEnabledPlugins(plugins: string[]) {
             this.enabledPlugins = new Set(plugins);

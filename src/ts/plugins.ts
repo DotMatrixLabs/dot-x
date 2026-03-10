@@ -45,6 +45,28 @@ class PluginsStore {
     }
     await this.setEnabledPluginIds(Array.from(enabledIds));
   }
+
+  async getApprovedPluginIds(): Promise<string[]> {
+    await this.ensureLoaded();
+    const value = await this.store.get("approved");
+    if (Array.isArray(value)) {
+      return value as string[];
+    }
+    return [];
+  }
+
+  async isPluginApproved(pluginId: string): Promise<boolean> {
+    const approved = await this.getApprovedPluginIds();
+    return new Set(approved).has(pluginId);
+  }
+
+  async approvePlugin(pluginId: string): Promise<void> {
+    const approved = new Set(await this.getApprovedPluginIds());
+    approved.add(pluginId);
+    await this.ensureLoaded();
+    await this.store.set("approved", Array.from(approved));
+    await this.save();
+  }
 }
 
 export default new PluginsStore();
