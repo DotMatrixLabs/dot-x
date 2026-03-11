@@ -70,7 +70,12 @@
 
 						<!-- Plugin info -->
 						<div class="flex flex-col">
-							<span class="">{{ plugin.name }}</span>
+							<button
+								v-if="pluginHasReadme(plugin)"
+								class="text-left hover:underline cursor-pointer w-fit"
+								@click="openPluginDetail(plugin)"
+							>{{ plugin.name }}</button>
+							<span v-else class="">{{ plugin.name }}</span>
 							<span class="label-text text-xs">
 								Version: {{ plugin.version }} • {{ plugin.author }}
 							</span>
@@ -99,6 +104,14 @@
 		</div>
 
 	</div>
+
+	<!-- Plugin Detail Modal -->
+	<PluginDetailModal
+		:plugin="selectedPlugin"
+		:is-open="showDetailModal"
+		:is-installed="true"
+		@close="showDetailModal = false; selectedPlugin = null"
+	/>
 </template>
 
 <script>
@@ -106,11 +119,13 @@ import { useStore } from '../store/store';
 import { mapState } from "pinia";
 import { invoke } from "@tauri-apps/api/core";
 import PluginsMarketplace from './Marketplace/PluginsMarketplace.vue';
+import PluginDetailModal from './Marketplace/PluginDetailModal.vue';
 
 export default {
 	name: "Plugins",
 	components: {
 		PluginsMarketplace,
+		PluginDetailModal,
 	},
 
 	data() {
@@ -118,6 +133,8 @@ export default {
 			plugins: [],
 			marketplaceOpen: false,
 			refreshInterval: null,
+			selectedPlugin: null,
+			showDetailModal: false,
 			permissionDialog: {
 				show: false,
 				plugin: null,
@@ -221,6 +238,24 @@ export default {
 				this.permissionDialog.resolve(false);
 				this.permissionDialog.resolve = null;
 			}
+		},
+		pluginHasReadme(plugin) {
+			const m = plugin.manifest;
+			if (!m) return false;
+			return !!(m.repo || (m.repository && m.repository.url));
+		},
+		openPluginDetail(plugin) {
+			const m = plugin.manifest;
+			this.selectedPlugin = {
+				...m,
+				id: plugin.id,
+				name: plugin.name,
+				author: plugin.author,
+				description: plugin.description,
+				repo: m?.repo || m?.repository?.url || null,
+				manifest: m,
+			};
+			this.showDetailModal = true;
 		},
 		openSettings(plugin) {
 			this.$emit('openSettings', plugin);
