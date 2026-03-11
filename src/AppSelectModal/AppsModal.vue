@@ -29,7 +29,7 @@
 
 <script>
 
-import { useToast } from "vue-toastification";
+import { toast } from "vue-sonner";
 
 import _ from "lodash";
 
@@ -38,8 +38,6 @@ import SystemUtilitiesSelector from "./SystemUtilitiesSelector.vue"
 import Midi from "./Midi.vue"
 import config from "../ts/config";
 import Settings from "./Settings.vue";
-
-const toast = useToast();
 
 export default {
   components: {

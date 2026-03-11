@@ -64,17 +64,26 @@
 								</button>
 							</div>
 							<div v-if="isInstalled" class="badge badge-sm shrink-0" :class="statusClass">{{ statusLabel }}</div>
-							<button 
-								:class="[
-									'btn btn-sm min-w-[100px] shrink-0',
-									isInstalled ? 'btn-ghost' : 'btn-primary'
-								]"
-								@click="handleInstallAction"
-							>
-								<span v-if="plugin?.isDownloading" class="loading loading-spinner loading-xs"></span>
-								<span v-else-if="isInstalled">Uninstall</span>
-								<span v-else>Install</span>
-							</button>
+							<div class="flex flex-col items-end gap-1">
+								<button
+									:class="[
+										'btn btn-sm min-w-[100px] shrink-0',
+										isInstalled ? 'btn-ghost' : 'btn-primary'
+									]"
+									@click="handleInstallAction"
+								>
+									<span v-if="plugin?.isDownloading" class="loading loading-spinner loading-xs"></span>
+									<span v-if="plugin?.isDownloading && plugin?.downloadProgress">{{ stageLabel(plugin.downloadProgress.stage) }}</span>
+									<span v-else-if="!plugin?.isDownloading && isInstalled">Uninstall</span>
+									<span v-else-if="!plugin?.isDownloading">Install</span>
+								</button>
+								<progress
+									v-if="plugin?.isDownloading && plugin?.downloadProgress"
+									class="progress progress-primary w-[100px] h-1"
+									:value="plugin.downloadProgress.progress"
+									max="100"
+								></progress>
+							</div>
 						</div>
 					</div>
 				</div>
@@ -135,7 +144,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { mapState } from 'pinia';
 import { useStore } from '../../store/store';
-import { useToast } from 'vue-toastification';
+import { toast } from 'vue-sonner';
 import PluginLogsModal from '../../components/PluginLogsModal.vue';
 import EventBus from '../../js/eventBus';
 import MarkdownIt from 'markdown-it';
@@ -252,6 +261,17 @@ export default {
 	},
 	methods: {
 		openLink,
+		stageLabel(stage) {
+			const labels = {
+				fetching_registry: 'Fetching...',
+				downloading_manifest: 'Downloading...',
+				downloading_main: 'Downloading...',
+				verifying: 'Verifying...',
+				installing: 'Installing...',
+				done: 'Done',
+			};
+			return labels[stage] || stage;
+		},
 		close() {
 			this.$emit('close');
 		},
@@ -285,7 +305,6 @@ export default {
 		async handleInstall() {
 			if (!this.plugin?.id || this.plugin.isDownloading) return;
 			this.plugin.isDownloading = true;
-			const toast = useToast();
 			try {
 				await invoke('install_marketplace_plugin', { pluginId: this.plugin.id });
 				toast.success(`Successfully installed ${this.plugin.name || this.plugin.id}`);
@@ -300,7 +319,6 @@ export default {
 		async handleUninstall() {
 			if (!this.plugin?.id || this.plugin.isDownloading) return;
 			this.plugin.isDownloading = true;
-			const toast = useToast();
 			try {
 				await invoke('uninstall_marketplace_plugin', { pluginId: this.plugin.id });
 				toast.success(`Successfully uninstalled ${this.plugin.name || this.plugin.id}`);
@@ -324,12 +342,10 @@ export default {
 			if (!this.plugin?.id) return;
 			try {
 				await invoke('restart_plugin', { pluginId: this.plugin.id });
-				const toast = useToast();
 				toast.success(`${this.plugin?.name || this.plugin?.id} restarted`);
 				EventBus.emit('plugin:settingsUpdated', { pluginId: this.plugin.id });
 			} catch (e) {
 				console.error('Failed to restart plugin', e);
-				const toast = useToast();
 				toast.error(`Failed to restart ${this.plugin?.name || this.plugin?.id}`);
 			}
 		},
