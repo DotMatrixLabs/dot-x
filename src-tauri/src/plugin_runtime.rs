@@ -230,18 +230,38 @@ fn read_manifest_id(manifest_path: &Path) -> Option<String> {
 }
 
 pub fn find_plugin_dir_by_id(app_handle: &AppHandle, plugin_id: &str) -> Option<PathBuf> {
-  let plugins_dir = resolve_plugins_dir(app_handle)?;
-  let read_dir = fs::read_dir(&plugins_dir).ok()?;
-  for entry in read_dir.flatten() {
-    let path = entry.path();
-    if !path.is_dir() { continue; }
-    let manifest_path = path.join("manifest.json");
-    let main_js = path.join("main.js");
-    if !manifest_path.exists() || !main_js.exists() { continue; }
+  // Search both resolve_plugins_dir and ensure_plugins_dir so that plugins
+  // installed via the marketplace (app_data_dir) are also found.
+  let mut dirs_to_search: Vec<PathBuf> = Vec::new();
+  if let Some(dir) = resolve_plugins_dir(app_handle) {
+    dirs_to_search.push(dir);
+  }
+  if let Ok(dir) = ensure_plugins_dir(app_handle) {
+    let canonical = dir.canonicalize().unwrap_or_else(|_| dir.clone());
+    let already = dirs_to_search.iter().any(|d| {
+      d.canonicalize().unwrap_or_else(|_| d.clone()) == canonical
+    });
+    if !already {
+      dirs_to_search.push(dir);
+    }
+  }
 
-    let id = read_manifest_id(&manifest_path)
-      .unwrap_or_else(|| entry.file_name().to_string_lossy().to_string());
-    if id == plugin_id { return Some(path); }
+  for plugins_dir in dirs_to_search {
+    let read_dir = match fs::read_dir(&plugins_dir) {
+      Ok(d) => d,
+      Err(_) => continue,
+    };
+    for entry in read_dir.flatten() {
+      let path = entry.path();
+      if !path.is_dir() { continue; }
+      let manifest_path = path.join("manifest.json");
+      let main_js = path.join("main.js");
+      if !manifest_path.exists() || !main_js.exists() { continue; }
+
+      let id = read_manifest_id(&manifest_path)
+        .unwrap_or_else(|| entry.file_name().to_string_lossy().to_string());
+      if id == plugin_id { return Some(path); }
+    }
   }
   None
 }
