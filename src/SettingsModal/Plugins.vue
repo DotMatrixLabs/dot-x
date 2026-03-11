@@ -117,6 +117,7 @@ export default {
 		return {
 			plugins: [],
 			marketplaceOpen: false,
+			refreshInterval: null,
 			permissionDialog: {
 				show: false,
 				plugin: null,
@@ -260,12 +261,32 @@ export default {
 				...p,
 				enabled: store.isPluginEnabled ? store.isPluginEnabled(p.id) : this.enabledPlugins.has(p.id)
 			}));
-		}
-		
+		},
+		async backgroundRefresh() {
+			try {
+				const installed = await invoke("list_installed_plugins");
+				if (!Array.isArray(installed)) return;
+				const currentIds = new Set(this.plugins.map(p => p.id));
+				const newIds = new Set(installed.map(m => m.id));
+				const hasChanges = currentIds.size !== newIds.size
+					|| installed.some(m => !currentIds.has(m.id))
+					|| [...currentIds].some(id => !newIds.has(id));
+				if (hasChanges) {
+					await this.fetchPlugins();
+					await this.loadEnabledState();
+				}
+			} catch (e) {
+				// Silent background refresh - do not surface errors
+			}
+		},
 	},
 
+	beforeUnmount() {
+		clearInterval(this.refreshInterval);
+	},
 	mounted() {
 		this.fetchPlugins().then(() => this.loadEnabledState());
+		this.refreshInterval = setInterval(() => this.backgroundRefresh(), 10000);
 	},
 };
 </script>
