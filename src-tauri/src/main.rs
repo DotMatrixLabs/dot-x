@@ -3,7 +3,7 @@
 
 use log::{error, info, trace};
 use serde_json::{json, Value};
-use tauri::{AppHandle, Manager, WebviewWindow, Wry};
+use tauri::{AppHandle, Emitter, Manager, WebviewWindow, Wry};
 use std::fs;
 use std::fs::File;
 use std::path::PathBuf;
@@ -94,50 +94,71 @@ struct MidiPortNames {
 
 #[tauri::command]
 fn list_installed_plugins(app_handle: AppHandle) -> Result<Vec<serde_json::Value>, String> {
-  let plugins_dir = resolve_plugins_dir(&app_handle).ok_or_else(|| "Plugins directory not found".to_string())?;
+  // Collect all directories to scan, deduplicating by canonical path.
+  // We scan both resolve_plugins_dir (dev/bundled plugins) and
+  // ensure_plugins_dir (app_data_dir, where marketplace installs land)
+  // so that plugins from either location are always listed.
+  let mut dirs_to_scan: Vec<PathBuf> = Vec::new();
+
+  if let Some(dir) = resolve_plugins_dir(&app_handle) {
+    dirs_to_scan.push(dir);
+  }
+  if let Ok(dir) = ensure_plugins_dir(&app_handle) {
+    let canonical = dir.canonicalize().unwrap_or_else(|_| dir.clone());
+    let already = dirs_to_scan.iter().any(|d| {
+      d.canonicalize().unwrap_or_else(|_| d.clone()) == canonical
+    });
+    if !already {
+      dirs_to_scan.push(dir);
+    }
+  }
+
+  let mut seen_ids: std::collections::HashSet<String> = std::collections::HashSet::new();
   let mut results: Vec<serde_json::Value> = Vec::new();
 
-  let read_dir = fs::read_dir(&plugins_dir).map_err(|e| format!("Failed to read plugins dir: {}", e))?;
-  for entry_result in read_dir {
-    let entry = match entry_result { Ok(e) => e, Err(_) => continue };
-    let metadata = match entry.metadata() { Ok(m) => m, Err(_) => continue };
-    if !metadata.is_dir() { continue; }
-
-    let folder_path = entry.path();
-    let manifest_path = folder_path.join("manifest.json");
-    let main_js_path = folder_path.join("main.js");
-    if !manifest_path.exists() { continue; }
-    if !main_js_path.exists() { continue; }
-
-    // Read manifest.json
-    let manifest_str = match fs::read_to_string(&manifest_path) {
-      Ok(s) => s,
+  for plugins_dir in dirs_to_scan {
+    let read_dir = match fs::read_dir(&plugins_dir) {
+      Ok(d) => d,
       Err(_) => continue,
     };
-    let mut manifest_json: serde_json::Value = match serde_json::from_str(&manifest_str) {
-      Ok(v) => v,
-      Err(_) => continue,
-    };
+    for entry_result in read_dir {
+      let entry = match entry_result { Ok(e) => e, Err(_) => continue };
+      let metadata = match entry.metadata() { Ok(m) => m, Err(_) => continue };
+      if !metadata.is_dir() { continue; }
 
-    // Ensure an id exists; fallback to folder name
-    if manifest_json.get("id").and_then(|v| v.as_str()).is_none() {
-      if let Some(obj) = manifest_json.as_object_mut() {
-        obj.insert(
-          "id".to_string(),
-          serde_json::Value::String(entry.file_name().to_string_lossy().to_string()),
-        );
+      let folder_path = entry.path();
+      let manifest_path = folder_path.join("manifest.json");
+      let main_js_path = folder_path.join("main.js");
+      if !manifest_path.exists() || !main_js_path.exists() { continue; }
+
+      let manifest_str = match fs::read_to_string(&manifest_path) {
+        Ok(s) => s,
+        Err(_) => continue,
+      };
+      let mut manifest_json: serde_json::Value = match serde_json::from_str(&manifest_str) {
+        Ok(v) => v,
+        Err(_) => continue,
+      };
+
+      let id = manifest_json.get("id").and_then(|v| v.as_str())
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| entry.file_name().to_string_lossy().to_string());
+
+      // Skip duplicates (same plugin in both directories)
+      if seen_ids.contains(&id) { continue; }
+      seen_ids.insert(id.clone());
+
+      if manifest_json.get("id").and_then(|v| v.as_str()).is_none() {
+        if let Some(obj) = manifest_json.as_object_mut() {
+          obj.insert("id".to_string(), serde_json::Value::String(id));
+        }
       }
-    }
+      if let Some(obj) = manifest_json.as_object_mut() {
+        obj.insert("_hasMainJs".to_string(), serde_json::Value::Bool(true));
+      }
 
-    // Include a hint that main.js exists and folder path if needed later
-    if let Some(obj) = manifest_json.as_object_mut() {
-      obj.insert(
-        "_hasMainJs".to_string(),
-        serde_json::Value::Bool(main_js_path.exists()),
-      );
+      results.push(manifest_json);
     }
-
-    results.push(manifest_json);
   }
 
   Ok(results)
@@ -160,59 +181,130 @@ async fn open_plugins_folder(app_handle: AppHandle) -> Result<(), String> {
 
 #[tauri::command]
 async fn install_marketplace_plugin(app_handle: AppHandle, plugin_id: String) -> Result<(), String> {
-  // Fetch registry
-  let registry_url = "https://dml.gg/plugin-registry";
-  let response = reqwest::blocking::get(registry_url)
-    .map_err(|e| format!("Failed to fetch registry: {}", e))?;
-  let registry: Value = response.json()
-    .map_err(|e| format!("Failed to parse registry: {}", e))?;
-  
-  // Find plugin entry
-  let plugins = registry.get("plugins")
-    .and_then(|p| p.as_array())
-    .ok_or_else(|| "Registry plugins array not found".to_string())?;
-  
-  let plugin_entry = plugins.iter()
-    .find(|p| p.get("id").and_then(|id| id.as_str()) == Some(&plugin_id))
-    .ok_or_else(|| format!("Plugin {} not found in registry", plugin_id))?;
-  
-  let manifest_url = plugin_entry.get("manifest_url")
-    .and_then(|u| u.as_str())
-    .ok_or_else(|| "manifest_url not found".to_string())?;
-  let main_url = plugin_entry.get("main_url")
-    .and_then(|u| u.as_str())
-    .ok_or_else(|| "main_url not found".to_string())?;
-  let expected_hash = plugin_entry.get("integrity_hash")
-    .and_then(|h| h.as_str())
-    .ok_or_else(|| "integrity_hash not found".to_string())?;
-  
-  // Get plugins directory and create temp directory
+  // Resolve paths before entering the blocking thread.
+  // Always install to app_data_dir/plugins (the writable user data location).
   let plugins_dir = ensure_plugins_dir(&app_handle)?;
-  let path_resolver = app_handle.path();
-  let app_data_dir = path_resolver.app_data_dir()
+  let app_data_dir = app_handle.path().app_data_dir()
     .map_err(|e| format!("App data dir not available: {}", e))?;
-  let temp_base = app_data_dir.join("plugins").join(".tmp");
-  fs::create_dir_all(&temp_base)
-    .map_err(|e| format!("Failed to create temp directory: {}", e))?;
-  
-  // Create unique temp directory for this install
-  let temp_dir = temp_base.join(format!("{}-{}", plugin_id, std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs()));
-  fs::create_dir_all(&temp_dir)
-    .map_err(|e| format!("Failed to create temp plugin directory: {}", e))?;
-  
-  // Download files
-  info!("Downloading manifest from {}", manifest_url);
-  let manifest_response = reqwest::blocking::get(manifest_url)
-    .map_err(|e| format!("Failed to download manifest: {}", e))?;
-  let manifest_content = manifest_response.text()
-    .map_err(|e| format!("Failed to read manifest content: {}", e))?;
-  
-  info!("Downloading main.js from {}", main_url);
-  let main_response = reqwest::blocking::get(main_url)
-    .map_err(|e| format!("Failed to download main.js: {}", e))?;
-  let main_content = main_response.text()
-    .map_err(|e| format!("Failed to read main.js content: {}", e))?;
-  
+
+  // Emit the very first progress event from the async context
+  let _ = app_handle.emit("plugin-install-progress", json!({
+    "pluginId": &plugin_id, "stage": "fetching_registry", "progress": 0u8,
+  }));
+
+  // All blocking I/O runs on a dedicated thread pool thread to avoid
+  // deadlocking the Tokio runtime (reqwest::blocking cannot run inside
+  // a Tokio async task directly).
+  tokio::task::spawn_blocking(move || {
+    use std::io::Read;
+
+    macro_rules! emit_progress {
+      ($stage:expr, $progress:expr) => {
+        let _ = app_handle.emit("plugin-install-progress", json!({
+          "pluginId": &plugin_id,
+          "stage": $stage,
+          "progress": $progress,
+        }));
+      };
+    }
+
+    // Stage 1: Fetch registry (0-5%)
+    let client = reqwest::blocking::Client::builder()
+      .timeout(std::time::Duration::from_secs(60))
+      .build()
+      .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
+
+    let registry_url = "https://dml.gg/plugin-registry";
+    let response = client.get(registry_url).send()
+      .map_err(|e| format!("Failed to fetch registry: {}", e))?;
+    let registry: Value = response.json()
+      .map_err(|e| format!("Failed to parse registry: {}", e))?;
+    emit_progress!("fetching_registry", 5u8);
+
+    // Find plugin entry
+    let plugins = registry.get("plugins")
+      .and_then(|p| p.as_array())
+      .ok_or_else(|| "Registry plugins array not found".to_string())?;
+
+    let plugin_entry = plugins.iter()
+      .find(|p| p.get("id").and_then(|id| id.as_str()) == Some(plugin_id.as_str()))
+      .ok_or_else(|| format!("Plugin {} not found in registry", plugin_id))?;
+
+    let manifest_url = plugin_entry.get("manifest_url")
+      .and_then(|u| u.as_str())
+      .ok_or_else(|| "manifest_url not found".to_string())?
+      .to_string();
+    let main_url = plugin_entry.get("index_url")
+      .and_then(|u| u.as_str())
+      .ok_or_else(|| "index_url not found in registry".to_string())?
+      .to_string();
+    let expected_hash = plugin_entry.get("integrity_hash")
+      .and_then(|h| h.as_str())
+      .ok_or_else(|| "integrity_hash not found".to_string())?
+      .to_string();
+
+    // Create temp directory
+    let temp_base = app_data_dir.join("plugins").join(".tmp");
+    fs::create_dir_all(&temp_base)
+      .map_err(|e| format!("Failed to create temp directory: {}", e))?;
+
+    let temp_dir = temp_base.join(format!("{}-{}", plugin_id, std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs()));
+    fs::create_dir_all(&temp_dir)
+      .map_err(|e| format!("Failed to create temp plugin directory: {}", e))?;
+
+    // Stage 2: Download manifest.json (5-30%)
+    info!("Downloading manifest from {}", manifest_url);
+    emit_progress!("downloading_manifest", 5u8);
+    let mut manifest_resp = client.get(&manifest_url).send()
+      .map_err(|e| format!("Failed to download manifest: {}", e))?;
+    if !manifest_resp.status().is_success() {
+      let _ = fs::remove_dir_all(&temp_dir);
+      return Err(format!("Failed to download manifest: HTTP {}", manifest_resp.status()));
+    }
+    let manifest_total = manifest_resp.content_length().unwrap_or(0);
+    let mut manifest_buf: Vec<u8> = Vec::new();
+    let mut chunk = [0u8; 8192];
+    let mut downloaded: u64 = 0;
+    loop {
+      let n = manifest_resp.read(&mut chunk).map_err(|e| format!("Error reading manifest: {}", e))?;
+      if n == 0 { break; }
+      manifest_buf.extend_from_slice(&chunk[..n]);
+      downloaded += n as u64;
+      if manifest_total > 0 {
+        let pct = 5u8 + ((downloaded as f64 / manifest_total as f64) * 25.0) as u8;
+        emit_progress!("downloading_manifest", pct);
+      }
+    }
+    emit_progress!("downloading_manifest", 30u8);
+    let manifest_content = String::from_utf8(manifest_buf)
+      .map_err(|e| format!("Invalid UTF-8 in manifest: {}", e))?;
+
+    // Stage 3: Download main.js (30-80%)
+    info!("Downloading main.js from {}", main_url);
+    emit_progress!("downloading_main", 30u8);
+    let mut main_resp = client.get(&main_url).send()
+      .map_err(|e| format!("Failed to download main.js: {}", e))?;
+    if !main_resp.status().is_success() {
+      let _ = fs::remove_dir_all(&temp_dir);
+      return Err(format!("Failed to download main.js: HTTP {}", main_resp.status()));
+    }
+    let main_total = main_resp.content_length().unwrap_or(0);
+    let mut main_buf: Vec<u8> = Vec::new();
+    downloaded = 0;
+    loop {
+      let n = main_resp.read(&mut chunk).map_err(|e| format!("Error reading main.js: {}", e))?;
+      if n == 0 { break; }
+      main_buf.extend_from_slice(&chunk[..n]);
+      downloaded += n as u64;
+      if main_total > 0 {
+        let pct = 30u8 + ((downloaded as f64 / main_total as f64) * 50.0) as u8;
+        emit_progress!("downloading_main", pct);
+      }
+    }
+    emit_progress!("downloading_main", 80u8);
+    let main_content = String::from_utf8(main_buf)
+      .map_err(|e| format!("Invalid UTF-8 in main.js: {}", e))?;
+
   // Write to temp directory
   let temp_manifest_path = temp_dir.join("manifest.json");
   let temp_main_path = temp_dir.join("main.js");
@@ -220,20 +312,20 @@ async fn install_marketplace_plugin(app_handle: AppHandle, plugin_id: String) ->
     .map_err(|e| format!("Failed to write manifest.json: {}", e))?;
   fs::write(&temp_main_path, &main_content)
     .map_err(|e| format!("Failed to write main.js: {}", e))?;
-  
-  // Compute combined hash
+
+  // Stage 4: Verify checksum (80-90%)
+  emit_progress!("verifying", 80u8);
   let combined = format!("{}\n---SEPARATOR---\n{}", manifest_content, main_content);
   let mut hasher = Sha256::new();
   hasher.update(combined.as_bytes());
   let hash_bytes = hasher.finalize();
   let computed_hash = format!("sha256-{}", hex::encode(hash_bytes));
-  
-  // Validate hash
+
   if computed_hash != expected_hash {
     let _ = fs::remove_dir_all(&temp_dir);
-    return Err("Integrity mismatch detected between registry and downloaded files. Please try again later.".to_string());
+    return Err("Integrity check failed: downloaded files do not match the expected checksum. Please try again.".to_string());
   }
-  
+
   // Validate manifest id matches plugin_id
   let manifest_json: Value = serde_json::from_str(&manifest_content)
     .map_err(|e| format!("Failed to parse manifest.json: {}", e))?;
@@ -243,31 +335,35 @@ async fn install_marketplace_plugin(app_handle: AppHandle, plugin_id: String) ->
       return Err(format!("Manifest id '{}' does not match plugin id '{}'", manifest_id, plugin_id));
     }
   }
-  
-  // Move to plugins directory
+  emit_progress!("verifying", 90u8);
+
+  // Stage 5: Install files (90-100%)
+  emit_progress!("installing", 90u8);
   let plugin_dir = plugins_dir.join(&plugin_id);
-  
-  // Remove existing plugin directory if it exists
+
   if plugin_dir.exists() {
     info!("Removing existing plugin directory: {}", plugin_dir.display());
     fs::remove_dir_all(&plugin_dir)
       .map_err(|e| format!("Failed to remove existing plugin directory: {}", e))?;
   }
-  
-  // Create plugin directory
+
   fs::create_dir_all(&plugin_dir)
     .map_err(|e| format!("Failed to create plugin directory: {}", e))?;
-  
-  // Move files from temp to plugin directory
-  fs::rename(&temp_manifest_path, plugin_dir.join("manifest.json"))
-    .map_err(|e| format!("Failed to move manifest.json: {}", e))?;
-  fs::rename(&temp_main_path, plugin_dir.join("main.js"))
-    .map_err(|e| format!("Failed to move main.js: {}", e))?;
-  
-  // Clean up temp directory
+
+  let move_result = fs::rename(&temp_manifest_path, plugin_dir.join("manifest.json"))
+    .map_err(|e| format!("Failed to move manifest.json: {}", e))
+    .and_then(|_| {
+      fs::rename(&temp_main_path, plugin_dir.join("main.js"))
+        .map_err(|e| format!("Failed to move main.js: {}", e))
+    });
+  // Always clean up temp dir, whether the move succeeded or failed
   let _ = fs::remove_dir_all(&temp_dir);
-  
-  info!("Successfully installed plugin: {}", plugin_id);
+  move_result?;
+
+    emit_progress!("done", 100u8);
+    info!("Successfully installed plugin: {}", plugin_id);
+    Ok(())
+  }).await.unwrap_or_else(|e| Err(format!("Install task failed: {}", e)))?;
   Ok(())
 }
 
