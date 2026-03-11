@@ -87,7 +87,7 @@
 <script>
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from '@tauri-apps/api/event';
-import { useToast } from 'vue-toastification';
+import { toast } from 'vue-sonner';
 
 export default {
   name: 'PluginLogsModal',
@@ -304,17 +304,14 @@ export default {
       try {
         await invoke('clear_plugin_logs', { pluginId: this.pluginId });
         this.logs = '';
-        const toast = useToast();
         toast.success('Logs cleared');
       } catch (e) {
         console.error('Failed to clear logs:', e);
-        const toast = useToast();
         toast.error('Failed to clear logs');
       }
     },
     copyLogs() {
       if (!this.logs && (!this.formattedLogs || this.formattedLogs.length === 0)) {
-        const toast = useToast();
         toast.warning('No logs to copy');
         return;
       }
@@ -324,11 +321,9 @@ export default {
         : (this.logs || '');
 
       navigator.clipboard.writeText(displayed).then(() => {
-        const toast = useToast();
         toast.success('Logs copied to clipboard');
       }).catch((e) => {
         console.error('Failed to copy logs:', e);
-        const toast = useToast();
         toast.error('Failed to copy logs');
       });
     },
