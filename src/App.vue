@@ -4,9 +4,10 @@
     <AppsModal :currentSliderID="currentSliderID" :modal-open="appsModalOpen" @close="appsToggled(null)" />
     <TopBar :colorScheme="colorScheme" :class="backgroundColorTopBar" @settings-toggled="settingsToggled" :connection-status="connectionState" />
     <SliderOverview :class="backgroundColor" ref="sliderOverview" :pot-values="potValues" @app-click="appsToggled" />
-    
+
     <!-- Plugin UI Components -->
     <Plugin />
+    <Toaster position="bottom-right" :theme="colorScheme" rich-colors />
   </div>
 </template>
 
@@ -16,7 +17,7 @@ import SettingsModal from "./SettingsModal/SettingsModal.vue";
 import AppsModal from "./AppSelectModal/AppsModal.vue";
 import SliderOverview from "./SliderOverview.vue";
 import Plugin from "./Plugins/Plugin.vue";
-import { useToast } from "vue-toastification";
+import { Toaster, toast } from "vue-sonner";
 import ConfigStore from "./ts/config.ts";
 import Decker from "./ts/decker.ts";
 import RGBController from "./ts/RGBController";
@@ -25,10 +26,8 @@ import PluginAPI from "./plugin-api/pluginAPI";
 import { mapState } from "pinia";
 import { version } from '@tauri-apps/plugin-os';
 
-const toast = useToast();
-
 export default {
-  components: { TopBar, SettingsModal, SliderOverview, AppsModal, Plugin },
+  components: { TopBar, SettingsModal, SliderOverview, AppsModal, Plugin, Toaster },
   name: "App",
 
   data() {

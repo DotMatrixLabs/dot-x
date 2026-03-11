@@ -60,7 +60,7 @@
 							<div class="flex flex-wrap gap-1">
 								<span v-for="tag in plugin.tags" :key="tag" class="badge badge-ghost badge-sm">{{ tag }}</span>
 							</div>
-							<button 
+							<button
 								:class="[
 									'btn btn-sm min-w-[100px]',
 									isInstalled(plugin.id) ? 'btn-ghost' : 'btn-primary'
@@ -69,10 +69,17 @@
 								:disabled="plugin.isDownloading"
 							>
 								<span v-if="plugin.isDownloading" class="loading loading-spinner loading-xs"></span>
-								<span v-else-if="isInstalled(plugin.id)">Uninstall</span>
-								<span v-else>Install</span>
+								<span v-if="plugin.isDownloading && plugin.downloadProgress">{{ stageLabel(plugin.downloadProgress.stage) }}</span>
+								<span v-else-if="!plugin.isDownloading && isInstalled(plugin.id)">Uninstall</span>
+								<span v-else-if="!plugin.isDownloading">Install</span>
 							</button>
 						</div>
+						<progress
+							v-if="plugin.isDownloading && plugin.downloadProgress"
+							class="progress progress-primary w-full h-1"
+							:value="plugin.downloadProgress.progress"
+							max="100"
+						></progress>
 					</div>
 				</div>
 				<div v-if="filteredPlugins.length === 0" class="text-center text-sm label-text py-6">
@@ -99,7 +106,8 @@
 
 <script>
 import { invoke } from '@tauri-apps/api/core';
-import { useToast } from 'vue-toastification';
+import { listen } from '@tauri-apps/api/event';
+import { toast } from 'vue-sonner';
 import PluginDetailModal from './PluginDetailModal.vue';
 
 export default {
@@ -118,6 +126,7 @@ export default {
 			selectedPlugin: null,
 			allPlugins: [],
 			loading: false,
+			unlistenProgress: null,
 		};
 	},
 	computed: {
@@ -164,6 +173,7 @@ export default {
 					likes: plugin.likes || 0,
 					downloads: plugin.downloads || 0,
 					isDownloading: false,
+					downloadProgress: null,
 				}));
 			} catch (error) {
 				console.error('Failed to fetch plugin registry:', error);
@@ -178,7 +188,6 @@ export default {
 		async handleInstall(plugin) {
 			if (plugin.isDownloading) return;
 			plugin.isDownloading = true;
-			const toast = useToast();
 			try {
 				await invoke('install_marketplace_plugin', { pluginId: plugin.id });
 				toast.success(`Successfully installed ${plugin.name}`);
@@ -193,7 +202,6 @@ export default {
 		async handleUninstall(plugin) {
 			if (plugin.isDownloading) return;
 			plugin.isDownloading = true;
-			const toast = useToast();
 			try {
 				await invoke('uninstall_marketplace_plugin', { pluginId: plugin.id });
 				toast.success(`Successfully uninstalled ${plugin.name}`);
@@ -225,9 +233,32 @@ export default {
 		handlePluginUninstalled(plugin) {
 			this.$emit('uninstalled', plugin);
 		},
+		stageLabel(stage) {
+			const labels = {
+				fetching_registry: 'Fetching...',
+				downloading_manifest: 'Downloading...',
+				downloading_main: 'Downloading...',
+				verifying: 'Verifying...',
+				installing: 'Installing...',
+				done: 'Done',
+			};
+			return labels[stage] || stage;
+		},
+	},
+	beforeUnmount() {
+		if (this.unlistenProgress) {
+			this.unlistenProgress();
+		}
 	},
 	mounted() {
 		this.fetchPlugins();
+		listen('plugin-install-progress', (event) => {
+			const { pluginId, stage, progress } = event.payload;
+			const plugin = this.allPlugins.find(p => p.id === pluginId);
+			if (plugin) {
+				plugin.downloadProgress = { stage, progress };
+			}
+		}).then(unlisten => { this.unlistenProgress = unlisten; });
 	},
 };
 </script>

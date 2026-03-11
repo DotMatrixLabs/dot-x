@@ -66,7 +66,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { mapState } from 'pinia';
 import { useStore } from '../store/store';
-import { useToast } from 'vue-toastification';
+import { toast } from 'vue-sonner';
 import PluginLogsModal from '../components/PluginLogsModal.vue';
 import EventBus from '../js/eventBus';
 import { openLink } from '../ts/helpers';
@@ -164,13 +164,11 @@ export default {
       if (!this.plugin?.id) return;
       try {
         await invoke('restart_plugin', { pluginId: this.plugin.id });
-        const toast = useToast();
         toast.success(`${this.plugin?.name || this.plugin?.id} restarted`);
         // Reload settings after successful restart
         EventBus.emit('plugin:settingsUpdated', { pluginId: this.plugin.id });
       } catch (e) {
         console.error('Failed to restart plugin', e);
-        const toast = useToast();
         toast.error(`Failed to restart ${this.plugin?.name || this.plugin?.id}`);
       }
     },
