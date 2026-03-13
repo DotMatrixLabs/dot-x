@@ -40,9 +40,11 @@
 											'btn btn-xs',
 											isLiked ? 'btn-error' : 'btn-ghost'
 										]"
+										:disabled="likeLoading || !plugin?.id"
 										@click="toggleLike"
 									>
-										<i :class="isLiked ? 'fa-solid fa-heart' : 'fa-regular fa-heart'"></i>
+										<i v-if="!likeLoading" :class="isLiked ? 'fa-solid fa-heart' : 'fa-regular fa-heart'"></i>
+										<span v-else class="loading loading-spinner loading-xs"></span>
 									</button>
 								</div>
 								<span class="label-text">{{ plugin?.likes || 0 }}</span>
@@ -149,6 +151,7 @@ import PluginLogsModal from '../../components/PluginLogsModal.vue';
 import EventBus from '../../js/eventBus';
 import MarkdownIt from 'markdown-it';
 import { formatRelativeTime, openLink } from '../../ts/helpers';
+import MarketplaceStats from '../../ts/marketplaceStats';
 
 const md = new MarkdownIt({
 	html: true,
@@ -180,7 +183,7 @@ export default {
 	data() {
 		return {
 			showLogs: false,
-			likedPlugins: new Set(), // In a real app, this would come from a store/API
+			likeLoading: false,
 			readmeContent: null,
 			loadingReadme: false,
 			readmeHtmlUrl: null,
@@ -256,7 +259,7 @@ export default {
 			}
 		},
 		isLiked() {
-			return this.likedPlugins.has(this.plugin?.id);
+			return Boolean(this.plugin?.isLiked);
 		},
 	},
 	methods: {
@@ -307,6 +310,7 @@ export default {
 			this.plugin.isDownloading = true;
 			try {
 				await invoke('install_marketplace_plugin', { pluginId: this.plugin.id });
+				void this.recordDownload();
 				toast.success(`Successfully installed ${this.plugin.name || this.plugin.id}`);
 				this.$emit('installed', this.plugin);
 			} catch (error) {
@@ -330,13 +334,35 @@ export default {
 				this.plugin.isDownloading = false;
 			}
 		},
-		toggleLike() {
-			if (this.isLiked) {
-				this.likedPlugins.delete(this.plugin.id);
-			} else {
-				this.likedPlugins.add(this.plugin.id);
+		async toggleLike() {
+			if (!this.plugin?.id || this.likeLoading) return;
+
+			const nextLiked = !this.isLiked;
+			const currentLikes = Number(this.plugin?.likes || 0);
+			this.likeLoading = true;
+			try {
+				const response = await MarketplaceStats.setLike(this.plugin.id, nextLiked);
+				this.plugin.isLiked = response.liked;
+				this.plugin.likes = Math.max(0, currentLikes + (response.liked ? 1 : -1));
+				this.$emit('like', {
+					pluginId: this.plugin.id,
+					liked: response.liked,
+					likes: this.plugin.likes,
+				});
+			} catch (error) {
+				console.error('Failed to update marketplace like:', error);
+				toast.error(error?.message || 'Failed to update like');
+			} finally {
+				this.likeLoading = false;
 			}
-			this.$emit('like', { pluginId: this.plugin.id, liked: this.isLiked });
+		},
+		async recordDownload() {
+			if (!this.plugin?.id || !this.plugin?.version) return;
+			try {
+				await MarketplaceStats.recordDownload(this.plugin.id, this.plugin.version);
+			} catch (error) {
+				console.error('Failed to record marketplace download:', error);
+			}
 		},
 		async restartPlugin() {
 			if (!this.plugin?.id) return;
@@ -352,13 +378,26 @@ export default {
 		parseGitHubRepo(repoUrl) {
 			if (!repoUrl) return null;
 			try {
-				const url = new URL(repoUrl);
+				let normalizedRepoUrl = repoUrl.trim();
+				if (normalizedRepoUrl.startsWith('git+')) {
+					normalizedRepoUrl = normalizedRepoUrl.slice(4);
+				}
+
+				const sshMatch = normalizedRepoUrl.match(/^git@github\.com:(.+?)\/(.+?)(?:\.git)?$/);
+				if (sshMatch) {
+					return {
+						owner: sshMatch[1],
+						repo: sshMatch[2],
+					};
+				}
+
+				const url = new URL(normalizedRepoUrl);
 				if (url.hostname === 'github.com') {
 					const pathParts = url.pathname.split('/').filter(p => p);
 					if (pathParts.length >= 2) {
 						return {
 							owner: pathParts[0],
-							repo: pathParts[1],
+							repo: pathParts[1].replace(/\.git$/, ''),
 						};
 					}
 				}
