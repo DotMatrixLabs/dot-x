@@ -105,13 +105,14 @@
 
 	</div>
 
-	<!-- Plugin Detail Modal -->
-	<PluginDetailModal
-		:plugin="selectedPlugin"
-		:is-open="showDetailModal"
-		:is-installed="true"
-		@close="showDetailModal = false; selectedPlugin = null"
-	/>
+	<Teleport to="body">
+		<PluginDetailModal
+			:plugin="selectedPlugin"
+			:is-open="showDetailModal"
+			:is-installed="true"
+			@close="showDetailModal = false; selectedPlugin = null"
+		/>
+	</Teleport>
 </template>
 
 <script>
@@ -242,7 +243,24 @@ export default {
 		pluginHasReadme(plugin) {
 			const m = plugin.manifest;
 			if (!m) return false;
-			return !!(m.repo || (m.repository && m.repository.url));
+			return !!this.resolvePluginRepo(m);
+		},
+		resolvePluginRepo(manifest) {
+			if (!manifest) return null;
+
+			if (typeof manifest.repo === 'string' && manifest.repo.trim()) {
+				return manifest.repo.trim();
+			}
+
+			if (typeof manifest.repository === 'string' && manifest.repository.trim()) {
+				return manifest.repository.trim();
+			}
+
+			if (manifest.repository && typeof manifest.repository.url === 'string' && manifest.repository.url.trim()) {
+				return manifest.repository.url.trim();
+			}
+
+			return null;
 		},
 		openPluginDetail(plugin) {
 			const m = plugin.manifest;
@@ -252,7 +270,7 @@ export default {
 				name: plugin.name,
 				author: plugin.author,
 				description: plugin.description,
-				repo: m?.repo || m?.repository?.url || null,
+				repo: this.resolvePluginRepo(m),
 				manifest: m,
 			};
 			this.showDetailModal = true;

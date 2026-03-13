@@ -109,6 +109,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { toast } from 'vue-sonner';
 import PluginDetailModal from './PluginDetailModal.vue';
+import MarketplaceStats, { MARKETPLACE_REGISTRY_URL } from '../../ts/marketplaceStats';
 
 export default {
 	name: "PluginsMarketplace",
@@ -163,15 +164,17 @@ export default {
 		async fetchPlugins() {
 			this.loading = true;
 			try {
-				const response = await fetch('https://dotmatrixlabs.github.io/dot-x-plugins/marketplace-registry.json');
+				const likedPluginIds = await MarketplaceStats.getLikedPluginIds();
+				const response = await fetch(MARKETPLACE_REGISTRY_URL);
 				if (!response.ok) {
 					throw new Error(`Failed to fetch registry: ${response.statusText}`);
 				}
 				const data = await response.json();
 				this.allPlugins = (data.plugins || []).map(plugin => ({
 					...plugin,
-					likes: plugin.likes || 0,
-					downloads: plugin.downloads || 0,
+					likes: Number(plugin.likes || 0),
+					downloads: Number(plugin.downloads || 0),
+					isLiked: likedPluginIds.has(plugin.id),
 					isDownloading: false,
 					downloadProgress: null,
 				}));
@@ -190,6 +193,7 @@ export default {
 			plugin.isDownloading = true;
 			try {
 				await invoke('install_marketplace_plugin', { pluginId: plugin.id });
+				void this.recordDownload(plugin);
 				toast.success(`Successfully installed ${plugin.name}`);
 				this.$emit('installed', plugin);
 			} catch (error) {
@@ -216,15 +220,21 @@ export default {
 		handleDownload(plugin) {
 			this.handleInstall(plugin);
 		},
-		handleLike({ pluginId, liked }) {
-			// Handle like action - could update plugin likes count or send to API
+		handleLike({ pluginId, liked, likes }) {
 			const plugin = this.allPlugins.find(p => p.id === pluginId);
 			if (plugin) {
-				if (liked) {
-					plugin.likes = (plugin.likes || 0) + 1;
-				} else {
-					plugin.likes = Math.max(0, (plugin.likes || 0) - 1);
+				plugin.isLiked = liked;
+				if (typeof likes === 'number') {
+					plugin.likes = likes;
 				}
+			}
+		},
+		async recordDownload(plugin) {
+			if (!plugin?.id || !plugin?.version) return;
+			try {
+				await MarketplaceStats.recordDownload(plugin.id, plugin.version);
+			} catch (error) {
+				console.error('Failed to record marketplace download:', error);
 			}
 		},
 		handlePluginInstalled(plugin) {
