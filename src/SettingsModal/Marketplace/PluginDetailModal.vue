@@ -267,9 +267,10 @@ export default {
 		stageLabel(stage) {
 			const labels = {
 				fetching_registry: 'Fetching...',
-				downloading_manifest: 'Downloading...',
-				downloading_main: 'Downloading...',
-				verifying: 'Verifying...',
+				downloading_package: 'Downloading...',
+				verifying_package: 'Verifying...',
+				extracting_package: 'Extracting...',
+				validating_package: 'Validating...',
 				installing: 'Installing...',
 				done: 'Done',
 			};
