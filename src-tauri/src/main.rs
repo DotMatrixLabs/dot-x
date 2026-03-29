@@ -380,7 +380,7 @@ async fn uninstall_marketplace_plugin(app_handle: AppHandle, plugin_id: String) 
   fs::remove_dir_all(&plugin_dir)
     .map_err(|e| format!("Failed to remove plugin directory: {}", e))?;
   
-  // Remove from enabled plugins config
+  // Remove from plugin config state
   let path_resolver = app_handle.path();
   let mut candidates: Vec<PathBuf> = Vec::new();
   if let Ok(p) = path_resolver.app_data_dir() {
@@ -393,8 +393,21 @@ async fn uninstall_marketplace_plugin(app_handle: AppHandle, plugin_id: String) 
   for config_path in candidates {
     if let Ok(content) = fs::read_to_string(&config_path) {
       if let Ok(mut config) = serde_json::from_str::<Value>(&content) {
+        let mut changed = false;
+
         if let Some(enabled) = config.get_mut("enabled").and_then(|e| e.as_array_mut()) {
+          let len_before = enabled.len();
           enabled.retain(|v| v.as_str() != Some(&plugin_id));
+          changed |= enabled.len() != len_before;
+        }
+
+        if let Some(approved) = config.get_mut("approved").and_then(|a| a.as_array_mut()) {
+          let len_before = approved.len();
+          approved.retain(|v| v.as_str() != Some(&plugin_id));
+          changed |= approved.len() != len_before;
+        }
+
+        if changed {
           if let Ok(updated_content) = serde_json::to_string_pretty(&config) {
             let _ = fs::write(&config_path, updated_content);
           }
