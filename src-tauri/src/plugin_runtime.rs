@@ -12,6 +12,7 @@ use crate::plugin_server::get_active_port;
 
 // Global process table: plugin_id -> Child process
 static PROCESS_TABLE: OnceCell<Arc<RwLock<HashMap<String, tokio::process::Child>>>> = OnceCell::new();
+static PROCESS_REAPER_STARTED: OnceCell<()> = OnceCell::new();
 
 // Global logs table: plugin_id -> captured logs (stdout + stderr)
 static LOGS_TABLE: OnceCell<Arc<RwLock<HashMap<String, VecDeque<String>>>>> = OnceCell::new();
@@ -19,6 +20,7 @@ static LOGS_TABLE: OnceCell<Arc<RwLock<HashMap<String, VecDeque<String>>>>> = On
 const MAX_LOG_LINES: usize = 5000; // per plugin in-memory
 const MAX_LOG_FILE_BYTES: u64 = 5 * 1024 * 1024; // 5MB per plugin log file
 const MAX_LOG_BACKUPS: u8 = 2; // plugin.log.1 .. plugin.log.3
+const PROCESS_REAPER_INTERVAL_SECS: u64 = 2;
 
 fn process_table() -> Arc<RwLock<HashMap<String, tokio::process::Child>>> {
   PROCESS_TABLE
@@ -414,9 +416,45 @@ fn build_deno_permission_args(plugin_dir: &Path, permissions: &[String], port: u
 }
 
 async fn is_running(plugin_id: &str) -> bool {
+  reap_exited_processes().await;
   let table = process_table();
   let map = table.read().await;
   map.contains_key(plugin_id)
+}
+
+async fn reap_exited_processes() {
+  let table = process_table();
+  let mut map = table.write().await;
+
+  let mut exited_plugins: Vec<String> = Vec::new();
+  for (id, child) in map.iter_mut() {
+    match child.try_wait() {
+      Ok(Some(status)) => {
+        info!("Plugin {} exited with status {}", id, status);
+        exited_plugins.push(id.clone());
+      }
+      Ok(None) => {}
+      Err(e) => {
+        warn!("Failed to inspect plugin {} process state: {}", id, e);
+        exited_plugins.push(id.clone());
+      }
+    }
+  }
+
+  for id in exited_plugins {
+    map.remove(&id);
+  }
+}
+
+fn ensure_process_reaper_started() {
+  PROCESS_REAPER_STARTED.get_or_init(|| {
+    tokio::spawn(async move {
+      loop {
+        reap_exited_processes().await;
+        tokio::time::sleep(std::time::Duration::from_secs(PROCESS_REAPER_INTERVAL_SECS)).await;
+      }
+    });
+  });
 }
 
 fn resolve_deno_path(app_handle: &AppHandle) -> Option<PathBuf> {
@@ -476,6 +514,8 @@ async fn spawn_deno_process(app_handle: &AppHandle, dir: &Path, plugin_id: &str)
 }
 
 async fn start_plugin_internal(app_handle: &AppHandle, plugin_id: &str) -> Result<(), String> {
+  ensure_process_reaper_started();
+
   if is_running(plugin_id).await {
     return Ok(());
   }
@@ -506,6 +546,11 @@ async fn stop_plugin_internal(plugin_id: &str) -> Result<(), String> {
   let table = process_table();
   let mut map = table.write().await;
   if let Some(mut child) = map.remove(plugin_id) {
+    if let Ok(Some(status)) = child.try_wait() {
+      info!("Plugin {} was already stopped with status {}", plugin_id, status);
+      return Ok(());
+    }
+
     // Try to terminate process
     if let Err(e) = child.kill().await {
       // It's possible the process already exited; log and continue
@@ -617,5 +662,4 @@ pub async fn clear_plugin_logs(plugin_id: String) -> Result<String, String> {
     Ok(format!("No logs to clear for plugin {}", plugin_id))
   }
 }
-
 

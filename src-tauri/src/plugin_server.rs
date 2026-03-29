@@ -34,9 +34,9 @@ async fn find_available_port(preferred: u16) -> Result<u16, String> {
         drop(listener);
         return Ok(preferred);
     }
-    
+
     warn!("Preferred port {} is busy, searching for available port...", preferred);
-    
+
     // Try ports in range
     for port in PORT_RANGE_START..=PORT_RANGE_END {
         if port == preferred {
@@ -48,7 +48,7 @@ async fn find_available_port(preferred: u16) -> Result<u16, String> {
             return Ok(port);
         }
     }
-    
+
     Err(format!("No available port found in range {}-{}", PORT_RANGE_START, PORT_RANGE_END))
 }
 
@@ -122,13 +122,13 @@ impl PluginServer {
         // Find an available port
         let actual_port = find_available_port(self.port).await
             .map_err(|e| Box::new(std::io::Error::new(std::io::ErrorKind::AddrInUse, e)) as Box<dyn std::error::Error + Send + Sync>)?;
-        
+
         // Update port if different from requested
         if actual_port != self.port {
             info!("Using port {} instead of requested port {}", actual_port, self.port);
             self.port = actual_port;
         }
-        
+
         // Store the active port globally
         set_active_port(self.port);
 
@@ -139,7 +139,7 @@ impl PluginServer {
         // Create socket.io server
         let (layer, io) = SocketIo::new_layer();
         self.io = Some(io.clone());
-        
+
         println!("plugin server started on port {}", self.port);
 
         // Handle plugin connections
@@ -148,7 +148,7 @@ impl PluginServer {
             let connections = Arc::clone(&connections);
             let app_handle = app_handle.clone();
             let pending_requests = Arc::clone(&pending_requests);
-            
+
             move |socket: SocketRef| {
                 let connections = Arc::clone(&connections);
                 let app_handle = app_handle.clone();
@@ -159,7 +159,7 @@ impl PluginServer {
                     let connections = Arc::clone(&connections);
                     let app_handle = app_handle.clone();
                     let socket_id = socket.id.to_string();
-                    
+
                     move |socket_ref: SocketRef, Data::<PluginInfo>(plugin_info), ack: AckSender| {
                         let connections = Arc::clone(&connections);
                         let app_handle = app_handle.clone();
@@ -169,18 +169,18 @@ impl PluginServer {
 
                         tokio::spawn(async move {
                             info!("Plugin registered: {} ({})", plugin_info.name, plugin_info.id);
-                            
+
                             let connection = PluginConnection {
                                 id: plugin_info.id.clone(),
                                 info: plugin_info.clone(),
                                 socket_id: socket_id.clone(),
                             };
-                            
+
                             connections.write().await.insert(plugin_info.id.clone(), connection);
-                            
+
                             // Emit to frontend
                             let _ = app_handle.emit("plugin/connected", &plugin_info);
-                            
+
                             // Send acknowledgment
                             let ack_payload = serde_json::json!({
                                 "status": "success",
@@ -197,20 +197,20 @@ impl PluginServer {
                     let app_handle = app_handle.clone();
                     let pending_requests = Arc::clone(&pending_requests);
                     let connections = Arc::clone(&connections);
-                    
+
                     move |_socket: SocketRef, Data::<ApiRequest>(api_request), ack: AckSender| {
                         let app_handle = app_handle.clone();
                         let pending_requests = Arc::clone(&pending_requests);
                         let connections = Arc::clone(&connections);
                         let socket_id = _socket.id.to_string();
-                        
+
                         tokio::spawn(async move {
                             debug!("Received API request: {} from plugin", api_request.method);
-                            
+
                             // Create response channel
                             let (tx, mut rx) = mpsc::unbounded_channel();
                             pending_requests.write().await.insert(api_request.request_id.clone(), tx);
-                            
+
                             // Resolve plugin_id by socket_id
                             let plugin_id = {
                                 let connections_lock = connections.read().await;
@@ -226,7 +226,7 @@ impl PluginServer {
                                 "params": api_request.params,
                                 "plugin_id": plugin_id
                             });
-                            
+
                             if let Err(e) = app_handle.emit("plugin/api_request", &frontend_message) {
                                 error!("Failed to forward API request to frontend: {}", e);
                                 let error_response = ApiResponse {
@@ -238,13 +238,13 @@ impl PluginServer {
                                 let _ = ack.send(&error_response);
                                 return;
                             }
-                            
+
                             // Wait for response from frontend (with timeout)
                             let response = tokio::time::timeout(
                                 std::time::Duration::from_secs(30),
                                 rx.recv()
                             ).await;
-                            
+
                             let api_response = match response {
                                 Ok(Some(resp)) => resp,
                                 Ok(None) => ApiResponse {
@@ -260,10 +260,10 @@ impl PluginServer {
                                     error: Some("Request timeout".to_string()),
                                 },
                             };
-                            
+
                             // Clean up pending request
                             pending_requests.write().await.remove(&api_request.request_id);
-                            
+
                             // Send response back to plugin
                             let _ = ack.send(&api_response);
                         });
@@ -300,23 +300,23 @@ impl PluginServer {
                 socket.on_disconnect({
                     let connections = Arc::clone(&connections);
                     let app_handle = app_handle.clone();
-                    
+
                     move |socket: SocketRef| {
                         let connections = Arc::clone(&connections);
                         let app_handle = app_handle.clone();
                         let socket_id = socket.id.to_string();
-                        
+
                         tokio::spawn(async move {
                             // Find and remove the plugin connection
                             let mut connections_lock = connections.write().await;
                             let plugin_id = connections_lock.iter()
                                 .find(|(_, conn)| conn.socket_id == socket_id)
                                 .map(|(id, _)| id.clone());
-                            
+
                             if let Some(plugin_id) = plugin_id {
                                 connections_lock.remove(&plugin_id);
                                 info!("Plugin disconnected: {}", plugin_id);
-                                
+
                                 // Emit to frontend with consistent payload shape
                                 let _ = app_handle.emit("plugin/disconnected", serde_json::json!({
                                     "id": plugin_id
@@ -330,13 +330,13 @@ impl PluginServer {
 
         // Start the HTTP server with socket.io
         let app = axum::Router::new().layer(layer);
-        
+
         let listener = tokio::net::TcpListener::bind(format!("127.0.0.1:{}", self.port)).await?;
         *is_running = true;
         drop(is_running);
 
         info!("Plugin Socket.IO server started on port {}", self.port);
-        
+
         // Emit to frontend that server started
         let _ = self.app_handle.emit("plugin_server/started", serde_json::json!({ "port": self.port }));
 
@@ -355,16 +355,16 @@ impl PluginServer {
     pub async fn stop(&self) {
         let mut is_running = self.is_running.write().await;
         *is_running = false;
-        
+
         // Clear connections
         let mut connections = self.connections.write().await;
         connections.clear();
-        
+
         // Clear pending requests
         let mut pending_requests = self.pending_requests.write().await;
         pending_requests.clear();
         // no additional pending maps to clear
-        
+
         info!("Plugin Socket.IO server stopped");
         let _ = self.app_handle.emit("plugin_server/stopped", serde_json::json!({}));
     }
@@ -391,9 +391,9 @@ impl PluginServer {
                 let event_string = event.to_string();
                 println!("Sending event to plugin: {} {} {:?}", plugin_id, event_string, data);
                 io.to(plugin_id.to_string())
-                .emit(event_string, &data)
-                .await
-                .map_err(|e| e.to_string())?;
+                    .emit(event_string, &data)
+                    .await
+                    .map_err(|e| e.to_string())?;
                 Ok(())
             } else {
                 Err("Socket.IO server not initialized".to_string())
@@ -457,7 +457,7 @@ pub fn initialize_plugin_server(app_handle: AppHandle, port: u16) {
 }
 
 pub fn get_plugin_server() -> Option<Arc<RwLock<PluginServer>>> {
-    unsafe { 
+    unsafe {
         let server_ptr = std::ptr::addr_of!(PLUGIN_SERVER);
         (*server_ptr).as_ref().cloned()
     }
@@ -467,24 +467,24 @@ pub fn get_plugin_server() -> Option<Arc<RwLock<PluginServer>>> {
 #[tauri::command]
 pub async fn start_plugin_server(app_handle: AppHandle, port: u16) -> Result<u16, String> {
     println!("Starting plugin server on port {}", port);
-    
+
     // Initialize server if it doesn't exist
     if get_plugin_server().is_none() {
         initialize_plugin_server(app_handle, port);
     }
-    
+
     if let Some(server_arc) = get_plugin_server() {
         let (is_running, current_port) = {
             let server = server_arc.read().await;
             let running = *server.is_running.read().await;
             (running, server.port)
         };
-        
+
         if is_running {
             println!("Plugin server is already running on port {}", current_port);
             return Ok(current_port);
         }
-        
+
         println!("Starting plugin server...");
         let mut server = server_arc.write().await;
         match server.start().await {
@@ -545,7 +545,7 @@ pub async fn send_to_plugin(plugin_id: String, event: String, data: Value) -> Re
     } else {
         Err("Plugin server not initialized".to_string())
     }
-} 
+}
 
 #[tauri::command]
 pub async fn send_to_plugin_with_ack(plugin_id: String, event: String, data: Value) -> Result<ApiResponse, String> {

@@ -94,108 +94,108 @@ struct MidiPortNames {
 
 #[tauri::command]
 fn list_installed_plugins(app_handle: AppHandle) -> Result<Vec<serde_json::Value>, String> {
-  // Collect all directories to scan, deduplicating by canonical path.
-  // We scan both resolve_plugins_dir (dev/bundled plugins) and
-  // ensure_plugins_dir (app_data_dir, where marketplace installs land)
-  // so that plugins from either location are always listed.
-  let mut dirs_to_scan: Vec<PathBuf> = Vec::new();
+    // Collect all directories to scan, deduplicating by canonical path.
+    // We scan both resolve_plugins_dir (dev/bundled plugins) and
+    // ensure_plugins_dir (app_data_dir, where marketplace installs land)
+    // so that plugins from either location are always listed.
+    let mut dirs_to_scan: Vec<PathBuf> = Vec::new();
 
-  if let Some(dir) = resolve_plugins_dir(&app_handle) {
-    dirs_to_scan.push(dir);
-  }
-  if let Ok(dir) = ensure_plugins_dir(&app_handle) {
-    let canonical = dir.canonicalize().unwrap_or_else(|_| dir.clone());
-    let already = dirs_to_scan.iter().any(|d| {
-      d.canonicalize().unwrap_or_else(|_| d.clone()) == canonical
-    });
-    if !already {
-      dirs_to_scan.push(dir);
+    if let Some(dir) = resolve_plugins_dir(&app_handle) {
+        dirs_to_scan.push(dir);
     }
-  }
-
-  let mut seen_ids: std::collections::HashSet<String> = std::collections::HashSet::new();
-  let mut results: Vec<serde_json::Value> = Vec::new();
-
-  for plugins_dir in dirs_to_scan {
-    let read_dir = match fs::read_dir(&plugins_dir) {
-      Ok(d) => d,
-      Err(_) => continue,
-    };
-    for entry_result in read_dir {
-      let entry = match entry_result { Ok(e) => e, Err(_) => continue };
-      let metadata = match entry.metadata() { Ok(m) => m, Err(_) => continue };
-      if !metadata.is_dir() { continue; }
-
-      let folder_path = entry.path();
-      let manifest_path = folder_path.join("manifest.json");
-      let main_js_path = folder_path.join("main.js");
-      if !manifest_path.exists() || !main_js_path.exists() { continue; }
-
-      let manifest_str = match fs::read_to_string(&manifest_path) {
-        Ok(s) => s,
-        Err(_) => continue,
-      };
-      let mut manifest_json: serde_json::Value = match serde_json::from_str(&manifest_str) {
-        Ok(v) => v,
-        Err(_) => continue,
-      };
-
-      let id = manifest_json.get("id").and_then(|v| v.as_str())
-        .map(|s| s.to_string())
-        .unwrap_or_else(|| entry.file_name().to_string_lossy().to_string());
-
-      // Skip duplicates (same plugin in both directories)
-      if seen_ids.contains(&id) { continue; }
-      seen_ids.insert(id.clone());
-
-      if manifest_json.get("id").and_then(|v| v.as_str()).is_none() {
-        if let Some(obj) = manifest_json.as_object_mut() {
-          obj.insert("id".to_string(), serde_json::Value::String(id));
+    if let Ok(dir) = ensure_plugins_dir(&app_handle) {
+        let canonical = dir.canonicalize().unwrap_or_else(|_| dir.clone());
+        let already = dirs_to_scan.iter().any(|d| {
+          d.canonicalize().unwrap_or_else(|_| d.clone()) == canonical
+        });
+        if !already {
+            dirs_to_scan.push(dir);
         }
-      }
-      if let Some(obj) = manifest_json.as_object_mut() {
-        obj.insert("_hasMainJs".to_string(), serde_json::Value::Bool(true));
-      }
-
-      results.push(manifest_json);
     }
-  }
 
-  Ok(results)
+    let mut seen_ids: std::collections::HashSet<String> = std::collections::HashSet::new();
+    let mut results: Vec<serde_json::Value> = Vec::new();
+
+    for plugins_dir in dirs_to_scan {
+        let read_dir = match fs::read_dir(&plugins_dir) {
+            Ok(d) => d,
+            Err(_) => continue,
+        };
+        for entry_result in read_dir {
+            let entry = match entry_result { Ok(e) => e, Err(_) => continue };
+            let metadata = match entry.metadata() { Ok(m) => m, Err(_) => continue };
+            if !metadata.is_dir() { continue; }
+
+            let folder_path = entry.path();
+            let manifest_path = folder_path.join("manifest.json");
+            let main_js_path = folder_path.join("main.js");
+            if !manifest_path.exists() || !main_js_path.exists() { continue; }
+
+            let manifest_str = match fs::read_to_string(&manifest_path) {
+                Ok(s) => s,
+                Err(_) => continue,
+            };
+            let mut manifest_json: serde_json::Value = match serde_json::from_str(&manifest_str) {
+                Ok(v) => v,
+                Err(_) => continue,
+            };
+
+            let id = manifest_json.get("id").and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+                .unwrap_or_else(|| entry.file_name().to_string_lossy().to_string());
+
+            // Skip duplicates (same plugin in both directories)
+            if seen_ids.contains(&id) { continue; }
+            seen_ids.insert(id.clone());
+
+            if manifest_json.get("id").and_then(|v| v.as_str()).is_none() {
+                if let Some(obj) = manifest_json.as_object_mut() {
+                    obj.insert("id".to_string(), serde_json::Value::String(id));
+                }
+            }
+            if let Some(obj) = manifest_json.as_object_mut() {
+                obj.insert("_hasMainJs".to_string(), serde_json::Value::Bool(true));
+            }
+
+            results.push(manifest_json);
+        }
+    }
+
+    Ok(results)
 }
 
 #[tauri::command]
 fn get_plugins_folder(app_handle: AppHandle) -> Result<String, String> {
-  let plugins_dir = ensure_plugins_dir(&app_handle)?;
-  Ok(plugins_dir.to_string_lossy().to_string())
+    let plugins_dir = ensure_plugins_dir(&app_handle)?;
+    Ok(plugins_dir.to_string_lossy().to_string())
 }
 
 #[tauri::command]
 async fn open_plugins_folder(app_handle: AppHandle) -> Result<(), String> {
-  let plugins_dir = ensure_plugins_dir(&app_handle)?;
-  use tauri_plugin_shell::ShellExt;
-  // Shell open is deprecated, but we'll use it for now
-  let _ = app_handle.shell().open(plugins_dir.to_string_lossy().to_string(), None);
-  Ok(())
+    let plugins_dir = ensure_plugins_dir(&app_handle)?;
+    use tauri_plugin_shell::ShellExt;
+    // Shell open is deprecated, but we'll use it for now
+    let _ = app_handle.shell().open(plugins_dir.to_string_lossy().to_string(), None);
+    Ok(())
 }
 
 #[tauri::command]
 async fn install_marketplace_plugin(app_handle: AppHandle, plugin_id: String) -> Result<(), String> {
-  // Resolve paths before entering the blocking thread.
-  // Always install to app_data_dir/plugins (the writable user data location).
-  let plugins_dir = ensure_plugins_dir(&app_handle)?;
-  let app_data_dir = app_handle.path().app_data_dir()
-    .map_err(|e| format!("App data dir not available: {}", e))?;
+    // Resolve paths before entering the blocking thread.
+    // Always install to app_data_dir/plugins (the writable user data location).
+    let plugins_dir = ensure_plugins_dir(&app_handle)?;
+    let app_data_dir = app_handle.path().app_data_dir()
+        .map_err(|e| format!("App data dir not available: {}", e))?;
 
-  // Emit the very first progress event from the async context
-  let _ = app_handle.emit("plugin-install-progress", json!({
-    "pluginId": &plugin_id, "stage": "fetching_registry", "progress": 0u8,
-  }));
+    // Emit the very first progress event from the async context
+    let _ = app_handle.emit("plugin-install-progress", json!({
+          "pluginId": &plugin_id, "stage": "fetching_registry", "progress": 0u8,
+    }));
 
-  // All blocking I/O runs on a dedicated thread pool thread to avoid
-  // deadlocking the Tokio runtime (reqwest::blocking cannot run inside
-  // a Tokio async task directly).
-  tokio::task::spawn_blocking(move || {
+    // All blocking I/O runs on a dedicated thread pool thread to avoid
+    // deadlocking the Tokio runtime (reqwest::blocking cannot run inside
+    // a Tokio async task directly).
+    tokio::task::spawn_blocking(move || {
     use std::io::Read;
 
     macro_rules! emit_progress {
@@ -364,60 +364,60 @@ async fn install_marketplace_plugin(app_handle: AppHandle, plugin_id: String) ->
     info!("Successfully installed plugin: {}", plugin_id);
     Ok(())
   }).await.unwrap_or_else(|e| Err(format!("Install task failed: {}", e)))?;
-  Ok(())
+    Ok(())
 }
 
 #[tauri::command]
 async fn uninstall_marketplace_plugin(app_handle: AppHandle, plugin_id: String) -> Result<(), String> {
-  // Stop plugin if running
-  let _ = plugin_runtime::stop_plugin(plugin_id.clone()).await;
-  
-  // Find plugin directory (search all candidate locations, same as list_installed_plugins)
-  let plugin_dir = find_plugin_dir_by_id(&app_handle, &plugin_id)
-    .ok_or_else(|| format!("Plugin {} not found", plugin_id))?;
-  
-  // Remove plugin directory
-  fs::remove_dir_all(&plugin_dir)
-    .map_err(|e| format!("Failed to remove plugin directory: {}", e))?;
-  
-  // Remove from plugin config state
-  let path_resolver = app_handle.path();
-  let mut candidates: Vec<PathBuf> = Vec::new();
-  if let Ok(p) = path_resolver.app_data_dir() {
-    candidates.push(p.join("plugins.json"));
-  }
-  if let Ok(p) = path_resolver.app_config_dir() {
-    candidates.push(p.join("plugins.json"));
-  }
-  
-  for config_path in candidates {
-    if let Ok(content) = fs::read_to_string(&config_path) {
-      if let Ok(mut config) = serde_json::from_str::<Value>(&content) {
-        let mut changed = false;
+    // Stop plugin if running
+    let _ = plugin_runtime::stop_plugin(plugin_id.clone()).await;
 
-        if let Some(enabled) = config.get_mut("enabled").and_then(|e| e.as_array_mut()) {
-          let len_before = enabled.len();
-          enabled.retain(|v| v.as_str() != Some(&plugin_id));
-          changed |= enabled.len() != len_before;
-        }
+    // Find plugin directory (search all candidate locations, same as list_installed_plugins)
+    let plugin_dir = find_plugin_dir_by_id(&app_handle, &plugin_id)
+        .ok_or_else(|| format!("Plugin {} not found", plugin_id))?;
 
-        if let Some(approved) = config.get_mut("approved").and_then(|a| a.as_array_mut()) {
-          let len_before = approved.len();
-          approved.retain(|v| v.as_str() != Some(&plugin_id));
-          changed |= approved.len() != len_before;
-        }
+    // Remove plugin directory
+    fs::remove_dir_all(&plugin_dir)
+        .map_err(|e| format!("Failed to remove plugin directory: {}", e))?;
 
-        if changed {
-          if let Ok(updated_content) = serde_json::to_string_pretty(&config) {
-            let _ = fs::write(&config_path, updated_content);
-          }
-        }
-      }
+    // Remove from plugin config state
+    let path_resolver = app_handle.path();
+    let mut candidates: Vec<PathBuf> = Vec::new();
+    if let Ok(p) = path_resolver.app_data_dir() {
+        candidates.push(p.join("plugins.json"));
     }
-  }
-  
-  info!("Successfully uninstalled plugin: {}", plugin_id);
-  Ok(())
+    if let Ok(p) = path_resolver.app_config_dir() {
+        candidates.push(p.join("plugins.json"));
+    }
+
+    for config_path in candidates {
+        if let Ok(content) = fs::read_to_string(&config_path) {
+            if let Ok(mut config) = serde_json::from_str::<Value>(&content) {
+                let mut changed = false;
+
+                if let Some(enabled) = config.get_mut("enabled").and_then(|e| e.as_array_mut()) {
+                    let len_before = enabled.len();
+                    enabled.retain(|v| v.as_str() != Some(&plugin_id));
+                    changed |= enabled.len() != len_before;
+                }
+
+                if let Some(approved) = config.get_mut("approved").and_then(|a| a.as_array_mut()) {
+                    let len_before = approved.len();
+                    approved.retain(|v| v.as_str() != Some(&plugin_id));
+                    changed |= approved.len() != len_before;
+                }
+
+                if changed {
+                    if let Ok(updated_content) = serde_json::to_string_pretty(&config) {
+                        let _ = fs::write(&config_path, updated_content);
+                    }
+                }
+            }
+        }
+    }
+
+    info!("Successfully uninstalled plugin: {}", plugin_id);
+    Ok(())
 }
 
 
@@ -528,7 +528,7 @@ fn value_to_object_vec(value: &Value) -> Option<Vec<(String, String)>> {
                         .get("channel")
                         .and_then(|v| v.as_str().map(|s| s.to_string()))
                         .unwrap_or_else(String::new); // If the value is null, return an empty string
-                                                      // Return the tuple
+                    // Return the tuple
                     Some((channel, cc_value))
                 } else {
                     Some((String::new(), String::new())) // Create an empty tuple for the indexes containing Null
@@ -825,66 +825,66 @@ fn setup_panic_handler(client: Client) {
 }
 
 fn find_executable_recursive(base: &std::path::Path, name: &str) -> Option<std::path::PathBuf> {
-  if let Ok(mut entries) = fs::read_dir(base) {
-    while let Some(Ok(entry)) = entries.next() {
-      let p = entry.path();
-      if p.is_dir() {
-        if let Some(found) = find_executable_recursive(&p, name) { return Some(found); }
-      } else if let Some(fname) = p.file_name() {
-        if fname.eq_ignore_ascii_case(name) { return Some(p); }
-      }
+    if let Ok(mut entries) = fs::read_dir(base) {
+        while let Some(Ok(entry)) = entries.next() {
+            let p = entry.path();
+            if p.is_dir() {
+                if let Some(found) = find_executable_recursive(&p, name) { return Some(found); }
+            } else if let Some(fname) = p.file_name() {
+                if fname.eq_ignore_ascii_case(name) { return Some(p); }
+            }
+        }
     }
-  }
-  None
+    None
 }
 
 fn ensure_deno_extracted(app: &tauri::AppHandle) -> Result<std::path::PathBuf, String> {
-  let path_resolver = app.path();
-  let data_dir = path_resolver.app_data_dir().map_err(|e| format!("App data dir not available: {}", e))?;
-  let deno_dir = data_dir.join("deno");
-  let exe_name = if cfg!(target_os = "windows") { "deno.exe" } else { "deno" };
-  let deno_exe_default = deno_dir.join(exe_name);
-  if deno_exe_default.exists() {
-    return Ok(deno_exe_default);
-  }
-
-  if let Some(found) = find_executable_recursive(&deno_dir, exe_name) { return Ok(found); }
-
-  fs::create_dir_all(&deno_dir).map_err(|e| format!("Failed to create deno dir: {}", e))?;
-
-  #[cfg(target_os = "windows")]
-  let archive_rel = "resources/deno/deno-x86_64-pc-windows-msvc.zip";
-  #[cfg(not(target_os = "windows"))]
-  let archive_rel = "resources/deno/unsupported-platform"; // placeholder
-
-  let archive_path = path_resolver.resolve(archive_rel, tauri::path::BaseDirectory::Resource)
-    .map_err(|e| format!("Bundled Deno archive not found at {}: {}", archive_rel, e))?;
-
-  if cfg!(target_os = "windows") {
-    let file = File::open(&archive_path).map_err(|e| format!("Failed to open Deno zip: {}", e))?;
-    let mut zip = zip::ZipArchive::new(file).map_err(|e| format!("Failed to read Deno zip: {}", e))?;
-    for i in 0..zip.len() {
-      let mut zipped_file = zip.by_index(i).map_err(|e| format!("Zip entry error: {}", e))?;
-      let entry_path = match zipped_file.enclosed_name() { Some(p) => p.to_owned(), None => continue };
-      let out_path = deno_dir.join(entry_path);
-      if zipped_file.is_dir() {
-        fs::create_dir_all(&out_path).map_err(|e| format!("Create dir failed: {}", e))?;
-      } else {
-        if let Some(parent) = out_path.parent() { fs::create_dir_all(parent).map_err(|e| format!("Create dir failed: {}", e))?; }
-        let mut outfile = File::create(&out_path).map_err(|e| format!("Create file failed: {}", e))?;
-        std::io::copy(&mut zipped_file, &mut outfile).map_err(|e| format!("Write file failed: {}", e))?;
-      }
+    let path_resolver = app.path();
+    let data_dir = path_resolver.app_data_dir().map_err(|e| format!("App data dir not available: {}", e))?;
+    let deno_dir = data_dir.join("deno");
+    let exe_name = if cfg!(target_os = "windows") { "deno.exe" } else { "deno" };
+    let deno_exe_default = deno_dir.join(exe_name);
+    if deno_exe_default.exists() {
+        return Ok(deno_exe_default);
     }
-  } else {
-    return Err("Bundled Deno not available for this platform".to_string());
-  }
 
-  if deno_exe_default.exists() {
-    return Ok(deno_exe_default);
-  }
-  if let Some(found) = find_executable_recursive(&deno_dir, exe_name) { return Ok(found); }
+    if let Some(found) = find_executable_recursive(&deno_dir, exe_name) { return Ok(found); }
 
-  Err("Deno executable not found after extraction".to_string())
+    fs::create_dir_all(&deno_dir).map_err(|e| format!("Failed to create deno dir: {}", e))?;
+
+    #[cfg(target_os = "windows")]
+    let archive_rel = "resources/deno/deno-x86_64-pc-windows-msvc.zip";
+    #[cfg(not(target_os = "windows"))]
+    let archive_rel = "resources/deno/unsupported-platform"; // placeholder
+
+    let archive_path = path_resolver.resolve(archive_rel, tauri::path::BaseDirectory::Resource)
+        .map_err(|e| format!("Bundled Deno archive not found at {}: {}", archive_rel, e))?;
+
+    if cfg!(target_os = "windows") {
+        let file = File::open(&archive_path).map_err(|e| format!("Failed to open Deno zip: {}", e))?;
+        let mut zip = zip::ZipArchive::new(file).map_err(|e| format!("Failed to read Deno zip: {}", e))?;
+        for i in 0..zip.len() {
+            let mut zipped_file = zip.by_index(i).map_err(|e| format!("Zip entry error: {}", e))?;
+            let entry_path = match zipped_file.enclosed_name() { Some(p) => p.to_owned(), None => continue };
+            let out_path = deno_dir.join(entry_path);
+            if zipped_file.is_dir() {
+                fs::create_dir_all(&out_path).map_err(|e| format!("Create dir failed: {}", e))?;
+            } else {
+                if let Some(parent) = out_path.parent() { fs::create_dir_all(parent).map_err(|e| format!("Create dir failed: {}", e))?; }
+                let mut outfile = File::create(&out_path).map_err(|e| format!("Create file failed: {}", e))?;
+                std::io::copy(&mut zipped_file, &mut outfile).map_err(|e| format!("Write file failed: {}", e))?;
+            }
+        }
+    } else {
+        return Err("Bundled Deno not available for this platform".to_string());
+    }
+
+    if deno_exe_default.exists() {
+        return Ok(deno_exe_default);
+    }
+    if let Some(found) = find_executable_recursive(&deno_dir, exe_name) { return Ok(found); }
+
+    Err("Deno executable not found after extraction".to_string())
 }
 
 #[tokio::main]
@@ -907,20 +907,20 @@ async fn main() {
 
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
-            get_installed_apps, 
-            get_all_session_names, 
-            set_application_volume, 
-            connect_decker, 
-            decker::get_devices, 
-            decker::send_decker_command, 
-            get_available_midi_output_port_names, 
-            attach_midi_device, 
-            detach_midi_device, 
-            get_active_app_name, 
-            disconnect_decker, 
-            set_screen_brightness, 
-            get_all_audio_devices, 
-            get_output_devices, 
+            get_installed_apps,
+            get_all_session_names,
+            set_application_volume,
+            connect_decker,
+            decker::get_devices,
+            decker::send_decker_command,
+            get_available_midi_output_port_names,
+            attach_midi_device,
+            detach_midi_device,
+            get_active_app_name,
+            disconnect_decker,
+            set_screen_brightness,
+            get_all_audio_devices,
+            get_output_devices,
             get_input_devices,
             plugin_server::start_plugin_server,
             plugin_server::stop_plugin_server,
