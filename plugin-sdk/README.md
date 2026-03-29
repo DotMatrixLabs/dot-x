@@ -31,21 +31,25 @@ Frontend (Vue.js)
 ```bash
 npm install dotx-plugin-sdk
 # or for local development
-npm link ../plugin-sdk
+npm install ../plugin-sdk
 ```
 
 ### Scaffold via NPX
+
+The project scaffolder is published separately as `create-dotx-plugin`.
 
 Create a plugin in the current directory:
 
 ```bash
 npx create-dotx-plugin --name "My Plugin"
+# or
+npm create dotx-plugin -- --name "My Plugin"
 ```
 
 Options:
 
 - `--deno` (default): Deno + TypeScript template
-- `--node`: Node + TypeScript + esbuild template
+- `--node`: Node + TypeScript + esbuild template with `plugin.zip` packaging and a GitHub Release workflow
 - `--id <id>`: Override generated plugin id
 - `--force`: Overwrite existing files
 
@@ -62,6 +66,13 @@ npm install
 npm run build
 node main.js
 ```
+
+The generated Node template also includes:
+
+- `npm run package` to build `dist/plugin.zip`
+- `.github/workflows/release-plugin.yml` to publish `plugin.zip` on version tags
+- helper scripts under `scripts/` for build, packaging, and release validation
+- a normal `dotx-plugin-sdk` npm dependency, so it no longer depends on a sibling `dot-x` checkout
 
 ### Creating a Plugin
 
@@ -82,7 +93,7 @@ First, create a `manifest.json` file with your plugin metadata:
 Then create your plugin class:
 
 ```typescript
-import Plugin, { runPlugin } from 'plugin-sdk';
+import Plugin, { runPlugin } from 'dotx-plugin-sdk';
 
 export default class MyPlugin extends Plugin {
   async onLoad() {
@@ -142,7 +153,7 @@ The `runPlugin` utility automatically:
 You can customize connection behavior by passing a configuration object:
 
 ```typescript
-import Plugin, { runPlugin, ConnectionConfig } from 'plugin-sdk';
+import Plugin, { runPlugin, ConnectionConfig } from 'dotx-plugin-sdk';
 
 const config: ConnectionConfig = {
   serverUrl: 'http://localhost:3001',  // Default plugin server URL
@@ -524,7 +535,7 @@ npx tsx src/wait-for-server.ts http://localhost:3001 30000 1000
 Or use it programmatically in your plugin:
 
 ```typescript
-import { waitForPluginServer, runPlugin } from 'plugin-sdk';
+import { waitForPluginServer, runPlugin } from 'dotx-plugin-sdk';
 
 async function startPlugin() {
   console.log('Waiting for DotX plugin server...');
