@@ -40,6 +40,7 @@ type SimpleConfig = {
 export type UISection = {
   key: string;
   name?: string;
+  title?: string;
   disabled?: boolean;
   hidden?: boolean;
   expandable?: boolean;
