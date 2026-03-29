@@ -2,35 +2,60 @@
   "name": "dotx-plugin-sdk",
   "version": "1.0.0",
   "description": "SDK for developing Dot X plugins",
-  "main": "src/index.ts",
-  "types": "dist/index.d.ts",
-  "bin": {
-    "create-dotx-plugin": "./bin/create-dotx-plugin.js"
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs",
+      "default": "./dist/index.mjs"
+    },
+    "./package.json": "./package.json"
   },
   "files": [
-    "bin/",
-    "src/",
     "dist/",
     "README.md",
-    "LICENSE",
     "package.json"
   ],
   "engines": {
     "node": ">=16"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Frogbyte-io/dot-x.git",
+    "directory": "plugin-sdk"
+  },
+  "bugs": {
+    "url": "https://github.com/Frogbyte-io/dot-x/issues"
+  },
+  "homepage": "https://github.com/Frogbyte-io/dot-x/tree/main/plugin-sdk",
+  "keywords": [
+    "dotx",
+    "plugin",
+    "sdk",
+    "socket.io"
+  ],
   "scripts": {
-    "build": "tsc --declaration --emitDeclarationOnly --outDir dist",
+    "clean": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\"",
+    "build": "npm run clean && npm run build:js && npm run build:types",
+    "build:js": "node ./scripts/build-package.mjs",
+    "build:types": "tsc -p tsconfig.build.json",
     "docs:generate": "node ./scripts/generate-docs.mjs",
     "docs:sync": "node ./scripts/sync-components.mjs",
     "docs:build": "node ./scripts/build-docs.mjs",
-    "docs:build:fast": "node ./scripts/build-docs.mjs --skip-typedoc"
+    "docs:build:fast": "node ./scripts/build-docs.mjs --skip-typedoc",
+    "prepack": "npm run build"
   },
   "dependencies": {
     "conf": "^14.0.0",
     "socket.io-client": "^4.7.4"
   },
   "devDependencies": {
+    "@types/node": "^20.17.0",
     "@types/socket.io-client": "^3.0.0",
+    "esbuild": "^0.25.6",
     "typedoc": "^0.28.14",
     "typedoc-plugin-markdown": "^4.9.0",
     "typescript": "^5.7.0"
