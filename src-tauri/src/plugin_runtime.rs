@@ -471,6 +471,26 @@ fn resolve_deno_path(app_handle: &AppHandle) -> Option<PathBuf> {
   None
 }
 
+fn normalized_plugin_platform() -> String {
+  let os = if cfg!(target_os = "windows") {
+    "windows"
+  } else if cfg!(target_os = "macos") {
+    "macos"
+  } else if cfg!(target_os = "linux") {
+    "linux"
+  } else {
+    std::env::consts::OS
+  };
+
+  let arch = match std::env::consts::ARCH {
+    "x86_64" => "x64",
+    "aarch64" => "arm64",
+    other => other,
+  };
+
+  format!("{}-{}", os, arch)
+}
+
 async fn spawn_deno_process(app_handle: &AppHandle, dir: &Path, plugin_id: &str) -> Result<tokio::process::Child, String> {
   // Basic existence checks
   let main_js = dir.join("main.js");
@@ -491,6 +511,8 @@ async fn spawn_deno_process(app_handle: &AppHandle, dir: &Path, plugin_id: &str)
     warn!("{}", w);
   }
   let permission_flags = build_deno_permission_args(dir, &manifest_permissions, safe_port);
+  let plugin_dir = dir.to_string_lossy().to_string();
+  let platform_id = normalized_plugin_platform();
 
   // Spawn `deno run ... main.js` with stdout/stderr piped
   let deno_bin = resolve_deno_path(app_handle).unwrap_or_else(|| PathBuf::from("deno"));
@@ -505,6 +527,8 @@ async fn spawn_deno_process(app_handle: &AppHandle, dir: &Path, plugin_id: &str)
   cmd.arg("main.js")
     .current_dir(dir)
     .env("DOTX_PLUGIN_ID", plugin_id)
+    .env("DOTX_PLUGIN_DIR", &plugin_dir)
+    .env("DOTX_PLUGIN_PLATFORM", &platform_id)
     .env("DOTX_PLUGIN_PORT", &port_str)
     .stdout(std::process::Stdio::piped())
     .stderr(std::process::Stdio::piped());
@@ -662,4 +686,3 @@ pub async fn clear_plugin_logs(plugin_id: String) -> Result<String, String> {
     Ok(format!("No logs to clear for plugin {}", plugin_id))
   }
 }
-
