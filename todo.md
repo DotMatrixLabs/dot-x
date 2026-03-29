@@ -1,7 +1,7 @@
 # Plugin System TODO
 
 - Rework plugin permission approval storage so approval is tied to plugin ID plus version and/or a normalized permission hash, instead of only plugin ID.
-- Clear stored approval state on uninstall, not just the enabled state.
+- [x] Clear stored approval state on uninstall, not just the enabled state.
 - Clarify baseline runtime capabilities such as `--allow-env`, and separate them from user-approvable plugin permissions.
 - Limit environment exposure if possible, or document that full env access is currently required by the SDK/runtime contract.
 - Revisit baseline `--allow-sys` access and require explicit manifest permission where possible.
