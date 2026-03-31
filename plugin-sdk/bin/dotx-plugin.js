@@ -114,17 +114,15 @@ function validateMarketplaceManifest(manifest, packageJson) {
     throw new Error('manifest.json permissions must contain only strings');
   }
 
-  if (manifest.main !== 'main.js') {
-    throw new Error(
-      `Marketplace packaging currently requires manifest.json to set "main" to "main.js". Found: ${manifest.main}`
-    );
-  }
-
   if (packageJson.version !== manifest.version) {
     throw new Error(
       `package.json version (${packageJson.version}) must match manifest.json version (${manifest.version})`
     );
   }
+}
+
+function getManifestEntryPath(manifest) {
+  return normalizeProjectRelativePath(manifest.main, 'manifest.json main');
 }
 
 function getExplicitIncludePaths(manifest) {
@@ -147,11 +145,9 @@ function runPackage() {
   const AdmZip = require('adm-zip');
   const { manifest, packageJson } = loadProjectMetadata();
   validateMarketplaceManifest(manifest, packageJson);
+  const entryPath = getManifestEntryPath(manifest);
 
-  const mainJsPath = path.join(repoRoot, 'main.js');
-  if (!fs.existsSync(mainJsPath)) {
-    throw new Error('main.js not found. Run the build step before packaging.');
-  }
+  const entryAbsolutePath = ensureExists(entryPath, 'manifest.json main');
 
   const distDir = path.join(repoRoot, 'dist');
   const stageDir = path.join(distDir, 'package');
@@ -162,7 +158,7 @@ function runPackage() {
   fs.rmSync(zipPath, { force: true });
 
   copyRecursive(path.join(repoRoot, 'manifest.json'), path.join(stageDir, 'manifest.json'));
-  copyRecursive(mainJsPath, path.join(stageDir, 'main.js'));
+  copyRecursive(entryAbsolutePath, path.join(stageDir, entryPath));
 
   const includedPaths = getExplicitIncludePaths(manifest);
 
@@ -208,7 +204,7 @@ function printUsage() {
   console.log(`Usage: dotx-plugin <command>
 
 Commands:
-  package           Build dist/plugin.zip from manifest.json and main.js
+  package           Build dist/plugin.zip from manifest.json and the file in manifest.main
   verify-release    Validate manifest/package versions and optional RELEASE_TAG
 `);
 }
