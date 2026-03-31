@@ -39,188 +39,6 @@ function writeFileSafe(filePath, content, force) {
   fs.writeFileSync(filePath, content);
 }
 
-function nodeBuildScript() {
-  return `const path = require('path');
-const esbuild = require('esbuild');
-
-const repoRoot = path.resolve(__dirname, '..');
-
-async function main() {
-  await esbuild.build({
-    entryPoints: [path.join(repoRoot, 'main.ts')],
-    outfile: path.join(repoRoot, 'main.js'),
-    bundle: true,
-    format: 'cjs',
-    platform: 'node',
-    target: 'node16',
-    minify: true,
-  });
-
-  console.log('Built main.js');
-}
-
-main().catch((error) => {
-  console.error(error.message);
-  process.exit(1);
-});
-`;
-}
-
-function nodePackageScript() {
-  return `const fs = require('fs');
-const path = require('path');
-const AdmZip = require('adm-zip');
-
-const repoRoot = path.resolve(__dirname, '..');
-const distDir = path.join(repoRoot, 'dist');
-const stageDir = path.join(distDir, 'package');
-const zipPath = path.join(distDir, 'plugin.zip');
-
-function readJson(filePath) {
-  return JSON.parse(fs.readFileSync(filePath, 'utf8'));
-}
-
-function ensureCleanDir(dirPath) {
-  fs.rmSync(dirPath, { recursive: true, force: true });
-  fs.mkdirSync(dirPath, { recursive: true });
-}
-
-function copyRecursive(sourcePath, destinationPath) {
-  const stat = fs.statSync(sourcePath);
-  if (stat.isDirectory()) {
-    fs.mkdirSync(destinationPath, { recursive: true });
-    for (const entry of fs.readdirSync(sourcePath)) {
-      copyRecursive(
-        path.join(sourcePath, entry),
-        path.join(destinationPath, entry)
-      );
-    }
-    return;
-  }
-
-  fs.mkdirSync(path.dirname(destinationPath), { recursive: true });
-  fs.copyFileSync(sourcePath, destinationPath);
-}
-
-function addOptionalPath(relativePath, includedPaths) {
-  const sourcePath = path.join(repoRoot, relativePath);
-  if (!fs.existsSync(sourcePath)) {
-    return;
-  }
-
-  includedPaths.add(relativePath);
-}
-
-function main() {
-  const packageJsonPath = path.join(repoRoot, 'package.json');
-  const manifestPath = path.join(repoRoot, 'manifest.json');
-  const mainJsPath = path.join(repoRoot, 'main.js');
-
-  if (!fs.existsSync(mainJsPath)) {
-    throw new Error('main.js not found. Run the build step before packaging.');
-  }
-
-  const packageJson = readJson(packageJsonPath);
-  const manifest = readJson(manifestPath);
-  if (manifest.main !== 'main.js') {
-    throw new Error(\`manifest.json must set "main" to "main.js". Found: \${manifest.main}\`);
-  }
-  if (packageJson.version !== manifest.version) {
-    throw new Error(
-      \`package.json version (\${packageJson.version}) must match manifest.json version (\${manifest.version})\`
-    );
-  }
-
-  fs.mkdirSync(distDir, { recursive: true });
-  ensureCleanDir(stageDir);
-  fs.rmSync(zipPath, { force: true });
-
-  copyRecursive(manifestPath, path.join(stageDir, 'manifest.json'));
-  copyRecursive(mainJsPath, path.join(stageDir, 'main.js'));
-
-  const includedPaths = new Set();
-  for (const defaultPath of ['assets', 'data', 'bin']) {
-    addOptionalPath(defaultPath, includedPaths);
-  }
-
-  for (const extraPath of packageJson.dotxPlugin?.include || []) {
-    if (typeof extraPath !== 'string' || !extraPath.trim()) {
-      throw new Error('package.json dotxPlugin.include entries must be non-empty strings');
-    }
-    addOptionalPath(extraPath, includedPaths);
-  }
-
-  for (const relativePath of includedPaths) {
-    copyRecursive(
-      path.join(repoRoot, relativePath),
-      path.join(stageDir, relativePath)
-    );
-  }
-
-  const zip = new AdmZip();
-  zip.addLocalFolder(stageDir);
-  zip.writeZip(zipPath);
-
-  console.log(\`Created \${path.relative(repoRoot, zipPath)}\`);
-}
-
-try {
-  main();
-} catch (error) {
-  console.error(error.message);
-  process.exit(1);
-}
-`;
-}
-
-function nodeVerifyReleaseVersionScript() {
-  return `const fs = require('fs');
-const path = require('path');
-
-const repoRoot = path.resolve(__dirname, '..');
-
-function readJson(relativePath) {
-  return JSON.parse(
-    fs.readFileSync(path.join(repoRoot, relativePath), 'utf8')
-  );
-}
-
-function main() {
-  const packageJson = readJson('package.json');
-  const manifest = readJson('manifest.json');
-  const releaseTag = process.env.RELEASE_TAG || '';
-
-  if (packageJson.version !== manifest.version) {
-    throw new Error(
-      \`Version mismatch: package.json=\${packageJson.version}, manifest.json=\${manifest.version}\`
-    );
-  }
-
-  if (manifest.main !== 'main.js') {
-    throw new Error(\`manifest.json must reference main.js. Found: \${manifest.main}\`);
-  }
-
-  if (releaseTag) {
-    const acceptedTags = new Set([manifest.version, \`v\${manifest.version}\`]);
-    if (!acceptedTags.has(releaseTag)) {
-      throw new Error(
-        \`Release tag \${releaseTag} must match \${manifest.version} or v\${manifest.version}\`
-      );
-    }
-  }
-
-  console.log(\`Verified release version \${manifest.version}\`);
-}
-
-try {
-  main();
-} catch (error) {
-  console.error(error.message);
-  process.exit(1);
-}
-`;
-}
-
 function nodeReleaseWorkflow() {
   return `name: Release Plugin
 
@@ -286,6 +104,8 @@ function denoTemplates(meta) {
       version: '0.1.0',
       description: 'A minimal Dot X plugin',
       author: '',
+      dotxVersion: '>=1.0.0',
+      permissions: [],
       main: 'main.ts'
     }, null, 2) + '\n',
     'main.ts': `import Plugin, { runPlugin } from "npm:dotx-plugin-sdk";
@@ -311,9 +131,9 @@ function nodeTemplates(meta) {
     private: true,
     type: 'commonjs',
     scripts: {
-      build: 'node scripts/build-plugin.js',
-      package: 'npm run build && node scripts/package-plugin.js',
-      'release:verify-version': 'node scripts/verify-release-version.js',
+      build: 'esbuild main.ts --bundle --outfile=main.js --format=cjs --platform=node --target=node16 --minify',
+      package: 'npm run build && dotx-plugin package',
+      'release:verify-version': 'dotx-plugin verify-release',
       'release:build': 'npm run release:verify-version && npm run package',
       start: 'node main.js'
     },
@@ -321,7 +141,6 @@ function nodeTemplates(meta) {
       'dotx-plugin-sdk': SDK_PACKAGE_VERSION
     },
     devDependencies: {
-      'adm-zip': '^0.5.16',
       'esbuild': '^0.25.6'
     }
   };
@@ -329,6 +148,12 @@ function nodeTemplates(meta) {
   const README = `# ${meta.name}
 
 A minimal plugin for Dot X (Node + esbuild).
+
+## Package Overview
+
+This project uses one direct npm dependency:
+
+- \`dotx-plugin-sdk\` for the runtime SDK and the \`dotx-plugin\` packaging CLI
 
 ## Quick start (Node)
 
@@ -351,7 +176,17 @@ This creates \`dist/plugin.zip\` with:
 - \`manifest.json\`
 - \`main.js\`
 - optional \`assets/\`, \`data/\`, and \`bin/\`
-- any extra paths listed in \`package.json\` under \`dotxPlugin.include\`
+- any extra paths listed in \`manifest.json\` under \`packaging.include\`
+
+Example:
+
+\`\`\`json
+{
+  "packaging": {
+    "include": ["locales", "templates/email.html"]
+  }
+}
+\`\`\`
 
 ## GitHub Releases
 
@@ -360,9 +195,17 @@ This template includes a GitHub Actions workflow at \`.github/workflows/release-
 Push a version tag such as \`v0.1.0\` and GitHub Actions will:
 
 - verify the tag matches \`package.json\` and \`manifest.json\`
+- validate marketplace-required manifest fields
 - build \`main.js\`
 - create \`dist/plugin.zip\`
 - upload \`plugin.zip\` to the GitHub Release
+
+Recommended release flow:
+
+1. update \`manifest.json\` and \`package.json\` to the release version
+2. commit and push your changes
+3. push a tag such as \`v0.1.0\`
+4. let GitHub Actions build and attach \`dist/plugin.zip\` to the release
 
 See Deno alternative in docs if preferred.
 `;
@@ -374,6 +217,8 @@ See Deno alternative in docs if preferred.
       version: '0.1.0',
       description: 'A minimal Dot X plugin',
       author: '',
+      dotxVersion: '>=1.0.0',
+      permissions: [],
       main: 'main.js'
     }, null, 2) + '\n',
     'main.ts': `import Plugin, { runPlugin } from 'dotx-plugin-sdk';
@@ -397,9 +242,6 @@ runPlugin(HelloWorld);
         esModuleInterop: true
       }
     }, null, 2) + '\n',
-    'scripts/build-plugin.js': nodeBuildScript(),
-    'scripts/package-plugin.js': nodePackageScript(),
-    'scripts/verify-release-version.js': nodeVerifyReleaseVersionScript(),
     '.github/workflows/release-plugin.yml': nodeReleaseWorkflow()
   };
 }
@@ -427,7 +269,8 @@ function main() {
     console.log(`  1) npm install`);
     console.log(`  2) npm run build`);
     console.log(`  3) node main.js`);
-    console.log(`  4) push a tag like v0.1.0 to publish plugin.zip`);
+    console.log(`  4) npm run package`);
+    console.log(`  5) push a tag like v0.1.0 to publish plugin.zip`);
   } else {
     console.log(`  1) deno task start`);
   }
