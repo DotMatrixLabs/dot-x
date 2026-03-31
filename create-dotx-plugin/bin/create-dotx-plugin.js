@@ -1,15 +1,27 @@
 #!/usr/bin/env node
 // Minimal-deps NPX scaffolder for Dot X plugins
-// Usage: npx @dotmatrixlabs/create-dotx-plugin [--name My Plugin] [--id my-plugin] [--deno|--node] [--force]
+// Usage: npx @dotmatrixlabs/create-dotx-plugin
+//   Interactive TUI guides you through setup.
+//   Flags (for CI / non-interactive): --name <n> --id <id> --deno|--node --force
 
 /* eslint-disable no-console */
 
 const fs = require('fs');
 const path = require('path');
+const readline = require('readline');
 const { dotxPluginSdkVersion: SDK_PACKAGE_VERSION } = require('../package.json');
 
+// ── ANSI helpers ──────────────────────────────────────────────────────────────
+
+const bold  = (s) => `\x1b[1m${s}\x1b[22m`;
+const dim   = (s) => `\x1b[2m${s}\x1b[22m`;
+const cyan  = (s) => `\x1b[36m${s}\x1b[39m`;
+const green = (s) => `\x1b[32m${s}\x1b[39m`;
+
+// ── CLI arg parsing (still supported for CI) ─────────────────────────────────
+
 function parseArgs(argv) {
-  const args = { deno: true, node: false, force: false };
+  const args = { deno: undefined, node: undefined, force: false };
   for (let i = 2; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--deno') args.deno = true, args.node = false;
@@ -17,10 +29,31 @@ function parseArgs(argv) {
     else if (a === '--force') args.force = true;
     else if (a === '--name') args.name = argv[++i];
     else if (a === '--id') args.id = argv[++i];
+    else if (a === '--help' || a === '-h') { printHelp(); process.exit(0); }
     else if (!args.name && !a.startsWith('--')) args.name = a;
   }
   return args;
 }
+
+function printHelp() {
+  console.log(`
+${bold('create-dotx-plugin')} — scaffold a new Dot X plugin
+
+${bold('Usage:')}
+  npx @dotmatrixlabs/create-dotx-plugin            ${dim('(interactive)')}
+  npx @dotmatrixlabs/create-dotx-plugin [options]   ${dim('(non-interactive)')}
+
+${bold('Options:')}
+  --name <name>   Plugin display name
+  --id   <id>     Plugin identifier (kebab-case)
+  --node          Use Node + esbuild template
+  --deno          Use Deno template ${dim('(default)')}
+  --force         Overwrite existing files
+  -h, --help      Show this help
+`);
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function toId(name) {
   return (name || 'hello-world')
@@ -38,6 +71,169 @@ function writeFileSafe(filePath, content, force) {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(filePath, content);
 }
+
+// ── Interactive TUI ──────────────────────────────────────────────────────────
+
+function createPrompt() {
+  let closed = false;
+
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  // Exit gracefully if the user closes the prompt (Ctrl+C, Ctrl+D, etc.)
+  rl.on('close', () => {
+    if (!closed) {
+      // User interrupted (Ctrl+C / Ctrl+D), not a programmatic close
+      console.log('\n');
+      process.exit(0);
+    }
+  });
+
+  const ask = (question, defaultValue) =>
+    new Promise((resolve) => {
+      const suffix = defaultValue != null ? ` ${dim(`(${defaultValue})`)} ` : ' ';
+      rl.question(`  ${cyan('?')} ${question}${suffix}`, (answer) => {
+        resolve(answer.trim() || defaultValue || '');
+      });
+    });
+
+  const select = (question, options, defaultIndex = 0) =>
+    new Promise((resolve) => {
+      // Pause the readline so we can take over raw stdin
+      rl.pause();
+
+      let cursor = defaultIndex;
+      let settled = false;
+
+      const render = () => {
+        // Move up to overwrite previous render (skip on first draw)
+        if (render.drawn) {
+          process.stdout.write(`\x1b[${options.length}A`);
+        }
+        options.forEach((opt, i) => {
+          const marker = i === cursor ? cyan('>') : ' ';
+          const label = i === cursor ? bold(opt.label) : dim(opt.label);
+          const hint = opt.hint ? `  ${dim(opt.hint)}` : '';
+          process.stdout.write(`\x1b[2K    ${marker} ${label}${hint}\n`);
+        });
+        render.drawn = true;
+      };
+
+      process.stdout.write(`  ${cyan('?')} ${question} ${dim('(use arrow keys, enter to confirm)')}\n`);
+      render();
+
+      process.stdin.setRawMode(true);
+      process.stdin.resume();
+
+      const onKey = (key) => {
+        if (settled) return;
+
+        // Ctrl-C / Ctrl-D
+        if (key[0] === 0x03 || key[0] === 0x04) {
+          settled = true;
+          cleanup();
+          console.log('\n');
+          process.exit(0);
+        }
+        // Enter
+        if (key[0] === 0x0D) {
+          settled = true;
+          cleanup();
+          const selected = options[cursor];
+          // Move up over the option list and collapse to a single confirmed line
+          process.stdout.write(`\x1b[${options.length}A`);
+          process.stdout.write(`\x1b[2K    ${green('>')} ${bold(green(selected.label))}  ${dim(selected.hint || '')}\n`);
+          // Erase leftover lines
+          for (let i = 1; i < options.length; i++) {
+            process.stdout.write('\x1b[2K\x1b[1B');
+          }
+          // Move cursor back up to right after the selected line
+          if (options.length > 1) {
+            process.stdout.write(`\x1b[${options.length - 1}A`);
+          }
+          resolve(selected.value);
+          return;
+        }
+        // Arrow keys: ESC [ A/B
+        if (key[0] === 0x1B && key[1] === 0x5B) {
+          if (key[2] === 0x41) { // Up
+            cursor = (cursor - 1 + options.length) % options.length;
+            render();
+          } else if (key[2] === 0x42) { // Down
+            cursor = (cursor + 1) % options.length;
+            render();
+          }
+        }
+      };
+
+      const cleanup = () => {
+        process.stdin.removeListener('data', onKey);
+        if (process.stdin.isTTY) {
+          process.stdin.setRawMode(false);
+        }
+        process.stdin.pause();
+        if (!closed) rl.resume();
+      };
+
+      process.stdin.on('data', onKey);
+    });
+
+  const confirm = (question, defaultYes = true) =>
+    new Promise((resolve) => {
+      const hint = defaultYes ? 'Y/n' : 'y/N';
+      rl.question(`  ${cyan('?')} ${question} ${dim(`(${hint})`)} `, (answer) => {
+        const a = answer.trim().toLowerCase();
+        if (a === '') resolve(defaultYes);
+        else resolve(a === 'y' || a === 'yes');
+      });
+    });
+
+  const close = () => { closed = true; rl.close(); };
+
+  return { ask, select, confirm, close };
+}
+
+async function runInteractive(cliArgs) {
+  const prompt = createPrompt();
+
+  console.log();
+  console.log(`  ${bold(cyan('create-dotx-plugin'))}`);
+  console.log(`  ${dim('Scaffold a new Dot X plugin project')}`);
+  console.log();
+
+  // 1. Plugin name
+  const name = await prompt.ask('Plugin name', 'Hello World Plugin');
+
+  // 2. Plugin ID
+  const suggestedId = toId(name);
+  const id = await prompt.ask('Plugin ID (kebab-case)', suggestedId);
+
+  // 3. Runtime
+  const runtime = await prompt.select('Choose a runtime', [
+    { label: 'Deno', value: 'deno', hint: 'TypeScript, zero config, recommended' },
+    { label: 'Node', value: 'node', hint: 'Node + esbuild, npm ecosystem' },
+  ], 0);
+
+  prompt.close();
+
+  // Create a folder named after the plugin ID
+  const targetDir = path.join(process.cwd(), id);
+
+  // Check if folder already exists
+  if (fs.existsSync(targetDir) && !cliArgs.force) {
+    const existing = fs.readdirSync(targetDir);
+    if (existing.length > 0) {
+      console.error(`\n  ${bold('Error:')} Directory ${bold(id)} already exists and is not empty (use --force to overwrite)`);
+      process.exit(1);
+    }
+  }
+
+  return { name, id, runtime, targetDir, force: cliArgs.force };
+}
+
+// ── Templates ────────────────────────────────────────────────────────────────
 
 function nodeReleaseWorkflow() {
   return `name: Release Plugin
@@ -246,33 +442,55 @@ runPlugin(HelloWorld);
   };
 }
 
-function main() {
-  const args = parseArgs(process.argv);
-  const name = args.name || 'Hello World Plugin';
-  const id = toId(args.id || name);
-  const cwd = process.cwd();
+// ── Scaffold ─────────────────────────────────────────────────────────────────
 
-  const template = args.node ? nodeTemplates({ id, name }) : denoTemplates({ id, name });
+function scaffold({ name, id, runtime, targetDir, force }) {
+  const useNode = runtime === 'node';
+  const template = useNode ? nodeTemplates({ id, name }) : denoTemplates({ id, name });
 
   try {
     Object.entries(template).forEach(([file, content]) => {
-      writeFileSafe(path.join(cwd, file), content, args.force);
+      writeFileSafe(path.join(targetDir, file), content, force);
     });
   } catch (err) {
-    console.error(`\nError: ${err.message}`);
+    console.error(`\n  ${bold('Error:')} ${err.message}`);
     process.exit(1);
   }
 
-  console.log(`\nScaffolded Dot X plugin in ${cwd}`);
-  console.log(`\nNext steps:`);
-  if (args.node) {
-    console.log(`  1) npm install`);
-    console.log(`  2) npm run build`);
-    console.log(`  3) npm start`);
-    console.log(`  4) npm run package`);
-    console.log(`  5) push a tag like v0.1.0 to publish plugin.zip`);
+  const folderName = path.basename(targetDir);
+  console.log();
+  console.log(`  ${green('+')} Scaffolded Dot X plugin in ${bold(folderName + '/')}`);
+  console.log();
+  console.log(`  ${bold('Next steps:')}`);
+  if (useNode) {
+    console.log(`    1. ${cyan(`cd ${folderName}`)}`);
+    console.log(`    2. ${cyan('npm install')}`);
+    console.log(`    3. ${cyan('npm start')}`);
   } else {
-    console.log(`  1) deno task start`);
+    console.log(`    1. ${cyan(`cd ${folderName}`)}`);
+    console.log(`    2. ${cyan('deno task start')}`);
+  }
+  console.log();
+}
+
+// ── Main ─────────────────────────────────────────────────────────────────────
+
+async function main() {
+  const args = parseArgs(process.argv);
+
+  // If enough args provided, run non-interactively (backwards compat / CI)
+  const hasExplicitArgs = args.name || args.id || args.node === true || args.deno === true;
+
+  if (hasExplicitArgs) {
+    const name = args.name || 'Hello World Plugin';
+    const id = toId(args.id || name);
+    const runtime = args.node ? 'node' : 'deno';
+    const targetDir = path.join(process.cwd(), id);
+    scaffold({ name, id, runtime, targetDir, force: args.force });
+  } else {
+    // Interactive TUI
+    const options = await runInteractive(args);
+    scaffold(options);
   }
 }
 
