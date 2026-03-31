@@ -20,7 +20,7 @@ import Conf from 'conf';
  * 
  * @example
  * ```typescript
- * import Plugin, { runPlugin } from 'dotx-plugin-sdk';
+ * import Plugin, { runPlugin } from '@dotmatrixlabs/dotx-plugin-sdk';
  * 
  * export default class MyPlugin extends Plugin {
  *   async onLoad() {
@@ -619,7 +619,7 @@ function readManifest() {
  * 
  * @example
  * ```typescript
- * import Plugin, { runPlugin } from 'dotx-plugin-sdk';
+ * import Plugin, { runPlugin } from '@dotmatrixlabs/dotx-plugin-sdk';
  * 
  * export default class MyPlugin extends Plugin {
  *   async onLoad() {
@@ -636,7 +636,7 @@ function readManifest() {
  * @example
  * ```typescript
  * // With custom connection configuration
- * import Plugin, { runPlugin, ConnectionConfig } from 'dotx-plugin-sdk';
+ * import Plugin, { runPlugin, ConnectionConfig } from '@dotmatrixlabs/dotx-plugin-sdk';
  * 
  * const config: ConnectionConfig = {
  *   serverUrl: 'http://localhost:3001',

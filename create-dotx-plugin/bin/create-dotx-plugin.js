@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Minimal-deps NPX scaffolder for Dot X plugins
-// Usage: npx create-dotx-plugin [--name My Plugin] [--id my-plugin] [--deno|--node] [--force]
+// Usage: npx @dotmatrixlabs/create-dotx-plugin [--name My Plugin] [--id my-plugin] [--deno|--node] [--force]
 
 /* eslint-disable no-console */
 
@@ -108,7 +108,7 @@ function denoTemplates(meta) {
       permissions: [],
       main: 'main.ts'
     }, null, 2) + '\n',
-    'main.ts': `import Plugin, { runPlugin } from "npm:dotx-plugin-sdk";
+    'main.ts': `import Plugin, { runPlugin } from "npm:@dotmatrixlabs/dotx-plugin-sdk";
 
 class HelloWorld extends Plugin {
   async onLoad() {
@@ -138,7 +138,7 @@ function nodeTemplates(meta) {
       start: 'node -e "const { spawn } = require(\\"node:child_process\\"); const manifest=require(\\"./manifest.json\\"); const child=spawn(process.execPath,[manifest.main],{stdio:\\"inherit\\"}); child.on(\\"exit\\",(code)=>process.exit(code ?? 0)); child.on(\\"error\\",(error)=>{ console.error(error.message); process.exit(1); })"'
     },
     dependencies: {
-      'dotx-plugin-sdk': SDK_PACKAGE_VERSION
+      '@dotmatrixlabs/dotx-plugin-sdk': SDK_PACKAGE_VERSION
     },
     devDependencies: {
       'esbuild': '^0.25.6'
@@ -153,7 +153,7 @@ A minimal plugin for Dot X (Node + esbuild).
 
 This project uses one direct npm dependency:
 
-- \`dotx-plugin-sdk\` for the runtime SDK and the \`dotx-plugin\` packaging CLI
+- \`@dotmatrixlabs/dotx-plugin-sdk\` for the runtime SDK and the \`dotx-plugin\` packaging CLI
 
 ## Quick start (Node)
 
@@ -221,7 +221,7 @@ See Deno alternative in docs if preferred.
       permissions: [],
       main: 'main.js'
     }, null, 2) + '\n',
-    'main.ts': `import Plugin, { runPlugin } from 'dotx-plugin-sdk';
+    'main.ts': `import Plugin, { runPlugin } from '@dotmatrixlabs/dotx-plugin-sdk';
 
 class HelloWorld extends Plugin {
   async onLoad() {

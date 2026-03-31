@@ -29,21 +29,19 @@ Frontend (Vue.js)
 ### Installation
 
 ```bash
-npm install dotx-plugin-sdk
+npm install @dotmatrixlabs/dotx-plugin-sdk
 # or for local development
 npm install ../plugin-sdk
 ```
 
 ### Scaffold via NPX
 
-The project scaffolder is published separately as `create-dotx-plugin`.
+The project scaffolder is published separately as `@dotmatrixlabs/create-dotx-plugin`.
 
 Create a plugin in the current directory:
 
 ```bash
-npx create-dotx-plugin --name "My Plugin"
-# or
-npm create dotx-plugin -- --name "My Plugin"
+npx @dotmatrixlabs/create-dotx-plugin --name "My Plugin"
 ```
 
 Options:
@@ -72,8 +70,8 @@ The generated Node template also includes:
 - `npm run package` to build `dist/plugin.zip`
 - `npm run release:verify-version` to validate the release tag and marketplace manifest
 - `.github/workflows/release-plugin.yml` to publish `plugin.zip` on version tags
-- a shared `dotx-plugin-sdk` CLI (`dotx-plugin`) for packaging and release validation
-- a normal `dotx-plugin-sdk` npm dependency, so it no longer depends on a sibling `dot-x` checkout
+- a shared `@dotmatrixlabs/dotx-plugin-sdk` CLI (`dotx-plugin`) for packaging and release validation
+- a normal `@dotmatrixlabs/dotx-plugin-sdk` npm dependency, so it no longer depends on a sibling `dot-x` checkout
 
 ### Create And Publish
 
@@ -84,7 +82,7 @@ Node plugin:
 ```bash
 mkdir my-plugin
 cd my-plugin
-npm create dotx-plugin -- --node --name "My Plugin"
+npx @dotmatrixlabs/create-dotx-plugin --node --name "My Plugin"
 ```
 
 2. Install dependencies and run it locally:
@@ -132,7 +130,7 @@ First, create a `manifest.json` file with your plugin metadata:
 Then create your plugin class:
 
 ```typescript
-import Plugin, { runPlugin } from 'dotx-plugin-sdk';
+import Plugin, { runPlugin } from '@dotmatrixlabs/dotx-plugin-sdk';
 
 export default class MyPlugin extends Plugin {
   async onLoad() {
@@ -192,7 +190,7 @@ The `runPlugin` utility automatically:
 You can customize connection behavior by passing a configuration object:
 
 ```typescript
-import Plugin, { runPlugin, ConnectionConfig } from 'dotx-plugin-sdk';
+import Plugin, { runPlugin, ConnectionConfig } from '@dotmatrixlabs/dotx-plugin-sdk';
 
 const config: ConnectionConfig = {
   serverUrl: 'http://localhost:3001',  // Default plugin server URL
@@ -379,7 +377,7 @@ interface PluginManifest {
 
 ## Marketplace Packaging
 
-The Node scaffold uses the shared `dotx-plugin-sdk` CLI:
+The Node scaffold uses the shared `@dotmatrixlabs/dotx-plugin-sdk` CLI:
 
 ```bash
 npm run package
@@ -611,7 +609,7 @@ npx tsx src/wait-for-server.ts http://localhost:3001 30000 1000
 Or use it programmatically in your plugin:
 
 ```typescript
-import { waitForPluginServer, runPlugin } from 'dotx-plugin-sdk';
+import { waitForPluginServer, runPlugin } from '@dotmatrixlabs/dotx-plugin-sdk';
 
 async function startPlugin() {
   console.log('Waiting for DotX plugin server...');
