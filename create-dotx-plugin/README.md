@@ -8,6 +8,8 @@ Scaffold a Dot X plugin project.
 npx @dotmatrixlabs/create-dotx-plugin --name "My Plugin"
 ```
 
+Use `npx` as the primary scaffold command for the scoped package.
+
 ## Options
 
 - `--deno` (default): Deno + TypeScript template
