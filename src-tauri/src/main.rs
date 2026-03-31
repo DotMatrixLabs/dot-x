@@ -22,7 +22,7 @@ mod midi;
 mod power_monitor;
 mod plugin_server;
 mod plugin_runtime;
-use plugin_runtime::{resolve_plugins_dir, ensure_plugins_dir, find_plugin_dir_by_id};
+use plugin_runtime::{resolve_plugins_dir, ensure_plugins_dir, find_plugin_dir_by_id, normalize_manifest_main_path, read_manifest_info};
 use once_cell::sync::OnceCell;
 use tauri::menu::{Menu, MenuBuilder, MenuItemBuilder, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent};
@@ -131,8 +131,13 @@ fn list_installed_plugins(app_handle: AppHandle) -> Result<Vec<serde_json::Value
 
             let folder_path = entry.path();
             let manifest_path = folder_path.join("manifest.json");
-            let main_js_path = folder_path.join("main.js");
-            if !manifest_path.exists() || !main_js_path.exists() { continue; }
+            if !manifest_path.exists() { continue; }
+
+            let manifest_info = match read_manifest_info(&manifest_path) {
+                Ok(info) => info,
+                Err(_) => continue,
+            };
+            if !folder_path.join(&manifest_info.main).exists() { continue; }
 
             let manifest_str = match fs::read_to_string(&manifest_path) {
                 Ok(s) => s,
@@ -143,8 +148,7 @@ fn list_installed_plugins(app_handle: AppHandle) -> Result<Vec<serde_json::Value
                 Err(_) => continue,
             };
 
-            let id = manifest_json.get("id").and_then(|v| v.as_str())
-                .map(|s| s.to_string())
+            let id = manifest_info.id
                 .unwrap_or_else(|| entry.file_name().to_string_lossy().to_string());
 
             // Skip duplicates (same plugin in both directories)
@@ -157,7 +161,11 @@ fn list_installed_plugins(app_handle: AppHandle) -> Result<Vec<serde_json::Value
                 }
             }
             if let Some(obj) = manifest_json.as_object_mut() {
-                obj.insert("_hasMainJs".to_string(), serde_json::Value::Bool(true));
+                obj.insert("_hasEntryPoint".to_string(), serde_json::Value::Bool(true));
+                obj.insert(
+                    "_entryPoint".to_string(),
+                    serde_json::Value::String(manifest_info.main.to_string_lossy().to_string())
+                );
             }
 
             results.push(manifest_json);
@@ -231,7 +239,7 @@ fn calculate_sha256_bytes(bytes: &[u8]) -> String {
     format!("sha256-{}", hex::encode(hasher.finalize()))
 }
 
-fn validate_marketplace_manifest(manifest_json: &Value, plugin_id: &str) -> Result<(), String> {
+fn validate_marketplace_manifest(manifest_json: &Value, plugin_id: &str) -> Result<PathBuf, String> {
     let manifest_id = manifest_json
         .get("id")
         .and_then(|id| id.as_str())
@@ -257,7 +265,13 @@ fn validate_marketplace_manifest(manifest_json: &Value, plugin_id: &str) -> Resu
         return Err("manifest.json permissions must contain only strings".to_string());
     }
 
-    Ok(())
+    let main_raw = manifest_json
+        .get("main")
+        .and_then(|main| main.as_str())
+        .ok_or_else(|| "manifest.json is missing a string \"main\" field".to_string())?;
+    let main_path = normalize_manifest_main_path(main_raw)?;
+
+    Ok(main_path)
 }
 
 fn inspect_plugin_zip(package_bytes: &[u8]) -> Result<(), String> {
@@ -265,9 +279,10 @@ fn inspect_plugin_zip(package_bytes: &[u8]) -> Result<(), String> {
     let mut archive = zip::ZipArchive::new(reader).map_err(|e| format!("Failed to read plugin zip: {}", e))?;
 
     let mut has_manifest = false;
-    let mut has_main = false;
+    let mut manifest_content: Option<String> = None;
+    let mut archive_paths: std::collections::HashSet<PathBuf> = std::collections::HashSet::new();
     for i in 0..archive.len() {
-        let file = archive.by_index(i).map_err(|e| format!("Zip entry error: {}", e))?;
+        let mut file = archive.by_index(i).map_err(|e| format!("Zip entry error: {}", e))?;
         if file.is_dir() {
             continue;
         }
@@ -275,20 +290,38 @@ fn inspect_plugin_zip(package_bytes: &[u8]) -> Result<(), String> {
         let entry_path = file
             .enclosed_name()
             .ok_or_else(|| "Plugin zip contains an invalid path".to_string())?;
+        archive_paths.insert(entry_path.to_path_buf());
 
         if entry_path == Path::new("manifest.json") {
             has_manifest = true;
-        }
-        if entry_path == Path::new("main.js") {
-            has_main = true;
+            let mut contents = String::new();
+            file.read_to_string(&mut contents)
+                .map_err(|e| format!("Failed to read manifest.json from zip: {}", e))?;
+            manifest_content = Some(contents);
         }
     }
 
     if !has_manifest {
         return Err("Plugin zip must contain manifest.json at the archive root".to_string());
     }
-    if !has_main {
-        return Err("Plugin zip must contain main.js at the archive root".to_string());
+    let manifest_json: Value = serde_json::from_str(
+        manifest_content
+            .as_deref()
+            .ok_or_else(|| "Plugin zip is missing readable manifest.json at the archive root".to_string())?
+    )
+    .map_err(|e| format!("Failed to parse manifest.json from zip: {}", e))?;
+    let main_path = validate_marketplace_manifest(
+        &manifest_json,
+        manifest_json
+            .get("id")
+            .and_then(|id| id.as_str())
+            .ok_or_else(|| "manifest.json is missing a string \"id\" field".to_string())?,
+    )?;
+    if !archive_paths.contains(&main_path) {
+        return Err(format!(
+            "Plugin zip must contain {} as declared by manifest.json main",
+            main_path.display()
+        ));
     }
 
     Ok(())
@@ -338,13 +371,9 @@ fn extract_plugin_zip(package_bytes: &[u8], destination: &Path) -> Result<(), St
 
 fn validate_extracted_plugin_dir(plugin_dir: &Path, plugin_id: &str) -> Result<(), String> {
     let manifest_path = plugin_dir.join("manifest.json");
-    let main_js_path = plugin_dir.join("main.js");
 
     if !manifest_path.exists() {
         return Err("Extracted plugin is missing manifest.json at the plugin root".to_string());
-    }
-    if !main_js_path.exists() {
-        return Err("Extracted plugin is missing main.js at the plugin root".to_string());
     }
 
     let manifest_content = fs::read_to_string(&manifest_path)
@@ -352,7 +381,15 @@ fn validate_extracted_plugin_dir(plugin_dir: &Path, plugin_id: &str) -> Result<(
     let manifest_json: Value = serde_json::from_str(&manifest_content)
         .map_err(|e| format!("Failed to parse extracted manifest.json: {}", e))?;
 
-    validate_marketplace_manifest(&manifest_json, plugin_id)
+    let main_path = validate_marketplace_manifest(&manifest_json, plugin_id)?;
+    if !plugin_dir.join(&main_path).exists() {
+        return Err(format!(
+            "Extracted plugin is missing {} as declared by manifest.json main",
+            main_path.display()
+        ));
+    }
+
+    Ok(())
 }
 
 #[tauri::command]

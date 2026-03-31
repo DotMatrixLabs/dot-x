@@ -41,7 +41,7 @@ cd my-plugin
 npm create dotx-plugin -- --node --name "My Plugin"
 npm install
 npm run build
-node main.js
+npm start
 ```
 
 To create a marketplace package:

@@ -1,4 +1,4 @@
-use std::{ collections::{HashMap, HashSet, VecDeque}, fs, path::{Path, PathBuf}, };
+use std::{ collections::{HashMap, HashSet, VecDeque}, fs, path::{Component, Path, PathBuf}, };
 use log::{error, info, warn};
 use once_cell::sync::OnceCell;
 use serde_json::Value;
@@ -123,15 +123,16 @@ where
 
 pub fn has_valid_plugins(dir: &Path) -> bool {
   // Check if directory contains at least one valid plugin
-  // (subfolder with manifest.json and main.js)
+  // (subfolder with manifest.json and the file referenced by manifest.main)
   if let Ok(entries) = fs::read_dir(dir) {
     for entry in entries.flatten() {
       let path = entry.path();
       if path.is_dir() {
-        let has_manifest = path.join("manifest.json").exists();
-        let has_main = path.join("main.js").exists();
-        if has_manifest && has_main {
-          return true;
+        let manifest_path = path.join("manifest.json");
+        if let Ok(info) = read_manifest_info(&manifest_path) {
+          if path.join(info.main).exists() {
+            return true;
+          }
         }
       }
     }
@@ -225,10 +226,54 @@ pub fn resolve_plugins_dir(app_handle: &AppHandle) -> Option<PathBuf> {
   None
 }
 
-fn read_manifest_id(manifest_path: &Path) -> Option<String> {
-  let s = fs::read_to_string(manifest_path).ok()?;
-  let v: Value = serde_json::from_str(&s).ok()?;
-  v.get("id").and_then(|x| x.as_str()).map(|s| s.to_string())
+pub struct ManifestInfo {
+  pub id: Option<String>,
+  pub main: PathBuf,
+}
+
+pub fn normalize_manifest_main_path(raw: &str) -> Result<PathBuf, String> {
+  let trimmed = raw.trim();
+  if trimmed.is_empty() {
+    return Err("manifest.json is missing a non-empty string \"main\" field".to_string());
+  }
+
+  let candidate = Path::new(trimmed);
+  if candidate.is_absolute() {
+    return Err("manifest.json \"main\" must be a relative path".to_string());
+  }
+
+  let mut normalized = PathBuf::new();
+  for component in candidate.components() {
+    match component {
+      Component::Normal(part) => normalized.push(part),
+      Component::CurDir => {}
+      Component::ParentDir | Component::RootDir | Component::Prefix(_) => {
+        return Err("manifest.json \"main\" must stay inside the plugin root".to_string());
+      }
+    }
+  }
+
+  if normalized.as_os_str().is_empty() {
+    return Err("manifest.json is missing a non-empty string \"main\" field".to_string());
+  }
+
+  Ok(normalized)
+}
+
+pub fn read_manifest_info(manifest_path: &Path) -> Result<ManifestInfo, String> {
+  let contents = fs::read_to_string(manifest_path)
+    .map_err(|e| format!("Failed to read {}: {}", manifest_path.display(), e))?;
+  let json: Value = serde_json::from_str(&contents)
+    .map_err(|e| format!("Failed to parse {}: {}", manifest_path.display(), e))?;
+
+  let id = json.get("id").and_then(|x| x.as_str()).map(|s| s.to_string());
+  let main_raw = json
+    .get("main")
+    .and_then(|x| x.as_str())
+    .ok_or_else(|| format!("manifest.json missing string \"main\" field in {}", manifest_path.display()))?;
+  let main = normalize_manifest_main_path(main_raw)?;
+
+  Ok(ManifestInfo { id, main })
 }
 
 pub fn find_plugin_dir_by_id(app_handle: &AppHandle, plugin_id: &str) -> Option<PathBuf> {
@@ -257,10 +302,15 @@ pub fn find_plugin_dir_by_id(app_handle: &AppHandle, plugin_id: &str) -> Option<
       let path = entry.path();
       if !path.is_dir() { continue; }
       let manifest_path = path.join("manifest.json");
-      let main_js = path.join("main.js");
-      if !manifest_path.exists() || !main_js.exists() { continue; }
+      if !manifest_path.exists() { continue; }
 
-      let id = read_manifest_id(&manifest_path)
+      let manifest = match read_manifest_info(&manifest_path) {
+        Ok(info) => info,
+        Err(_) => continue,
+      };
+      if !path.join(&manifest.main).exists() { continue; }
+
+      let id = manifest.id
         .unwrap_or_else(|| entry.file_name().to_string_lossy().to_string());
       if id == plugin_id { return Some(path); }
     }
@@ -492,10 +542,15 @@ fn normalized_plugin_platform() -> String {
 }
 
 async fn spawn_deno_process(app_handle: &AppHandle, dir: &Path, plugin_id: &str) -> Result<tokio::process::Child, String> {
-  // Basic existence checks
-  let main_js = dir.join("main.js");
-  if !main_js.exists() {
-    return Err(format!("main.js not found for plugin {}", plugin_id));
+  let manifest_path = dir.join("manifest.json");
+  let manifest = read_manifest_info(&manifest_path)?;
+  let entry_path = dir.join(&manifest.main);
+  if !entry_path.exists() {
+    return Err(format!(
+      "Entry point {} not found for plugin {}",
+      manifest.main.display(),
+      plugin_id
+    ));
   }
 
   // Get the active plugin server port
@@ -514,7 +569,7 @@ async fn spawn_deno_process(app_handle: &AppHandle, dir: &Path, plugin_id: &str)
   let plugin_dir = dir.to_string_lossy().to_string();
   let platform_id = normalized_plugin_platform();
 
-  // Spawn `deno run ... main.js` with stdout/stderr piped
+  // Spawn `deno run ... <manifest.main>` with stdout/stderr piped
   let deno_bin = resolve_deno_path(app_handle).unwrap_or_else(|| PathBuf::from("deno"));
   let mut cmd = Command::new(deno_bin);
   cmd.arg("run")
@@ -524,7 +579,7 @@ async fn spawn_deno_process(app_handle: &AppHandle, dir: &Path, plugin_id: &str)
     cmd.arg(flag);
   }
 
-  cmd.arg("main.js")
+  cmd.arg(&manifest.main)
     .current_dir(dir)
     .env("DOTX_PLUGIN_ID", plugin_id)
     .env("DOTX_PLUGIN_DIR", &plugin_dir)

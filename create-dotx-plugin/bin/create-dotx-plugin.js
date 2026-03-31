@@ -95,7 +95,7 @@ jobs:
 }
 
 function denoTemplates(meta) {
-  const README = `# ${meta.name}\n\nA minimal plugin for Dot X. This template includes a Deno + TypeScript setup by default.\n\n## Prerequisites\n- Dot X application running (starts the local plugin server)\n- Deno 1.41+ (or Node 16+ if using the Node template)\n\n## Quick start (Deno)\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n deno task start\n\nThis runs \`main.ts\` with all permissions and connects to the Dot X plugin server.\n\n## Development workflow\n- Edit \`main.ts\` and save; restart the task to pick up changes\n- Watch logs in the Dot X app and in \`plugin.log\` (created next to your files)\n- Implement your plugin logic inside the \`onLoad()\` method\n\n### Common tasks\n- Start: \`deno task start\`\n- Lint (optional): \`deno lint\`\n- Format (optional): \`deno fmt\`\n\n## Optional: Node + esbuild\nIf you prefer Node, install deps and build:\n\n\n\n\n\n\n\n\n\n\n\n\n\n npm install\n npm run build\n node main.js\n\nRecommended when you scaffolded with the \`--node\` flag.\n\n## File structure\n\n\n\n\n\n\n\n\n\n\n manifest.json   # Plugin metadata (id, name, entry file)\n main.ts         # Plugin entrypoint (uses runPlugin from the SDK)\n deno.json       # Deno task (start)\n .gitignore      # Useful ignores (node_modules, plugin.log)\n README.md       # This file\n\n## Troubleshooting\n- Ensure the Dot X app is running before starting the plugin\n- If connection fails, the SDK will retry and print detailed hints\n- Check firewall/antivirus if timeouts persist\n\n## Learn more\n- Getting Started: <DOCS_BASE_URL>/plugin-sdk/getting-started/first-plugin\n- Examples: <DOCS_BASE_URL>/plugin-sdk/examples\n- Manifest reference: <DOCS_BASE_URL>/plugin-sdk/manifest\n- SDK Reference: <DOCS_BASE_URL>/plugin-sdk/sdk-reference\n`;
+  const README = `# ${meta.name}\n\nA minimal plugin for Dot X. This template includes a Deno + TypeScript setup by default.\n\n## Prerequisites\n- Dot X application running (starts the local plugin server)\n- Deno 1.41+ (or Node 16+ if using the Node template)\n\n## Quick start (Deno)\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n deno task start\n\nThis runs \`main.ts\` with all permissions and connects to the Dot X plugin server.\n\n## Development workflow\n- Edit \`main.ts\` and save; restart the task to pick up changes\n- Watch logs in the Dot X app and in \`plugin.log\` (created next to your files)\n- Implement your plugin logic inside the \`onLoad()\` method\n\n### Common tasks\n- Start: \`deno task start\`\n- Lint (optional): \`deno lint\`\n- Format (optional): \`deno fmt\`\n\n## Optional: Node + esbuild\nIf you prefer Node, install deps and build:\n\n\n\n\n\n\n\n\n\n\n\n\n\n npm install\n npm run build\n npm start\n\nRecommended when you scaffolded with the \`--node\` flag.\n\n## File structure\n\n\n\n\n\n\n\n\n\n\n manifest.json   # Plugin metadata (id, name, entry file)\n main.ts         # Plugin entrypoint (uses runPlugin from the SDK)\n deno.json       # Deno task (start)\n .gitignore      # Useful ignores (node_modules, plugin.log)\n README.md       # This file\n\n## Troubleshooting\n- Ensure the Dot X app is running before starting the plugin\n- If connection fails, the SDK will retry and print detailed hints\n- Check firewall/antivirus if timeouts persist\n\n## Learn more\n- Getting Started: <DOCS_BASE_URL>/plugin-sdk/getting-started/first-plugin\n- Examples: <DOCS_BASE_URL>/plugin-sdk/examples\n- Manifest reference: <DOCS_BASE_URL>/plugin-sdk/manifest\n- SDK Reference: <DOCS_BASE_URL>/plugin-sdk/sdk-reference\n`;
 
   return {
     'manifest.json': JSON.stringify({
@@ -131,11 +131,11 @@ function nodeTemplates(meta) {
     private: true,
     type: 'commonjs',
     scripts: {
-      build: 'esbuild main.ts --bundle --outfile=main.js --format=cjs --platform=node --target=node16 --minify',
+      build: 'node -e "const manifest=require(\\"./manifest.json\\"); require(\\"esbuild\\").build({ entryPoints: [\\"main.ts\\"], outfile: manifest.main, bundle: true, format: \\"cjs\\", platform: \\"node\\", target: \\"node16\\", minify: true }).catch((error) => { console.error(error.message); process.exit(1); })"',
       package: 'npm run build && dotx-plugin package',
       'release:verify-version': 'dotx-plugin verify-release',
       'release:build': 'npm run release:verify-version && npm run package',
-      start: 'node main.js'
+      start: 'node -e "const { spawn } = require(\\"node:child_process\\"); const manifest=require(\\"./manifest.json\\"); const child=spawn(process.execPath,[manifest.main],{stdio:\\"inherit\\"}); child.on(\\"exit\\",(code)=>process.exit(code ?? 0)); child.on(\\"error\\",(error)=>{ console.error(error.message); process.exit(1); })"'
     },
     dependencies: {
       'dotx-plugin-sdk': SDK_PACKAGE_VERSION
@@ -160,7 +160,7 @@ This project uses one direct npm dependency:
 \`\`\`bash
 npm install
 npm run build
-node main.js
+npm start
 \`\`\`
 
 Ensure the Dot X app is running before starting the plugin.
@@ -174,7 +174,7 @@ npm run package
 This creates \`dist/plugin.zip\` with:
 
 - \`manifest.json\`
-- \`main.js\`
+- the file declared by \`manifest.main\`
 - optional \`assets/\`, \`data/\`, and \`bin/\`
 - any extra paths listed in \`manifest.json\` under \`packaging.include\`
 
@@ -196,7 +196,7 @@ Push a version tag such as \`v0.1.0\` and GitHub Actions will:
 
 - verify the tag matches \`package.json\` and \`manifest.json\`
 - validate marketplace-required manifest fields
-- build \`main.js\`
+- build the file referenced by \`manifest.main\`
 - create \`dist/plugin.zip\`
 - upload \`plugin.zip\` to the GitHub Release
 
@@ -268,7 +268,7 @@ function main() {
   if (args.node) {
     console.log(`  1) npm install`);
     console.log(`  2) npm run build`);
-    console.log(`  3) node main.js`);
+    console.log(`  3) npm start`);
     console.log(`  4) npm run package`);
     console.log(`  5) push a tag like v0.1.0 to publish plugin.zip`);
   } else {

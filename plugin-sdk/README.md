@@ -64,7 +64,7 @@ Next steps (Node):
 ```bash
 npm install
 npm run build
-node main.js
+npm start
 ```
 
 The generated Node template also includes:
@@ -92,7 +92,7 @@ npm create dotx-plugin -- --node --name "My Plugin"
 ```bash
 npm install
 npm run build
-node main.js
+npm start
 ```
 
 3. Edit `manifest.json`:
@@ -327,7 +327,7 @@ export default class MyPlugin extends Plugin {
 To debug connection issues, check the plugin output for detailed error messages:
 
 ```bash
-node main.js
+npm start
 ```
 
 The plugin will provide step-by-step troubleshooting guidance:
@@ -385,10 +385,10 @@ The Node scaffold uses the shared `dotx-plugin-sdk` CLI:
 npm run package
 ```
 
-This builds `main.js` and creates `dist/plugin.zip` with:
+This builds the file referenced by `manifest.main` and creates `dist/plugin.zip` with:
 
 - `manifest.json`
-- `main.js`
+- the entry file declared in `manifest.main`
 - optional `assets/`, `data/`, and `bin/`
 - any extra paths listed in `manifest.json -> packaging.include`
 
@@ -408,7 +408,7 @@ Example:
 }
 ```
 
-Marketplace plugin zips currently require `manifest.json` and `main.js` at the archive root.
+Marketplace plugin zips currently require `manifest.json` plus the entry file declared by `manifest.main`.
 
 ## API Reference
 
