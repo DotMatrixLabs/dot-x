@@ -2,7 +2,6 @@
 
 const fs = require('fs');
 const path = require('path');
-const AdmZip = require('adm-zip');
 
 const repoRoot = process.cwd();
 const defaultIncludePaths = ['assets', 'data', 'bin'];
@@ -18,14 +17,6 @@ function readJson(absolutePath, label) {
   } catch (error) {
     throw new Error(`Failed to read ${label}: ${error.message}`);
   }
-}
-
-function readJsonIfExists(absolutePath, label) {
-  if (!fs.existsSync(absolutePath)) {
-    return null;
-  }
-
-  return readJson(absolutePath, label);
 }
 
 function ensureArrayOfNonEmptyStrings(value, fieldName) {
@@ -94,16 +85,12 @@ function copyRecursive(sourcePath, destinationPath) {
 }
 
 function loadProjectMetadata() {
-  const manifestPath = path.join(repoRoot, 'manifest.json');
-  const packageJsonPath = path.join(repoRoot, 'package.json');
-  const manifest = readJson(manifestPath, 'manifest.json');
-  const packageJson = readJsonIfExists(packageJsonPath, 'package.json');
+  const manifest = readJson(path.join(repoRoot, 'manifest.json'), 'manifest.json');
+  const packageJson = readJson(path.join(repoRoot, 'package.json'), 'package.json');
 
   return {
     manifest,
-    manifestPath,
     packageJson,
-    packageJsonPath,
   };
 }
 
@@ -133,16 +120,15 @@ function validateMarketplaceManifest(manifest, packageJson) {
     );
   }
 
-  if (packageJson && packageJson.version !== manifest.version) {
+  if (packageJson.version !== manifest.version) {
     throw new Error(
       `package.json version (${packageJson.version}) must match manifest.json version (${manifest.version})`
     );
   }
 }
 
-function getExplicitIncludePaths(manifest, packageJson) {
+function getExplicitIncludePaths(manifest) {
   const includedPaths = new Set();
-  const warnings = [];
 
   const manifestInclude = manifest.packaging && manifest.packaging.include;
   if (manifestInclude !== undefined) {
@@ -154,26 +140,11 @@ function getExplicitIncludePaths(manifest, packageJson) {
     }
   }
 
-  const legacyInclude = packageJson && packageJson.dotxPlugin && packageJson.dotxPlugin.include;
-  if (legacyInclude !== undefined) {
-    ensureArrayOfNonEmptyStrings(legacyInclude, 'package.json dotxPlugin.include');
-    warnings.push(
-      'package.json dotxPlugin.include is deprecated. Move packaging paths to manifest.json -> packaging.include.'
-    );
-    for (const includePath of legacyInclude) {
-      includedPaths.add(
-        normalizeProjectRelativePath(includePath, 'package.json dotxPlugin.include')
-      );
-    }
-  }
-
-  return {
-    includedPaths: [...includedPaths],
-    warnings,
-  };
+  return [...includedPaths];
 }
 
 function runPackage() {
+  const AdmZip = require('adm-zip');
   const { manifest, packageJson } = loadProjectMetadata();
   validateMarketplaceManifest(manifest, packageJson);
 
@@ -193,7 +164,7 @@ function runPackage() {
   copyRecursive(path.join(repoRoot, 'manifest.json'), path.join(stageDir, 'manifest.json'));
   copyRecursive(mainJsPath, path.join(stageDir, 'main.js'));
 
-  const { includedPaths, warnings } = getExplicitIncludePaths(manifest, packageJson);
+  const includedPaths = getExplicitIncludePaths(manifest);
 
   for (const defaultPath of defaultIncludePaths) {
     const sourcePath = path.join(repoRoot, defaultPath);
@@ -212,10 +183,6 @@ function runPackage() {
   const zip = new AdmZip();
   zip.addLocalFolder(stageDir);
   zip.writeZip(zipPath);
-
-  for (const warning of warnings) {
-    console.warn(warning);
-  }
 
   console.log(`Created ${path.relative(repoRoot, zipPath)}`);
 }

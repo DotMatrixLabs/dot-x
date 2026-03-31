@@ -70,9 +70,47 @@ node main.js
 The generated Node template also includes:
 
 - `npm run package` to build `dist/plugin.zip`
+- `npm run release:verify-version` to validate the release tag and marketplace manifest
 - `.github/workflows/release-plugin.yml` to publish `plugin.zip` on version tags
-- helper scripts under `scripts/` for build, packaging, and release validation
+- a shared `dotx-plugin-sdk` CLI (`dotx-plugin`) for packaging and release validation
 - a normal `dotx-plugin-sdk` npm dependency, so it no longer depends on a sibling `dot-x` checkout
+
+### Create And Publish
+
+Node plugin:
+
+1. Create a new folder and scaffold the plugin:
+
+```bash
+mkdir my-plugin
+cd my-plugin
+npm create dotx-plugin -- --node --name "My Plugin"
+```
+
+2. Install dependencies and run it locally:
+
+```bash
+npm install
+npm run build
+node main.js
+```
+
+3. Edit `manifest.json`:
+
+- set `id`, `name`, `version`, `dotxVersion`, and `permissions`
+- add `packaging.include` if you need extra files in `plugin.zip`
+
+4. Build the marketplace package:
+
+```bash
+npm run package
+```
+
+5. Publish a GitHub release asset:
+
+- commit and push the plugin repo
+- push a tag such as `v0.1.0`
+- the generated `.github/workflows/release-plugin.yml` workflow builds `dist/plugin.zip` and uploads it to the GitHub Release
 
 ### Creating a Plugin
 
@@ -86,6 +124,7 @@ First, create a `manifest.json` file with your plugin metadata:
   "description": "A description of what my plugin does",
   "author": "Your Name",
   "dotxVersion": ">=1.0.0",
+  "permissions": [],
   "main": "main.ts"
 }
 ```
@@ -330,9 +369,46 @@ interface PluginManifest {
   description?: string; // Plugin description
   author?: string;      // Author name
   dotxVersion?: string; // Required DotX version (semver range)
+  permissions?: string[]; // Requested plugin permissions
+  packaging?: {
+    include?: string[]; // Extra files or folders to include in marketplace plugin.zip
+  };
   main: string;         // Entry point file
 }
 ```
+
+## Marketplace Packaging
+
+The Node scaffold uses the shared `dotx-plugin-sdk` CLI:
+
+```bash
+npm run package
+```
+
+This builds `main.js` and creates `dist/plugin.zip` with:
+
+- `manifest.json`
+- `main.js`
+- optional `assets/`, `data/`, and `bin/`
+- any extra paths listed in `manifest.json -> packaging.include`
+
+Example:
+
+```json
+{
+  "id": "my-plugin",
+  "name": "My Awesome Plugin",
+  "version": "1.0.0",
+  "dotxVersion": ">=1.0.0",
+  "permissions": [],
+  "main": "main.js",
+  "packaging": {
+    "include": ["locales", "templates/email.html"]
+  }
+}
+```
+
+Marketplace plugin zips currently require `manifest.json` and `main.js` at the archive root.
 
 ## API Reference
 

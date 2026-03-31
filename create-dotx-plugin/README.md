@@ -28,6 +28,24 @@ Node templates depend on `dotx-plugin-sdk` from npm and include:
 - `npm run build`
 - `npm run package`
 - `.github/workflows/release-plugin.yml`
+- manifest-driven packaging via `manifest.json -> packaging.include`
 - no special local SDK path wiring; the generated project consumes the published `dotx-plugin-sdk` package directly
 
 Deno templates import `dotx-plugin-sdk` through Deno's `npm:` support.
+
+## Typical Node Workflow
+
+```bash
+mkdir my-plugin
+cd my-plugin
+npm create dotx-plugin -- --node --name "My Plugin"
+npm install
+npm run build
+node main.js
+```
+
+To create a marketplace package:
+
+```bash
+npm run package
+```
