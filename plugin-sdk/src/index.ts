@@ -6,7 +6,7 @@
  * ## Quick Start
  * 
  * ```typescript
- * import Plugin, { runPlugin } from 'dotx-plugin-sdk';
+ * import Plugin, { runPlugin } from '@dotmatrixlabs/dotx-plugin-sdk';
  * 
  * export default class MyPlugin extends Plugin {
  *   async onLoad() {
@@ -50,7 +50,7 @@
  * - **Global UI**: Toast notifications and dialogs
  * - **Data Storage**: Persistent configuration with dot notation
  * 
- * @module dotx-plugin-sdk
+ * @module @dotmatrixlabs/dotx-plugin-sdk
  */
 
 /**
