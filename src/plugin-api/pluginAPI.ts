@@ -176,13 +176,13 @@ export class PluginAPI {
       console.log('Received API event:', event.payload);
     });
     listen('plugin/connected', (event) => {
-      const pluginID = (event.payload as { id: string }).id;
-      useStore().addActivePlugin(pluginID);
+      const plugin = event.payload as { id: string; name: string; version?: string; connected_at?: string };
+      useStore().upsertConnectedPlugin(plugin);
       console.log('Received connected event:', event.payload);
     });
     listen('plugin/disconnected', (event) => {
       const pluginID = (event.payload as { id: string }).id;
-      useStore().removeActivePlugin(pluginID);
+      useStore().removeConnectedPlugin(pluginID);
       console.log('Received disconnected event:', event.payload);
     });
   }
@@ -377,8 +377,7 @@ export class PluginAPI {
   private async syncActivePlugins() {
     try {
       const connectedPlugins = await this.getConnectedPlugins();
-      const pluginIds = connectedPlugins.map(plugin => plugin.id);
-      useStore().setActivePlugins(pluginIds);
+      useStore().setConnectedPlugins(connectedPlugins);
     } catch (error) {
       console.error('Failed to sync active plugins:', error);
     }
