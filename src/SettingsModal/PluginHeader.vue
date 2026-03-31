@@ -6,9 +6,13 @@
           <h2 class="text-base font-semibold leading-tight truncate">{{ plugin?.name || plugin?.id }}</h2>
           <div v-if="plugin?.version" class="badge badge-outline badge-sm">v{{ plugin.version }}</div>
           <div class="badge badge-ghost badge-sm">ID: {{ plugin?.id }}</div>
+          <div v-if="isExternal" class="badge badge-outline badge-info badge-sm">External</div>
         </div>
         <p class="label-text text-xs mt-1" v-if="author">
           by <span class="font-medium">{{ author }}</span>
+        </p>
+        <p v-if="isExternal" class="label-text text-xs mt-1">
+          Connected externally. Host launch controls are unavailable.
         </p>
         
         <!-- <div class="mt-2 mb-2 grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -29,12 +33,12 @@
             <i class="fa-solid fa-store" />
           </a>
         </div> -->
-        <div class="tooltip tooltip-bottom" data-tip="Logs">
+        <div v-if="!isExternal" class="tooltip tooltip-bottom" data-tip="Logs">
           <button class="btn btn-ghost btn-xs btn-square" @click="openLogs">
             <i class="fa-solid fa-file-lines" />
           </button>
         </div>
-        <div class="tooltip tooltip-bottom" data-tip="Restart">
+        <div v-if="!isExternal" class="tooltip tooltip-bottom" data-tip="Restart">
           <button class="btn btn-ghost btn-xs btn-square" @click="restartPlugin" :disabled="!plugin?.id">
             <i class="fa-solid fa-rotate-right" />
           </button>
@@ -101,6 +105,9 @@ export default {
     },
     permissions() {
       return this.manifest.permissions || [];
+    },
+    isExternal() {
+      return Boolean(this.plugin?.external);
     },
     isRunning() {
       try {

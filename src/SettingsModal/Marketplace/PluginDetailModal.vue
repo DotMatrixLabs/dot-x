@@ -19,6 +19,7 @@
 								<p class="text-xs label-text" v-if="author">
 									by <span class="font-medium">{{ author }}</span>
 								</p>
+								<div v-if="isExternal" class="badge badge-outline badge-info badge-xs">External</div>
 								<!-- Permissions inline -->
 								<div v-if="permissions && permissions.length > 0" class="flex flex-wrap gap-1">
 									<div v-for="perm in permissions" :key="perm" class="badge badge-outline badge-xs opacity-70">{{ perm }}</div>
@@ -55,18 +56,18 @@
 							</div>
 						</div>
 						<div class="flex items-center gap-1">
-							<div v-if="isInstalled" class="tooltip tooltip-bottom" data-tip="Logs">
+							<div v-if="isInstalled && !isExternal" class="tooltip tooltip-bottom" data-tip="Logs">
 								<button class="btn btn-ghost btn-sm btn-square" @click="showLogs = true">
 									<i class="fa-solid fa-file-lines" />
 								</button>
 							</div>
-							<div v-if="isInstalled" class="tooltip tooltip-bottom" data-tip="Restart">
+							<div v-if="isInstalled && !isExternal" class="tooltip tooltip-bottom" data-tip="Restart">
 								<button class="btn btn-ghost btn-sm btn-square" @click="restartPlugin" :disabled="!plugin?.id">
 									<i class="fa-solid fa-rotate-right" />
 								</button>
 							</div>
 							<div v-if="isInstalled" class="badge badge-sm shrink-0" :class="statusClass">{{ statusLabel }}</div>
-							<div class="flex flex-col items-end gap-1">
+							<div v-if="!isExternal" class="flex flex-col items-end gap-1">
 								<button
 									:class="[
 										'btn btn-sm min-w-[100px] shrink-0',
@@ -202,6 +203,9 @@ export default {
 		},
 		permissions() {
 			return this.plugin?.approved_permissions || this.manifest.permissions || [];
+		},
+		isExternal() {
+			return Boolean(this.plugin?.external);
 		},
 		isRunning() {
 			try {
