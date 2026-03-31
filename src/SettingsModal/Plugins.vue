@@ -52,7 +52,7 @@
 		<div v-if="!marketplaceOpen" class="flex flex-col overflow-y-auto">
 
 			<div class="flex flex-row justify-between">
-				<h3 class="">Installed plugins: </h3>
+				<h3 class="">Plugins: </h3>
 				<div class="">
 					<button title="Reload plugins" class="mx-1 btn btn-ghost btn-square btn-sm" @click="reloadPlugins">
 						<i class="fa-solid fa-rotate-right"></i>
@@ -77,29 +77,37 @@
 							>{{ plugin.name }}</button>
 							<span v-else class="">{{ plugin.name }}</span>
 							<span class="label-text text-xs">
-								Version: {{ plugin.version }} • {{ plugin.author }}
+								Version: {{ plugin.version || 'Unknown' }}<span v-if="plugin.author"> • {{ plugin.author }}</span>
 							</span>
-							<span class="text-xs label-text">{{ plugin.description }}</span>
+							<div class="flex items-center gap-2 flex-wrap mt-0.5">
+								<span class="text-xs label-text">{{ plugin.description }}</span>
+								<span v-if="plugin.external" class="badge badge-outline badge-info badge-xs">External</span>
+							</div>
 						</div>
 						<!-- Actions -->
 						<div class="flex items-center gap-3 my-auto">
 							<!-- Settings -->
-							<button title="Delete plugin" class="btn btn-ghost btn-square btn-sm" @click="deletePlugin(plugin)">
+							<button v-if="!plugin.external" title="Delete plugin" class="btn btn-ghost btn-square btn-sm" @click="deletePlugin(plugin)">
 								<i class="fa-solid fa-trash"></i>
 							</button>
 							<button title="Settings" class="btn btn-ghost btn-square btn-sm" @click="openSettings(plugin)">
 								<i class="fa-solid fa-gear"></i>
 							</button>
 							<!-- Enable / Disable -->
-							<input type="checkbox" class="toggle toggle-primary" v-model="plugin.enabled"
-								@change="togglePlugin(plugin)" />
+							<input
+								v-if="!plugin.external"
+								type="checkbox"
+								class="toggle toggle-primary"
+								:checked="plugin.enabled"
+								@change="togglePlugin(plugin, $event.target.checked)"
+							/>
 						</div>
 					</div>
 				</div>
 			</div>
 			<div v-else>
 				<div class="divider m-0"></div>
-				<h3 class="label-text text-center mt-2">No plugins installed</h3>
+				<h3 class="label-text text-center mt-2">No plugins available</h3>
 			</div>
 		</div>
 
@@ -109,8 +117,8 @@
 		<PluginDetailModal
 			:plugin="selectedPlugin"
 			:is-open="showDetailModal"
-			:is-installed="true"
-			@close="showDetailModal = false; selectedPlugin = null"
+			:is-installed="selectedPluginInstalled"
+			@close="showDetailModal = false; selectedPlugin = null; selectedPluginInstalled = false"
 		/>
 	</Teleport>
 </template>
@@ -131,10 +139,11 @@ export default {
 
 	data() {
 		return {
-			plugins: [],
+			installedPlugins: [],
 			marketplaceOpen: false,
 			refreshInterval: null,
 			selectedPlugin: null,
+			selectedPluginInstalled: false,
 			showDetailModal: false,
 			permissionDialog: {
 				show: false,
@@ -145,9 +154,36 @@ export default {
 		};
 	},
 	computed: {
-		...mapState(useStore, ['activePlugins', 'enabledPlugins', 'approvedPlugins']),
+		...mapState(useStore, ['activePlugins', 'enabledPlugins', 'approvedPlugins', 'connectedPlugins']),
+		plugins() {
+			const installedPlugins = (this.installedPlugins || []).map((manifest) => ({
+				id: manifest.id,
+				name: manifest.name || manifest.id,
+				version: manifest.version,
+				author: manifest.author,
+				description: manifest.description,
+				manifest,
+				enabled: this.enabledPlugins?.has?.(manifest.id) || false,
+				external: false,
+			}));
+			const installedIds = new Set(installedPlugins.map((plugin) => plugin.id));
+			const externalPlugins = Object.values(this.connectedPlugins || {})
+				.filter((plugin) => !installedIds.has(plugin.id))
+				.map((plugin) => ({
+					id: plugin.id,
+					name: plugin.name || plugin.id,
+					version: plugin.version,
+					author: null,
+					description: 'Connected externally',
+					manifest: plugin,
+					enabled: false,
+					external: true,
+				}));
+			return [...installedPlugins, ...externalPlugins]
+				.sort((a, b) => (a.name || a.id).localeCompare(b.name || b.id));
+		},
 		installedPluginIds() {
-			return new Set(this.plugins.map(p => p.id));
+			return new Set((this.installedPlugins || []).map((plugin) => plugin.id));
 		},
 	},
 
@@ -181,17 +217,15 @@ export default {
 		deletePlugin(plugin) {
 			// TODO: Implement delete logic
 		},
-		async togglePlugin(plugin) {
+		async togglePlugin(plugin, nextEnabled) {
 			const store = useStore();
-			if (plugin.enabled) {
+			if (nextEnabled) {
 				// Check if permissions have been approved
 				if (!store.isPluginApproved(plugin.id)) {
 					const perms = plugin.manifest?.permissions || [];
 					if (perms.length > 0) {
 						const approved = await this.requestPermissionApproval(plugin);
 						if (!approved) {
-							// Revert toggle
-							plugin.enabled = false;
 							return;
 						}
 					}
@@ -272,7 +306,9 @@ export default {
 				description: plugin.description,
 				repo: this.resolvePluginRepo(m),
 				manifest: m,
+				external: plugin.external,
 			};
+			this.selectedPluginInstalled = !plugin.external;
 			this.showDetailModal = true;
 		},
 		openSettings(plugin) {
@@ -293,15 +329,7 @@ export default {
 			try {
                 const installed = await invoke('list_installed_plugins');
                 if (Array.isArray(installed)) {
-                    this.plugins = installed.map((manifest) => ({
-                        id: manifest.id,
-                        name: manifest.name || manifest.id,
-                        version: manifest.version,
-                        author: manifest.author,
-                        description: manifest.description,
-                        manifest,
-                        enabled: false,
-                    }));
+                    this.installedPlugins = installed;
                 }
 			} catch (e) {
                 console.error('Failed to list installed plugins', e);
@@ -310,24 +338,11 @@ export default {
 		async loadEnabledState() {
 			const store = useStore();
 			await store.loadEnabledPlugins?.();
-			this.plugins = this.plugins.map(p => ({
-				...p,
-				enabled: store.isPluginEnabled ? store.isPluginEnabled(p.id) : this.enabledPlugins.has(p.id)
-			}));
 		},
 		async backgroundRefresh() {
 			try {
-				const installed = await invoke("list_installed_plugins");
-				if (!Array.isArray(installed)) return;
-				const currentIds = new Set(this.plugins.map(p => p.id));
-				const newIds = new Set(installed.map(m => m.id));
-				const hasChanges = currentIds.size !== newIds.size
-					|| installed.some(m => !currentIds.has(m.id))
-					|| [...currentIds].some(id => !newIds.has(id));
-				if (hasChanges) {
-					await this.fetchPlugins();
-					await this.loadEnabledState();
-				}
+				await this.fetchPlugins();
+				await this.loadEnabledState();
 			} catch (e) {
 				// Silent background refresh - do not surface errors
 			}

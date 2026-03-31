@@ -47,15 +47,16 @@
               </template>
               <template v-if="filteredPluginTabs.length > 0">
                 <p class="label-text text-xs mt-3 ml-1 mb-0.5 opacity-60">Plugins</p>
-                <button
-                  v-for="plugin in filteredPluginTabs"
-                  :key="plugin.id"
-                  @click="openSettings(plugin)"
-                  class="flex items-center w-full px-2 py-1.5 rounded-btn text-sm text-left hover:bg-base-content/10 transition-colors min-w-0"
-                  :class="activeTab === 'PluginSettings' && activePlugin?.id === plugin.id ? 'bg-primary text-primary-content hover:bg-primary' : ''"
-                >
-                  <span class="truncate">{{ plugin.name }}</span>
-                </button>
+              <button
+                v-for="plugin in filteredPluginTabs"
+                :key="plugin.id"
+                @click="openSettings(plugin)"
+                class="flex items-center w-full px-2 py-1.5 rounded-btn text-sm text-left hover:bg-base-content/10 transition-colors min-w-0"
+                :class="activeTab === 'PluginSettings' && activePlugin?.id === plugin.id ? 'bg-primary text-primary-content hover:bg-primary' : ''"
+              >
+                <span class="truncate">{{ plugin.name }}</span>
+                <span v-if="plugin.external" class="badge badge-outline badge-info badge-xs ml-auto shrink-0">External</span>
+              </button>
               </template>
             </template>
             <template v-else>
@@ -68,15 +69,16 @@
               >
                 {{ tab }}
               </button>
-              <p v-if="enabledPluginTabs.length > 0" class="label-text text-xs mt-3 ml-1 mb-0.5">Plugins</p>
+              <p v-if="visiblePluginTabs.length > 0" class="label-text text-xs mt-3 ml-1 mb-0.5">Plugins</p>
               <button
-                v-for="plugin in enabledPluginTabs"
+                v-for="plugin in visiblePluginTabs"
                 :key="plugin.id"
                 @click="openSettings(plugin)"
                 class="flex items-center w-full px-2 py-1.5 rounded-btn text-sm text-left hover:bg-base-content/10 transition-colors min-w-0"
                 :class="activeTab === 'PluginSettings' && activePlugin?.id === plugin.id ? 'bg-primary text-primary-content hover:bg-primary' : ''"
               >
                 <span class="truncate">{{ plugin.name }}</span>
+                <span v-if="plugin.external" class="badge badge-outline badge-info badge-xs ml-auto shrink-0">External</span>
               </button>
             </template>
           </div>
@@ -101,6 +103,27 @@ import { useStore } from "../store/store";
 import { invoke } from "@tauri-apps/api/core";
 import pluginAPI from "../plugin-api/pluginAPI";
 
+const BASE_SETTINGS_INDEX = [
+  { label: "Device", tab: "Device" },
+  { label: "RGB Effect", tab: "Device" },
+  { label: "Static color", tab: "Device" },
+  { label: "Breathing effect", tab: "Device" },
+  { label: "RGB Speed", tab: "Device" },
+  { label: "Brightness", tab: "Device" },
+  { label: "Turn off LEDs on Sleep", tab: "Device" },
+  { label: "Device Info", tab: "Device" },
+  { label: "Run on startup", tab: "General" },
+  { label: "Act when Decker disconnects", tab: "General" },
+  { label: "Inverted sliders", tab: "General" },
+  { label: "Reset Channel Settings", tab: "General" },
+  { label: "Reset All Settings", tab: "General" },
+  { label: "Enable MIDI Output", tab: "Midi" },
+  { label: "MIDI Port", tab: "Midi" },
+  { label: "MIDI documentation", tab: "Midi" },
+  { label: "Install plugins", tab: "Plugins" },
+  { label: "Uninstall plugins", tab: "Plugins" },
+];
+
 export default {
   name: "SettingsModal",
 
@@ -123,42 +146,56 @@ export default {
     return {
       tabs: ['Device', 'General', 'Plugins', 'Midi', 'About'],
       activeTab: "Device",
-      plugins: [],
+      installedPlugins: [],
       activePlugin: null,
       sidebarSearch: "",
-      settingsIndex: [
-        { label: "Device", tab: "Device" },
-        { label: "RGB Effect", tab: "Device" },
-        { label: "Static color", tab: "Device" },
-        { label: "Breathing effect", tab: "Device" },
-        { label: "RGB Speed", tab: "Device" },
-        { label: "Brightness", tab: "Device" },
-        { label: "Turn off LEDs on Sleep", tab: "Device" },
-        { label: "Device Info", tab: "Device" },
-        { label: "Run on startup", tab: "General" },
-        { label: "Act when Decker disconnects", tab: "General" },
-        { label: "Inverted sliders", tab: "General" },
-        { label: "Reset Channel Settings", tab: "General" },
-        { label: "Reset All Settings", tab: "General" },
-        { label: "Enable MIDI Output", tab: "Midi" },
-        { label: "MIDI Port", tab: "Midi" },
-        { label: "MIDI documentation", tab: "Midi" },
-        { label: "Install plugins", tab: "Plugins" },
-        { label: "Uninstall plugins", tab: "Plugins" },
-      ],
+      settingsIndex: [...BASE_SETTINGS_INDEX],
     };
   },
 
   computed: {
-    ...mapState(useStore, ['activePlugins', 'enabledPlugins']),
-    enabledPluginTabs() {
-      // Build simple tab list from enabled plugin IDs
-      const ids = Array.from(this.enabledPlugins || []);
-      // Attempt to match known plugins list by id to get nicer names; fallback to id
-      return ids.map(id => {
-        const match = this.plugins.find(p => p.id === id);
-        return match ? match : { id, name: id };
-      });
+    ...mapState(useStore, ['activePlugins', 'enabledPlugins', 'connectedPlugins']),
+    visiblePluginTabs() {
+      const installedById = new Map(
+        (this.installedPlugins || []).map((plugin) => [
+          plugin.id,
+          {
+            ...plugin,
+            name: plugin.name || plugin.id,
+            external: false,
+          },
+        ])
+      );
+      const visibleIds = new Set([
+        ...Array.from(this.enabledPlugins || []),
+        ...Array.from(this.activePlugins || []),
+      ]);
+
+      return Array.from(visibleIds)
+        .map((id) => {
+          const installedPlugin = installedById.get(id);
+          if (installedPlugin) {
+            return installedPlugin;
+          }
+
+          const connectedPlugin = this.connectedPlugins?.[id];
+          if (!connectedPlugin) {
+            return { id, name: id, external: false };
+          }
+
+          return {
+            ...connectedPlugin,
+            description: 'Connected externally',
+            external: true,
+          };
+        })
+        .sort((a, b) => (a.name || a.id).localeCompare(b.name || b.id));
+    },
+    pluginTabsKey() {
+      return this.visiblePluginTabs
+        .map((plugin) => `${plugin.id}:${this.activePlugins?.has?.(plugin.id) ? 'active' : 'inactive'}`)
+        .sort()
+        .join('|');
     },
     filteredTabs() {
       const q = this.sidebarSearch.trim().toLowerCase();
@@ -167,8 +204,8 @@ export default {
     },
     filteredPluginTabs() {
       const q = this.sidebarSearch.trim().toLowerCase();
-      if (!q) return this.enabledPluginTabs;
-      return this.enabledPluginTabs.filter(p => p.name.toLowerCase().includes(q));
+      if (!q) return this.visiblePluginTabs;
+      return this.visiblePluginTabs.filter(p => p.name.toLowerCase().includes(q));
     },
     filteredSettings() {
       const q = this.sidebarSearch.trim().toLowerCase();
@@ -185,7 +222,6 @@ export default {
     // Ensure enabled plugins are loaded from disk
     const store = useStore();
     store.loadEnabledPlugins?.();
-    // Fetch connected plugin metadata for nicer tab names
     this.fetchPlugins();
   },
 
@@ -193,19 +229,18 @@ export default {
     async fetchPlugins() {
       try {
         const installed = await invoke('list_installed_plugins');
-        console.log(installed);
         if (Array.isArray(installed)) {
-          this.plugins = installed;
-          await this.indexPluginSettings(installed);
+          this.installedPlugins = installed;
+          await this.indexPluginSettings();
         }
       } catch (e) {
         console.error('Failed to list installed plugins', e);
       }
     },
-    async indexPluginSettings(plugins) {
-      const enabledIds = Array.from(this.enabledPlugins || []);
-      for (const plugin of plugins) {
-        if (!enabledIds.includes(plugin.id)) continue;
+    async indexPluginSettings() {
+      this.settingsIndex = [...BASE_SETTINGS_INDEX];
+      for (const plugin of this.visiblePluginTabs) {
+        if (!this.activePlugins?.has?.(plugin.id)) continue;
         try {
           const settings = await pluginAPI.getPluginSettings(plugin.id);
           if (!settings?.sections) continue;
@@ -218,7 +253,7 @@ export default {
             }
           }
         } catch (e) {
-          // plugin settings unavailable, skip
+          // Plugin settings are only available while the plugin is connected.
         }
       }
     },
@@ -244,6 +279,11 @@ export default {
       this.activeTab = "PluginSettings"
       this.activePlugin = plugin
     }
+  },
+  watch: {
+    pluginTabsKey() {
+      this.indexPluginSettings();
+    },
   },
 
 };

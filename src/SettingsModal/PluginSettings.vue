@@ -33,9 +33,19 @@ import EventBus from '../js/eventBus';
         methods: {
 
           async loadSettings() {
-            const settings = await pluginAPI.getPluginSettings(this.plugin.id);
-            console.log('Settings:', settings);
-            this.settings = settings;
+            if (!this.plugin?.id) {
+              this.settings = {};
+              return;
+            }
+
+            try {
+              const settings = await pluginAPI.getPluginSettings(this.plugin.id);
+              console.log('Settings:', settings);
+              this.settings = settings || {};
+            } catch (error) {
+              console.error('Failed to load plugin settings', error);
+              this.settings = {};
+            }
           },
             
         },
