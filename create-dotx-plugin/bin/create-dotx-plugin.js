@@ -4,19 +4,13 @@
 //   Interactive TUI guides you through setup.
 //   Flags (for CI / non-interactive): --name <n> --id <id> --deno|--node --force
 
-/* eslint-disable no-console */
+import fs from 'fs';
+import path from 'path';
+import { createRequire } from 'module';
+import * as p from '@clack/prompts';
 
-const fs = require('fs');
-const path = require('path');
-const readline = require('readline');
+const require = createRequire(import.meta.url);
 const { dotxPluginSdkVersion: SDK_PACKAGE_VERSION } = require('../package.json');
-
-// ── ANSI helpers ──────────────────────────────────────────────────────────────
-
-const bold  = (s) => `\x1b[1m${s}\x1b[22m`;
-const dim   = (s) => `\x1b[2m${s}\x1b[22m`;
-const cyan  = (s) => `\x1b[36m${s}\x1b[39m`;
-const green = (s) => `\x1b[32m${s}\x1b[39m`;
 
 // ── CLI arg parsing (still supported for CI) ─────────────────────────────────
 
@@ -37,17 +31,17 @@ function parseArgs(argv) {
 
 function printHelp() {
   console.log(`
-${bold('create-dotx-plugin')} — scaffold a new Dot X plugin
+create-dotx-plugin — scaffold a new Dot X plugin
 
-${bold('Usage:')}
-  npx @dotmatrixlabs/create-dotx-plugin            ${dim('(interactive)')}
-  npx @dotmatrixlabs/create-dotx-plugin [options]   ${dim('(non-interactive)')}
+Usage:
+  npx @dotmatrixlabs/create-dotx-plugin            (interactive)
+  npx @dotmatrixlabs/create-dotx-plugin [options]   (non-interactive)
 
-${bold('Options:')}
+Options:
   --name <name>   Plugin display name
   --id   <id>     Plugin identifier (kebab-case)
   --node          Use Node + esbuild template
-  --deno          Use Deno template ${dim('(default)')}
+  --deno          Use Deno template (default)
   --force         Overwrite existing files
   -h, --help      Show this help
 `);
@@ -74,163 +68,56 @@ function writeFileSafe(filePath, content, force) {
 
 // ── Interactive TUI ──────────────────────────────────────────────────────────
 
-function createPrompt() {
-  let closed = false;
-
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
-
-  // Exit gracefully if the user closes the prompt (Ctrl+C, Ctrl+D, etc.)
-  rl.on('close', () => {
-    if (!closed) {
-      // User interrupted (Ctrl+C / Ctrl+D), not a programmatic close
-      console.log('\n');
-      process.exit(0);
-    }
-  });
-
-  const ask = (question, defaultValue) =>
-    new Promise((resolve) => {
-      const suffix = defaultValue != null ? ` ${dim(`(${defaultValue})`)} ` : ' ';
-      rl.question(`  ${cyan('?')} ${question}${suffix}`, (answer) => {
-        resolve(answer.trim() || defaultValue || '');
-      });
-    });
-
-  const select = (question, options, defaultIndex = 0) =>
-    new Promise((resolve) => {
-      // Pause the readline so we can take over raw stdin
-      rl.pause();
-
-      let cursor = defaultIndex;
-      let settled = false;
-
-      const render = () => {
-        // Move up to overwrite previous render (skip on first draw)
-        if (render.drawn) {
-          process.stdout.write(`\x1b[${options.length}A`);
-        }
-        options.forEach((opt, i) => {
-          const marker = i === cursor ? cyan('>') : ' ';
-          const label = i === cursor ? bold(opt.label) : dim(opt.label);
-          const hint = opt.hint ? `  ${dim(opt.hint)}` : '';
-          process.stdout.write(`\x1b[2K    ${marker} ${label}${hint}\n`);
-        });
-        render.drawn = true;
-      };
-
-      process.stdout.write(`  ${cyan('?')} ${question} ${dim('(use arrow keys, enter to confirm)')}\n`);
-      render();
-
-      process.stdin.setRawMode(true);
-      process.stdin.resume();
-
-      const onKey = (key) => {
-        if (settled) return;
-
-        // Ctrl-C / Ctrl-D
-        if (key[0] === 0x03 || key[0] === 0x04) {
-          settled = true;
-          cleanup();
-          console.log('\n');
-          process.exit(0);
-        }
-        // Enter
-        if (key[0] === 0x0D) {
-          settled = true;
-          cleanup();
-          const selected = options[cursor];
-          // Move up over the option list and collapse to a single confirmed line
-          process.stdout.write(`\x1b[${options.length}A`);
-          process.stdout.write(`\x1b[2K    ${green('>')} ${bold(green(selected.label))}  ${dim(selected.hint || '')}\n`);
-          // Erase leftover lines
-          for (let i = 1; i < options.length; i++) {
-            process.stdout.write('\x1b[2K\x1b[1B');
-          }
-          // Move cursor back up to right after the selected line
-          if (options.length > 1) {
-            process.stdout.write(`\x1b[${options.length - 1}A`);
-          }
-          resolve(selected.value);
-          return;
-        }
-        // Arrow keys: ESC [ A/B
-        if (key[0] === 0x1B && key[1] === 0x5B) {
-          if (key[2] === 0x41) { // Up
-            cursor = (cursor - 1 + options.length) % options.length;
-            render();
-          } else if (key[2] === 0x42) { // Down
-            cursor = (cursor + 1) % options.length;
-            render();
-          }
-        }
-      };
-
-      const cleanup = () => {
-        process.stdin.removeListener('data', onKey);
-        if (process.stdin.isTTY) {
-          process.stdin.setRawMode(false);
-        }
-        process.stdin.pause();
-        if (!closed) rl.resume();
-      };
-
-      process.stdin.on('data', onKey);
-    });
-
-  const confirm = (question, defaultYes = true) =>
-    new Promise((resolve) => {
-      const hint = defaultYes ? 'Y/n' : 'y/N';
-      rl.question(`  ${cyan('?')} ${question} ${dim(`(${hint})`)} `, (answer) => {
-        const a = answer.trim().toLowerCase();
-        if (a === '') resolve(defaultYes);
-        else resolve(a === 'y' || a === 'yes');
-      });
-    });
-
-  const close = () => { closed = true; rl.close(); };
-
-  return { ask, select, confirm, close };
-}
-
 async function runInteractive(cliArgs) {
-  const prompt = createPrompt();
+  p.intro('create-dotx-plugin');
 
-  console.log();
-  console.log(`  ${bold(cyan('create-dotx-plugin'))}`);
-  console.log(`  ${dim('Scaffold a new Dot X plugin project')}`);
-  console.log();
+  const project = await p.group(
+    {
+      name: () =>
+        p.text({
+          message: 'Plugin name',
+          placeholder: 'Hello World Plugin',
+          defaultValue: 'Hello World Plugin',
+          validate: (v) => {
+            if (!v.trim()) return 'Plugin name is required';
+          },
+        }),
+      id: ({ results }) =>
+        p.text({
+          message: 'Plugin ID (kebab-case)',
+          placeholder: toId(results.name),
+          defaultValue: toId(results.name),
+        }),
+      runtime: () =>
+        p.select({
+          message: 'Choose a runtime',
+          options: [
+            { value: 'deno', label: 'Deno', hint: 'TypeScript, zero config, recommended' },
+            { value: 'node', label: 'Node', hint: 'Node + esbuild, npm ecosystem' },
+          ],
+        }),
+    },
+    {
+      onCancel: () => {
+        p.cancel('Operation cancelled.');
+        process.exit(0);
+      },
+    }
+  );
 
-  // 1. Plugin name
-  const name = await prompt.ask('Plugin name', 'Hello World Plugin');
-
-  // 2. Plugin ID
-  const suggestedId = toId(name);
-  const id = await prompt.ask('Plugin ID (kebab-case)', suggestedId);
-
-  // 3. Runtime
-  const runtime = await prompt.select('Choose a runtime', [
-    { label: 'Deno', value: 'deno', hint: 'TypeScript, zero config, recommended' },
-    { label: 'Node', value: 'node', hint: 'Node + esbuild, npm ecosystem' },
-  ], 0);
-
-  prompt.close();
-
-  // Create a folder named after the plugin ID
+  const id = toId(project.id);
   const targetDir = path.join(process.cwd(), id);
 
   // Check if folder already exists
   if (fs.existsSync(targetDir) && !cliArgs.force) {
     const existing = fs.readdirSync(targetDir);
     if (existing.length > 0) {
-      console.error(`\n  ${bold('Error:')} Directory ${bold(id)} already exists and is not empty (use --force to overwrite)`);
+      p.cancel(`Directory ${id} already exists and is not empty (use --force to overwrite)`);
       process.exit(1);
     }
   }
 
-  return { name, id, runtime, targetDir, force: cliArgs.force };
+  return { name: project.name, id, runtime: project.runtime, targetDir, force: cliArgs.force };
 }
 
 // ── Templates ────────────────────────────────────────────────────────────────
@@ -453,24 +340,24 @@ function scaffold({ name, id, runtime, targetDir, force }) {
       writeFileSafe(path.join(targetDir, file), content, force);
     });
   } catch (err) {
-    console.error(`\n  ${bold('Error:')} ${err.message}`);
+    p.cancel(err.message);
     process.exit(1);
   }
 
   const folderName = path.basename(targetDir);
-  console.log();
-  console.log(`  ${green('+')} Scaffolded Dot X plugin in ${bold(folderName + '/')}`);
-  console.log();
-  console.log(`  ${bold('Next steps:')}`);
   if (useNode) {
-    console.log(`    1. ${cyan(`cd ${folderName}`)}`);
-    console.log(`    2. ${cyan('npm install')}`);
-    console.log(`    3. ${cyan('npm start')}`);
+    p.note(
+      `cd ${folderName}\nnpm install\nnpm start`,
+      'Next steps'
+    );
   } else {
-    console.log(`    1. ${cyan(`cd ${folderName}`)}`);
-    console.log(`    2. ${cyan('deno task start')}`);
+    p.note(
+      `cd ${folderName}\ndeno task start`,
+      'Next steps'
+    );
   }
-  console.log();
+
+  p.outro(`Scaffolded Dot X plugin in ${folderName}/`);
 }
 
 // ── Main ─────────────────────────────────────────────────────────────────────
