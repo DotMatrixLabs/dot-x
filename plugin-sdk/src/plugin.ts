@@ -185,7 +185,7 @@ class Plugin {
     this.ui = this.client.ui as any;
     this.device = this.client.device;
 
-    // Initialize local config store in the same folder as the plugin's entry (main.js)
+    // Initialize local config store in the same folder as the plugin entry file.
     const entryDir = process.cwd();
     const configName = `${pluginInfo.id || 'plugin'}-config`;
     this.configStore = new Conf<Record<string, any>>({
