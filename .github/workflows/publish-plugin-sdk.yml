@@ -1,4 +1,4 @@
-name: Publish Plugin SDK
+name: Publish @dotmatrixlabs/dotx-plugin-sdk
 
 on:
   push:

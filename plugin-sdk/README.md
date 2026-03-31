@@ -34,7 +34,7 @@ npm install @dotmatrixlabs/dotx-plugin-sdk
 npm install ../plugin-sdk
 ```
 
-### Scaffold via NPX
+### Scaffold
 
 The project scaffolder is published separately as `@dotmatrixlabs/create-dotx-plugin`.
 
@@ -43,6 +43,8 @@ Create a plugin in the current directory:
 ```bash
 npx @dotmatrixlabs/create-dotx-plugin --name "My Plugin"
 ```
+
+Use `npx` as the primary scaffold command for the scoped package.
 
 Options:
 
