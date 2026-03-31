@@ -12,7 +12,7 @@ import type { RGBEffect } from './types';
  * 
  * @example
  * ```typescript
- * import Plugin, { runPlugin } from 'dotx-plugin-sdk';
+ * import Plugin, { runPlugin } from '@dotmatrixlabs/dotx-plugin-sdk';
  * 
  * export default class RGBPlugin extends Plugin {
  *   async onLoad() {

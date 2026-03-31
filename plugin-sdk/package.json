@@ -1,5 +1,5 @@
 {
-  "name": "dotx-plugin-sdk",
+  "name": "@dotmatrixlabs/dotx-plugin-sdk",
   "version": "1.0.0",
   "description": "SDK for developing Dot X plugins",
   "main": "./dist/index.cjs",
@@ -15,7 +15,7 @@
     "./package.json": "./package.json"
   },
   "bin": {
-    "dotx-plugin": "./bin/dotx-plugin.js"
+    "dotx-plugin": "bin/dotx-plugin.js"
   },
   "files": [
     "dist/",
@@ -35,6 +35,9 @@
     "url": "https://github.com/Frogbyte-io/dot-x/issues"
   },
   "homepage": "https://github.com/Frogbyte-io/dot-x/tree/main/plugin-sdk",
+  "publishConfig": {
+    "access": "public"
+  },
   "keywords": [
     "dotx",
     "plugin",
