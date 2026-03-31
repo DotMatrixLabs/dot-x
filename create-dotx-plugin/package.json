@@ -1,6 +1,7 @@
 {
   "name": "@dotmatrixlabs/create-dotx-plugin",
   "version": "1.0.0",
+  "type": "module",
   "description": "Scaffold a Dot X plugin project",
   "bin": {
     "create-dotx-plugin": "bin/create-dotx-plugin.js"
@@ -31,5 +32,8 @@
   "publishConfig": {
     "access": "public"
   },
-  "dotxPluginSdkVersion": "^1.0.0"
+  "dotxPluginSdkVersion": "^1.0.0",
+  "dependencies": {
+    "@clack/prompts": "^1.2.0"
+  }
 }
