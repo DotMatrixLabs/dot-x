@@ -1,4 +1,11 @@
 import { Store } from "@tauri-apps/plugin-store";
+import {
+  createPluginApprovalRecord,
+  getPluginApprovalKey,
+  sanitizeStoredApprovalRecords,
+  type PluginApprovalRecord,
+  type PluginApprovalTarget,
+} from "./pluginApproval";
 
 class PluginsStore {
   private store!: Store;
@@ -46,26 +53,56 @@ class PluginsStore {
     await this.setEnabledPluginIds(Array.from(enabledIds));
   }
 
-  async getApprovedPluginIds(): Promise<string[]> {
+  async getApprovedPluginRecords(): Promise<PluginApprovalRecord[]> {
     await this.ensureLoaded();
     const value = await this.store.get("approved");
-    if (Array.isArray(value)) {
-      return value as string[];
+    const { records, changed } = sanitizeStoredApprovalRecords(value);
+    if (changed) {
+      await this.store.set("approved", records);
+      await this.save();
     }
-    return [];
+    return records;
   }
 
-  async isPluginApproved(pluginId: string): Promise<boolean> {
-    const approved = await this.getApprovedPluginIds();
-    return new Set(approved).has(pluginId);
+  async isPluginApproved(target: PluginApprovalTarget): Promise<boolean> {
+    const approvalKey = getPluginApprovalKey(createPluginApprovalRecord(target));
+    if (!approvalKey) {
+      return false;
+    }
+
+    const approved = await this.getApprovedPluginRecords();
+    return new Set(approved.map((entry) => getPluginApprovalKey(entry))).has(approvalKey);
   }
 
-  async approvePlugin(pluginId: string): Promise<void> {
-    const approved = new Set(await this.getApprovedPluginIds());
-    approved.add(pluginId);
+  async approvePlugin(target: PluginApprovalTarget): Promise<PluginApprovalRecord | null> {
+    const approvalRecord = createPluginApprovalRecord(target);
+    if (!approvalRecord) {
+      return null;
+    }
+
+    const approved = await this.getApprovedPluginRecords();
+    const approvedByKey = new Map<string, PluginApprovalRecord>();
+    for (const entry of approved) {
+      const key = getPluginApprovalKey(entry);
+      if (key) {
+        approvedByKey.set(key, entry);
+      }
+    }
+
+    const approvalKey = getPluginApprovalKey(approvalRecord);
+    if (!approvalKey) {
+      return null;
+    }
+
+    approvedByKey.set(approvalKey, {
+      ...approvalRecord,
+      approvedAt: new Date().toISOString(),
+    });
+
     await this.ensureLoaded();
-    await this.store.set("approved", Array.from(approved));
+    await this.store.set("approved", Array.from(approvedByKey.values()));
     await this.save();
+    return approvedByKey.get(approvalKey) ?? null;
   }
 }
 

@@ -1,6 +1,6 @@
 # Plugin System TODO
 
-- Rework plugin permission approval storage so approval is tied to plugin ID plus version and/or a normalized permission hash, instead of only plugin ID.
+- [x] Rework plugin permission approval storage so approval is tied to plugin ID plus version and/or a normalized permission hash, instead of only plugin ID.
 - [x] Clear stored approval state on uninstall, not just the enabled state.
 - Add plugin server authentication and identity binding so only launched/approved plugins can register with the local plugin server.
 - [x] Add strict manifest validation and compatibility checks before listing, installing, or starting plugins.

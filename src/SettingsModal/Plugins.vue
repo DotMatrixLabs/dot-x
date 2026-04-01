@@ -224,11 +224,19 @@ export default {
 		deletePlugin(plugin) {
 			// TODO: Implement delete logic
 		},
+		buildApprovalTarget(plugin) {
+			return {
+				id: plugin?.id,
+				version: plugin?.manifest?.version || plugin?.version || '',
+				permissions: plugin?.manifest?.permissions || [],
+			};
+		},
 		async togglePlugin(plugin, nextEnabled) {
 			const store = useStore();
 			if (nextEnabled) {
+				const approvalTarget = this.buildApprovalTarget(plugin);
 				// Check if permissions have been approved
-				if (!store.isPluginApproved(plugin.id)) {
+				if (!store.isPluginApproved(approvalTarget)) {
 					const perms = plugin.manifest?.permissions || [];
 					if (perms.length > 0) {
 						const approved = await this.requestPermissionApproval(plugin);
@@ -236,7 +244,7 @@ export default {
 							return;
 						}
 					}
-					await store.approvePlugin(plugin.id);
+					await store.approvePlugin(approvalTarget);
 				}
 				await store.enablePluginId(plugin.id);
 			} else {
