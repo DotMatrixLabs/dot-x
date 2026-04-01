@@ -470,7 +470,7 @@ fn approval_entry_matches_plugin_id(entry: &Value, plugin_id: &str) -> bool {
 }
 
 #[tauri::command]
-async fn install_marketplace_plugin(app_handle: AppHandle, plugin_id: String) -> Result<(), String> {
+async fn install_marketplace_plugin(app_handle: AppHandle, plugin_id: String, registry_url: String) -> Result<(), String> {
     // Stop any running instance before replacing files.
     let _ = plugin_runtime::stop_plugin(plugin_id.clone()).await;
 
@@ -499,9 +499,8 @@ async fn install_marketplace_plugin(app_handle: AppHandle, plugin_id: String) ->
             .build()
             .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
 
-        let registry_url = "https://dml.gg/plugin-registry";
         let response = client
-            .get(registry_url)
+            .get(&registry_url)
             .send()
             .map_err(|e| format!("Failed to fetch registry: {}", e))?;
         let registry: Value = response
