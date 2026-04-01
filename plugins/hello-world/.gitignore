@@ -1,0 +1,5 @@
+dist/
+node_modules
+plugin.log
+vendor/
+.DS_Store

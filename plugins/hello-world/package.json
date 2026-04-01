@@ -1,0 +1,19 @@
+{
+  "name": "hello-world",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "build": "node -e \"const manifest=require(\\\"./manifest.json\\\"); require(\\\"esbuild\\\").build({ entryPoints: [\\\"main.ts\\\"], outfile: manifest.main, bundle: true, format: \\\"cjs\\\", platform: \\\"node\\\", target: \\\"node16\\\", minify: true }).catch((error) => { console.error(error.message); process.exit(1); })\"",
+    "package": "npm run build && dotx-plugin package",
+    "release:verify-version": "dotx-plugin verify-release",
+    "release:build": "npm run release:verify-version && npm run package",
+    "start": "node -e \"const { spawn } = require(\\\"node:child_process\\\"); const manifest=require(\\\"./manifest.json\\\"); const child=spawn(process.execPath,[manifest.main],{stdio:\\\"inherit\\\"}); child.on(\\\"exit\\\",(code)=>process.exit(code ?? 0)); child.on(\\\"error\\\",(error)=>{ console.error(error.message); process.exit(1); })\""
+  },
+  "dependencies": {
+    "@dotmatrixlabs/dotx-plugin-sdk": "^1.0.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.6"
+  }
+}
