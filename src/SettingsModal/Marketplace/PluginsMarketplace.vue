@@ -89,18 +89,20 @@
 		</div>
 
 		<Teleport to="body">
-		<PluginDetailModal
-			:plugin="selectedPlugin"
-			:is-open="!!selectedPlugin"
-			:is-installed="selectedPlugin ? isInstalled(selectedPlugin.id) : false"
-			@close="selectedPlugin = null"
-			@download="handleDownload"
-			@uninstall="handleUninstall"
-			@like="handleLike"
-			@installed="handlePluginInstalled"
-			@uninstalled="handlePluginUninstalled"
-		/>
-	</Teleport>
+			<PluginDetailModal
+				v-if="selectedPlugin"
+				:key="selectedPlugin.id"
+				:plugin="selectedPlugin"
+				:is-open="true"
+				:is-installed="isInstalled(selectedPlugin.id)"
+				@close="selectedPlugin = null"
+				@download="handleDownload"
+				@uninstall="handleUninstall"
+				@like="handleLike"
+				@installed="handlePluginInstalled"
+				@uninstalled="handlePluginUninstalled"
+			/>
+		</Teleport>
 	</div>
 </template>
 
@@ -109,7 +111,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { toast } from 'vue-sonner';
 import PluginDetailModal from './PluginDetailModal.vue';
-import MarketplaceStats, { MARKETPLACE_REGISTRY_URL } from '../../ts/marketplaceStats';
+import MarketplaceStats, { MARKETPLACE_REGISTRY_URL, formatMarketplaceErrorMessage } from '../../ts/marketplaceStats';
 
 export default {
 	name: "PluginsMarketplace",
@@ -201,7 +203,7 @@ export default {
 				this.$emit('installed', plugin);
 			} catch (error) {
 				console.error('Failed to install plugin:', error);
-				toast.error(error || `Failed to install ${plugin.name}`);
+				toast.error(formatMarketplaceErrorMessage(error, `Failed to install ${plugin.name}`));
 			} finally {
 				plugin.isDownloading = false;
 			}
@@ -236,14 +238,6 @@ export default {
 					likes: nextLikes ?? plugin.likes,
 				};
 			});
-
-			if (this.selectedPlugin?.id === pluginId) {
-				this.selectedPlugin = {
-					...this.selectedPlugin,
-					isLiked: liked,
-					likes: nextLikes ?? this.selectedPlugin.likes,
-				};
-			}
 		},
 		async recordDownload(plugin) {
 			if (!plugin?.id || !plugin?.version) return;
