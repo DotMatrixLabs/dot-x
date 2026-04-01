@@ -453,6 +453,22 @@ fn validate_extracted_plugin_dir(plugin_dir: &Path, plugin_id: &str) -> Result<(
     Ok(())
 }
 
+fn approval_entry_matches_plugin_id(entry: &Value, plugin_id: &str) -> bool {
+    if entry.as_str() == Some(plugin_id) {
+        return true;
+    }
+
+    let Some(object) = entry.as_object() else {
+        return false;
+    };
+
+    object
+        .get("pluginId")
+        .or_else(|| object.get("id"))
+        .and_then(|value| value.as_str())
+        == Some(plugin_id)
+}
+
 #[tauri::command]
 async fn install_marketplace_plugin(app_handle: AppHandle, plugin_id: String) -> Result<(), String> {
     // Stop any running instance before replacing files.
@@ -616,13 +632,13 @@ async fn uninstall_marketplace_plugin(app_handle: AppHandle, plugin_id: String) 
                     let len_before = enabled.len();
                     enabled.retain(|v| v.as_str() != Some(&plugin_id));
                     changed |= enabled.len() != len_before;
-                }
+                  }
 
-                if let Some(approved) = config.get_mut("approved").and_then(|a| a.as_array_mut()) {
-                    let len_before = approved.len();
-                    approved.retain(|v| v.as_str() != Some(&plugin_id));
-                    changed |= approved.len() != len_before;
-                }
+                  if let Some(approved) = config.get_mut("approved").and_then(|a| a.as_array_mut()) {
+                      let len_before = approved.len();
+                      approved.retain(|value| !approval_entry_matches_plugin_id(value, &plugin_id));
+                      changed |= approved.len() != len_before;
+                  }
 
                 if changed {
                     if let Ok(updated_content) = serde_json::to_string_pretty(&config) {

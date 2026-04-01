@@ -115,7 +115,7 @@ export class SettingsManager {
   async addTab(request: ApiRequest): Promise<ApiResponse> {
     console.log('Adding tab:', request.params);
     
-    const { tabKey, config } = request.params;
+    const { tabKey } = request.params;
     
     // Simulate adding a new tab
     await new Promise(resolve => setTimeout(resolve, 50));
@@ -169,7 +169,7 @@ export class SettingsManager {
   async saveData(request: ApiRequest): Promise<ApiResponse> {
     console.log('Saving data:', request.params);
     
-    const { key, value } = request.params;
+    const { key } = request.params;
     
     // Simulate saving persistent data
     await new Promise(resolve => setTimeout(resolve, 50));
