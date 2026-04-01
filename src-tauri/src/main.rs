@@ -22,7 +22,8 @@ mod midi;
 mod power_monitor;
 mod plugin_server;
 mod plugin_runtime;
-use plugin_runtime::{resolve_plugins_dir, ensure_plugins_dir, find_plugin_dir_by_id, normalize_manifest_main_path, read_manifest_info};
+use plugin_runtime::{resolve_plugins_dir, ensure_plugins_dir, find_plugin_dir_by_id, normalize_manifest_main_path, read_manifest_info, validate_manifest};
+use semver;
 use once_cell::sync::OnceCell;
 use tauri::menu::{Menu, MenuBuilder, MenuItemBuilder, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent};
@@ -168,6 +169,20 @@ fn list_installed_plugins(app_handle: AppHandle) -> Result<Vec<serde_json::Value
                 );
             }
 
+            // Run full manifest validation and attach results.
+            let validation_errors: Vec<String> = match validate_manifest(&manifest_path) {
+                Ok(_) => Vec::new(),
+                Err(errs) => errs,
+            };
+            if let Some(obj) = manifest_json.as_object_mut() {
+                obj.insert(
+                    "_validationErrors".to_string(),
+                    serde_json::Value::Array(
+                        validation_errors.iter().map(|e| serde_json::Value::String(e.clone())).collect()
+                    ),
+                );
+            }
+
             results.push(manifest_json);
         }
     }
@@ -239,6 +254,28 @@ fn calculate_sha256_bytes(bytes: &[u8]) -> String {
     format!("sha256-{}", hex::encode(hasher.finalize()))
 }
 
+/// Validate a marketplace manifest. Delegates to the shared `validate_manifest`
+/// for field/compat checks, then verifies the id matches the expected plugin_id.
+///
+/// `manifest_path` is used for the shared validator; `plugin_id` is the
+/// registry-provided id that the manifest must match.
+fn validate_marketplace_manifest_at_path(manifest_path: &Path, plugin_id: &str) -> Result<PathBuf, String> {
+    let validated = validate_manifest(manifest_path).map_err(|errs| errs.join("; "))?;
+
+    let manifest_id = validated.id
+        .ok_or_else(|| "manifest.json is missing a string \"id\" field".to_string())?;
+    if manifest_id != plugin_id {
+        return Err(format!(
+            "Manifest id '{}' does not match plugin id '{}'",
+            manifest_id, plugin_id
+        ));
+    }
+
+    Ok(validated.main)
+}
+
+/// In-memory variant for the zip inspection path where we only have parsed JSON
+/// (no file path). Performs the same field checks.
 fn validate_marketplace_manifest(manifest_json: &Value, plugin_id: &str) -> Result<PathBuf, String> {
     let manifest_id = manifest_json
         .get("id")
@@ -251,12 +288,41 @@ fn validate_marketplace_manifest(manifest_json: &Value, plugin_id: &str) -> Resu
         ));
     }
 
-    if manifest_json.get("version").and_then(|v| v.as_str()).is_none() {
-        return Err("manifest.json is missing a string \"version\" field".to_string());
+    // Required string fields
+    for field in &["name", "version", "description", "author", "dotxVersion"] {
+        match manifest_json.get(*field).and_then(|v| v.as_str()) {
+            Some(s) if !s.trim().is_empty() => {}
+            _ => return Err(format!("manifest.json is missing a non-empty string \"{}\" field", field)),
+        }
     }
-    if manifest_json.get("dotxVersion").and_then(|v| v.as_str()).is_none() {
-        return Err("manifest.json is missing a string \"dotxVersion\" field".to_string());
+
+    // version must be valid semver
+    if let Some(v) = manifest_json.get("version").and_then(|v| v.as_str()) {
+        if semver::Version::parse(v).is_err() {
+            return Err(format!("\"version\" value \"{}\" is not valid semver", v));
+        }
     }
+
+    // dotxVersion compatibility check
+    if let Some(constraint_str) = manifest_json.get("dotxVersion").and_then(|v| v.as_str()) {
+        let app_version_str = env!("CARGO_PKG_VERSION");
+        if let Ok(app_version) = semver::Version::parse(app_version_str) {
+            if let Ok(req) = semver::VersionReq::parse(constraint_str) {
+                if !req.matches(&app_version) {
+                    return Err(format!(
+                        "Plugin requires dotxVersion {} but the current app version is {}",
+                        constraint_str, app_version_str
+                    ));
+                }
+            } else {
+                return Err(format!(
+                    "\"dotxVersion\" value \"{}\" is not a valid semver requirement", constraint_str
+                ));
+            }
+        }
+    }
+
+    // permissions must be an array of strings
     let permissions = manifest_json
         .get("permissions")
         .and_then(|p| p.as_array())
@@ -376,12 +442,7 @@ fn validate_extracted_plugin_dir(plugin_dir: &Path, plugin_id: &str) -> Result<(
         return Err("Extracted plugin is missing manifest.json at the plugin root".to_string());
     }
 
-    let manifest_content = fs::read_to_string(&manifest_path)
-        .map_err(|e| format!("Failed to read extracted manifest.json: {}", e))?;
-    let manifest_json: Value = serde_json::from_str(&manifest_content)
-        .map_err(|e| format!("Failed to parse extracted manifest.json: {}", e))?;
-
-    let main_path = validate_marketplace_manifest(&manifest_json, plugin_id)?;
+    let main_path = validate_marketplace_manifest_at_path(&manifest_path, plugin_id)?;
     if !plugin_dir.join(&main_path).exists() {
         return Err(format!(
             "Extracted plugin is missing {} as declared by manifest.json main",
