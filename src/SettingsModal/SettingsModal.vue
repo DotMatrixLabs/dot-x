@@ -154,7 +154,7 @@ export default {
   },
 
   computed: {
-    ...mapState(useStore, ['activePlugins', 'enabledPlugins', 'connectedPlugins']),
+    ...mapState(useStore, ['activePlugins', 'connectedPlugins']),
     visiblePluginTabs() {
       const installedById = new Map(
         (this.installedPlugins || []).map((plugin) => [
@@ -166,10 +166,7 @@ export default {
           },
         ])
       );
-      const visibleIds = new Set([
-        ...Array.from(this.enabledPlugins || []),
-        ...Array.from(this.activePlugins || []),
-      ]);
+      const visibleIds = new Set(Array.from(this.activePlugins || []));
 
       return Array.from(visibleIds)
         .map((id) => {
@@ -276,6 +273,9 @@ export default {
       }
     },
     openSettings(plugin) {
+      if (!this.visiblePluginTabs.some((candidate) => candidate.id === plugin?.id)) {
+        return;
+      }
       this.activeTab = "PluginSettings"
       this.activePlugin = plugin
     }
@@ -283,6 +283,10 @@ export default {
   watch: {
     pluginTabsKey() {
       this.indexPluginSettings();
+      if (this.activeTab === 'PluginSettings' && this.activePlugin && !this.visiblePluginTabs.some((plugin) => plugin.id === this.activePlugin.id)) {
+        this.activeTab = 'Plugins';
+        this.activePlugin = null;
+      }
     },
   },
 

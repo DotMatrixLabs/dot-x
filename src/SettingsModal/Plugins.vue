@@ -96,7 +96,15 @@
 							<button v-if="!plugin.external" title="Delete plugin" class="btn btn-ghost btn-square btn-sm" @click="deletePlugin(plugin)">
 								<i class="fa-solid fa-trash"></i>
 							</button>
-							<button title="Settings" class="btn btn-ghost btn-square btn-sm" @click="openSettings(plugin)">
+							<button v-if="!plugin.external" title="Logs" class="btn btn-ghost btn-square btn-sm" @click="openLogs(plugin)">
+								<i class="fa-solid fa-file-lines"></i>
+							</button>
+							<button
+								:title="canOpenSettings(plugin) ? 'Settings' : 'Enable plugin to configure settings'"
+								class="btn btn-ghost btn-square btn-sm"
+								:disabled="!canOpenSettings(plugin)"
+								@click="openSettings(plugin)"
+							>
 								<i class="fa-solid fa-gear"></i>
 							</button>
 							<!-- Enable / Disable -->
@@ -105,7 +113,7 @@
 								type="checkbox"
 								class="toggle toggle-primary"
 								:checked="plugin.enabled"
-								@change="togglePlugin(plugin, $event.target.checked)"
+								@change="togglePlugin(plugin, $event)"
 							/>
 						</div>
 					</div>
@@ -126,6 +134,12 @@
 			:is-installed="selectedPluginInstalled"
 			@close="showDetailModal = false; selectedPlugin = null; selectedPluginInstalled = false"
 		/>
+		<PluginLogsModal
+			:is-open="showLogsModal"
+			:plugin-id="selectedLogPlugin?.id || ''"
+			:plugin-name="selectedLogPlugin?.name || selectedLogPlugin?.id || 'Plugin'"
+			@close="showLogsModal = false; selectedLogPlugin = null"
+		/>
 	</Teleport>
 </template>
 
@@ -135,12 +149,14 @@ import { mapState } from "pinia";
 import { invoke } from "@tauri-apps/api/core";
 import PluginsMarketplace from './Marketplace/PluginsMarketplace.vue';
 import PluginDetailModal from './Marketplace/PluginDetailModal.vue';
+import PluginLogsModal from '../components/PluginLogsModal.vue';
 
 export default {
 	name: "Plugins",
 	components: {
 		PluginsMarketplace,
 		PluginDetailModal,
+		PluginLogsModal,
 	},
 
 	data() {
@@ -151,6 +167,8 @@ export default {
 			selectedPlugin: null,
 			selectedPluginInstalled: false,
 			showDetailModal: false,
+			showLogsModal: false,
+			selectedLogPlugin: null,
 			permissionDialog: {
 				show: false,
 				plugin: null,
@@ -231,7 +249,14 @@ export default {
 				permissions: plugin?.manifest?.permissions || [],
 			};
 		},
-		async togglePlugin(plugin, nextEnabled) {
+		setToggleChecked(event, checked) {
+			const toggle = event?.target;
+			if (toggle && typeof toggle.checked === 'boolean') {
+				toggle.checked = checked;
+			}
+		},
+		async togglePlugin(plugin, event) {
+			const nextEnabled = Boolean(event?.target?.checked);
 			const store = useStore();
 			if (nextEnabled) {
 				const approvalTarget = this.buildApprovalTarget(plugin);
@@ -241,12 +266,16 @@ export default {
 					if (perms.length > 0) {
 						const approved = await this.requestPermissionApproval(plugin);
 						if (!approved) {
+							this.setToggleChecked(event, false);
 							return;
 						}
 					}
 					await store.approvePlugin(approvalTarget);
 				}
-				await store.enablePluginId(plugin.id);
+				const started = await store.enablePluginId(plugin.id);
+				if (!started) {
+					this.setToggleChecked(event, false);
+				}
 			} else {
 				await store.disablePluginId(plugin.id);
 			}
@@ -328,7 +357,17 @@ export default {
 			this.selectedPluginInstalled = !plugin.external;
 			this.showDetailModal = true;
 		},
+		openLogs(plugin) {
+			this.selectedLogPlugin = plugin;
+			this.showLogsModal = true;
+		},
+		canOpenSettings(plugin) {
+			return this.activePlugins?.has?.(plugin?.id) || false;
+		},
 		openSettings(plugin) {
+			if (!this.canOpenSettings(plugin)) {
+				return;
+			}
 			this.$emit('openSettings', plugin);
 			// TODO: Open plugin settings
 		},
