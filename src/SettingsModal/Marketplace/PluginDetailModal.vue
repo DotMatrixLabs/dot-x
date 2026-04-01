@@ -32,26 +32,20 @@
 						<div class="flex items-center gap-3 text-sm">
 							<div class="flex items-center gap-1.5">
 								<i class="fa-solid fa-download opacity-70"></i>
-								<span class="label-text">{{ plugin?.downloads || 0 }}</span>
+								<span class="label-text">{{ downloadCount }}</span>
 							</div>
 							<div class="flex items-center gap-1.5">
 								<div class="tooltip tooltip-bottom" :data-tip="isLiked ? 'Unlike' : 'Like'">
 									<button 
 										:class="[
 											'btn btn-xs',
-											isLiked ? 'btn-error' : 'btn-ghost'
+											isLiked ? 'btn-error' : 'btn-ghost',
+											likeLoading ? 'opacity-80' : ''
 										]"
 										:disabled="likeLoading || !plugin?.id"
 										@click="toggleLike"
 									>
-										<i
-											v-show="!likeLoading"
-											:class="isLiked ? 'fa-solid fa-heart' : 'fa-regular fa-heart'"
-										></i>
-										<span
-											v-show="likeLoading"
-											class="loading loading-spinner loading-xs"
-										></span>
+										<i :class="isLiked ? 'fa-solid fa-heart' : 'fa-regular fa-heart'"></i>
 									</button>
 								</div>
 								<span class="label-text">{{ likeCount }}</span>
@@ -193,6 +187,7 @@ export default {
 			likeLoading: false,
 			localIsLiked: false,
 			localLikeCount: 0,
+			localDownloadCount: 0,
 			hasPendingLikeSync: false,
 			readmeContent: null,
 			loadingReadme: false,
@@ -277,12 +272,16 @@ export default {
 		likeCount() {
 			return this.localLikeCount;
 		},
+		downloadCount() {
+			return this.localDownloadCount;
+		},
 	},
 	methods: {
 		openLink,
 		syncLikeState() {
 			this.localIsLiked = Boolean(this.plugin?.isLiked);
 			this.localLikeCount = Number(this.plugin?.likes || 0);
+			this.localDownloadCount = Number(this.plugin?.downloads || 0);
 		},
 		stageLabel(stage) {
 			const labels = {
@@ -371,15 +370,30 @@ export default {
 		async toggleLike() {
 			if (!this.plugin?.id || this.likeLoading) return;
 
+			const previousLiked = this.isLiked;
+			const previousLikes = this.likeCount;
 			const nextLiked = !this.isLiked;
-			const currentLikes = this.likeCount;
+			const nextLikes = Math.max(0, previousLikes + (nextLiked ? 1 : -1));
+
+			this.localIsLiked = nextLiked;
+			this.localLikeCount = nextLikes;
+			this.hasPendingLikeSync = true;
 			this.likeLoading = true;
+
+			await MarketplaceStats.setLocalLikeState(this.plugin.id, nextLiked, nextLikes);
 			try {
 				const response = await MarketplaceStats.setLike(this.plugin.id, nextLiked);
-				this.localIsLiked = response.liked;
-				this.localLikeCount = Math.max(0, currentLikes + (response.liked ? 1 : -1));
-				this.hasPendingLikeSync = true;
+				if (response.liked !== nextLiked) {
+					const resolvedLikes = Math.max(0, previousLikes + (response.liked ? 1 : -1));
+					this.localIsLiked = response.liked;
+					this.localLikeCount = resolvedLikes;
+					await MarketplaceStats.setLocalLikeState(this.plugin.id, response.liked, resolvedLikes);
+				}
 			} catch (error) {
+				this.localIsLiked = previousLiked;
+				this.localLikeCount = previousLikes;
+				this.hasPendingLikeSync = false;
+				await MarketplaceStats.setLocalLikeState(this.plugin.id, previousLiked, previousLikes);
 				console.error('Failed to update marketplace like:', error);
 				toast.error(formatMarketplaceErrorMessage(error, 'Failed to update like'));
 			} finally {
@@ -389,7 +403,13 @@ export default {
 		async recordDownload() {
 			if (!this.plugin?.id || !this.plugin?.version) return;
 			try {
-				await MarketplaceStats.recordDownload(this.plugin.id, this.plugin.version);
+				const response = await MarketplaceStats.recordDownload(
+					this.plugin.id,
+					this.plugin.version,
+					this.localDownloadCount,
+				);
+				this.localDownloadCount = response.downloads;
+				this.plugin.downloads = response.downloads;
 			} catch (error) {
 				console.error('Failed to record marketplace download:', error);
 			}

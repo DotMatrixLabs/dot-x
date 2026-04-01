@@ -27,8 +27,8 @@ import Conf from 'conf';
  *     console.log('Plugin loaded!');
  *     
  *     // Create settings UI
- *     await this.createSettingsPage((settings) => {
- *       settings.addSection('general');
+ *     await this.settingsPage.addSettings((settings) => {
+ *       settings.addSection('general').setName('General');
  *       settings.addInput('apiKey')
  *         .setLabel('API Key')
  *         .setType('password')
@@ -528,8 +528,8 @@ class Plugin {
    *   });
    *   
    *   // Create settings UI
-   *   await this.createSettingsPage((settings) => {
-   *     settings.addSection('general');
+   *   await this.settingsPage.addSettings((settings) => {
+   *     settings.addSection('general').setName('General');
    *     settings.addInput('apiKey')
    *       .setLabel('API Key')
    *       .setType('password');

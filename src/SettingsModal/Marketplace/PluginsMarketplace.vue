@@ -111,7 +111,12 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { toast } from 'vue-sonner';
 import PluginDetailModal from './PluginDetailModal.vue';
-import MarketplaceStats, { MARKETPLACE_REGISTRY_URL, formatMarketplaceErrorMessage } from '../../ts/marketplaceStats';
+import MarketplaceStats, {
+	MARKETPLACE_REGISTRY_URL,
+	formatMarketplaceErrorMessage,
+	resolveMarketplaceDownloadCount,
+	resolveMarketplaceLikeState,
+} from '../../ts/marketplaceStats';
 
 export default {
 	name: "PluginsMarketplace",
@@ -167,19 +172,34 @@ export default {
 			this.loading = true;
 			try {
 				const likedPluginIds = await MarketplaceStats.getLikedPluginIds();
+				const likeCountOverrides = await MarketplaceStats.getLikeCountOverrides();
+				const downloadCountOverrides = await MarketplaceStats.getDownloadCountOverrides();
 				const response = await fetch(MARKETPLACE_REGISTRY_URL);
 				if (!response.ok) {
 					throw new Error(`Failed to fetch registry: ${response.statusText}`);
 				}
 				const data = await response.json();
-				this.allPlugins = (data.plugins || []).map(plugin => ({
-					...plugin,
-					likes: Number(plugin.likes || 0),
-					downloads: Number(plugin.downloads || 0),
-					isLiked: likedPluginIds.has(plugin.id),
-					isDownloading: false,
-					downloadProgress: null,
-				}));
+				this.allPlugins = (data.plugins || []).map((plugin) => {
+					const localLikeState = resolveMarketplaceLikeState(
+						plugin.id,
+						Number(plugin.likes || 0),
+						likedPluginIds,
+						likeCountOverrides,
+					);
+
+					return {
+						...plugin,
+						likes: localLikeState.likes,
+						downloads: resolveMarketplaceDownloadCount(
+							plugin.id,
+							Number(plugin.downloads || 0),
+							downloadCountOverrides,
+						),
+						isLiked: localLikeState.isLiked,
+						isDownloading: false,
+						downloadProgress: null,
+					};
+				});
 			} catch (error) {
 				console.error('Failed to fetch plugin registry:', error);
 				this.allPlugins = [];
@@ -242,7 +262,12 @@ export default {
 		async recordDownload(plugin) {
 			if (!plugin?.id || !plugin?.version) return;
 			try {
-				await MarketplaceStats.recordDownload(plugin.id, plugin.version);
+				const response = await MarketplaceStats.recordDownload(
+					plugin.id,
+					plugin.version,
+					Number(plugin.downloads || 0),
+				);
+				plugin.downloads = response.downloads;
 			} catch (error) {
 				console.error('Failed to record marketplace download:', error);
 			}
