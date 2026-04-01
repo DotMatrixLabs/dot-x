@@ -224,12 +224,25 @@ export default {
 			this.handleInstall(plugin);
 		},
 		handleLike({ pluginId, liked, likes }) {
-			const plugin = this.allPlugins.find(p => p.id === pluginId);
-			if (plugin) {
-				plugin.isLiked = liked;
-				if (typeof likes === 'number') {
-					plugin.likes = likes;
+			const nextLikes = typeof likes === 'number' ? likes : undefined;
+			this.allPlugins = this.allPlugins.map((plugin) => {
+				if (plugin.id !== pluginId) {
+					return plugin;
 				}
+
+				return {
+					...plugin,
+					isLiked: liked,
+					likes: nextLikes ?? plugin.likes,
+				};
+			});
+
+			if (this.selectedPlugin?.id === pluginId) {
+				this.selectedPlugin = {
+					...this.selectedPlugin,
+					isLiked: liked,
+					likes: nextLikes ?? this.selectedPlugin.likes,
+				};
 			}
 		},
 		async recordDownload(plugin) {
