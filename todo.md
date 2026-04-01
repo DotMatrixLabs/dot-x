@@ -3,9 +3,8 @@
 - Rework plugin permission approval storage so approval is tied to plugin ID plus version and/or a normalized permission hash, instead of only plugin ID.
 - [x] Clear stored approval state on uninstall, not just the enabled state.
 - Add plugin server authentication and identity binding so only launched/approved plugins can register with the local plugin server.
-- Add strict manifest validation and compatibility checks before listing, installing, or starting plugins.
+- [x] Add strict manifest validation and compatibility checks before listing, installing, or starting plugins.
 - Add SDK/host API version and capability negotiation during plugin registration.
-- Move from the current two-file marketplace install format to a real plugin package format with whole-package integrity/signature verification.
 - Clarify baseline runtime capabilities such as `--allow-env`, and separate them from user-approvable plugin permissions.
 - Limit environment exposure if possible, or document that full env access is currently required by the SDK/runtime contract.
 - Revisit baseline `--allow-sys` access and require explicit manifest permission where possible.

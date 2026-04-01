@@ -1814,6 +1814,7 @@ dependencies = [
  "reqwest",
  "rmp-serde",
  "rustc_version",
+ "semver",
  "sentry",
  "serde",
  "serde_json",

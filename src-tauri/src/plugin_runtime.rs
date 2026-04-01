@@ -231,6 +231,139 @@ pub struct ManifestInfo {
   pub main: PathBuf,
 }
 
+/// Extended manifest with all parsed fields and validation state.
+#[allow(dead_code)]
+pub struct ValidatedManifest {
+  pub id: Option<String>,
+  pub name: String,
+  pub version: String,
+  pub description: String,
+  pub author: String,
+  pub main: PathBuf,
+  pub permissions: Vec<String>,
+  pub dotx_version: String,
+}
+
+/// Known permission strings accepted in manifest.json `permissions`.
+const KNOWN_PERMISSIONS: &[&str] = &["net", "network", "env", "run", "ffi", "sys", "read", "write", "hrtime", "all"];
+
+/// Validate all manifest fields, permission values, version format, and
+/// dotxVersion compatibility.  Returns the full parsed manifest or a list
+/// of every problem found (so callers can surface them all at once).
+pub fn validate_manifest(manifest_path: &Path) -> Result<ValidatedManifest, Vec<String>> {
+  let contents = std::fs::read_to_string(manifest_path)
+    .map_err(|e| vec![format!("Failed to read {}: {}", manifest_path.display(), e)])?;
+  let json: Value = serde_json::from_str(&contents)
+    .map_err(|e| vec![format!("Failed to parse {}: {}", manifest_path.display(), e)])?;
+
+  let mut errors: Vec<String> = Vec::new();
+
+  // --- required string fields ---
+  let id = json.get("id").and_then(|v| v.as_str()).map(|s| s.to_string());
+  let name = require_string(&json, "name", &mut errors);
+  let version = require_string(&json, "version", &mut errors);
+  let description = require_string(&json, "description", &mut errors);
+  let author = require_string(&json, "author", &mut errors);
+  let dotx_version = require_string(&json, "dotxVersion", &mut errors);
+
+  // --- main (reuse existing path-safety validation) ---
+  let main = match json.get("main").and_then(|v| v.as_str()) {
+    Some(raw) => match normalize_manifest_main_path(raw) {
+      Ok(p) => p,
+      Err(e) => { errors.push(e); PathBuf::new() }
+    },
+    None => { errors.push("manifest.json is missing a string \"main\" field".to_string()); PathBuf::new() }
+  };
+
+  // --- permissions ---
+  let permissions = match json.get("permissions").and_then(|v| v.as_array()) {
+    Some(arr) => {
+      let mut perms: Vec<String> = Vec::new();
+      for (i, entry) in arr.iter().enumerate() {
+        match entry.as_str() {
+          Some(s) => {
+            let p = s.trim().to_lowercase();
+            if !KNOWN_PERMISSIONS.contains(&p.as_str()) {
+              errors.push(format!("Unknown permission \"{}\" at permissions[{}]", p, i));
+            }
+            perms.push(p);
+          }
+          None => errors.push(format!("permissions[{}] must be a string", i)),
+        }
+      }
+      perms
+    }
+    None => { errors.push("manifest.json is missing a \"permissions\" array".to_string()); Vec::new() }
+  };
+
+  // --- version format (semver) ---
+  if let Some(ref v) = version {
+    if semver::Version::parse(v).is_err() {
+      errors.push(format!("\"version\" value \"{}\" is not valid semver", v));
+    }
+  }
+
+  // --- dotxVersion compatibility ---
+  if let Some(ref constraint_str) = dotx_version {
+    check_dotx_version_compat(constraint_str, &mut errors);
+  }
+
+  if !errors.is_empty() {
+    return Err(errors);
+  }
+
+  Ok(ValidatedManifest {
+    id,
+    name: name.unwrap(),
+    version: version.unwrap(),
+    description: description.unwrap(),
+    author: author.unwrap(),
+    main,
+    permissions,
+    dotx_version: dotx_version.unwrap(),
+  })
+}
+
+fn require_string(json: &Value, field: &str, errors: &mut Vec<String>) -> Option<String> {
+  match json.get(field) {
+    Some(v) => match v.as_str() {
+      Some(s) if !s.trim().is_empty() => Some(s.to_string()),
+      Some(_) => { errors.push(format!("manifest.json \"{}\" must not be empty", field)); None }
+      None => { errors.push(format!("manifest.json \"{}\" must be a string", field)); None }
+    },
+    None => { errors.push(format!("manifest.json is missing a \"{}\" field", field)); None }
+  }
+}
+
+fn check_dotx_version_compat(constraint_str: &str, errors: &mut Vec<String>) {
+  let app_version_str = env!("CARGO_PKG_VERSION");
+  let app_version = match semver::Version::parse(app_version_str) {
+    Ok(v) => v,
+    Err(_) => {
+      // If our own version isn't parseable, skip the check.
+      warn!("Could not parse app version \"{}\" as semver; skipping dotxVersion check", app_version_str);
+      return;
+    }
+  };
+
+  let req = match semver::VersionReq::parse(constraint_str) {
+    Ok(r) => r,
+    Err(_) => {
+      errors.push(format!(
+        "\"dotxVersion\" value \"{}\" is not a valid semver requirement", constraint_str
+      ));
+      return;
+    }
+  };
+
+  if !req.matches(&app_version) {
+    errors.push(format!(
+      "Plugin requires dotxVersion {} but the current app version is {}",
+      constraint_str, app_version_str
+    ));
+  }
+}
+
 pub fn normalize_manifest_main_path(raw: &str) -> Result<PathBuf, String> {
   let trimmed = raw.trim();
   if trimmed.is_empty() {
@@ -422,6 +555,8 @@ fn build_deno_permission_args(plugin_dir: &Path, permissions: &[String], port: u
       }
       "read" => Some("--allow-read".to_string()),
       "write" => Some("--allow-write".to_string()),
+      "hrtime" => Some("--allow-hrtime".to_string()),
+      "all" => Some("--allow-all".to_string()),
       _ => None,
     };
 
@@ -543,15 +678,22 @@ fn normalized_plugin_platform() -> String {
 
 async fn spawn_deno_process(app_handle: &AppHandle, dir: &Path, plugin_id: &str) -> Result<tokio::process::Child, String> {
   let manifest_path = dir.join("manifest.json");
-  let manifest = read_manifest_info(&manifest_path)?;
-  let entry_path = dir.join(&manifest.main);
+
+  // Full manifest validation — reject invalid plugins before spawning.
+  let validated = validate_manifest(&manifest_path).map_err(|errs| {
+    format!("Plugin {} has an invalid manifest:\n  - {}", plugin_id, errs.join("\n  - "))
+  })?;
+
+  let entry_path = dir.join(&validated.main);
   if !entry_path.exists() {
     return Err(format!(
       "Entry point {} not found for plugin {}",
-      manifest.main.display(),
+      validated.main.display(),
       plugin_id
     ));
   }
+
+  let manifest = read_manifest_info(&manifest_path)?;
 
   // Get the active plugin server port
   let port = get_active_port();

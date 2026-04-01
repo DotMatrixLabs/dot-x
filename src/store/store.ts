@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import PluginsStore from "../ts/plugins";
 import { invoke } from "@tauri-apps/api/core";
+import { toast } from "vue-sonner";
 
 interface StoreState {
     activePlugins: Set<string>;
@@ -99,6 +100,7 @@ export const useStore = defineStore('store', {
                     await invoke('start_plugin', { pluginId });
                 } catch (error) {
                     console.error(`Failed to start plugin ${pluginId}:`, error);
+                    toast.error(`Failed to start plugin ${pluginId}: ${error}`);
                 }
             }
         },
