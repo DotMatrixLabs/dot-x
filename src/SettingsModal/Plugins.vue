@@ -83,6 +83,12 @@
 								<span class="text-xs label-text">{{ plugin.description }}</span>
 								<span v-if="plugin.external" class="badge badge-outline badge-info badge-xs">External</span>
 							</div>
+							<div v-if="plugin.validationErrors?.length" class="flex items-start gap-1.5 mt-1 p-1.5 rounded bg-warning/10 border border-warning/30">
+								<i class="fa-solid fa-triangle-exclamation text-warning text-xs mt-0.5 shrink-0"></i>
+								<div class="flex flex-col gap-0.5">
+									<span v-for="(err, i) in plugin.validationErrors" :key="i" class="text-xs text-warning">{{ err }}</span>
+								</div>
+							</div>
 						</div>
 						<!-- Actions -->
 						<div class="flex items-center gap-3 my-auto">
@@ -165,6 +171,7 @@ export default {
 				manifest,
 				enabled: this.enabledPlugins?.has?.(manifest.id) || false,
 				external: false,
+				validationErrors: manifest._validationErrors || [],
 			}));
 			const installedIds = new Set(installedPlugins.map((plugin) => plugin.id));
 			const externalPlugins = Object.values(this.connectedPlugins || {})
@@ -254,6 +261,8 @@ export default {
 				run: { label: 'Run subprocesses', icon: 'fa-solid fa-play' },
 				ffi: { label: 'Native library access (FFI)', icon: 'fa-solid fa-plug' },
 				sys: { label: 'System information', icon: 'fa-solid fa-desktop' },
+				hrtime: { label: 'High-resolution timers', icon: 'fa-solid fa-clock' },
+				all: { label: 'Full system access', icon: 'fa-solid fa-unlock' },
 			};
 			return permissions.map((p) => ({
 				key: p,
