@@ -95,7 +95,13 @@
 						<!-- Actions -->
 						<div class="flex items-center gap-3 my-auto">
 							<!-- Settings -->
-							<button v-if="!plugin.external" title="Delete plugin" class="btn btn-ghost btn-square btn-sm" @click="deletePlugin(plugin)">
+							<button
+								v-if="!plugin.external"
+								title="Delete plugin"
+								class="btn btn-ghost btn-square btn-sm"
+								:disabled="plugin.isBusy"
+								@click="deletePlugin(plugin)"
+							>
 								<i class="fa-solid fa-trash"></i>
 							</button>
 							<button v-if="!plugin.external" title="Logs" class="btn btn-ghost btn-square btn-sm" @click="openLogs(plugin)">
@@ -284,8 +290,34 @@ export default {
 			await this.loadEnabledState();
 			await usePluginStore().refreshPluginUpdates({ silent: false });
 		},
-		deletePlugin(plugin) {
-			// TODO: Implement delete logic
+		async deletePlugin(plugin) {
+			if (!plugin?.id || plugin.isBusy) {
+				return;
+			}
+
+			const pluginLabel = plugin.name || plugin.id;
+			this.setPluginActionState(plugin.id, { busy: true });
+			try {
+				await invoke('uninstall_marketplace_plugin', { pluginId: plugin.id });
+				if (this.selectedPlugin?.id === plugin.id) {
+					this.showDetailModal = false;
+					this.selectedPlugin = null;
+					this.selectedPluginInstalled = false;
+				}
+				if (this.selectedLogPlugin?.id === plugin.id) {
+					this.showLogsModal = false;
+					this.selectedLogPlugin = null;
+				}
+				await this.fetchPlugins();
+				await this.loadEnabledState();
+				await usePluginStore().refreshPluginUpdates();
+				toast.success(`Successfully deleted ${pluginLabel}`);
+			} catch (error) {
+				console.error('Failed to delete plugin', error);
+				toast.error(error || `Failed to delete ${pluginLabel}`);
+			} finally {
+				this.clearPluginActionState(plugin.id);
+			}
 		},
 		stageLabel(stage) {
 			const labels = {
