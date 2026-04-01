@@ -64,7 +64,7 @@ import Conf from 'conf';
  */
 class Plugin {
   /**
-   * Global UI methods for showing toasts, modals, and confirmations.
+   * Global UI methods for showing toast notifications.
    * 
    * @example
    * ```typescript
