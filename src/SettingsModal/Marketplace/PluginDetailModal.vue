@@ -48,7 +48,7 @@
 										<span v-else class="loading loading-spinner loading-xs"></span>
 									</button>
 								</div>
-								<span class="label-text">{{ plugin?.likes || 0 }}</span>
+								<span class="label-text">{{ likeCount }}</span>
 							</div>
 							<div v-if="lastUpdated" class="flex items-center gap-1.5">
 								<i class="fa-solid fa-clock opacity-70"></i>
@@ -185,6 +185,8 @@ export default {
 		return {
 			showLogs: false,
 			likeLoading: false,
+			localIsLiked: false,
+			localLikeCount: 0,
 			readmeContent: null,
 			loadingReadme: false,
 			readmeHtmlUrl: null,
@@ -263,11 +265,18 @@ export default {
 			}
 		},
 		isLiked() {
-			return Boolean(this.plugin?.isLiked);
+			return this.localIsLiked;
+		},
+		likeCount() {
+			return this.localLikeCount;
 		},
 	},
 	methods: {
 		openLink,
+		syncLikeState() {
+			this.localIsLiked = Boolean(this.plugin?.isLiked);
+			this.localLikeCount = Number(this.plugin?.likes || 0);
+		},
 		stageLabel(stage) {
 			const labels = {
 				fetching_registry: 'Fetching...',
@@ -346,16 +355,16 @@ export default {
 			if (!this.plugin?.id || this.likeLoading) return;
 
 			const nextLiked = !this.isLiked;
-			const currentLikes = Number(this.plugin?.likes || 0);
+			const currentLikes = this.likeCount;
 			this.likeLoading = true;
 			try {
 				const response = await MarketplaceStats.setLike(this.plugin.id, nextLiked);
-				this.plugin.isLiked = response.liked;
-				this.plugin.likes = Math.max(0, currentLikes + (response.liked ? 1 : -1));
+				this.localIsLiked = response.liked;
+				this.localLikeCount = Math.max(0, currentLikes + (response.liked ? 1 : -1));
 				this.$emit('like', {
 					pluginId: this.plugin.id,
 					liked: response.liked,
-					likes: this.plugin.likes,
+					likes: this.localLikeCount,
 				});
 			} catch (error) {
 				console.error('Failed to update marketplace like:', error);
@@ -468,6 +477,7 @@ export default {
 	watch: {
 		plugin: {
 			handler() {
+				this.syncLikeState();
 				if (this.isOpen) {
 					this.fetchReadme();
 				}
