@@ -3,6 +3,9 @@ import { Store } from "@tauri-apps/plugin-store";
 const MARKETPLACE_STATE_FILE = "marketplace.json";
 const DEVICE_ID_KEY = "deviceId";
 const LIKED_PLUGIN_IDS_KEY = "likedPluginIds";
+const LIKE_COUNT_OVERRIDES_KEY = "likeCountOverrides";
+const DOWNLOAD_COUNT_OVERRIDES_KEY = "downloadCountOverrides";
+const RECORDED_DOWNLOAD_VERSIONS_KEY = "recordedDownloadVersions";
 
 const DEFAULT_MARKETPLACE_REGISTRY_URL = "https://dotmatrixlabs.github.io/dot-x-plugins/marketplace-registry.json";
 const GENERIC_DB_ERROR_MESSAGE = "DB request failed";
@@ -35,6 +38,52 @@ export function formatMarketplaceErrorMessage(error: unknown, fallbackMessage: s
   }
 
   return message;
+}
+
+export type LikeCountOverrides = Record<string, number>;
+export type DownloadCountOverrides = Record<string, number>;
+export type RecordedDownloadVersions = Record<string, string[]>;
+
+export function resolveMarketplaceLikeState(
+  pluginId: string,
+  registryLikes: number,
+  likedPluginIds: Set<string>,
+  likeCountOverrides: LikeCountOverrides,
+): { isLiked: boolean; likes: number } {
+  const isLiked = likedPluginIds.has(pluginId);
+  const overrideLikes = likeCountOverrides[pluginId];
+
+  if (typeof overrideLikes !== "number" || Number.isNaN(overrideLikes)) {
+    return {
+      isLiked,
+      likes: registryLikes,
+    };
+  }
+
+  if (isLiked) {
+    return {
+      isLiked,
+      likes: Math.max(registryLikes, overrideLikes),
+    };
+  }
+
+  return {
+    isLiked,
+    likes: registryLikes === overrideLikes + 1 ? overrideLikes : registryLikes,
+  };
+}
+
+export function resolveMarketplaceDownloadCount(
+  pluginId: string,
+  registryDownloads: number,
+  downloadCountOverrides: DownloadCountOverrides,
+): number {
+  const overrideDownloads = downloadCountOverrides[pluginId];
+  if (typeof overrideDownloads !== "number" || Number.isNaN(overrideDownloads)) {
+    return registryDownloads;
+  }
+
+  return Math.max(registryDownloads, overrideDownloads);
 }
 
 class MarketplaceStatsStore {
@@ -104,9 +153,85 @@ class MarketplaceStatsStore {
     return new Set(likedPluginIds.filter((pluginId) => typeof pluginId === "string" && pluginId.length > 0));
   }
 
-  private async saveLikedPluginIds(pluginIds: Set<string>) {
+  async getLikeCountOverrides(): Promise<LikeCountOverrides> {
     await this.ensureLoaded();
-    await this.store.set(LIKED_PLUGIN_IDS_KEY, Array.from(pluginIds));
+    const overrides = await this.store.get(LIKE_COUNT_OVERRIDES_KEY);
+    if (!overrides || typeof overrides !== "object" || Array.isArray(overrides)) {
+      return {};
+    }
+
+    return Object.fromEntries(
+      Object.entries(overrides).filter(
+        ([pluginId, likes]) => typeof pluginId === "string" && typeof likes === "number" && !Number.isNaN(likes),
+      ),
+    );
+  }
+
+  async getDownloadCountOverrides(): Promise<DownloadCountOverrides> {
+    await this.ensureLoaded();
+    const overrides = await this.store.get(DOWNLOAD_COUNT_OVERRIDES_KEY);
+    if (!overrides || typeof overrides !== "object" || Array.isArray(overrides)) {
+      return {};
+    }
+
+    return Object.fromEntries(
+      Object.entries(overrides).filter(
+        ([pluginId, downloads]) =>
+          typeof pluginId === "string" && typeof downloads === "number" && !Number.isNaN(downloads),
+      ),
+    );
+  }
+
+  async getRecordedDownloadVersions(): Promise<RecordedDownloadVersions> {
+    await this.ensureLoaded();
+    const recordedVersions = await this.store.get(RECORDED_DOWNLOAD_VERSIONS_KEY);
+    if (!recordedVersions || typeof recordedVersions !== "object" || Array.isArray(recordedVersions)) {
+      return {};
+    }
+
+    return Object.fromEntries(
+      Object.entries(recordedVersions).map(([pluginId, versions]) => [
+        pluginId,
+        Array.isArray(versions)
+          ? versions.filter((version) => typeof version === "string" && version.length > 0)
+          : [],
+      ]),
+    );
+  }
+
+  async setLocalLikeState(pluginId: string, liked: boolean, likes: number): Promise<void> {
+    await this.ensureLoaded();
+
+    const likedPluginIds = await this.getLikedPluginIds();
+    if (liked) {
+      likedPluginIds.add(pluginId);
+    } else {
+      likedPluginIds.delete(pluginId);
+    }
+
+    const likeCountOverrides = await this.getLikeCountOverrides();
+    likeCountOverrides[pluginId] = Math.max(0, likes);
+
+    await this.store.set(LIKED_PLUGIN_IDS_KEY, Array.from(likedPluginIds));
+    await this.store.set(LIKE_COUNT_OVERRIDES_KEY, likeCountOverrides);
+    await this.store.save();
+  }
+
+  async setLocalDownloadState(pluginId: string, downloads: number, version?: string): Promise<void> {
+    await this.ensureLoaded();
+
+    const downloadCountOverrides = await this.getDownloadCountOverrides();
+    downloadCountOverrides[pluginId] = Math.max(0, downloads);
+    await this.store.set(DOWNLOAD_COUNT_OVERRIDES_KEY, downloadCountOverrides);
+
+    if (version) {
+      const recordedVersions = await this.getRecordedDownloadVersions();
+      const versions = new Set(recordedVersions[pluginId] || []);
+      versions.add(version);
+      recordedVersions[pluginId] = Array.from(versions);
+      await this.store.set(RECORDED_DOWNLOAD_VERSIONS_KEY, recordedVersions);
+    }
+
     await this.store.save();
   }
 
@@ -117,25 +242,51 @@ class MarketplaceStatsStore {
       device_id: deviceId,
       liked,
     });
-
-    const likedPluginIds = await this.getLikedPluginIds();
-    if (response.liked) {
-      likedPluginIds.add(pluginId);
-    } else {
-      likedPluginIds.delete(pluginId);
-    }
-
-    await this.saveLikedPluginIds(likedPluginIds);
     return response;
   }
 
-  async recordDownload(pluginId: string, version: string): Promise<{ ok: boolean; counted: boolean }> {
+  async recordDownload(
+    pluginId: string,
+    version: string,
+    currentDownloads = 0,
+  ): Promise<{ ok: boolean; counted: boolean; downloads: number }> {
     const deviceId = await this.getDeviceId();
-    return this.invokeFunction<{ ok: boolean; counted: boolean }>("record-plugin-download", {
-      plugin_id: pluginId,
-      version,
-      device_id: deviceId,
-    });
+    const recordedVersions = await this.getRecordedDownloadVersions();
+    const previouslyRecordedVersions = new Set(recordedVersions[pluginId] || []);
+    const canOptimisticallyCount = !previouslyRecordedVersions.has(version);
+    const nextDownloads = canOptimisticallyCount ? Math.max(0, currentDownloads + 1) : Math.max(0, currentDownloads);
+
+    if (canOptimisticallyCount) {
+      await this.setLocalDownloadState(pluginId, nextDownloads, version);
+    }
+
+    try {
+      const response = await this.invokeFunction<{ ok: boolean; counted: boolean }>("record-plugin-download", {
+        plugin_id: pluginId,
+        version,
+        device_id: deviceId,
+      });
+
+      return {
+        ...response,
+        downloads: nextDownloads,
+      };
+    } catch (error) {
+      if (canOptimisticallyCount) {
+        const downloadCountOverrides = await this.getDownloadCountOverrides();
+        downloadCountOverrides[pluginId] = Math.max(0, currentDownloads);
+        await this.store.set(DOWNLOAD_COUNT_OVERRIDES_KEY, downloadCountOverrides);
+
+        const revertedRecordedVersions = await this.getRecordedDownloadVersions();
+        revertedRecordedVersions[pluginId] = (revertedRecordedVersions[pluginId] || []).filter(
+          (recordedVersion) => recordedVersion !== version,
+        );
+        await this.store.set(RECORDED_DOWNLOAD_VERSIONS_KEY, revertedRecordedVersions);
+        await this.store.save();
+      }
+
+      throw error;
+    }
   }
 }
 
