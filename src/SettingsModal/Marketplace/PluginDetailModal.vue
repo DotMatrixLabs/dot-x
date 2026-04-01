@@ -1,5 +1,5 @@
 <template>
-	<div v-if="isOpen" class="modal modal-open">
+	<div v-show="isOpen" class="modal modal-open">
 		<div class="modal-box max-w-5xl h-[90vh] overflow-hidden flex flex-col p-0 bg-base-200 text-base-content">
 			<!-- Header -->
 			<div class="px-6 py-4 border-b border-base-300">
@@ -44,8 +44,14 @@
 										:disabled="likeLoading || !plugin?.id"
 										@click="toggleLike"
 									>
-										<i v-if="!likeLoading" :class="isLiked ? 'fa-solid fa-heart' : 'fa-regular fa-heart'"></i>
-										<span v-else class="loading loading-spinner loading-xs"></span>
+										<i
+											v-show="!likeLoading"
+											:class="isLiked ? 'fa-solid fa-heart' : 'fa-regular fa-heart'"
+										></i>
+										<span
+											v-show="likeLoading"
+											class="loading loading-spinner loading-xs"
+										></span>
 									</button>
 								</div>
 								<span class="label-text">{{ likeCount }}</span>
@@ -152,7 +158,7 @@ import PluginLogsModal from '../../components/PluginLogsModal.vue';
 import EventBus from '../../js/eventBus';
 import MarkdownIt from 'markdown-it';
 import { formatRelativeTime, openLink } from '../../ts/helpers';
-import MarketplaceStats, { MARKETPLACE_REGISTRY_URL } from '../../ts/marketplaceStats';
+import MarketplaceStats, { MARKETPLACE_REGISTRY_URL, formatMarketplaceErrorMessage } from '../../ts/marketplaceStats';
 
 const md = new MarkdownIt({
 	html: true,
@@ -187,6 +193,7 @@ export default {
 			likeLoading: false,
 			localIsLiked: false,
 			localLikeCount: 0,
+			hasPendingLikeSync: false,
 			readmeContent: null,
 			loadingReadme: false,
 			readmeHtmlUrl: null,
@@ -290,6 +297,14 @@ export default {
 			return labels[stage] || stage;
 		},
 		close() {
+			if (this.hasPendingLikeSync && this.plugin?.id) {
+				this.$emit('like', {
+					pluginId: this.plugin.id,
+					liked: this.localIsLiked,
+					likes: this.localLikeCount,
+				});
+				this.hasPendingLikeSync = false;
+			}
 			this.$emit('close');
 		},
 		onReadmeClick(event) {
@@ -332,7 +347,9 @@ export default {
 				this.$emit('installed', this.plugin);
 			} catch (error) {
 				console.error('Failed to install plugin:', error);
-				toast.error(error || `Failed to install ${this.plugin.name || this.plugin.id}`);
+				toast.error(
+					formatMarketplaceErrorMessage(error, `Failed to install ${this.plugin.name || this.plugin.id}`),
+				);
 			} finally {
 				this.plugin.isDownloading = false;
 			}
@@ -361,14 +378,10 @@ export default {
 				const response = await MarketplaceStats.setLike(this.plugin.id, nextLiked);
 				this.localIsLiked = response.liked;
 				this.localLikeCount = Math.max(0, currentLikes + (response.liked ? 1 : -1));
-				this.$emit('like', {
-					pluginId: this.plugin.id,
-					liked: response.liked,
-					likes: this.localLikeCount,
-				});
+				this.hasPendingLikeSync = true;
 			} catch (error) {
 				console.error('Failed to update marketplace like:', error);
-				toast.error(error?.message || 'Failed to update like');
+				toast.error(formatMarketplaceErrorMessage(error, 'Failed to update like'));
 			} finally {
 				this.likeLoading = false;
 			}
@@ -478,6 +491,7 @@ export default {
 		plugin: {
 			handler() {
 				this.syncLikeState();
+				this.hasPendingLikeSync = false;
 				if (this.isOpen) {
 					this.fetchReadme();
 				}
