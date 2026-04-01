@@ -192,7 +192,10 @@ export default {
 			if (plugin.isDownloading) return;
 			plugin.isDownloading = true;
 			try {
-				await invoke('install_marketplace_plugin', { pluginId: plugin.id });
+				await invoke('install_marketplace_plugin', {
+					pluginId: plugin.id,
+					registryUrl: MARKETPLACE_REGISTRY_URL,
+				});
 				void this.recordDownload(plugin);
 				toast.success(`Successfully installed ${plugin.name}`);
 				this.$emit('installed', plugin);
