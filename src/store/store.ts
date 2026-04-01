@@ -1,5 +1,10 @@
 import { defineStore } from "pinia";
 import PluginsStore from "../ts/plugins";
+import {
+    createPluginApprovalRecord,
+    getPluginApprovalKey,
+    type PluginApprovalTarget,
+} from "../ts/pluginApproval";
 import { invoke } from "@tauri-apps/api/core";
 import { toast } from "vue-sonner";
 
@@ -72,16 +77,25 @@ export const useStore = defineStore('store', {
         async loadEnabledPlugins() {
             const enabled = await PluginsStore.getEnabledPluginIds();
             this.enabledPlugins = new Set(enabled);
-            const approved = await PluginsStore.getApprovedPluginIds();
-            this.approvedPlugins = new Set(approved);
+            const approved = await PluginsStore.getApprovedPluginRecords();
+            this.approvedPlugins = new Set(
+                approved
+                    .map((entry) => getPluginApprovalKey(entry))
+                    .filter((entry): entry is string => Boolean(entry))
+            );
         },
-        isPluginApproved(pluginId: string) {
-            return this.approvedPlugins.has(pluginId);
+        isPluginApproved(target: PluginApprovalTarget) {
+            const approvalKey = getPluginApprovalKey(createPluginApprovalRecord(target));
+            return approvalKey ? this.approvedPlugins.has(approvalKey) : false;
         },
-        async approvePlugin(pluginId: string) {
-            await PluginsStore.approvePlugin(pluginId);
+        async approvePlugin(target: PluginApprovalTarget) {
+            const approvalRecord = await PluginsStore.approvePlugin(target);
+            const approvalKey = getPluginApprovalKey(approvalRecord);
+            if (!approvalKey) {
+                return;
+            }
             const next = new Set(this.approvedPlugins);
-            next.add(pluginId);
+            next.add(approvalKey);
             this.approvedPlugins = next;
         },
         async setEnabledPlugins(plugins: string[]) {
