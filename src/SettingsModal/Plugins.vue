@@ -181,6 +181,17 @@ export default {
 		PluginDetailModal,
 		PluginLogsModal,
 	},
+	props: {
+		modalOpen: {
+			type: Boolean,
+			default: false,
+		},
+		plugin: {
+			type: Object,
+			default: null,
+		},
+	},
+	emits: ['openSettings'],
 
 	data() {
 		return {
