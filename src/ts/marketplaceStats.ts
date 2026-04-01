@@ -5,9 +5,37 @@ const DEVICE_ID_KEY = "deviceId";
 const LIKED_PLUGIN_IDS_KEY = "likedPluginIds";
 
 const DEFAULT_MARKETPLACE_REGISTRY_URL = "https://dotmatrixlabs.github.io/dot-x-plugins/marketplace-registry.json";
+const GENERIC_DB_ERROR_MESSAGE = "DB request failed";
 
 export const MARKETPLACE_REGISTRY_URL =
   (import.meta.env.VITE_MARKETPLACE_REGISTRY_URL || "").trim() || DEFAULT_MARKETPLACE_REGISTRY_URL;
+
+export function formatMarketplaceErrorMessage(error: unknown, fallbackMessage: string): string {
+  const rawMessage =
+    error instanceof Error
+      ? error.message
+      : typeof error === "string"
+        ? error
+        : error == null
+          ? ""
+          : String(error);
+
+  const message = rawMessage.trim();
+  if (!message) {
+    return fallbackMessage;
+  }
+
+  if (
+    /failed to fetch/i.test(message) ||
+    /supabase/i.test(message) ||
+    /functions\/v1/i.test(message) ||
+    message === GENERIC_DB_ERROR_MESSAGE
+  ) {
+    return fallbackMessage;
+  }
+
+  return message;
+}
 
 class MarketplaceStatsStore {
   private store!: Store;
@@ -29,19 +57,24 @@ class MarketplaceStatsStore {
   private async invokeFunction<T>(name: string, payload: Record<string, unknown>): Promise<T> {
     this.ensureConfigured();
 
-    const response = await fetch(`${this.supabaseUrl}/functions/v1/${name}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "apikey": this.supabaseAnonKey,
-        "Authorization": `Bearer ${this.supabaseAnonKey}`,
-      },
-      body: JSON.stringify(payload),
-    });
+    let response: Response;
+    try {
+      response = await fetch(`${this.supabaseUrl}/functions/v1/${name}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": this.supabaseAnonKey,
+          "Authorization": `Bearer ${this.supabaseAnonKey}`,
+        },
+        body: JSON.stringify(payload),
+      });
+    } catch {
+      throw new Error(GENERIC_DB_ERROR_MESSAGE);
+    }
 
     const data = await response.json().catch(() => ({}));
     if (!response.ok || data?.ok === false) {
-      throw new Error(data?.error || `Request to ${name} failed`);
+      throw new Error(formatMarketplaceErrorMessage(data?.error, GENERIC_DB_ERROR_MESSAGE));
     }
 
     return data as T;
