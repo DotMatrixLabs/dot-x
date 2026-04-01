@@ -6,7 +6,7 @@ import type {
 } from './schema';
 import { settingsManager } from './settings';
 import { uiManager } from './ui';
-import { useStore } from '../store/store';
+import { usePluginStore } from '../store/pluginStore';
 import { useDeckerStore } from "../store/deckerStore.ts";
 import EventBus from '../js/eventBus.js';
 import RGBController from '../ts/RGBController';
@@ -177,12 +177,12 @@ export class PluginAPI {
     });
     listen('plugin/connected', (event) => {
       const plugin = event.payload as { id: string; name: string; version?: string; connected_at?: string };
-      useStore().upsertConnectedPlugin(plugin);
+      usePluginStore().upsertConnectedPlugin(plugin);
       console.log('Received connected event:', event.payload);
     });
     listen('plugin/disconnected', (event) => {
       const plugin = event.payload as { id: string; name?: string; error?: string | null };
-      useStore().handlePluginDisconnected(plugin);
+      usePluginStore().handlePluginDisconnected(plugin);
       console.log('Received disconnected event:', event.payload);
     });
   }
@@ -377,7 +377,7 @@ export class PluginAPI {
   private async syncActivePlugins() {
     try {
       const connectedPlugins = await this.getConnectedPlugins();
-      useStore().setConnectedPlugins(connectedPlugins);
+      usePluginStore().setConnectedPlugins(connectedPlugins);
     } catch (error) {
       console.error('Failed to sync active plugins:', error);
     }

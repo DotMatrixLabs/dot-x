@@ -22,6 +22,7 @@ import ConfigStore from "./ts/config.ts";
 import Decker from "./ts/decker.ts";
 import RGBController from "./ts/RGBController";
 import { useDeckerStore } from "./store/deckerStore.ts";
+import { usePluginStore } from "./store/pluginStore";
 import PluginAPI from "./plugin-api/pluginAPI";
 import { mapState } from "pinia";
 import { version } from '@tauri-apps/plugin-os';
@@ -117,6 +118,9 @@ export default {
 
   async mounted() {
     await PluginAPI.initialize();
+    const pluginStore = usePluginStore();
+    await pluginStore.loadPersistedPluginState();
+    void pluginStore.refreshPluginUpdates();
     console.log("Plugin server started");
     
     await new Promise(resolve => setTimeout(resolve, 1000));

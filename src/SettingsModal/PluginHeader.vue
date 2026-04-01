@@ -69,7 +69,7 @@
 <script>
 import { invoke } from '@tauri-apps/api/core';
 import { mapState } from 'pinia';
-import { useStore } from '../store/store';
+import { usePluginStore } from '../store/pluginStore';
 import { toast } from 'vue-sonner';
 import PluginLogsModal from '../components/PluginLogsModal.vue';
 import EventBus from '../js/eventBus';
@@ -92,7 +92,7 @@ export default {
     };
   },
   computed: {
-    ...mapState(useStore, ['activePlugins']),
+    ...mapState(usePluginStore, ['activePlugins']),
     manifest() {
         console.log(this.plugin);
       return this.plugin?.manifest || this.plugin || {};

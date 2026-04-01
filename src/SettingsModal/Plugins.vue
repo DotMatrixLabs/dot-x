@@ -82,6 +82,8 @@
 							<div class="flex items-center gap-2 flex-wrap mt-0.5">
 								<span class="text-xs label-text">{{ plugin.description }}</span>
 								<span v-if="plugin.external" class="badge badge-outline badge-info badge-xs">External</span>
+								<span v-if="plugin.updateInfo?.hasUpdate" class="badge badge-warning badge-xs">Update available</span>
+								<span v-if="plugin.updateInfo?.hasUpdate" class="text-xs text-warning">Latest: {{ plugin.updateInfo.latestVersion }}</span>
 							</div>
 							<div v-if="plugin.validationErrors?.length" class="flex items-start gap-1.5 mt-1 p-1.5 rounded bg-warning/10 border border-warning/30">
 								<i class="fa-solid fa-triangle-exclamation text-warning text-xs mt-0.5 shrink-0"></i>
@@ -100,6 +102,17 @@
 								<i class="fa-solid fa-file-lines"></i>
 							</button>
 							<button
+								v-if="plugin.updateInfo?.hasUpdate"
+								title="Download and install update"
+								class="btn btn-ghost btn-square btn-sm"
+								:disabled="plugin.isBusy"
+								@click="updatePlugin(plugin)"
+							>
+								<span v-if="plugin.isBusy && plugin.downloadProgress" class="loading loading-spinner loading-xs"></span>
+								<i v-else class="fa-solid fa-download"></i>
+							</button>
+							<button
+								v-else
 								:title="canOpenSettings(plugin) ? 'Settings' : 'Enable plugin to configure settings'"
 								class="btn btn-ghost btn-square btn-sm"
 								:disabled="!canOpenSettings(plugin)"
@@ -116,6 +129,13 @@
 								@change="togglePlugin(plugin, $event)"
 							/>
 						</div>
+					</div>
+					<div v-if="plugin.downloadProgress" class="px-1 pb-1">
+						<progress
+							class="progress progress-primary w-full h-1"
+							:value="plugin.downloadProgress.progress"
+							max="100"
+						></progress>
 					</div>
 				</div>
 			</div>
@@ -144,12 +164,15 @@
 </template>
 
 <script>
-import { useStore } from '../store/store';
+import { usePluginStore } from '../store/pluginStore';
 import { mapState } from "pinia";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from '@tauri-apps/api/event';
+import { toast } from 'vue-sonner';
 import PluginsMarketplace from './Marketplace/PluginsMarketplace.vue';
 import PluginDetailModal from './Marketplace/PluginDetailModal.vue';
 import PluginLogsModal from '../components/PluginLogsModal.vue';
+import { MARKETPLACE_REGISTRY_URL } from '../ts/marketplaceStats';
 
 export default {
 	name: "Plugins",
@@ -169,6 +192,8 @@ export default {
 			showDetailModal: false,
 			showLogsModal: false,
 			selectedLogPlugin: null,
+			unlistenProgress: null,
+			pluginActionStateById: {},
 			permissionDialog: {
 				show: false,
 				plugin: null,
@@ -178,7 +203,7 @@ export default {
 		};
 	},
 	computed: {
-		...mapState(useStore, ['activePlugins', 'enabledPlugins', 'approvedPlugins', 'connectedPlugins']),
+		...mapState(usePluginStore, ['activePlugins', 'enabledPlugins', 'approvedPlugins', 'connectedPlugins', 'pluginUpdates', 'lastPluginUpdateCheckAt']),
 		plugins() {
 			const installedPlugins = (this.installedPlugins || []).map((manifest) => ({
 				id: manifest.id,
@@ -190,6 +215,9 @@ export default {
 				enabled: this.enabledPlugins?.has?.(manifest.id) || false,
 				external: false,
 				validationErrors: manifest._validationErrors || [],
+				updateInfo: this.pluginUpdates?.[manifest.id] || null,
+				isBusy: Boolean(this.pluginActionStateById?.[manifest.id]?.busy),
+				downloadProgress: this.pluginActionStateById?.[manifest.id]?.downloadProgress || null,
 			}));
 			const installedIds = new Set(installedPlugins.map((plugin) => plugin.id));
 			const externalPlugins = Object.values(this.connectedPlugins || {})
@@ -203,6 +231,9 @@ export default {
 					manifest: plugin,
 					enabled: false,
 					external: true,
+					updateInfo: null,
+					isBusy: false,
+					downloadProgress: null,
 				}));
 			return [...installedPlugins, ...externalPlugins]
 				.sort((a, b) => (a.name || a.id).localeCompare(b.name || b.id));
@@ -229,18 +260,81 @@ export default {
 			// Refresh installed plugins list
 			await this.fetchPlugins();
 			await this.loadEnabledState();
+			await usePluginStore().refreshPluginUpdates();
 		},
 		async handlePluginUninstalled(plugin) {
 			// Refresh installed plugins list
 			await this.fetchPlugins();
 			await this.loadEnabledState();
+			await usePluginStore().refreshPluginUpdates();
 		},
 		async reloadPlugins() {
 			await this.fetchPlugins();
 			await this.loadEnabledState();
+			await usePluginStore().refreshPluginUpdates({ silent: false });
 		},
 		deletePlugin(plugin) {
 			// TODO: Implement delete logic
+		},
+		stageLabel(stage) {
+			const labels = {
+				fetching_registry: 'Fetching...',
+				downloading_package: 'Downloading...',
+				verifying_package: 'Verifying...',
+				extracting_package: 'Extracting...',
+				validating_package: 'Validating...',
+				installing: 'Installing...',
+				done: 'Done',
+			};
+			return labels[stage] || stage;
+		},
+		setPluginActionState(pluginId, nextState) {
+			this.pluginActionStateById = {
+				...this.pluginActionStateById,
+				[pluginId]: {
+					...(this.pluginActionStateById?.[pluginId] || {}),
+					...nextState,
+				},
+			};
+		},
+		clearPluginActionState(pluginId) {
+			const nextState = { ...this.pluginActionStateById };
+			delete nextState[pluginId];
+			this.pluginActionStateById = nextState;
+		},
+		async updatePlugin(plugin) {
+			if (!plugin?.id || plugin.isBusy) {
+				return;
+			}
+
+			this.setPluginActionState(plugin.id, {
+				busy: true,
+				downloadProgress: {
+					stage: 'fetching_registry',
+					progress: 0,
+				},
+			});
+
+			try {
+				await invoke('install_marketplace_plugin', {
+					pluginId: plugin.id,
+					registryUrl: MARKETPLACE_REGISTRY_URL,
+				});
+				await this.fetchPlugins();
+				await this.loadEnabledState();
+				await usePluginStore().refreshPluginUpdates();
+				const latestVersion = this.pluginUpdates?.[plugin.id]?.latestVersion || plugin.updateInfo?.latestVersion;
+				toast.success(
+					latestVersion
+						? `Updated ${plugin.name || plugin.id} to ${latestVersion}`
+						: `Updated ${plugin.name || plugin.id}`,
+				);
+			} catch (error) {
+				console.error('Failed to update plugin', error);
+				toast.error(error || `Failed to update ${plugin.name || plugin.id}`);
+			} finally {
+				this.clearPluginActionState(plugin.id);
+			}
 		},
 		buildApprovalTarget(plugin) {
 			return {
@@ -257,11 +351,11 @@ export default {
 		},
 		async togglePlugin(plugin, event) {
 			const nextEnabled = Boolean(event?.target?.checked);
-			const store = useStore();
+			const pluginStore = usePluginStore();
 			if (nextEnabled) {
 				const approvalTarget = this.buildApprovalTarget(plugin);
 				// Check if permissions have been approved
-				if (!store.isPluginApproved(approvalTarget)) {
+				if (!pluginStore.isPluginApproved(approvalTarget)) {
 					const perms = plugin.manifest?.permissions || [];
 					if (perms.length > 0) {
 						const approved = await this.requestPermissionApproval(plugin);
@@ -270,14 +364,14 @@ export default {
 							return;
 						}
 					}
-					await store.approvePlugin(approvalTarget);
+					await pluginStore.approvePlugin(approvalTarget);
 				}
-				const started = await store.enablePluginId(plugin.id);
+				const started = await pluginStore.enablePluginId(plugin.id);
 				if (!started) {
 					this.setToggleChecked(event, false);
 				}
 			} else {
-				await store.disablePluginId(plugin.id);
+				await pluginStore.disablePluginId(plugin.id);
 			}
 		},
 		requestPermissionApproval(plugin) {
@@ -392,8 +486,7 @@ export default {
 			}
 		},
 		async loadEnabledState() {
-			const store = useStore();
-			await store.loadEnabledPlugins?.();
+			await usePluginStore().loadPersistedPluginState();
 		},
 		async backgroundRefresh() {
 			try {
@@ -407,10 +500,32 @@ export default {
 
 	beforeUnmount() {
 		clearInterval(this.refreshInterval);
+		if (this.unlistenProgress) {
+			this.unlistenProgress();
+		}
 	},
 	mounted() {
-		this.fetchPlugins().then(() => this.loadEnabledState());
+		this.fetchPlugins().then(async () => {
+			await this.loadEnabledState();
+			await usePluginStore().refreshPluginUpdates();
+		});
 		this.refreshInterval = setInterval(() => this.backgroundRefresh(), 10000);
+		listen('plugin-install-progress', (event) => {
+			const { pluginId, stage, progress } = event.payload || {};
+			if (!pluginId) {
+				return;
+			}
+
+			this.setPluginActionState(pluginId, {
+				busy: true,
+				downloadProgress: {
+					stage,
+					progress,
+				},
+			});
+		}).then((unlisten) => {
+			this.unlistenProgress = unlisten;
+		});
 	},
 };
 </script>
