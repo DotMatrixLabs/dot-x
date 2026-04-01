@@ -5,7 +5,7 @@
   "description": "Publish device slider values to MQTT with Home Assistant integration",
   "author": "DotX Team",
   "dotxVersion": ">=1.0.0",
-  "main": "main.ts",
+  "main": "main.js",
   "longDescription": "This plugin publishes device slider values to an MQTT broker in real-time. Features include channel selection, Home Assistant MQTT discovery support, and advanced connection options including SSL/TLS, QoS levels, and rate limiting.",
   "permissions": [
     "net"

@@ -5,7 +5,7 @@
   "description": "Demonstrates RGB lighting control for the Decker device",
   "author": "DotX Team",
   "dotxVersion": ">=1.0.0",
-  "main": "main.ts",
+  "main": "main.js",
   "longDescription": "This plugin demonstrates controlling the Decker device's 8 RGB LEDs. It showcases various lighting effects including rainbow, static colors, breathing, lightning storm, candle flicker, and perimeter effects. Use the settings page to customize effects, or the action button to cycle through them.",
   "repository": {
     "type": "git",
