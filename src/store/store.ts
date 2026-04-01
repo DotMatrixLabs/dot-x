@@ -33,6 +33,55 @@ export const useStore = defineStore('store', {
         getConnectedPlugins: (state) => state.connectedPlugins,
     },
     actions: {
+        async getPluginStartupFailureReason(pluginId: string) {
+            try {
+                const rawLogs = await invoke<string>('get_plugin_logs', { pluginId });
+                if (!rawLogs || typeof rawLogs !== 'string') {
+                    return null;
+                }
+
+                const lines = rawLogs
+                    .split('\n')
+                    .map((line) => line.trim())
+                    .filter((line) => line.length > 0)
+                    .filter((line) => !line.toLowerCase().includes('no logs available'))
+                    .filter((line) => !line.toLowerCase().includes('logs will appear'))
+                    .filter((line) => !line.toLowerCase().includes('make sure the plugin is running'));
+
+                const lastLine = lines.length > 0 ? lines[lines.length - 1] : null;
+                if (!lastLine) {
+                    return null;
+                }
+
+                return lastLine.length > 180 ? `${lastLine.slice(0, 177)}...` : lastLine;
+            } catch (error) {
+                console.error(`Failed to read startup logs for plugin ${pluginId}:`, error);
+                return null;
+            }
+        },
+        async rollbackEnabledPlugin(pluginId: string) {
+            if (!this.enabledPlugins.has(pluginId)) {
+                return;
+            }
+
+            const next = new Set(this.enabledPlugins);
+            next.delete(pluginId);
+            this.enabledPlugins = next;
+            await PluginsStore.setEnabledPluginIds(Array.from(this.enabledPlugins));
+        },
+        async waitForPluginActive(pluginId: string, timeoutMs = 4000) {
+            const startedAt = Date.now();
+
+            while (Date.now() - startedAt < timeoutMs) {
+                if (this.activePlugins.has(pluginId)) {
+                    return true;
+                }
+
+                await new Promise((resolve) => setTimeout(resolve, 100));
+            }
+
+            return this.activePlugins.has(pluginId);
+        },
         setActivePlugins(plugins: string[]) {
             this.activePlugins = new Set(plugins);
         },
@@ -109,14 +158,41 @@ export const useStore = defineStore('store', {
                 this.enabledPlugins = next;
                 await PluginsStore.setEnabledPluginIds(Array.from(this.enabledPlugins));
                 
+                // Start from a clean slate so retries are not blocked by a stale process.
+                try {
+                    await invoke('stop_plugin', { pluginId });
+                } catch (error) {
+                    console.error(`Failed to stop plugin ${pluginId} before restart:`, error);
+                }
+
                 // Start the plugin
                 try {
                     await invoke('start_plugin', { pluginId });
                 } catch (error) {
+                    await this.rollbackEnabledPlugin(pluginId);
                     console.error(`Failed to start plugin ${pluginId}:`, error);
                     toast.error(`Failed to start plugin ${pluginId}: ${error}`);
+                    return false;
+                }
+
+                const connected = await this.waitForPluginActive(pluginId);
+                if (!connected) {
+                    await this.rollbackEnabledPlugin(pluginId);
+                    try {
+                        await invoke('stop_plugin', { pluginId });
+                    } catch (error) {
+                        console.error(`Failed to clean up plugin ${pluginId} after startup timeout:`, error);
+                    }
+                    const reason = await this.getPluginStartupFailureReason(pluginId);
+                    toast.error(
+                        reason
+                            ? `Plugin ${pluginId} failed to start: ${reason}`
+                            : `Plugin ${pluginId} did not connect after startup. Check plugin logs for details.`
+                    );
+                    return false;
                 }
             }
+            return true;
         },
         async disablePluginId(pluginId: string) {
             if (this.enabledPlugins.has(pluginId)) {
