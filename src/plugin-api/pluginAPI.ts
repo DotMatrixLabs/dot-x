@@ -181,8 +181,8 @@ export class PluginAPI {
       console.log('Received connected event:', event.payload);
     });
     listen('plugin/disconnected', (event) => {
-      const pluginID = (event.payload as { id: string }).id;
-      useStore().removeConnectedPlugin(pluginID);
+      const plugin = event.payload as { id: string; name?: string; error?: string | null };
+      useStore().handlePluginDisconnected(plugin);
       console.log('Received disconnected event:', event.payload);
     });
   }
