@@ -99,7 +99,7 @@ import Midi from "./Midi.vue";
 import Plugins from "./Plugins.vue";
 import PluginSettings from "./PluginSettings.vue";
 import { mapState } from "pinia";
-import { useStore } from "../store/store";
+import { usePluginStore } from "../store/pluginStore";
 import { invoke } from "@tauri-apps/api/core";
 import pluginAPI from "../plugin-api/pluginAPI";
 
@@ -154,7 +154,7 @@ export default {
   },
 
   computed: {
-    ...mapState(useStore, ['activePlugins', 'connectedPlugins']),
+    ...mapState(usePluginStore, ['activePlugins', 'connectedPlugins']),
     visiblePluginTabs() {
       const installedById = new Map(
         (this.installedPlugins || []).map((plugin) => [
@@ -217,8 +217,8 @@ export default {
 
   mounted() {
     // Ensure enabled plugins are loaded from disk
-    const store = useStore();
-    store.loadEnabledPlugins?.();
+    const pluginStore = usePluginStore();
+    pluginStore.loadPersistedPluginState?.();
     this.fetchPlugins();
   },
 
