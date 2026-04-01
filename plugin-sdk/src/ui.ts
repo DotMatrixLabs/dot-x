@@ -72,7 +72,7 @@ export type UISection = {
  * @example
  * ```typescript
  * // Create a complete settings page
- * await this.createSettingsPage((settings) => {
+ * await this.settingsPage.addSettings((settings) => {
  *   // Add a general settings section
  *   settings.addSection('general')
  *     .setName('General Settings')
@@ -1916,7 +1916,7 @@ export class SelectFieldHandle {
  * Creates a new SettingsBuilder instance.
  * 
  * Factory function for creating a settings builder. Usually not needed as
- * `createSettingsPage()` provides this automatically.
+ * `this.settingsPage.addSettings()` provides this automatically.
  *
  * @category Settings Page
  * 

@@ -11,7 +11,7 @@
  * export default class MyPlugin extends Plugin {
  *   async onLoad() {
  *     // Create settings UI
- *     await this.createSettingsPage((settings) => {
+ *     await this.settingsPage.addSettings((settings) => {
  *       settings.addSection('general');
  *       settings.addInput('apiKey').setLabel('API Key').setType('password');
  *     });
@@ -47,7 +47,7 @@
  * - **Device Management**: Monitor device connections and value updates
  * - **Settings Page**: Rich UI builder with inputs, switches, buttons, and more
  * - **Action Mapper**: Register System Utilities buttons
- * - **Global UI**: Toast notifications and dialogs
+ * - **Global UI**: Toast notifications
  * - **Data Storage**: Persistent configuration with dot notation
  * 
  * @module @dotmatrixlabs/dotx-plugin-sdk

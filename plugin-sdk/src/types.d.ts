@@ -100,31 +100,6 @@ export interface SettingsSection {
 }
 export interface SettingsSections { sections: SettingsSection[] }
 
-export interface PluginSettingsResponse {
-  success: boolean;
-  settingsId: string;
-  error?: string;
-}
-
-export interface UIComponent {
-  type: string;
-  props?: Record<string, any>;
-  children?: UIComponent[];
-}
-
-export interface ModalButton {
-  label: string;
-  action: () => void;
-  variant?: 'primary' | 'secondary' | 'danger';
-  disabled?: boolean;
-}
-
-export interface ModalResult {
-  button?: string;
-  data?: any;
-  cancelled: boolean;
-}
-
 export interface PluginInfo {
   id: string;
   name: string;
@@ -156,17 +131,7 @@ export interface PluginContext {
   pluginDir: string;
 }
 
-export interface CreateSettingsParams {
-  schema: SettingsSections;
-}
-
 export interface PluginAPI {
-  // Settings Management
-  settings: {
-    // Create settings instance (called by plugin developers)
-    createSettings: (params: CreateSettingsParams) => Promise<PluginSettingsResponse>;
-  };
-
   // Local persistent config storage helpers (scoped per plugin cwd)
   config: {
     set: (key: string | Record<string, any>, value?: any) => void;
@@ -182,22 +147,6 @@ export interface PluginAPI {
   // UI Components
   ui: {
     showToast: (params: ToastParams) => Promise<void>;
-    
-    showModal: (params: {
-      title: string;
-      content: string | UIComponent;
-      size?: 'small' | 'medium' | 'large' | 'fullscreen';
-      buttons?: ModalButton[];
-      closable?: boolean;
-    }) => Promise<ModalResult>;
-    
-    showConfirmation: (params: {
-      title: string;
-      message: string;
-      confirmText?: string;
-      cancelText?: string;
-      type?: 'info' | 'warning' | 'danger';
-    }) => Promise<boolean>;
   };
 
   // Plugin Management (pluginId automatically injected)
