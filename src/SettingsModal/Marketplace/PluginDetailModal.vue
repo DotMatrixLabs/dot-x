@@ -152,7 +152,7 @@ import PluginLogsModal from '../../components/PluginLogsModal.vue';
 import EventBus from '../../js/eventBus';
 import MarkdownIt from 'markdown-it';
 import { formatRelativeTime, openLink } from '../../ts/helpers';
-import MarketplaceStats from '../../ts/marketplaceStats';
+import MarketplaceStats, { MARKETPLACE_REGISTRY_URL } from '../../ts/marketplaceStats';
 
 const md = new MarkdownIt({
 	html: true,
@@ -314,7 +314,10 @@ export default {
 			if (!this.plugin?.id || this.plugin.isDownloading) return;
 			this.plugin.isDownloading = true;
 			try {
-				await invoke('install_marketplace_plugin', { pluginId: this.plugin.id });
+				await invoke('install_marketplace_plugin', {
+					pluginId: this.plugin.id,
+					registryUrl: MARKETPLACE_REGISTRY_URL,
+				});
 				void this.recordDownload();
 				toast.success(`Successfully installed ${this.plugin.name || this.plugin.id}`);
 				this.$emit('installed', this.plugin);

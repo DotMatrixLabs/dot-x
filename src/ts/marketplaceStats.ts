@@ -4,7 +4,10 @@ const MARKETPLACE_STATE_FILE = "marketplace.json";
 const DEVICE_ID_KEY = "deviceId";
 const LIKED_PLUGIN_IDS_KEY = "likedPluginIds";
 
-export const MARKETPLACE_REGISTRY_URL = "https://dml.gg/plugin-registry";
+const DEFAULT_MARKETPLACE_REGISTRY_URL = "https://dotmatrixlabs.github.io/dot-x-plugins/marketplace-registry.json";
+
+export const MARKETPLACE_REGISTRY_URL =
+  (import.meta.env.VITE_MARKETPLACE_REGISTRY_URL || "").trim() || DEFAULT_MARKETPLACE_REGISTRY_URL;
 
 class MarketplaceStatsStore {
   private store!: Store;
