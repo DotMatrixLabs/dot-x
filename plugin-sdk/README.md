@@ -139,13 +139,15 @@ export default class MyPlugin extends Plugin {
     console.log('Plugin loaded!');
     
     // Create settings UI
-    await this.settings.createSettings({
-      schema: {
-        myField: {
-          type: "text",
-          label: "My Setting"
-        }
-      }
+    await this.settingsPage.addSettings((settings) => {
+      settings.addSection('general').setName('General');
+      settings.addInput('myField')
+        .setLabel('My Setting')
+        .setType('text')
+        .setValue(this.config.get('myField', ''))
+        .onChange(({ value }) => {
+          this.config.set('myField', value);
+        });
     });
     
     // Show notification
@@ -296,12 +298,16 @@ This occurs when the plugin server rejects the registration.
 export default class MyPlugin extends Plugin {
   async onLoad() {
     try {
-      await this.settings.createSettings({
-        schema: { test: { type: "text", label: "Test" } }
+      await this.settingsPage.addSettings((settings) => {
+        settings.addSection('general');
+        settings.addInput('test')
+          .setLabel('Test')
+          .setType('text')
+          .setValue(this.config.get('test', ''));
       });
-      console.log("Settings created successfully");
+      console.log("Settings registered successfully");
     } catch (error) {
-      console.error("Failed to create settings:", error.message);
+      console.error("Failed to register settings:", error.message);
       
       // Handle specific error cases:
       if (error.message.includes('timeout')) {
@@ -412,68 +418,46 @@ Marketplace plugin zips currently require `manifest.json` plus the entry file de
 
 ## API Reference
 
-### Settings API
+### Settings Page API
 
-#### `settings.createSettings(config)`
+#### `settingsPage.addSettings(buildFn)`
 
-Create a settings panel for your plugin.
+Register a settings page for your plugin using the fluent builder API.
 
 ```typescript
-const settings = await this.settings.createSettings({
-  schema: {
-    myText: {
-      type: "text",
-      label: "Text Input",
-      placeholder: "Enter text here"
-    },
-    myBoolean: {
-      type: "boolean", 
-      label: "Enable Feature"
-    },
-    mySelect: {
-      type: "select",
-      label: "Choose Option",
-      options: [
-        { value: "option1", label: "Option 1" },
-        { value: "option2", label: "Option 2" }
-      ]
-    }
-  },
-  options: {
-    defaultTab: "general",
-    showTabIcons: true,
-    tabPosition: "top",
-    autoSave: true,
-    tabs: {
-      general: {
-        title: "General",
-        icon: "⚙️"
-      }
-    }
-  }
+await this.settingsPage.addSettings((settings) => {
+  settings.addSection('general').setName('General');
+
+  settings.addInput('myText')
+    .setLabel('Text Input')
+    .setType('text')
+    .setPlaceholder('Enter text here')
+    .setValue(this.config.get('myText', ''))
+    .onChange(({ value }) => {
+      this.config.set('myText', value);
+    });
+
+  settings.addSwitch('enabled')
+    .setLabel('Enable Feature')
+    .setValue(this.config.get('enabled', false))
+    .onChange(({ value }) => {
+      this.config.set('enabled', value);
+    });
+
+  settings.addSelect('mode')
+    .setLabel('Choose Option')
+    .setOptions([
+      { value: 'option1', label: 'Option 1' },
+      { value: 'option2', label: 'Option 2' }
+    ])
+    .setValue(this.config.get('mode', 'option1'))
+    .onChange(({ value }) => {
+      this.config.set('mode', value);
+    });
 });
 ```
 
-#### `settings.setValue(params)`
-
-Set a setting value programmatically.
-
-```typescript
-await this.settings.setValue({
-  key: "myText",
-  value: "Hello World!"
-});
-```
-
-#### `settings.getValue(params)`
-
-Get a setting value.
-
-```typescript
-const value = await this.settings.getValue({
-  key: "myText"
-});
-```
+Use `this.config.get()` and `this.config.set()` inside field callbacks to persist plugin state locally.
 
 ### UI API
 
@@ -489,35 +473,7 @@ await this.ui.showToast({
 });
 ```
 
-#### `ui.showModal(params)`
-
-Show a modal dialog.
-
-```typescript
-const result = await this.ui.showModal({
-  title: "Confirm Action",
-  content: "Are you sure you want to continue?",
-  size: "medium",
-  buttons: [
-    { label: "Cancel", style: "secondary" },
-    { label: "Confirm", style: "primary" }
-  ]
-});
-```
-
-#### `ui.showConfirmation(params)`
-
-Show a confirmation dialog.
-
-```typescript
-const confirmed = await this.ui.showConfirmation({
-  title: "Delete Item",
-  message: "This action cannot be undone.",
-  confirmText: "Delete",
-  cancelText: "Cancel",
-  type: "danger"
-});
-```
+`ui.showToast()` is currently the only host-provided UI helper. Modal and confirmation helpers are not part of the supported SDK surface.
 
 ### Plugin Status Methods
 

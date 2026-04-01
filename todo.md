@@ -13,5 +13,5 @@
 - [x] Ensure plugins can be restarted after a crash without requiring a full app restart.
 - Replace stubbed settings manager behavior with real persistence and real UI state updates.
 - Align the SDK, host implementation, generated types, and README so they expose the same plugin API surface.
-- Either implement or remove/document unsupported SDK APIs such as `this.settings.createSettings`, `ui.showModal`, and `ui.showConfirmation`.
+- [x] Either implement or remove/document unsupported SDK APIs such as `this.settings.createSettings`, `ui.showModal`, and `ui.showConfirmation`.
 - Add tests for permission approval, uninstall cleanup, plugin crash/restart flow, and SDK-to-host API compatibility.

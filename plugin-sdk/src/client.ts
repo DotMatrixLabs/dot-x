@@ -1,5 +1,5 @@
 import { io, Socket } from 'socket.io-client';
-import type { SettingsSections, CreateSettingsParams, ToastParams, ActionMappings, SystemUtilButton } from './types';
+import type { SettingsSections, ToastParams, ActionMappings, SystemUtilButton } from './types';
 import { DeviceAPI, createDeviceAPI, type DeviceInfo } from './device';
 
 // Default port for backwards compatibility
@@ -144,7 +144,7 @@ export interface DeviceChanges {
 
 
 /**
- * Global UI methods for doing things like showing notifications and dialogs on top of the application window.
+ * Global UI methods for doing things like showing toast notifications on top of the application window.
  * 
  * @category Global UI
  * @displayName this.ui (UIApi)
@@ -511,7 +511,7 @@ export class APIClient {
   
   
   /**
-   * Global UI methods for showing notifications and dialogs.
+  * Global UI methods for showing toast notifications.
    */
   get ui(): UIApi {
     return {
@@ -592,8 +592,8 @@ export class APIClient {
   /**
    * Stores the latest sectioned schema for plugin settings.
    * 
-   * This method is called whenever the plugin creates or updates its settings page UI
-   * via this.createSettingsPage() or this.settingsPage.addSettings().
+  * This method is called whenever the plugin creates or updates its settings page UI
+  * via `this.settingsPage.addSettings()`.
    * 
    * It processes the settings schema by:
    * 1. Registering callbacks for interactive components (buttons, inputs, etc.)
