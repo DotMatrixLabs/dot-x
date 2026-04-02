@@ -283,6 +283,12 @@ export default {
 			this.localLikeCount = Number(this.plugin?.likes || 0);
 			this.localDownloadCount = Number(this.plugin?.downloads || 0);
 		},
+		applyLocalStatsToPlugin() {
+			if (!this.plugin) return;
+			this.plugin.isLiked = this.localIsLiked;
+			this.plugin.likes = this.localLikeCount;
+			this.plugin.downloads = this.localDownloadCount;
+		},
 		stageLabel(stage) {
 			const labels = {
 				fetching_registry: 'Fetching...',
@@ -370,13 +376,13 @@ export default {
 		async toggleLike() {
 			if (!this.plugin?.id || this.likeLoading) return;
 
-			const previousLiked = this.isLiked;
 			const previousLikes = this.likeCount;
 			const nextLiked = !this.isLiked;
 			const nextLikes = Math.max(0, previousLikes + (nextLiked ? 1 : -1));
 
 			this.localIsLiked = nextLiked;
 			this.localLikeCount = nextLikes;
+			this.applyLocalStatsToPlugin();
 			this.hasPendingLikeSync = true;
 			this.likeLoading = true;
 
@@ -387,15 +393,12 @@ export default {
 					const resolvedLikes = Math.max(0, previousLikes + (response.liked ? 1 : -1));
 					this.localIsLiked = response.liked;
 					this.localLikeCount = resolvedLikes;
+					this.applyLocalStatsToPlugin();
 					await MarketplaceStats.setLocalLikeState(this.plugin.id, response.liked, resolvedLikes);
 				}
 			} catch (error) {
-				this.localIsLiked = previousLiked;
-				this.localLikeCount = previousLikes;
-				this.hasPendingLikeSync = false;
-				await MarketplaceStats.setLocalLikeState(this.plugin.id, previousLiked, previousLikes);
 				console.error('Failed to update marketplace like:', error);
-				toast.error(formatMarketplaceErrorMessage(error, 'Failed to update like'));
+				toast.error(formatMarketplaceErrorMessage(error, 'Saved locally, but failed to sync like'));
 			} finally {
 				this.likeLoading = false;
 			}
