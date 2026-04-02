@@ -6,6 +6,8 @@ const LIKED_PLUGIN_IDS_KEY = "likedPluginIds";
 const LIKE_COUNT_OVERRIDES_KEY = "likeCountOverrides";
 const DOWNLOAD_COUNT_OVERRIDES_KEY = "downloadCountOverrides";
 const RECORDED_DOWNLOAD_VERSIONS_KEY = "recordedDownloadVersions";
+const README_CACHE_KEY = "readmeCache";
+const README_CACHE_TTL_MS = 60 * 60 * 1000;
 
 const DEFAULT_MARKETPLACE_REGISTRY_URL = "https://dotmatrixlabs.github.io/dot-x-plugins/marketplace-registry.json";
 const GENERIC_DB_ERROR_MESSAGE = "DB request failed";
@@ -43,6 +45,12 @@ export function formatMarketplaceErrorMessage(error: unknown, fallbackMessage: s
 export type LikeCountOverrides = Record<string, number>;
 export type DownloadCountOverrides = Record<string, number>;
 export type RecordedDownloadVersions = Record<string, string[]>;
+export type ReadmeCacheEntry = {
+  content: string;
+  htmlUrl: string | null;
+  cachedAt: string;
+};
+export type ReadmeCache = Record<string, ReadmeCacheEntry>;
 
 export function resolveMarketplaceLikeState(
   pluginId: string,
@@ -197,6 +205,60 @@ class MarketplaceStatsStore {
           : [],
       ]),
     );
+  }
+
+  async getCachedReadme(repoKey: string): Promise<{ content: string; htmlUrl: string | null } | null> {
+    await this.ensureLoaded();
+
+    const value = await this.store.get(README_CACHE_KEY);
+    const cache =
+      value && typeof value === "object" && !Array.isArray(value)
+        ? (value as ReadmeCache)
+        : {};
+
+    const entry = cache[repoKey];
+    if (!entry || typeof entry !== "object") {
+      return null;
+    }
+
+    if (typeof entry.content !== "string" || typeof entry.cachedAt !== "string") {
+      delete cache[repoKey];
+      await this.store.set(README_CACHE_KEY, cache);
+      await this.store.save();
+      return null;
+    }
+
+    const cachedAtMs = Date.parse(entry.cachedAt);
+    if (!Number.isFinite(cachedAtMs) || Date.now() - cachedAtMs > README_CACHE_TTL_MS) {
+      delete cache[repoKey];
+      await this.store.set(README_CACHE_KEY, cache);
+      await this.store.save();
+      return null;
+    }
+
+    return {
+      content: entry.content,
+      htmlUrl: typeof entry.htmlUrl === "string" ? entry.htmlUrl : null,
+    };
+  }
+
+  async setCachedReadme(repoKey: string, content: string, htmlUrl: string | null): Promise<void> {
+    await this.ensureLoaded();
+
+    const value = await this.store.get(README_CACHE_KEY);
+    const cache =
+      value && typeof value === "object" && !Array.isArray(value)
+        ? (value as ReadmeCache)
+        : {};
+
+    cache[repoKey] = {
+      content,
+      htmlUrl,
+      cachedAt: new Date().toISOString(),
+    };
+
+    await this.store.set(README_CACHE_KEY, cache);
+    await this.store.save();
   }
 
   async setLocalLikeState(pluginId: string, liked: boolean, likes: number): Promise<void> {
