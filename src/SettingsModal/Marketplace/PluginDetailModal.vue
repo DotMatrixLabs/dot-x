@@ -357,7 +357,7 @@ export default {
 			if (!this.plugin?.id || this.plugin.isDownloading) return;
 			this.plugin.isDownloading = true;
 			try {
-				await invoke('uninstall_marketplace_plugin', { pluginId: this.plugin.id });
+				await usePluginStore().uninstallPluginId(this.plugin.id);
 				toast.success(`Successfully uninstalled ${this.plugin.name || this.plugin.id}`);
 				this.$emit('uninstalled', this.plugin);
 			} catch (error) {
