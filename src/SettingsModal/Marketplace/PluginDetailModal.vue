@@ -477,10 +477,15 @@ export default {
 					return;
 				}
 
-				const apiUrl = `https://api.github.com/repos/${repoInfo.owner}/${repoInfo.repo}/readme`;
+				const repoCacheKey = `${repoInfo.owner}/${repoInfo.repo}`.toLowerCase();
+				const cachedReadme = await MarketplaceStats.getCachedReadme(repoCacheKey);
+				if (cachedReadme) {
+					this.readmeContent = cachedReadme.content;
+					this.readmeHtmlUrl = cachedReadme.htmlUrl;
+					return;
+				}
 
-				// TODO: Currently API is limited to 60 requests per hour, so we should add a api key and cache the response.
-				// https://docs.github.com/en/rest/overview/resources-in-the-rest-api?apiVersion=2022-11-28#rate-limiting
+				const apiUrl = `https://api.github.com/repos/${repoInfo.owner}/${repoInfo.repo}/readme`;
 
 				const response = await fetch(apiUrl, {
 					headers: {
@@ -499,6 +504,7 @@ export default {
 					// Decode base64 content
 					const decodedContent = atob(data.content);
 					this.readmeContent = decodedContent;
+					await MarketplaceStats.setCachedReadme(repoCacheKey, decodedContent, this.readmeHtmlUrl);
 				} else {
 					throw new Error('Unexpected response format from GitHub API');
 				}
