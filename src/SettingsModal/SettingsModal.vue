@@ -84,7 +84,14 @@
           </div>
         </div>
         <div class="col-span-2 w-full px-6 pt-16 pb-3">
-          <component :modalOpen="modalOpen" :is="activeTab" :key="activeTab" :plugin="activePlugin" @openSettings="openSettings" />
+          <component
+            :modalOpen="modalOpen"
+            :is="activeTab"
+            :key="activeTab"
+            :plugin="activePlugin"
+            @openSettings="openSettings"
+            @installed-plugins-changed="handleInstalledPluginsChanged"
+          />
         </div>
       </div>
     </div>
@@ -233,6 +240,16 @@ export default {
       } catch (e) {
         console.error('Failed to list installed plugins', e);
       }
+    },
+    handleInstalledPluginsChanged(installedPlugins) {
+      this.installedPlugins = Array.isArray(installedPlugins) ? installedPlugins : [];
+      if (this.activePlugin?.id) {
+        const nextActivePlugin = this.visiblePluginTabs.find((plugin) => plugin.id === this.activePlugin.id);
+        if (nextActivePlugin) {
+          this.activePlugin = nextActivePlugin;
+        }
+      }
+      this.indexPluginSettings();
     },
     async indexPluginSettings() {
       this.settingsIndex = [...BASE_SETTINGS_INDEX];

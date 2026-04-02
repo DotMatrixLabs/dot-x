@@ -23,23 +23,53 @@
         "licenseUrl": "https://github.com/babel/babel/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "@electron/get@1.14.1": {
+    "@clack/core@1.2.0": {
+        "licenses": "MIT",
+        "repository": "https://github.com/bombshell-dev/clack",
+        "licenseUrl": "https://github.com/bombshell-dev/clack/raw/master/LICENSE",
+        "parents": "@dotmatrixlabs/create-dotx-plugin"
+    },
+    "@clack/prompts@1.2.0": {
+        "licenses": "MIT",
+        "repository": "https://github.com/bombshell-dev/clack",
+        "licenseUrl": "https://github.com/bombshell-dev/clack/raw/master/LICENSE",
+        "parents": "@dotmatrixlabs/create-dotx-plugin"
+    },
+    "@dotmatrixlabs/create-dotx-plugin@1.0.0": {
+        "licenses": "UNKNOWN",
+        "repository": "https://github.com/Frogbyte-io/dot-x",
+        "licenseUrl": "https://github.com/Frogbyte-io/dot-x",
+        "parents": "UNDEFINED"
+    },
+    "@dotmatrixlabs/dotx-plugin-sdk@1.0.0": {
+        "licenses": "UNKNOWN",
+        "repository": "https://github.com/Frogbyte-io/dot-x",
+        "licenseUrl": "https://github.com/Frogbyte-io/dot-x",
+        "parents": "UNDEFINED"
+    },
+    "@electron/get@2.0.3": {
         "licenses": "MIT",
         "repository": "https://github.com/electron/get",
         "licenseUrl": "https://github.com/electron/get/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "@esbuild/win32-x64@0.18.20": {
+    "@esbuild/win32-x64@0.25.10": {
         "licenses": "MIT",
         "repository": "https://github.com/evanw/esbuild",
         "licenseUrl": "https://github.com/evanw/esbuild",
         "parents": "vite:dot-x"
     },
+    "@esbuild/win32-x64@0.25.12": {
+        "licenses": "MIT",
+        "repository": "https://github.com/evanw/esbuild",
+        "licenseUrl": "https://github.com/evanw/esbuild",
+        "parents": "rgb-demo"
+    },
     "@esbuild/win32-x64@0.25.6": {
         "licenses": "MIT",
         "repository": "https://github.com/evanw/esbuild",
         "licenseUrl": "https://github.com/evanw/esbuild",
-        "parents": "hello-world"
+        "parents": "dot-x"
     },
     "@fortawesome/fontawesome-common-types@6.7.2": {
         "licenses": "MIT",
@@ -47,8 +77,20 @@
         "licenseUrl": "https://github.com/FortAwesome/Font-Awesome/raw/master/LICENSE.txt",
         "parents": "dot-x"
     },
+    "@fortawesome/fontawesome-common-types@7.2.0": {
+        "licenses": "MIT",
+        "repository": "https://github.com/FortAwesome/Font-Awesome",
+        "licenseUrl": "https://github.com/FortAwesome/Font-Awesome/raw/master/LICENSE.txt",
+        "parents": "@fortawesome/fontawesome-svg-core:dot-x"
+    },
     "@fortawesome/fontawesome-free@6.4.2": {
         "licenses": "(CC-BY-4.0 AND OFL-1.1 AND MIT)",
+        "repository": "https://github.com/FortAwesome/Font-Awesome",
+        "licenseUrl": "https://github.com/FortAwesome/Font-Awesome/raw/master/LICENSE.txt",
+        "parents": "dot-x"
+    },
+    "@fortawesome/fontawesome-svg-core@7.2.0": {
+        "licenses": "MIT",
         "repository": "https://github.com/FortAwesome/Font-Awesome",
         "licenseUrl": "https://github.com/FortAwesome/Font-Awesome/raw/master/LICENSE.txt",
         "parents": "dot-x"
@@ -65,6 +107,12 @@
         "licenseUrl": "https://github.com/FortAwesome/vue-fontawesome/raw/master/LICENSE.txt",
         "parents": "dot-x"
     },
+    "@gerrit0/mini-shiki@3.14.0": {
+        "licenses": "MIT",
+        "repository": "https://github.com/Gerrit0/mini-shiki",
+        "licenseUrl": "https://github.com/Gerrit0/mini-shiki/raw/master/LICENSE",
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
+    },
     "@isaacs/balanced-match@4.0.1": {
         "licenses": "MIT",
         "repository": "https://github.com/isaacs/balanced-match",
@@ -73,6 +121,12 @@
     },
     "@isaacs/brace-expansion@5.0.0": {
         "licenses": "MIT",
+        "parents": "dot-x"
+    },
+    "@isaacs/fs-minipass@4.0.1": {
+        "licenses": "ISC",
+        "repository": "https://github.com/npm/fs-minipass",
+        "licenseUrl": "https://github.com/npm/fs-minipass/raw/master/LICENSE",
         "parents": "dot-x"
     },
     "@jridgewell/gen-mapping@0.3.3": {
@@ -133,6 +187,30 @@
         "licenses": "MIT",
         "repository": "https://github.com/parcel-bundler/watcher",
         "licenseUrl": "https://github.com/parcel-bundler/watcher/raw/master/LICENSE",
+        "parents": "dot-x"
+    },
+    "@rolldown/pluginutils@1.0.0-beta.19": {
+        "licenses": "MIT",
+        "repository": "https://github.com/rolldown/rolldown",
+        "licenseUrl": "https://github.com/rolldown/rolldown/raw/master/LICENSE",
+        "parents": "dot-x"
+    },
+    "@rollup/rollup-win32-x64-gnu@4.52.4": {
+        "licenses": "MIT",
+        "repository": "https://github.com/rollup/rollup",
+        "licenseUrl": "https://github.com/rollup/rollup",
+        "parents": "dot-x"
+    },
+    "@rollup/rollup-win32-x64-msvc@4.52.4": {
+        "licenses": "MIT",
+        "repository": "https://github.com/rollup/rollup",
+        "licenseUrl": "https://github.com/rollup/rollup",
+        "parents": "dot-x"
+    },
+    "@sec-ant/readable-stream@0.4.1": {
+        "licenses": "MIT",
+        "repository": "https://github.com/Sec-ant/readable-stream",
+        "licenseUrl": "https://github.com/Sec-ant/readable-stream/raw/master/LICENSE",
         "parents": "dot-x"
     },
     "@serialport/binding-mock@10.2.2": {
@@ -231,19 +309,55 @@
         "licenseUrl": "https://github.com/serialport/node-serialport/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "@sindresorhus/is@0.14.0": {
+    "@shikijs/engine-oniguruma@3.14.0": {
+        "licenses": "MIT",
+        "repository": "https://github.com/shikijs/shiki",
+        "licenseUrl": "https://github.com/shikijs/shiki/raw/master/LICENSE",
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
+    },
+    "@shikijs/langs@3.14.0": {
+        "licenses": "MIT",
+        "repository": "https://github.com/shikijs/shiki",
+        "licenseUrl": "https://github.com/shikijs/shiki/raw/master/LICENSE",
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
+    },
+    "@shikijs/themes@3.14.0": {
+        "licenses": "MIT",
+        "repository": "https://github.com/shikijs/shiki",
+        "licenseUrl": "https://github.com/shikijs/shiki/raw/master/LICENSE",
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
+    },
+    "@shikijs/types@3.14.0": {
+        "licenses": "MIT",
+        "repository": "https://github.com/shikijs/shiki",
+        "licenseUrl": "https://github.com/shikijs/shiki/raw/master/LICENSE",
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
+    },
+    "@shikijs/vscode-textmate@10.0.2": {
+        "licenses": "MIT",
+        "repository": "https://github.com/shikijs/vscode-textmate",
+        "licenseUrl": "https://github.com/shikijs/vscode-textmate/raw/master/LICENSE.md",
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
+    },
+    "@sindresorhus/is@4.6.0": {
         "licenses": "MIT",
         "repository": "https://github.com/sindresorhus/is",
         "licenseUrl": "https://github.com/sindresorhus/is/raw/master/license",
+        "parents": "dot-x"
+    },
+    "@sindresorhus/merge-streams@4.0.0": {
+        "licenses": "MIT",
+        "repository": "https://github.com/sindresorhus/merge-streams",
+        "licenseUrl": "https://github.com/sindresorhus/merge-streams/raw/master/license",
         "parents": "dot-x"
     },
     "@socket.io/component-emitter@3.1.2": {
         "licenses": "MIT",
         "repository": "https://github.com/socketio/emitter",
         "licenseUrl": "https://github.com/socketio/emitter/raw/master/LICENSE",
-        "parents": "dot-x"
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
     },
-    "@szmarczak/http-timer@1.1.2": {
+    "@szmarczak/http-timer@4.0.6": {
         "licenses": "MIT",
         "repository": "https://github.com/szmarczak/http-timer",
         "licenseUrl": "https://github.com/szmarczak/http-timer/raw/master/LICENSE",
@@ -253,22 +367,96 @@
         "licenses": "Apache-2.0 OR MIT",
         "repository": "https://github.com/tauri-apps/tauri",
         "licenseUrl": "https://github.com/tauri-apps/tauri/raw/master/LICENSE_APACHE-2.0",
-        "parents": "dot-x"
+        "parents": "@aptabase/tauri:dot-x"
     },
-    "@tauri-apps/cli-win32-x64-msvc@1.5.6": {
-        "licenses": "MIT",
-        "parents": "dot-x"
-    },
-    "@tauri-apps/cli@1.5.6": {
+    "@tauri-apps/api@2.9.0": {
         "licenses": "Apache-2.0 OR MIT",
         "repository": "https://github.com/tauri-apps/tauri",
         "licenseUrl": "https://github.com/tauri-apps/tauri/raw/master/LICENSE_APACHE-2.0",
+        "parents": "dot-x"
+    },
+    "@tauri-apps/api@2.9.1": {
+        "licenses": "Apache-2.0 OR MIT",
+        "repository": "https://github.com/tauri-apps/tauri",
+        "licenseUrl": "https://github.com/tauri-apps/tauri/raw/master/LICENSE_APACHE-2.0",
+        "parents": "@tauri-apps/plugin-autostart:dot-x"
+    },
+    "@tauri-apps/cli-win32-x64-msvc@2.9.2": {
+        "licenses": "Apache-2.0 OR MIT",
+        "repository": "https://github.com/tauri-apps/tauri",
+        "licenseUrl": "https://github.com/tauri-apps/tauri",
+        "parents": "dot-x"
+    },
+    "@tauri-apps/cli@2.9.2": {
+        "licenses": "Apache-2.0 OR MIT",
+        "repository": "https://github.com/tauri-apps/tauri",
+        "licenseUrl": "https://github.com/tauri-apps/tauri/raw/master/LICENSE_APACHE-2.0",
+        "parents": "dot-x"
+    },
+    "@tauri-apps/plugin-autostart@2.5.1": {
+        "licenses": "MIT OR Apache-2.0",
+        "repository": "https://github.com/tauri-apps/plugins-workspace",
+        "licenseUrl": "https://github.com/tauri-apps/plugins-workspace/raw/master/LICENSE.spdx",
+        "parents": "dot-x"
+    },
+    "@tauri-apps/plugin-dialog@2.4.2": {
+        "licenses": "MIT OR Apache-2.0",
+        "repository": "https://github.com/tauri-apps/plugins-workspace",
+        "licenseUrl": "https://github.com/tauri-apps/plugins-workspace/raw/master/LICENSE.spdx",
+        "parents": "dot-x"
+    },
+    "@tauri-apps/plugin-fs@2.4.4": {
+        "licenses": "MIT OR Apache-2.0",
+        "repository": "https://github.com/tauri-apps/plugins-workspace",
+        "licenseUrl": "https://github.com/tauri-apps/plugins-workspace/raw/master/LICENSE.spdx",
+        "parents": "dot-x"
+    },
+    "@tauri-apps/plugin-os@2.3.2": {
+        "licenses": "MIT OR Apache-2.0",
+        "repository": "https://github.com/tauri-apps/plugins-workspace",
+        "licenseUrl": "https://github.com/tauri-apps/plugins-workspace/raw/master/LICENSE.spdx",
+        "parents": "dot-x"
+    },
+    "@tauri-apps/plugin-process@2.3.1": {
+        "licenses": "MIT OR Apache-2.0",
+        "repository": "https://github.com/tauri-apps/plugins-workspace",
+        "licenseUrl": "https://github.com/tauri-apps/plugins-workspace/raw/master/LICENSE.spdx",
+        "parents": "dot-x"
+    },
+    "@tauri-apps/plugin-shell@2.3.3": {
+        "licenses": "MIT OR Apache-2.0",
+        "repository": "https://github.com/tauri-apps/plugins-workspace",
+        "licenseUrl": "https://github.com/tauri-apps/plugins-workspace/raw/master/LICENSE.spdx",
+        "parents": "dot-x"
+    },
+    "@tauri-apps/plugin-store@2.4.1": {
+        "licenses": "MIT OR Apache-2.0",
+        "repository": "https://github.com/tauri-apps/plugins-workspace",
+        "licenseUrl": "https://github.com/tauri-apps/plugins-workspace/raw/master/LICENSE.spdx",
+        "parents": "dot-x"
+    },
+    "@tauri-apps/plugin-updater@2.9.0": {
+        "licenses": "MIT OR Apache-2.0",
+        "repository": "https://github.com/tauri-apps/plugins-workspace",
+        "licenseUrl": "https://github.com/tauri-apps/plugins-workspace/raw/master/LICENSE.spdx",
+        "parents": "dot-x"
+    },
+    "@tauri-apps/plugin-websocket@2.4.1": {
+        "licenses": "MIT OR Apache-2.0",
+        "repository": "https://github.com/tauri-apps/plugins-workspace",
+        "licenseUrl": "https://github.com/tauri-apps/plugins-workspace/raw/master/LICENSE.spdx",
         "parents": "dot-x"
     },
     "@ts-morph/common@0.27.0": {
         "licenses": "MIT",
         "repository": "https://github.com/dsherret/ts-morph",
         "licenseUrl": "https://github.com/dsherret/ts-morph/raw/master/LICENSE",
+        "parents": "dot-x"
+    },
+    "@types/cacheable-request@6.0.3": {
+        "licenses": "MIT",
+        "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+        "licenseUrl": "https://github.com/DefinitelyTyped/DefinitelyTyped/raw/master/LICENSE",
         "parents": "dot-x"
     },
     "@types/cors@2.8.19": {
@@ -283,23 +471,99 @@
         "licenseUrl": "https://github.com/DefinitelyTyped/DefinitelyTyped/raw/master/LICENSE",
         "parents": "dot-x"
     },
+    "@types/estree@1.0.8": {
+        "licenses": "MIT",
+        "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+        "licenseUrl": "https://github.com/DefinitelyTyped/DefinitelyTyped/raw/master/LICENSE",
+        "parents": "dot-x"
+    },
+    "@types/hast@3.0.4": {
+        "licenses": "MIT",
+        "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+        "licenseUrl": "https://github.com/DefinitelyTyped/DefinitelyTyped/raw/master/LICENSE",
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
+    },
+    "@types/http-cache-semantics@4.0.4": {
+        "licenses": "MIT",
+        "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+        "licenseUrl": "https://github.com/DefinitelyTyped/DefinitelyTyped/raw/master/LICENSE",
+        "parents": "dot-x"
+    },
+    "@types/keyv@3.1.4": {
+        "licenses": "MIT",
+        "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+        "licenseUrl": "https://github.com/DefinitelyTyped/DefinitelyTyped/raw/master/LICENSE",
+        "parents": "dot-x"
+    },
+    "@types/linkify-it@5.0.0": {
+        "licenses": "MIT",
+        "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+        "licenseUrl": "https://github.com/DefinitelyTyped/DefinitelyTyped/raw/master/LICENSE",
+        "parents": "dot-x"
+    },
     "@types/lodash@4.14.200": {
         "licenses": "MIT",
         "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
         "licenseUrl": "https://github.com/DefinitelyTyped/DefinitelyTyped/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "@types/node@14.18.63": {
+    "@types/markdown-it@14.1.2": {
         "licenses": "MIT",
         "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
         "licenseUrl": "https://github.com/DefinitelyTyped/DefinitelyTyped/raw/master/LICENSE",
         "parents": "dot-x"
     },
+    "@types/mdurl@2.0.0": {
+        "licenses": "MIT",
+        "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+        "licenseUrl": "https://github.com/DefinitelyTyped/DefinitelyTyped/raw/master/LICENSE",
+        "parents": "dot-x"
+    },
+    "@types/node@20.19.37": {
+        "licenses": "MIT",
+        "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+        "licenseUrl": "https://github.com/DefinitelyTyped/DefinitelyTyped/raw/master/LICENSE",
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
+    },
+    "@types/node@22.18.13": {
+        "licenses": "MIT",
+        "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+        "licenseUrl": "https://github.com/DefinitelyTyped/DefinitelyTyped/raw/master/LICENSE",
+        "parents": "electron:dot-x"
+    },
+    "@types/node@25.4.0": {
+        "licenses": "MIT",
+        "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+        "licenseUrl": "https://github.com/DefinitelyTyped/DefinitelyTyped/raw/master/LICENSE",
+        "parents": "dot-x"
+    },
+    "@types/responselike@1.0.3": {
+        "licenses": "MIT",
+        "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+        "licenseUrl": "https://github.com/DefinitelyTyped/DefinitelyTyped/raw/master/LICENSE",
+        "parents": "dot-x"
+    },
+    "@types/socket.io-client@3.0.0": {
+        "licenses": "MIT",
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
+    },
     "@types/socket.io@3.0.2": {
         "licenses": "MIT",
         "parents": "dot-x"
     },
-    "@vitejs/plugin-vue@4.4.0": {
+    "@types/unist@3.0.3": {
+        "licenses": "MIT",
+        "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+        "licenseUrl": "https://github.com/DefinitelyTyped/DefinitelyTyped/raw/master/LICENSE",
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
+    },
+    "@types/yauzl@2.10.3": {
+        "licenses": "MIT",
+        "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+        "licenseUrl": "https://github.com/DefinitelyTyped/DefinitelyTyped/raw/master/LICENSE",
+        "parents": "dot-x"
+    },
+    "@vitejs/plugin-vue@6.0.0": {
         "licenses": "MIT",
         "repository": "https://github.com/vitejs/vite-plugin-vue",
         "licenseUrl": "https://github.com/vitejs/vite-plugin-vue/raw/master/LICENSE",
@@ -353,10 +617,34 @@
         "licenseUrl": "https://github.com/vuejs/vue-devtools",
         "parents": "dot-x"
     },
-    "@vue/devtools@6.0.0-beta.21": {
+    "@vue/devtools-core@8.0.2": {
         "licenses": "MIT",
-        "repository": "https://github.com/vuejs/vue-devtools",
-        "licenseUrl": "https://github.com/vuejs/vue-devtools",
+        "repository": "https://github.com/vuejs/devtools",
+        "licenseUrl": "https://github.com/vuejs/devtools/raw/master/LICENSE",
+        "parents": "dot-x"
+    },
+    "@vue/devtools-electron@8.0.2": {
+        "licenses": "MIT",
+        "repository": "https://github.com/vuejs/devtools",
+        "licenseUrl": "https://github.com/vuejs/devtools/raw/master/LICENSE",
+        "parents": "dot-x"
+    },
+    "@vue/devtools-kit@8.0.2": {
+        "licenses": "MIT",
+        "repository": "https://github.com/vuejs/devtools",
+        "licenseUrl": "https://github.com/vuejs/devtools/raw/master/LICENSE",
+        "parents": "dot-x"
+    },
+    "@vue/devtools-shared@8.0.2": {
+        "licenses": "MIT",
+        "repository": "https://github.com/vuejs/devtools",
+        "licenseUrl": "https://github.com/vuejs/devtools/raw/master/LICENSE",
+        "parents": "dot-x"
+    },
+    "@vue/devtools@8.0.2": {
+        "licenses": "MIT",
+        "repository": "https://github.com/vuejs/devtools",
+        "licenseUrl": "https://github.com/vuejs/devtools/raw/master/LICENSE",
         "parents": "dot-x"
     },
     "@vue/language-core@1.8.19": {
@@ -425,11 +713,23 @@
         "licenseUrl": "https://github.com/jshttp/accepts/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "after@0.8.2": {
+    "agent-base@7.1.4": {
         "licenses": "MIT",
-        "repository": "https://github.com/Raynos/after",
-        "licenseUrl": "https://github.com/Raynos/after/raw/master/LICENCE",
+        "repository": "https://github.com/TooTallNate/proxy-agents",
+        "licenseUrl": "https://github.com/TooTallNate/proxy-agents/raw/master/LICENSE",
         "parents": "dot-x"
+    },
+    "ajv-formats@3.0.1": {
+        "licenses": "MIT",
+        "repository": "https://github.com/ajv-validator/ajv-formats",
+        "licenseUrl": "https://github.com/ajv-validator/ajv-formats/raw/master/LICENSE",
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
+    },
+    "ajv@8.17.1": {
+        "licenses": "MIT",
+        "repository": "https://github.com/ajv-validator/ajv",
+        "licenseUrl": "https://github.com/ajv-validator/ajv/raw/master/LICENSE",
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
     },
     "ansi-regex@0.2.1": {
         "licenses": "MIT",
@@ -467,22 +767,16 @@
         "licenseUrl": "https://github.com/vercel/arg/raw/master/LICENSE.md",
         "parents": "dot-x"
     },
+    "argparse@2.0.1": {
+        "licenses": "Python-2.0",
+        "repository": "https://github.com/nodeca/argparse",
+        "licenseUrl": "https://github.com/nodeca/argparse/raw/master/LICENSE",
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
+    },
     "array-find-index@1.0.2": {
         "licenses": "MIT",
         "repository": "https://github.com/sindresorhus/array-find-index",
         "licenseUrl": "https://github.com/sindresorhus/array-find-index/raw/master/license",
-        "parents": "dot-x"
-    },
-    "array-flatten@1.1.1": {
-        "licenses": "MIT",
-        "repository": "https://github.com/blakeembrey/array-flatten",
-        "licenseUrl": "https://github.com/blakeembrey/array-flatten/raw/master/LICENSE",
-        "parents": "dot-x"
-    },
-    "arraybuffer.slice@0.0.7": {
-        "licenses": "MIT",
-        "repository": "https://github.com/rase-/arraybuffer.slice",
-        "licenseUrl": "https://github.com/rase-/arraybuffer.slice/raw/master/LICENCE",
         "parents": "dot-x"
     },
     "asap@2.0.6": {
@@ -497,34 +791,34 @@
         "licenseUrl": "https://github.com/caolan/async/raw/master/LICENSE",
         "parents": "dot-x"
     },
+    "atomically@2.0.3": {
+        "licenses": "MIT*",
+        "repository": "github:fabiospampinato/atomically",
+        "licenseUrl": "github:fabiospampinato/atomically",
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
+    },
     "autoprefixer@10.4.16": {
         "licenses": "MIT",
         "repository": "https://github.com/postcss/autoprefixer",
         "licenseUrl": "https://github.com/postcss/autoprefixer/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "backo2@1.0.2": {
-        "licenses": "MIT",
-        "repository": "https://github.com/mokesmokes/backo",
-        "licenseUrl": "https://github.com/mokesmokes/backo",
-        "parents": "dot-x"
-    },
     "balanced-match@1.0.2": {
         "licenses": "MIT",
         "repository": "https://github.com/juliangruber/balanced-match",
         "licenseUrl": "https://github.com/juliangruber/balanced-match/raw/master/LICENSE.md",
-        "parents": "dot-x"
-    },
-    "base64-arraybuffer@0.1.4": {
-        "licenses": "MIT",
-        "repository": "https://github.com/niklasvh/base64-arraybuffer",
-        "licenseUrl": "https://github.com/niklasvh/base64-arraybuffer/blob/master/LICENSE-MIT",
-        "parents": "dot-x"
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
     },
     "base64id@2.0.0": {
         "licenses": "MIT",
         "repository": "https://github.com/faeldt/base64id",
         "licenseUrl": "https://github.com/faeldt/base64id/raw/master/LICENSE",
+        "parents": "dot-x"
+    },
+    "bin-links@6.0.0": {
+        "licenses": "ISC",
+        "repository": "https://github.com/npm/bin-links",
+        "licenseUrl": "https://github.com/npm/bin-links/raw/master/LICENSE",
         "parents": "dot-x"
     },
     "binary-extensions@2.2.0": {
@@ -533,16 +827,10 @@
         "licenseUrl": "https://github.com/sindresorhus/binary-extensions/raw/master/license",
         "parents": "dot-x"
     },
-    "blob@0.0.5": {
+    "birpc@2.6.1": {
         "licenses": "MIT",
-        "repository": "https://github.com/webmodules/blob",
-        "licenseUrl": "https://github.com/webmodules/blob/raw/master/LICENSE",
-        "parents": "dot-x"
-    },
-    "body-parser@1.20.1": {
-        "licenses": "MIT",
-        "repository": "https://github.com/expressjs/body-parser",
-        "licenseUrl": "https://github.com/expressjs/body-parser/raw/master/LICENSE",
+        "repository": "https://github.com/antfu-collective/birpc",
+        "licenseUrl": "https://github.com/antfu-collective/birpc/raw/master/LICENSE",
         "parents": "dot-x"
     },
     "boolean@3.2.0": {
@@ -562,6 +850,12 @@
         "repository": "https://github.com/juliangruber/brace-expansion",
         "licenseUrl": "https://github.com/juliangruber/brace-expansion/raw/master/LICENSE",
         "parents": "@vue/language-core:dot-x"
+    },
+    "brace-expansion@2.0.2": {
+        "licenses": "MIT",
+        "repository": "https://github.com/juliangruber/brace-expansion",
+        "licenseUrl": "https://github.com/juliangruber/brace-expansion/raw/master/LICENSE",
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
     },
     "braces@3.0.2": {
         "licenses": "MIT",
@@ -587,28 +881,16 @@
         "licenseUrl": "https://github.com/brianloveswords/buffer-crc32/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "buffer-from@1.1.2": {
+    "cacheable-lookup@5.0.4": {
         "licenses": "MIT",
-        "repository": "https://github.com/LinusU/buffer-from",
-        "licenseUrl": "https://github.com/LinusU/buffer-from/raw/master/LICENSE",
+        "repository": "https://github.com/szmarczak/cacheable-lookup",
+        "licenseUrl": "https://github.com/szmarczak/cacheable-lookup/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "bytes@3.1.2": {
-        "licenses": "MIT",
-        "repository": "https://github.com/visionmedia/bytes.js",
-        "licenseUrl": "https://github.com/visionmedia/bytes.js/raw/master/LICENSE",
-        "parents": "dot-x"
-    },
-    "cacheable-request@6.1.0": {
+    "cacheable-request@7.0.4": {
         "licenses": "MIT",
         "repository": "https://github.com/lukechilds/cacheable-request",
         "licenseUrl": "https://github.com/lukechilds/cacheable-request/raw/master/LICENSE",
-        "parents": "dot-x"
-    },
-    "call-bind@1.0.5": {
-        "licenses": "MIT",
-        "repository": "https://github.com/ljharb/call-bind",
-        "licenseUrl": "https://github.com/ljharb/call-bind/raw/master/LICENSE",
         "parents": "dot-x"
     },
     "camelcase-css@2.0.1": {
@@ -647,10 +929,22 @@
         "licenseUrl": "https://github.com/paulmillr/chokidar/raw/master/LICENSE",
         "parents": "sass:dot-x"
     },
+    "chownr@3.0.0": {
+        "licenses": "BlueOak-1.0.0",
+        "repository": "https://github.com/isaacs/chownr",
+        "licenseUrl": "https://github.com/isaacs/chownr/raw/master/LICENSE.md",
+        "parents": "dot-x"
+    },
     "clone-response@1.0.3": {
         "licenses": "MIT",
         "repository": "https://github.com/sindresorhus/clone-response",
         "licenseUrl": "https://github.com/sindresorhus/clone-response/raw/master/LICENSE",
+        "parents": "dot-x"
+    },
+    "cmd-shim@8.0.0": {
+        "licenses": "ISC",
+        "repository": "https://github.com/npm/cmd-shim",
+        "licenseUrl": "https://github.com/npm/cmd-shim/raw/master/LICENSE",
         "parents": "dot-x"
     },
     "code-block-writer@13.0.3": {
@@ -683,88 +977,34 @@
         "licenseUrl": "https://github.com/tj/commander.js/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "component-bind@1.0.0": {
-        "licenses": "MIT*",
-        "repository": "https://github.com/component/bind",
-        "licenseUrl": "https://github.com/component/bind/raw/master/Readme.md",
-        "parents": "dot-x"
-    },
-    "component-emitter@1.2.1": {
-        "licenses": "MIT",
-        "repository": "https://github.com/component/emitter",
-        "licenseUrl": "https://github.com/component/emitter/raw/master/LICENSE",
-        "parents": "@vue/devtools:dot-x"
-    },
-    "component-emitter@1.3.1": {
-        "licenses": "MIT",
-        "repository": "https://github.com/sindresorhus/component-emitter",
-        "licenseUrl": "https://github.com/sindresorhus/component-emitter/raw/master/LICENSE",
-        "parents": "dot-x"
-    },
-    "component-inherit@0.0.3": {
-        "licenses": "MIT*",
-        "repository": "https://github.com/component/inherit",
-        "licenseUrl": "https://github.com/component/inherit/raw/master/Readme.md",
-        "parents": "dot-x"
-    },
     "concat-map@0.0.1": {
         "licenses": "MIT",
         "repository": "https://github.com/substack/node-concat-map",
         "licenseUrl": "https://github.com/substack/node-concat-map/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "concat-stream@1.6.2": {
+    "conf@14.0.0": {
         "licenses": "MIT",
-        "repository": "http://github.com/maxogden/concat-stream",
-        "licenseUrl": "http://github.com/maxogden/concat-stream/raw/master/LICENSE",
-        "parents": "dot-x"
+        "repository": "https://github.com/sindresorhus/conf",
+        "licenseUrl": "https://github.com/sindresorhus/conf/raw/master/license",
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
     },
-    "config-chain@1.1.13": {
+    "cookie-es@1.2.2": {
         "licenses": "MIT",
-        "repository": "https://github.com/dominictarr/config-chain",
-        "licenseUrl": "https://raw.githubusercontent.com/dominictarr/config-chain/master/LICENCE",
-        "parents": "dot-x"
-    },
-    "content-disposition@0.5.4": {
-        "licenses": "MIT",
-        "repository": "https://github.com/jshttp/content-disposition",
-        "licenseUrl": "https://github.com/jshttp/content-disposition/raw/master/LICENSE",
-        "parents": "dot-x"
-    },
-    "content-type@1.0.5": {
-        "licenses": "MIT",
-        "repository": "https://github.com/jshttp/content-type",
-        "licenseUrl": "https://github.com/jshttp/content-type/raw/master/LICENSE",
-        "parents": "dot-x"
-    },
-    "cookie-signature@1.0.6": {
-        "licenses": "MIT",
-        "repository": "https://github.com/visionmedia/node-cookie-signature",
-        "licenseUrl": "https://github.com/visionmedia/node-cookie-signature",
-        "parents": "dot-x"
-    },
-    "cookie@0.4.2": {
-        "licenses": "MIT",
-        "repository": "https://github.com/jshttp/cookie",
-        "licenseUrl": "https://github.com/jshttp/cookie/raw/master/LICENSE",
-        "parents": "@vue/devtools:dot-x"
-    },
-    "cookie@0.5.0": {
-        "licenses": "MIT",
-        "repository": "https://github.com/jshttp/cookie",
-        "licenseUrl": "https://github.com/jshttp/cookie/raw/master/LICENSE",
+        "repository": "https://github.com/unjs/cookie-es",
+        "licenseUrl": "https://github.com/unjs/cookie-es/raw/master/LICENSE",
         "parents": "dot-x"
     },
     "cookie@0.7.2": {
         "licenses": "MIT",
         "repository": "https://github.com/jshttp/cookie",
         "licenseUrl": "https://github.com/jshttp/cookie/raw/master/LICENSE",
-        "parents": "engine.io:dot-x"
+        "parents": "dot-x"
     },
-    "core-util-is@1.0.3": {
+    "copy-anything@3.0.5": {
         "licenses": "MIT",
-        "repository": "https://github.com/isaacs/core-util-is",
-        "licenseUrl": "https://github.com/isaacs/core-util-is/raw/master/LICENSE",
+        "repository": "https://github.com/mesqueeb/copy-anything",
+        "licenseUrl": "https://github.com/mesqueeb/copy-anything/raw/master/LICENSE",
         "parents": "dot-x"
     },
     "cors@2.8.5": {
@@ -773,10 +1013,16 @@
         "licenseUrl": "https://github.com/expressjs/cors/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "cross-spawn@7.0.3": {
+    "cross-spawn@7.0.6": {
         "licenses": "MIT",
         "repository": "https://github.com/moxystudio/node-cross-spawn",
         "licenseUrl": "https://github.com/moxystudio/node-cross-spawn/raw/master/LICENSE",
+        "parents": "dot-x"
+    },
+    "crossws@0.3.5": {
+        "licenses": "MIT",
+        "repository": "https://github.com/h3js/crossws",
+        "licenseUrl": "https://github.com/h3js/crossws/raw/master/LICENSE",
         "parents": "dot-x"
     },
     "crypto-js@4.2.0": {
@@ -809,6 +1055,12 @@
         "licenseUrl": "https://github.com/saadeghi/daisyui/raw/master/LICENSE",
         "parents": "dot-x"
     },
+    "data-uri-to-buffer@4.0.1": {
+        "licenses": "MIT",
+        "repository": "https://github.com/TooTallNate/node-data-uri-to-buffer",
+        "licenseUrl": "https://github.com/TooTallNate/node-data-uri-to-buffer",
+        "parents": "dot-x"
+    },
     "date-fns-tz@1.3.8": {
         "licenses": "MIT",
         "repository": "https://github.com/marnusw/date-fns-tz",
@@ -827,17 +1079,11 @@
         "licenseUrl": "https://github.com/yyx990803/de-indent",
         "parents": "dot-x"
     },
-    "debug@2.6.9": {
+    "debounce-fn@6.0.0": {
         "licenses": "MIT",
-        "repository": "https://github.com/visionmedia/debug",
-        "licenseUrl": "https://github.com/visionmedia/debug/raw/master/LICENSE",
-        "parents": "send:dot-x"
-    },
-    "debug@3.1.0": {
-        "licenses": "MIT",
-        "repository": "https://github.com/visionmedia/debug",
-        "licenseUrl": "https://github.com/visionmedia/debug/raw/master/LICENSE",
-        "parents": "engine.io-client:dot-x"
+        "repository": "https://github.com/sindresorhus/debounce-fn",
+        "licenseUrl": "https://github.com/sindresorhus/debounce-fn/raw/master/license",
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
     },
     "debug@3.2.7": {
         "licenses": "MIT",
@@ -845,17 +1091,17 @@
         "licenseUrl": "https://github.com/visionmedia/debug/raw/master/LICENSE",
         "parents": "license-checker:dot-x"
     },
-    "debug@4.1.1": {
-        "licenses": "MIT",
-        "repository": "https://github.com/visionmedia/debug",
-        "licenseUrl": "https://github.com/visionmedia/debug/raw/master/LICENSE",
-        "parents": "@vue/devtools:dot-x"
-    },
     "debug@4.3.4": {
         "licenses": "MIT",
         "repository": "https://github.com/debug-js/debug",
         "licenseUrl": "https://github.com/debug-js/debug/raw/master/LICENSE",
         "parents": "dot-x"
+    },
+    "debug@4.3.7": {
+        "licenses": "MIT",
+        "repository": "https://github.com/debug-js/debug",
+        "licenseUrl": "https://github.com/debug-js/debug/raw/master/LICENSE",
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
     },
     "debuglog@1.0.1": {
         "licenses": "MIT",
@@ -863,13 +1109,13 @@
         "licenseUrl": "https://github.com/sam-github/node-debuglog/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "decompress-response@3.3.0": {
+    "decompress-response@6.0.0": {
         "licenses": "MIT",
         "repository": "https://github.com/sindresorhus/decompress-response",
         "licenseUrl": "https://github.com/sindresorhus/decompress-response/raw/master/license",
         "parents": "dot-x"
     },
-    "defer-to-connect@1.1.3": {
+    "defer-to-connect@2.0.1": {
         "licenses": "MIT",
         "repository": "https://github.com/szmarczak/defer-to-connect",
         "licenseUrl": "https://github.com/szmarczak/defer-to-connect/raw/master/LICENSE",
@@ -887,16 +1133,16 @@
         "licenseUrl": "https://github.com/ljharb/define-properties/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "depd@2.0.0": {
+    "defu@6.1.4": {
         "licenses": "MIT",
-        "repository": "https://github.com/dougwilson/nodejs-depd",
-        "licenseUrl": "https://github.com/dougwilson/nodejs-depd/raw/master/LICENSE",
+        "repository": "https://github.com/unjs/defu",
+        "licenseUrl": "https://github.com/unjs/defu/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "destroy@1.2.0": {
+    "destr@2.0.5": {
         "licenses": "MIT",
-        "repository": "https://github.com/stream-utils/destroy",
-        "licenseUrl": "https://github.com/stream-utils/destroy/raw/master/LICENSE",
+        "repository": "https://github.com/unjs/destr",
+        "licenseUrl": "https://github.com/unjs/destr/raw/master/LICENSE",
         "parents": "dot-x"
     },
     "detect-libc@1.0.3": {
@@ -929,21 +1175,15 @@
         "licenseUrl": "https://github.com/developit/dlv",
         "parents": "dot-x"
     },
+    "dot-prop@9.0.0": {
+        "licenses": "MIT",
+        "repository": "https://github.com/sindresorhus/dot-prop",
+        "licenseUrl": "https://github.com/sindresorhus/dot-prop/raw/master/license",
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
+    },
     "dot-x@": {
         "licenses": "UNKNOWN",
         "parents": "UNDEFINED"
-    },
-    "duplexer3@0.1.5": {
-        "licenses": "BSD-3-Clause",
-        "repository": "https://github.com/sindresorhus/duplexer3",
-        "licenseUrl": "https://github.com/sindresorhus/duplexer3/raw/master/license",
-        "parents": "dot-x"
-    },
-    "ee-first@1.1.1": {
-        "licenses": "MIT",
-        "repository": "https://github.com/jonathanong/ee-first",
-        "licenseUrl": "https://github.com/jonathanong/ee-first/raw/master/LICENSE",
-        "parents": "dot-x"
     },
     "electron-to-chromium@1.4.556": {
         "licenses": "ISC",
@@ -951,16 +1191,10 @@
         "licenseUrl": "https://github.com/kilian/electron-to-chromium//raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "electron@12.2.3": {
+    "electron@36.9.4": {
         "licenses": "MIT",
         "repository": "https://github.com/electron/electron",
         "licenseUrl": "https://github.com/electron/electron/raw/master/LICENSE",
-        "parents": "dot-x"
-    },
-    "encodeurl@1.0.2": {
-        "licenses": "MIT",
-        "repository": "https://github.com/pillarjs/encodeurl",
-        "licenseUrl": "https://github.com/pillarjs/encodeurl/raw/master/LICENSE",
         "parents": "dot-x"
     },
     "end-of-stream@1.4.4": {
@@ -969,29 +1203,17 @@
         "licenseUrl": "https://github.com/mafintosh/end-of-stream/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "engine.io-client@3.5.4": {
+    "engine.io-client@6.6.3": {
         "licenses": "MIT",
-        "repository": "https://github.com/socketio/engine.io-client",
-        "licenseUrl": "https://github.com/socketio/engine.io-client/raw/master/LICENSE",
-        "parents": "dot-x"
-    },
-    "engine.io-parser@2.2.1": {
-        "licenses": "MIT",
-        "repository": "https://github.com/socketio/engine.io-parser",
-        "licenseUrl": "https://github.com/socketio/engine.io-parser/raw/master/LICENSE",
-        "parents": "dot-x"
+        "repository": "https://github.com/socketio/socket.io",
+        "licenseUrl": "https://github.com/socketio/socket.io/raw/master/LICENSE",
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
     },
     "engine.io-parser@5.2.3": {
         "licenses": "MIT",
         "repository": "https://github.com/socketio/socket.io",
         "licenseUrl": "https://github.com/socketio/socket.io/raw/master/LICENSE",
-        "parents": "engine.io:dot-x"
-    },
-    "engine.io@3.6.2": {
-        "licenses": "MIT",
-        "repository": "https://github.com/socketio/engine.io",
-        "licenseUrl": "https://github.com/socketio/engine.io/raw/master/LICENSE",
-        "parents": "@vue/devtools:dot-x"
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
     },
     "engine.io@6.6.4": {
         "licenses": "MIT",
@@ -999,11 +1221,23 @@
         "licenseUrl": "https://github.com/socketio/socket.io/raw/master/LICENSE",
         "parents": "dot-x"
     },
+    "entities@4.5.0": {
+        "licenses": "BSD-2-Clause",
+        "repository": "https://github.com/fb55/entities",
+        "licenseUrl": "https://github.com/fb55/entities/raw/master/LICENSE",
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
+    },
     "env-paths@2.2.1": {
         "licenses": "MIT",
         "repository": "https://github.com/sindresorhus/env-paths",
         "licenseUrl": "https://github.com/sindresorhus/env-paths/raw/master/license",
         "parents": "dot-x"
+    },
+    "env-paths@3.0.0": {
+        "licenses": "MIT",
+        "repository": "https://github.com/sindresorhus/env-paths",
+        "licenseUrl": "https://github.com/sindresorhus/env-paths/raw/master/license",
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
     },
     "es6-error@4.1.1": {
         "licenses": "MIT",
@@ -1011,28 +1245,28 @@
         "licenseUrl": "https://github.com/bjyoungblood/es6-error/raw/master/LICENSE.md",
         "parents": "dot-x"
     },
-    "esbuild@0.18.20": {
+    "esbuild@0.25.10": {
         "licenses": "MIT",
         "repository": "https://github.com/evanw/esbuild",
         "licenseUrl": "https://github.com/evanw/esbuild/raw/master/LICENSE.md",
         "parents": "vite:dot-x"
     },
+    "esbuild@0.25.12": {
+        "licenses": "MIT",
+        "repository": "https://github.com/evanw/esbuild",
+        "licenseUrl": "https://github.com/evanw/esbuild/raw/master/LICENSE.md",
+        "parents": "rgb-demo"
+    },
     "esbuild@0.25.6": {
         "licenses": "MIT",
         "repository": "https://github.com/evanw/esbuild",
         "licenseUrl": "https://github.com/evanw/esbuild/raw/master/LICENSE.md",
-        "parents": "hello-world"
+        "parents": "dot-x"
     },
     "escalade@3.1.1": {
         "licenses": "MIT",
         "repository": "https://github.com/lukeed/escalade",
         "licenseUrl": "https://github.com/lukeed/escalade/raw/master/license",
-        "parents": "dot-x"
-    },
-    "escape-html@1.0.3": {
-        "licenses": "MIT",
-        "repository": "https://github.com/component/escape-html",
-        "licenseUrl": "https://github.com/component/escape-html/raw/master/LICENSE",
         "parents": "dot-x"
     },
     "escape-string-regexp@1.0.5": {
@@ -1053,23 +1287,23 @@
         "licenseUrl": "https://github.com/Rich-Harris/estree-walker/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "etag@1.8.1": {
+    "execa@9.6.0": {
         "licenses": "MIT",
-        "repository": "https://github.com/jshttp/etag",
-        "licenseUrl": "https://github.com/jshttp/etag/raw/master/LICENSE",
+        "repository": "https://github.com/sindresorhus/execa",
+        "licenseUrl": "https://github.com/sindresorhus/execa/raw/master/license",
         "parents": "dot-x"
     },
-    "express@4.18.2": {
-        "licenses": "MIT",
-        "repository": "https://github.com/expressjs/express",
-        "licenseUrl": "https://github.com/expressjs/express/raw/master/LICENSE",
-        "parents": "dot-x"
-    },
-    "extract-zip@1.7.0": {
+    "extract-zip@2.0.1": {
         "licenses": "BSD-2-Clause",
         "repository": "https://github.com/maxogden/extract-zip",
         "licenseUrl": "https://github.com/maxogden/extract-zip/raw/master/LICENSE",
         "parents": "dot-x"
+    },
+    "fast-deep-equal@3.1.3": {
+        "licenses": "MIT",
+        "repository": "https://github.com/epoberezkin/fast-deep-equal",
+        "licenseUrl": "https://github.com/epoberezkin/fast-deep-equal/raw/master/LICENSE",
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
     },
     "fast-glob@3.3.1": {
         "licenses": "MIT",
@@ -1082,6 +1316,30 @@
         "repository": "https://github.com/mrmlnc/fast-glob",
         "licenseUrl": "https://github.com/mrmlnc/fast-glob/raw/master/LICENSE",
         "parents": "@ts-morph/common:dot-x"
+    },
+    "fast-string-truncated-width@1.2.1": {
+        "licenses": "MIT",
+        "repository": "github:fabiospampinato/fast-string-truncated-width",
+        "licenseUrl": "github:fabiospampinato/fast-string-truncated-width",
+        "parents": "@dotmatrixlabs/create-dotx-plugin"
+    },
+    "fast-string-width@1.1.0": {
+        "licenses": "MIT",
+        "repository": "github:fabiospampinato/fast-string-width",
+        "licenseUrl": "github:fabiospampinato/fast-string-width",
+        "parents": "@dotmatrixlabs/create-dotx-plugin"
+    },
+    "fast-uri@3.1.0": {
+        "licenses": "BSD-3-Clause",
+        "repository": "https://github.com/fastify/fast-uri",
+        "licenseUrl": "https://github.com/fastify/fast-uri/raw/master/LICENSE",
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
+    },
+    "fast-wrap-ansi@0.1.6": {
+        "licenses": "MIT",
+        "repository": "https://github.com/43081j/fast-wrap-ansi",
+        "licenseUrl": "https://github.com/43081j/fast-wrap-ansi/raw/master/LICENSE",
+        "parents": "@dotmatrixlabs/create-dotx-plugin"
     },
     "fastparse@1.1.2": {
         "licenses": "MIT",
@@ -1101,6 +1359,24 @@
         "licenseUrl": "https://github.com/andrewrk/node-fd-slicer/raw/master/LICENSE",
         "parents": "dot-x"
     },
+    "fdir@6.5.0": {
+        "licenses": "MIT",
+        "repository": "https://github.com/thecodrr/fdir",
+        "licenseUrl": "https://github.com/thecodrr/fdir/raw/master/LICENSE",
+        "parents": "tinyglobby:dot-x"
+    },
+    "fetch-blob@3.2.0": {
+        "licenses": "MIT",
+        "repository": "https://github.com/node-fetch/fetch-blob",
+        "licenseUrl": "https://github.com/node-fetch/fetch-blob/raw/master/LICENSE",
+        "parents": "dot-x"
+    },
+    "figures@6.1.0": {
+        "licenses": "MIT",
+        "repository": "https://github.com/sindresorhus/figures",
+        "licenseUrl": "https://github.com/sindresorhus/figures/raw/master/license",
+        "parents": "dot-x"
+    },
     "fill-range@7.0.1": {
         "licenses": "MIT",
         "repository": "https://github.com/jonschlinkert/fill-range",
@@ -1113,28 +1389,16 @@
         "licenseUrl": "https://github.com/jonschlinkert/fill-range/raw/master/LICENSE",
         "parents": "@ts-morph/common:dot-x"
     },
-    "finalhandler@1.2.0": {
+    "formdata-polyfill@4.0.10": {
         "licenses": "MIT",
-        "repository": "https://github.com/pillarjs/finalhandler",
-        "licenseUrl": "https://github.com/pillarjs/finalhandler/raw/master/LICENSE",
-        "parents": "dot-x"
-    },
-    "forwarded@0.2.0": {
-        "licenses": "MIT",
-        "repository": "https://github.com/jshttp/forwarded",
-        "licenseUrl": "https://github.com/jshttp/forwarded/raw/master/LICENSE",
+        "repository": "git+https://jimmywarting@github.com/jimmywarting/FormData",
+        "licenseUrl": "git+https://jimmywarting@github.com/jimmywarting/FormData/raw/master/LICENSE",
         "parents": "dot-x"
     },
     "fraction.js@4.3.7": {
         "licenses": "MIT",
         "repository": "https://github.com/rawify/Fraction.js",
         "licenseUrl": "https://github.com/rawify/Fraction.js/raw/master/LICENSE",
-        "parents": "dot-x"
-    },
-    "fresh@0.5.2": {
-        "licenses": "MIT",
-        "repository": "https://github.com/jshttp/fresh",
-        "licenseUrl": "https://github.com/jshttp/fresh/raw/master/LICENSE",
         "parents": "dot-x"
     },
     "fs-extra@8.1.0": {
@@ -1161,19 +1425,19 @@
         "licenseUrl": "https://github.com/ljharb/get-intrinsic/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "get-stream@4.1.0": {
+    "get-stream@5.2.0": {
         "licenses": "MIT",
         "repository": "https://github.com/sindresorhus/get-stream",
         "licenseUrl": "https://github.com/sindresorhus/get-stream/raw/master/license",
         "parents": "dot-x"
     },
-    "get-stream@5.2.0": {
+    "get-stream@9.0.1": {
         "licenses": "MIT",
         "repository": "https://github.com/sindresorhus/get-stream",
         "licenseUrl": "https://github.com/sindresorhus/get-stream/raw/master/license",
-        "parents": "cacheable-request:dot-x"
+        "parents": "execa:dot-x"
     },
-    "get-tsconfig@4.10.1": {
+    "get-tsconfig@4.13.0": {
         "licenses": "MIT",
         "repository": "https://github.com/privatenumber/get-tsconfig",
         "licenseUrl": "https://github.com/privatenumber/get-tsconfig/raw/master/LICENSE",
@@ -1221,12 +1485,6 @@
         "licenseUrl": "https://github.com/gajus/global-agent/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "global-tunnel-ng@2.7.1": {
-        "licenses": "BSD-3-Clause",
-        "repository": "https://github.com/np-maintain/global-tunnel",
-        "licenseUrl": "https://github.com/np-maintain/global-tunnel/raw/master/LICENSE",
-        "parents": "dot-x"
-    },
     "globalthis@1.0.3": {
         "licenses": "MIT",
         "repository": "https://github.com/ljharb/System.global",
@@ -1239,7 +1497,7 @@
         "licenseUrl": "https://github.com/ljharb/gopd/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "got@9.6.0": {
+    "got@11.8.6": {
         "licenses": "MIT",
         "repository": "https://github.com/sindresorhus/got",
         "licenseUrl": "https://github.com/sindresorhus/got/raw/master/license",
@@ -1257,20 +1515,16 @@
         "licenseUrl": "https://github.com/isaacs/node-graceful-fs/raw/master/LICENSE",
         "parents": "dot-x"
     },
+    "h3@1.15.4": {
+        "licenses": "MIT",
+        "repository": "https://github.com/h3js/h3",
+        "licenseUrl": "https://github.com/h3js/h3/raw/master/LICENSE",
+        "parents": "dot-x"
+    },
     "has-ansi@0.1.0": {
         "licenses": "MIT",
         "repository": "https://github.com/sindresorhus/has-ansi",
         "licenseUrl": "https://github.com/sindresorhus/has-ansi",
-        "parents": "dot-x"
-    },
-    "has-binary2@1.0.3": {
-        "licenses": "MIT",
-        "parents": "dot-x"
-    },
-    "has-cors@1.1.0": {
-        "licenses": "MIT",
-        "repository": "https://github.com/component/has-cors",
-        "licenseUrl": "https://github.com/component/has-cors",
         "parents": "dot-x"
     },
     "has-flag@3.0.0": {
@@ -1315,9 +1569,11 @@
         "licenseUrl": "https://github.com/mathiasbynens/he/raw/master/LICENSE-MIT.txt",
         "parents": "dot-x"
     },
-    "hello-world@1.0.0": {
-        "licenses": "ISC",
-        "parents": "UNDEFINED"
+    "hookable@5.5.3": {
+        "licenses": "MIT",
+        "repository": "https://github.com/unjs/hookable",
+        "licenseUrl": "https://github.com/unjs/hookable/raw/master/LICENSE.md",
+        "parents": "dot-x"
     },
     "hosted-git-info@2.8.9": {
         "licenses": "ISC",
@@ -1331,16 +1587,22 @@
         "licenseUrl": "https://github.com/kornelski/http-cache-semantics/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "http-errors@2.0.0": {
+    "http2-wrapper@1.0.3": {
         "licenses": "MIT",
-        "repository": "https://github.com/jshttp/http-errors",
-        "licenseUrl": "https://github.com/jshttp/http-errors/raw/master/LICENSE",
+        "repository": "https://github.com/szmarczak/http2-wrapper",
+        "licenseUrl": "https://github.com/szmarczak/http2-wrapper/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "iconv-lite@0.4.24": {
+    "https-proxy-agent@7.0.6": {
         "licenses": "MIT",
-        "repository": "https://github.com/ashtuchkin/iconv-lite",
-        "licenseUrl": "https://github.com/ashtuchkin/iconv-lite/raw/master/LICENSE",
+        "repository": "https://github.com/TooTallNate/proxy-agents",
+        "licenseUrl": "https://github.com/TooTallNate/proxy-agents/raw/master/LICENSE",
+        "parents": "dot-x"
+    },
+    "human-signals@8.0.1": {
+        "licenses": "Apache-2.0",
+        "repository": "https://github.com/ehmicky/human-signals",
+        "licenseUrl": "https://github.com/ehmicky/human-signals/raw/master/LICENSE",
         "parents": "dot-x"
     },
     "image-dimensions@2.3.0": {
@@ -1355,10 +1617,6 @@
         "licenseUrl": "https://github.com/immutable-js/immutable-js/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "indexof@0.0.1": {
-        "licenses": "MIT*",
-        "parents": "dot-x"
-    },
     "inflight@1.0.6": {
         "licenses": "ISC",
         "repository": "https://github.com/npm/inflight",
@@ -1371,22 +1629,10 @@
         "licenseUrl": "https://github.com/isaacs/inherits/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "ini@1.3.8": {
-        "licenses": "ISC",
-        "repository": "https://github.com/isaacs/ini",
-        "licenseUrl": "https://github.com/isaacs/ini/raw/master/LICENSE",
-        "parents": "dot-x"
-    },
-    "ip@1.1.8": {
+    "iron-webcrypto@1.2.1": {
         "licenses": "MIT",
-        "repository": "http://github.com/indutny/node-ip",
-        "licenseUrl": "http://github.com/indutny/node-ip",
-        "parents": "dot-x"
-    },
-    "ipaddr.js@1.9.1": {
-        "licenses": "MIT",
-        "repository": "https://github.com/whitequark/ipaddr.js",
-        "licenseUrl": "https://github.com/whitequark/ipaddr.js/raw/master/LICENSE",
+        "repository": "github:brc-dd/iron-webcrypto",
+        "licenseUrl": "github:brc-dd/iron-webcrypto",
         "parents": "dot-x"
     },
     "is-binary-path@2.1.0": {
@@ -1419,16 +1665,28 @@
         "licenseUrl": "https://github.com/jonschlinkert/is-number/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "isarray@1.0.0": {
+    "is-plain-obj@4.1.0": {
         "licenses": "MIT",
-        "repository": "https://github.com/juliangruber/isarray",
-        "licenseUrl": "https://github.com/juliangruber/isarray",
-        "parents": "readable-stream:dot-x"
+        "repository": "https://github.com/sindresorhus/is-plain-obj",
+        "licenseUrl": "https://github.com/sindresorhus/is-plain-obj/raw/master/license",
+        "parents": "dot-x"
     },
-    "isarray@2.0.1": {
+    "is-stream@4.0.1": {
         "licenses": "MIT",
-        "repository": "https://github.com/juliangruber/isarray",
-        "licenseUrl": "https://github.com/juliangruber/isarray",
+        "repository": "https://github.com/sindresorhus/is-stream",
+        "licenseUrl": "https://github.com/sindresorhus/is-stream/raw/master/license",
+        "parents": "dot-x"
+    },
+    "is-unicode-supported@2.1.0": {
+        "licenses": "MIT",
+        "repository": "https://github.com/sindresorhus/is-unicode-supported",
+        "licenseUrl": "https://github.com/sindresorhus/is-unicode-supported/raw/master/license",
+        "parents": "dot-x"
+    },
+    "is-what@4.1.16": {
+        "licenses": "MIT",
+        "repository": "https://github.com/mesqueeb/is-what",
+        "licenseUrl": "https://github.com/mesqueeb/is-what/raw/master/LICENSE",
         "parents": "dot-x"
     },
     "isexe@2.0.0": {
@@ -1437,11 +1695,11 @@
         "licenseUrl": "https://github.com/isaacs/isexe/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "jiti@1.20.0": {
+    "jiti@1.21.7": {
         "licenses": "MIT",
         "repository": "https://github.com/unjs/jiti",
         "licenseUrl": "https://github.com/unjs/jiti/raw/master/LICENSE",
-        "parents": "dot-x"
+        "parents": "tailwindcss:dot-x"
     },
     "jju@1.4.0": {
         "licenses": "MIT",
@@ -1455,7 +1713,7 @@
         "licenseUrl": "https://github.com/dnukem/node-jquery-extend/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "json-buffer@3.0.0": {
+    "json-buffer@3.0.1": {
         "licenses": "MIT",
         "repository": "https://github.com/dominictarr/json-buffer",
         "licenseUrl": "https://github.com/dominictarr/json-buffer/raw/master/LICENSE",
@@ -1473,6 +1731,18 @@
         "licenseUrl": "https://github.com/smikes/json-parse-helpfulerror/raw/master/LICENSE",
         "parents": "dot-x"
     },
+    "json-schema-traverse@1.0.0": {
+        "licenses": "MIT",
+        "repository": "https://github.com/epoberezkin/json-schema-traverse",
+        "licenseUrl": "https://github.com/epoberezkin/json-schema-traverse/raw/master/LICENSE",
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
+    },
+    "json-schema-typed@8.0.1": {
+        "licenses": "BSD-2-Clause",
+        "repository": "https://github.com/jrylan/json-schema-typed",
+        "licenseUrl": "https://github.com/jrylan/json-schema-typed/raw/master/LICENSE.md",
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
+    },
     "json-stringify-safe@5.0.1": {
         "licenses": "ISC",
         "repository": "https://github.com/isaacs/json-stringify-safe",
@@ -1485,10 +1755,10 @@
         "licenseUrl": "https://github.com/jprichardson/node-jsonfile/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "keyv@3.1.0": {
+    "keyv@4.5.4": {
         "licenses": "MIT",
-        "repository": "https://github.com/lukechilds/keyv",
-        "licenseUrl": "https://github.com/lukechilds/keyv/raw/master/LICENSE",
+        "repository": "https://github.com/jaredwray/keyv",
+        "licenseUrl": "https://github.com/jaredwray/keyv",
         "parents": "dot-x"
     },
     "license-checker@1.0.0": {
@@ -1515,23 +1785,23 @@
         "licenseUrl": "https://github.com/eventualbuddha/lines-and-columns/raw/master/LICENSE",
         "parents": "dot-x"
     },
+    "linkify-it@5.0.0": {
+        "licenses": "MIT",
+        "repository": "https://github.com/markdown-it/linkify-it",
+        "licenseUrl": "https://github.com/markdown-it/linkify-it/raw/master/LICENSE",
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
+    },
     "lodash@4.17.21": {
         "licenses": "MIT",
         "repository": "https://github.com/lodash/lodash",
         "licenseUrl": "https://github.com/lodash/lodash/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "lowercase-keys@1.0.1": {
-        "licenses": "MIT",
-        "repository": "https://github.com/sindresorhus/lowercase-keys",
-        "licenseUrl": "https://github.com/sindresorhus/lowercase-keys/raw/master/license",
-        "parents": "dot-x"
-    },
     "lowercase-keys@2.0.0": {
         "licenses": "MIT",
         "repository": "https://github.com/sindresorhus/lowercase-keys",
         "licenseUrl": "https://github.com/sindresorhus/lowercase-keys/raw/master/license",
-        "parents": "cacheable-request:dot-x"
+        "parents": "dot-x"
     },
     "lru-cache@6.0.0": {
         "licenses": "ISC",
@@ -1539,11 +1809,23 @@
         "licenseUrl": "https://github.com/isaacs/node-lru-cache/raw/master/LICENSE",
         "parents": "dot-x"
     },
+    "lunr@2.3.9": {
+        "licenses": "MIT",
+        "repository": "https://github.com/olivernn/lunr.js",
+        "licenseUrl": "https://github.com/olivernn/lunr.js/raw/master/LICENSE",
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
+    },
     "magic-string@0.30.5": {
         "licenses": "MIT",
         "repository": "https://github.com/rich-harris/magic-string",
         "licenseUrl": "https://github.com/rich-harris/magic-string/raw/master/LICENSE",
         "parents": "dot-x"
+    },
+    "markdown-it@14.1.0": {
+        "licenses": "MIT",
+        "repository": "https://github.com/markdown-it/markdown-it",
+        "licenseUrl": "https://github.com/markdown-it/markdown-it/raw/master/LICENSE",
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
     },
     "matcher@3.0.0": {
         "licenses": "MIT",
@@ -1551,28 +1833,16 @@
         "licenseUrl": "https://github.com/sindresorhus/matcher/raw/master/license",
         "parents": "dot-x"
     },
-    "media-typer@0.3.0": {
+    "mdurl@2.0.0": {
         "licenses": "MIT",
-        "repository": "https://github.com/jshttp/media-typer",
-        "licenseUrl": "https://github.com/jshttp/media-typer/raw/master/LICENSE",
-        "parents": "dot-x"
-    },
-    "merge-descriptors@1.0.1": {
-        "licenses": "MIT",
-        "repository": "https://github.com/component/merge-descriptors",
-        "licenseUrl": "https://github.com/component/merge-descriptors/raw/master/LICENSE",
-        "parents": "dot-x"
+        "repository": "https://github.com/markdown-it/mdurl",
+        "licenseUrl": "https://github.com/markdown-it/mdurl/raw/master/LICENSE",
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
     },
     "merge2@1.4.1": {
         "licenses": "MIT",
         "repository": "https://github.com/teambition/merge2",
         "licenseUrl": "https://github.com/teambition/merge2/raw/master/LICENSE",
-        "parents": "dot-x"
-    },
-    "methods@1.1.2": {
-        "licenses": "MIT",
-        "repository": "https://github.com/jshttp/methods",
-        "licenseUrl": "https://github.com/jshttp/methods/raw/master/LICENSE",
         "parents": "dot-x"
     },
     "micromatch@4.0.5": {
@@ -1599,13 +1869,19 @@
         "licenseUrl": "https://github.com/jshttp/mime-types/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "mime@1.6.0": {
+    "mimic-function@5.0.1": {
         "licenses": "MIT",
-        "repository": "https://github.com/broofa/node-mime",
-        "licenseUrl": "https://github.com/broofa/node-mime/raw/master/LICENSE",
-        "parents": "dot-x"
+        "repository": "https://github.com/sindresorhus/mimic-function",
+        "licenseUrl": "https://github.com/sindresorhus/mimic-function/raw/master/license",
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
     },
     "mimic-response@1.0.1": {
+        "licenses": "MIT",
+        "repository": "https://github.com/sindresorhus/mimic-response",
+        "licenseUrl": "https://github.com/sindresorhus/mimic-response/raw/master/license",
+        "parents": "clone-response:dot-x"
+    },
+    "mimic-response@3.1.0": {
         "licenses": "MIT",
         "repository": "https://github.com/sindresorhus/mimic-response",
         "licenseUrl": "https://github.com/sindresorhus/mimic-response/raw/master/license",
@@ -1629,10 +1905,28 @@
         "licenseUrl": "https://github.com/isaacs/minimatch/raw/master/LICENSE",
         "parents": "@vue/language-core:dot-x"
     },
+    "minimatch@9.0.5": {
+        "licenses": "ISC",
+        "repository": "https://github.com/isaacs/minimatch",
+        "licenseUrl": "https://github.com/isaacs/minimatch/raw/master/LICENSE",
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
+    },
     "minimist@1.2.8": {
         "licenses": "MIT",
         "repository": "https://github.com/minimistjs/minimist",
         "licenseUrl": "https://github.com/minimistjs/minimist/raw/master/LICENSE",
+        "parents": "dot-x"
+    },
+    "minipass@7.1.3": {
+        "licenses": "BlueOak-1.0.0",
+        "repository": "https://github.com/isaacs/minipass",
+        "licenseUrl": "https://github.com/isaacs/minipass/raw/master/LICENSE.md",
+        "parents": "dot-x"
+    },
+    "minizlib@3.1.0": {
+        "licenses": "MIT",
+        "repository": "https://github.com/isaacs/minizlib",
+        "licenseUrl": "https://github.com/isaacs/minizlib/raw/master/LICENSE",
         "parents": "dot-x"
     },
     "mitt@2.1.0": {
@@ -1659,23 +1953,21 @@
         "licenseUrl": "https://github.com/substack/node-mkdirp/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "ms@2.0.0": {
+    "mqtt-plugin@1.0.0": {
         "licenses": "MIT",
-        "repository": "https://github.com/zeit/ms",
-        "licenseUrl": "https://github.com/zeit/ms/raw/master/license.md",
-        "parents": "debug:send:dot-x"
+        "parents": "UNDEFINED"
     },
     "ms@2.1.2": {
         "licenses": "MIT",
         "repository": "https://github.com/zeit/ms",
         "licenseUrl": "https://github.com/zeit/ms/raw/master/license.md",
-        "parents": "debug:dot-x"
+        "parents": "dot-x"
     },
     "ms@2.1.3": {
         "licenses": "MIT",
         "repository": "https://github.com/vercel/ms",
         "licenseUrl": "https://github.com/vercel/ms/raw/master/license.md",
-        "parents": "dot-x"
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
     },
     "muggle-string@0.3.1": {
         "licenses": "MIT",
@@ -1689,11 +1981,23 @@
         "licenseUrl": "https://github.com/normalize/mz/raw/master/LICENSE",
         "parents": "dot-x"
     },
+    "nanoid@3.3.11": {
+        "licenses": "MIT",
+        "repository": "https://github.com/ai/nanoid",
+        "licenseUrl": "https://github.com/ai/nanoid/raw/master/LICENSE",
+        "parents": "vite:dot-x"
+    },
     "nanoid@3.3.6": {
         "licenses": "MIT",
         "repository": "https://github.com/ai/nanoid",
         "licenseUrl": "https://github.com/ai/nanoid/raw/master/LICENSE",
         "parents": "dot-x"
+    },
+    "nanoid@5.1.6": {
+        "licenses": "MIT",
+        "repository": "https://github.com/ai/nanoid",
+        "licenseUrl": "https://github.com/ai/nanoid/raw/master/LICENSE",
+        "parents": "@vue/devtools-core:dot-x"
     },
     "natives@1.1.6": {
         "licenses": "ISC",
@@ -1719,10 +2023,28 @@
         "licenseUrl": "https://github.com/nodejs/node-addon-api/raw/master/LICENSE.md",
         "parents": "@parcel/watcher:dot-x"
     },
+    "node-domexception@1.0.0": {
+        "licenses": "MIT",
+        "repository": "https://github.com/jimmywarting/node-domexception",
+        "licenseUrl": "https://github.com/jimmywarting/node-domexception/raw/master/LICENSE",
+        "parents": "dot-x"
+    },
+    "node-fetch@3.3.2": {
+        "licenses": "MIT",
+        "repository": "https://github.com/node-fetch/node-fetch",
+        "licenseUrl": "https://github.com/node-fetch/node-fetch/raw/master/LICENSE.md",
+        "parents": "dot-x"
+    },
     "node-gyp-build@4.6.0": {
         "licenses": "MIT",
         "repository": "https://github.com/prebuild/node-gyp-build",
         "licenseUrl": "https://github.com/prebuild/node-gyp-build/raw/master/LICENSE",
+        "parents": "dot-x"
+    },
+    "node-mock-http@1.0.3": {
+        "licenses": "MIT",
+        "repository": "https://github.com/unjs/node-mock-http",
+        "licenseUrl": "https://github.com/unjs/node-mock-http/raw/master/LICENSE",
         "parents": "dot-x"
     },
     "node-releases@2.0.13": {
@@ -1783,16 +2105,10 @@
         "licenseUrl": "https://github.com/jamestalmage/normalize-range/raw/master/license",
         "parents": "dot-x"
     },
-    "normalize-url@4.5.1": {
+    "normalize-url@6.1.0": {
         "licenses": "MIT",
         "repository": "https://github.com/sindresorhus/normalize-url",
         "licenseUrl": "https://github.com/sindresorhus/normalize-url/raw/master/license",
-        "parents": "dot-x"
-    },
-    "npm-conf@1.1.3": {
-        "licenses": "MIT",
-        "repository": "https://github.com/kevva/npm-conf",
-        "licenseUrl": "https://github.com/kevva/npm-conf/raw/master/license",
         "parents": "dot-x"
     },
     "npm-license-crawler@0.2.1": {
@@ -1807,6 +2123,18 @@
         "licenseUrl": "https://github.com/npm/npm-normalize-package-bin/raw/master/LICENSE",
         "parents": "dot-x"
     },
+    "npm-normalize-package-bin@5.0.0": {
+        "licenses": "ISC",
+        "repository": "https://github.com/npm/npm-normalize-package-bin",
+        "licenseUrl": "https://github.com/npm/npm-normalize-package-bin/raw/master/LICENSE",
+        "parents": "bin-links:dot-x"
+    },
+    "npm-run-path@6.0.0": {
+        "licenses": "MIT",
+        "repository": "https://github.com/sindresorhus/npm-run-path",
+        "licenseUrl": "https://github.com/sindresorhus/npm-run-path/raw/master/license",
+        "parents": "dot-x"
+    },
     "object-assign@4.1.1": {
         "licenses": "MIT",
         "repository": "https://github.com/sindresorhus/object-assign",
@@ -1819,22 +2147,10 @@
         "licenseUrl": "https://github.com/puleos/object-hash/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "object-inspect@1.13.1": {
-        "licenses": "MIT",
-        "repository": "https://github.com/inspect-js/object-inspect",
-        "licenseUrl": "https://github.com/inspect-js/object-inspect/raw/master/LICENSE",
-        "parents": "dot-x"
-    },
     "object-keys@1.1.1": {
         "licenses": "MIT",
         "repository": "https://github.com/ljharb/object-keys",
         "licenseUrl": "https://github.com/ljharb/object-keys/raw/master/LICENSE",
-        "parents": "dot-x"
-    },
-    "on-finished@2.4.1": {
-        "licenses": "MIT",
-        "repository": "https://github.com/jshttp/on-finished",
-        "licenseUrl": "https://github.com/jshttp/on-finished/raw/master/LICENSE",
         "parents": "dot-x"
     },
     "once@1.4.0": {
@@ -1861,28 +2177,16 @@
         "licenseUrl": "https://github.com/npm/osenv/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "p-cancelable@1.1.0": {
+    "p-cancelable@2.1.1": {
         "licenses": "MIT",
         "repository": "https://github.com/sindresorhus/p-cancelable",
         "licenseUrl": "https://github.com/sindresorhus/p-cancelable/raw/master/license",
         "parents": "dot-x"
     },
-    "parseqs@0.0.6": {
+    "parse-ms@4.0.0": {
         "licenses": "MIT",
-        "repository": "https://github.com/get/querystring",
-        "licenseUrl": "https://github.com/get/querystring/raw/master/LICENSE",
-        "parents": "dot-x"
-    },
-    "parseuri@0.0.6": {
-        "licenses": "MIT",
-        "repository": "https://github.com/get/parseuri",
-        "licenseUrl": "https://github.com/get/parseuri/raw/master/LICENSE",
-        "parents": "dot-x"
-    },
-    "parseurl@1.3.3": {
-        "licenses": "MIT",
-        "repository": "https://github.com/pillarjs/parseurl",
-        "licenseUrl": "https://github.com/pillarjs/parseurl/raw/master/LICENSE",
+        "repository": "https://github.com/sindresorhus/parse-ms",
+        "licenseUrl": "https://github.com/sindresorhus/parse-ms/raw/master/license",
         "parents": "dot-x"
     },
     "path-browserify@1.0.1": {
@@ -1903,16 +2207,22 @@
         "licenseUrl": "https://github.com/sindresorhus/path-key/raw/master/license",
         "parents": "dot-x"
     },
+    "path-key@4.0.0": {
+        "licenses": "MIT",
+        "repository": "https://github.com/sindresorhus/path-key",
+        "licenseUrl": "https://github.com/sindresorhus/path-key/raw/master/license",
+        "parents": "npm-run-path:dot-x"
+    },
     "path-parse@1.0.7": {
         "licenses": "MIT",
         "repository": "https://github.com/jbgutierrez/path-parse",
         "licenseUrl": "https://github.com/jbgutierrez/path-parse/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "path-to-regexp@0.1.7": {
+    "pathe@2.0.3": {
         "licenses": "MIT",
-        "repository": "https://github.com/component/path-to-regexp",
-        "licenseUrl": "https://github.com/component/path-to-regexp/raw/master/LICENSE",
+        "repository": "https://github.com/unjs/pathe",
+        "licenseUrl": "https://github.com/unjs/pathe/raw/master/LICENSE",
         "parents": "dot-x"
     },
     "pend@1.2.0": {
@@ -1921,11 +2231,23 @@
         "licenseUrl": "https://github.com/andrewrk/node-pend/raw/master/LICENSE",
         "parents": "dot-x"
     },
+    "perfect-debounce@2.0.0": {
+        "licenses": "MIT",
+        "repository": "https://github.com/unjs/perfect-debounce",
+        "licenseUrl": "https://github.com/unjs/perfect-debounce/raw/master/LICENSE",
+        "parents": "dot-x"
+    },
     "picocolors@1.0.0": {
         "licenses": "ISC",
         "repository": "https://github.com/alexeyraspopov/picocolors",
         "licenseUrl": "https://github.com/alexeyraspopov/picocolors/raw/master/LICENSE",
         "parents": "dot-x"
+    },
+    "picocolors@1.1.1": {
+        "licenses": "ISC",
+        "repository": "https://github.com/alexeyraspopov/picocolors",
+        "licenseUrl": "https://github.com/alexeyraspopov/picocolors/raw/master/LICENSE",
+        "parents": "vite:dot-x"
     },
     "picomatch@2.3.1": {
         "licenses": "MIT",
@@ -1933,17 +2255,17 @@
         "licenseUrl": "https://github.com/micromatch/picomatch/raw/master/LICENSE",
         "parents": "dot-x"
     },
+    "picomatch@4.0.3": {
+        "licenses": "MIT",
+        "repository": "https://github.com/micromatch/picomatch",
+        "licenseUrl": "https://github.com/micromatch/picomatch/raw/master/LICENSE",
+        "parents": "tinyglobby:dot-x"
+    },
     "pify@2.3.0": {
         "licenses": "MIT",
         "repository": "https://github.com/sindresorhus/pify",
         "licenseUrl": "https://github.com/sindresorhus/pify/raw/master/license",
         "parents": "dot-x"
-    },
-    "pify@3.0.0": {
-        "licenses": "MIT",
-        "repository": "https://github.com/sindresorhus/pify",
-        "licenseUrl": "https://github.com/sindresorhus/pify/raw/master/license",
-        "parents": "npm-conf:dot-x"
     },
     "pinia@2.1.7": {
         "licenses": "MIT",
@@ -1999,16 +2321,22 @@
         "licenseUrl": "https://github.com/postcss/postcss/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "prepend-http@2.0.0": {
+    "postcss@8.5.6": {
         "licenses": "MIT",
-        "repository": "https://github.com/sindresorhus/prepend-http",
-        "licenseUrl": "https://github.com/sindresorhus/prepend-http/raw/master/license",
+        "repository": "https://github.com/postcss/postcss",
+        "licenseUrl": "https://github.com/postcss/postcss/raw/master/LICENSE",
+        "parents": "vite:dot-x"
+    },
+    "pretty-ms@9.3.0": {
+        "licenses": "MIT",
+        "repository": "https://github.com/sindresorhus/pretty-ms",
+        "licenseUrl": "https://github.com/sindresorhus/pretty-ms/raw/master/license",
         "parents": "dot-x"
     },
-    "process-nextick-args@2.0.1": {
-        "licenses": "MIT",
-        "repository": "https://github.com/calvinmetcalf/process-nextick-args",
-        "licenseUrl": "https://github.com/calvinmetcalf/process-nextick-args/raw/master/license.md",
+    "proc-log@6.1.0": {
+        "licenses": "ISC",
+        "repository": "https://github.com/npm/proc-log",
+        "licenseUrl": "https://github.com/npm/proc-log/raw/master/LICENSE",
         "parents": "dot-x"
     },
     "progress@2.0.3": {
@@ -2017,29 +2345,17 @@
         "licenseUrl": "https://github.com/visionmedia/node-progress/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "proto-list@1.2.4": {
-        "licenses": "ISC",
-        "repository": "https://github.com/isaacs/proto-list",
-        "licenseUrl": "https://github.com/isaacs/proto-list/raw/master/LICENSE",
-        "parents": "dot-x"
-    },
-    "proxy-addr@2.0.7": {
-        "licenses": "MIT",
-        "repository": "https://github.com/jshttp/proxy-addr",
-        "licenseUrl": "https://github.com/jshttp/proxy-addr/raw/master/LICENSE",
-        "parents": "dot-x"
-    },
     "pump@3.0.0": {
         "licenses": "MIT",
         "repository": "https://github.com/mafintosh/pump",
         "licenseUrl": "https://github.com/mafintosh/pump/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "qs@6.11.0": {
-        "licenses": "BSD-3-Clause",
-        "repository": "https://github.com/ljharb/qs",
-        "licenseUrl": "https://github.com/ljharb/qs/raw/master/LICENSE.md",
-        "parents": "dot-x"
+    "punycode.js@2.3.1": {
+        "licenses": "MIT",
+        "repository": "https://github.com/mathiasbynens/punycode.js",
+        "licenseUrl": "https://github.com/mathiasbynens/punycode.js/raw/master/LICENSE-MIT.txt",
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
     },
     "queue-microtask@1.2.3": {
         "licenses": "MIT",
@@ -2047,22 +2363,28 @@
         "licenseUrl": "https://github.com/feross/queue-microtask/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "range-parser@1.2.1": {
+    "quick-lru@5.1.1": {
         "licenses": "MIT",
-        "repository": "https://github.com/jshttp/range-parser",
-        "licenseUrl": "https://github.com/jshttp/range-parser/raw/master/LICENSE",
+        "repository": "https://github.com/sindresorhus/quick-lru",
+        "licenseUrl": "https://github.com/sindresorhus/quick-lru/raw/master/license",
         "parents": "dot-x"
     },
-    "raw-body@2.5.1": {
+    "radix3@1.1.2": {
         "licenses": "MIT",
-        "repository": "https://github.com/stream-utils/raw-body",
-        "licenseUrl": "https://github.com/stream-utils/raw-body/raw/master/LICENSE",
+        "repository": "https://github.com/unjs/radix3",
+        "licenseUrl": "https://github.com/unjs/radix3/raw/master/LICENSE",
         "parents": "dot-x"
     },
     "read-cache@1.0.0": {
         "licenses": "MIT",
         "repository": "https://github.com/TrySound/read-cache",
         "licenseUrl": "https://github.com/TrySound/read-cache/raw/master/LICENSE",
+        "parents": "dot-x"
+    },
+    "read-cmd-shim@6.0.0": {
+        "licenses": "ISC",
+        "repository": "https://github.com/npm/read-cmd-shim",
+        "licenseUrl": "https://github.com/npm/read-cmd-shim/raw/master/LICENSE",
         "parents": "dot-x"
     },
     "read-installed@3.1.5": {
@@ -2073,8 +2395,8 @@
     },
     "read-installed@4.0.3": {
         "licenses": "ISC",
-        "repository": "https://github.com/isaacs/read-installed",
-        "licenseUrl": "https://github.com/isaacs/read-installed/raw/master/LICENSE",
+        "repository": "https://github.com/npm/read-installed",
+        "licenseUrl": "https://github.com/npm/read-installed/raw/master/LICENSE",
         "parents": "dot-x"
     },
     "read-package-json@1.3.3": {
@@ -2087,12 +2409,6 @@
         "licenses": "ISC",
         "repository": "https://github.com/npm/read-package-json",
         "licenseUrl": "https://github.com/npm/read-package-json/raw/master/LICENSE",
-        "parents": "dot-x"
-    },
-    "readable-stream@2.3.8": {
-        "licenses": "MIT",
-        "repository": "https://github.com/nodejs/readable-stream",
-        "licenseUrl": "https://github.com/nodejs/readable-stream/raw/master/LICENSE",
         "parents": "dot-x"
     },
     "readdir-scoped-modules@1.1.0": {
@@ -2113,6 +2429,18 @@
         "licenseUrl": "https://github.com/paulmillr/readdirp/raw/master/LICENSE",
         "parents": "dot-x"
     },
+    "require-from-string@2.0.2": {
+        "licenses": "MIT",
+        "repository": "https://github.com/floatdrop/require-from-string",
+        "licenseUrl": "https://github.com/floatdrop/require-from-string/raw/master/license",
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
+    },
+    "resolve-alpn@1.2.1": {
+        "licenses": "MIT",
+        "repository": "https://github.com/szmarczak/resolve-alpn",
+        "licenseUrl": "https://github.com/szmarczak/resolve-alpn/raw/master/LICENSE",
+        "parents": "dot-x"
+    },
     "resolve-pkg-maps@1.0.0": {
         "licenses": "MIT",
         "repository": "https://github.com/privatenumber/resolve-pkg-maps",
@@ -2125,10 +2453,10 @@
         "licenseUrl": "https://github.com/browserify/resolve/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "responselike@1.0.2": {
+    "responselike@2.0.1": {
         "licenses": "MIT",
-        "repository": "https://github.com/lukechilds/responselike",
-        "licenseUrl": "https://github.com/lukechilds/responselike/raw/master/LICENSE",
+        "repository": "https://github.com/sindresorhus/responselike",
+        "licenseUrl": "https://github.com/sindresorhus/responselike/raw/master/LICENSE",
         "parents": "dot-x"
     },
     "reusify@1.0.4": {
@@ -2137,13 +2465,23 @@
         "licenseUrl": "https://github.com/mcollina/reusify/raw/master/LICENSE",
         "parents": "dot-x"
     },
+    "rfdc@1.4.1": {
+        "licenses": "MIT",
+        "repository": "https://github.com/davidmarkclements/rfdc",
+        "licenseUrl": "https://github.com/davidmarkclements/rfdc/raw/master/LICENSE",
+        "parents": "dot-x"
+    },
+    "rgb-demo@1.0.0": {
+        "licenses": "MIT",
+        "parents": "UNDEFINED"
+    },
     "roarr@2.15.4": {
         "licenses": "BSD-3-Clause",
         "repository": "https://github.com/gajus/roarr",
         "licenseUrl": "https://github.com/gajus/roarr/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "rollup@3.29.4": {
+    "rollup@4.52.4": {
         "licenses": "MIT",
         "repository": "https://github.com/rollup/rollup",
         "licenseUrl": "https://github.com/rollup/rollup/raw/master/LICENSE.md",
@@ -2155,25 +2493,7 @@
         "licenseUrl": "https://github.com/feross/run-parallel/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "safe-buffer@5.1.2": {
-        "licenses": "MIT",
-        "repository": "https://github.com/feross/safe-buffer",
-        "licenseUrl": "https://github.com/feross/safe-buffer/raw/master/LICENSE",
-        "parents": "dot-x"
-    },
-    "safe-buffer@5.2.1": {
-        "licenses": "MIT",
-        "repository": "https://github.com/feross/safe-buffer",
-        "licenseUrl": "https://github.com/feross/safe-buffer/raw/master/LICENSE",
-        "parents": "content-disposition:dot-x"
-    },
-    "safer-buffer@2.1.2": {
-        "licenses": "MIT",
-        "repository": "https://github.com/ChALkeR/safer-buffer",
-        "licenseUrl": "https://github.com/ChALkeR/safer-buffer/raw/master/LICENSE",
-        "parents": "dot-x"
-    },
-    "sass@1.90.0": {
+    "sass@1.94.2": {
         "licenses": "MIT",
         "repository": "https://github.com/sass/dart-sass",
         "licenseUrl": "https://github.com/sass/dart-sass/raw/master/LICENSE",
@@ -2209,11 +2529,11 @@
         "licenseUrl": "https://github.com/npm/node-semver/raw/master/LICENSE",
         "parents": "global-agent:dot-x"
     },
-    "send@0.18.0": {
-        "licenses": "MIT",
-        "repository": "https://github.com/pillarjs/send",
-        "licenseUrl": "https://github.com/pillarjs/send/raw/master/LICENSE",
-        "parents": "dot-x"
+    "semver@7.7.2": {
+        "licenses": "ISC",
+        "repository": "https://github.com/npm/node-semver",
+        "licenseUrl": "https://github.com/npm/node-semver/raw/master/LICENSE",
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
     },
     "serialize-error@7.0.1": {
         "licenses": "MIT",
@@ -2225,24 +2545,6 @@
         "licenses": "MIT",
         "repository": "https://github.com/serialport/node-serialport",
         "licenseUrl": "https://github.com/serialport/node-serialport/raw/master/LICENSE",
-        "parents": "dot-x"
-    },
-    "serve-static@1.15.0": {
-        "licenses": "MIT",
-        "repository": "https://github.com/expressjs/serve-static",
-        "licenseUrl": "https://github.com/expressjs/serve-static/raw/master/LICENSE",
-        "parents": "dot-x"
-    },
-    "set-function-length@1.1.1": {
-        "licenses": "MIT",
-        "repository": "https://github.com/ljharb/set-function-length",
-        "licenseUrl": "https://github.com/ljharb/set-function-length/raw/master/LICENSE",
-        "parents": "dot-x"
-    },
-    "setprototypeof@1.2.0": {
-        "licenses": "ISC",
-        "repository": "https://github.com/wesleytodd/setprototypeof",
-        "licenseUrl": "https://github.com/wesleytodd/setprototypeof/raw/master/LICENSE",
         "parents": "dot-x"
     },
     "shebang-command@2.0.0": {
@@ -2257,11 +2559,17 @@
         "licenseUrl": "https://github.com/sindresorhus/shebang-regex/raw/master/license",
         "parents": "dot-x"
     },
-    "side-channel@1.0.4": {
-        "licenses": "MIT",
-        "repository": "https://github.com/ljharb/side-channel",
-        "licenseUrl": "https://github.com/ljharb/side-channel/raw/master/LICENSE",
+    "signal-exit@4.1.0": {
+        "licenses": "ISC",
+        "repository": "https://github.com/tapjs/signal-exit",
+        "licenseUrl": "https://github.com/tapjs/signal-exit/raw/master/LICENSE.txt",
         "parents": "dot-x"
+    },
+    "sisteransi@1.0.5": {
+        "licenses": "MIT",
+        "repository": "https://github.com/terkelg/sisteransi",
+        "licenseUrl": "https://github.com/terkelg/sisteransi/raw/master/license",
+        "parents": "@dotmatrixlabs/create-dotx-plugin"
     },
     "slide@1.1.6": {
         "licenses": "ISC",
@@ -2269,47 +2577,23 @@
         "licenseUrl": "https://github.com/isaacs/slide-flow-control/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "socket.io-adapter@1.1.2": {
-        "licenses": "MIT",
-        "repository": "https://github.com/socketio/socket.io-adapter",
-        "licenseUrl": "https://github.com/socketio/socket.io-adapter/raw/master/LICENSE",
-        "parents": "@vue/devtools:dot-x"
-    },
     "socket.io-adapter@2.5.5": {
         "licenses": "MIT",
         "repository": "https://github.com/socketio/socket.io-adapter",
         "licenseUrl": "https://github.com/socketio/socket.io-adapter/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "socket.io-client@2.5.0": {
+    "socket.io-client@4.8.1": {
         "licenses": "MIT",
-        "repository": "https://github.com/Automattic/socket.io-client",
-        "licenseUrl": "https://github.com/Automattic/socket.io-client/raw/master/LICENSE",
-        "parents": "dot-x"
-    },
-    "socket.io-parser@3.3.4": {
-        "licenses": "MIT",
-        "repository": "https://github.com/Automattic/socket.io-parser",
-        "licenseUrl": "https://github.com/Automattic/socket.io-parser/raw/master/LICENSE",
-        "parents": "socket.io-client:dot-x"
-    },
-    "socket.io-parser@3.4.3": {
-        "licenses": "MIT",
-        "repository": "https://github.com/socketio/socket.io-parser",
-        "licenseUrl": "https://github.com/socketio/socket.io-parser/raw/master/LICENSE",
-        "parents": "@vue/devtools:dot-x"
+        "repository": "https://github.com/socketio/socket.io",
+        "licenseUrl": "https://github.com/socketio/socket.io/raw/master/LICENSE",
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
     },
     "socket.io-parser@4.2.4": {
         "licenses": "MIT",
         "repository": "https://github.com/socketio/socket.io-parser",
         "licenseUrl": "https://github.com/socketio/socket.io-parser/raw/master/LICENSE",
-        "parents": "dot-x"
-    },
-    "socket.io@2.5.1": {
-        "licenses": "MIT",
-        "repository": "https://github.com/socketio/socket.io",
-        "licenseUrl": "https://github.com/socketio/socket.io/raw/master/LICENSE",
-        "parents": "@vue/devtools:dot-x"
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
     },
     "socket.io@4.8.1": {
         "licenses": "MIT",
@@ -2371,22 +2655,16 @@
         "licenseUrl": "https://github.com/kemitchell/spdx-satisfies.js/raw/master/LICENSE",
         "parents": "dot-x"
     },
+    "speakingurl@14.0.1": {
+        "licenses": "BSD-3-Clause",
+        "repository": "https://github.com/pid/speakingurl",
+        "licenseUrl": "https://github.com/pid/speakingurl/raw/master/LICENSE",
+        "parents": "dot-x"
+    },
     "sprintf-js@1.1.3": {
         "licenses": "BSD-3-Clause",
         "repository": "https://github.com/alexei/sprintf.js",
         "licenseUrl": "https://github.com/alexei/sprintf.js/raw/master/LICENSE",
-        "parents": "dot-x"
-    },
-    "statuses@2.0.1": {
-        "licenses": "MIT",
-        "repository": "https://github.com/jshttp/statuses",
-        "licenseUrl": "https://github.com/jshttp/statuses/raw/master/LICENSE",
-        "parents": "dot-x"
-    },
-    "string_decoder@1.1.1": {
-        "licenses": "MIT",
-        "repository": "https://github.com/nodejs/string_decoder",
-        "licenseUrl": "https://github.com/nodejs/string_decoder/raw/master/LICENSE",
         "parents": "dot-x"
     },
     "strip-ansi@0.3.0": {
@@ -2394,6 +2672,18 @@
         "repository": "https://github.com/sindresorhus/strip-ansi",
         "licenseUrl": "https://github.com/sindresorhus/strip-ansi",
         "parents": "dot-x"
+    },
+    "strip-final-newline@4.0.0": {
+        "licenses": "MIT",
+        "repository": "https://github.com/sindresorhus/strip-final-newline",
+        "licenseUrl": "https://github.com/sindresorhus/strip-final-newline/raw/master/license",
+        "parents": "dot-x"
+    },
+    "stubborn-fs@1.2.5": {
+        "licenses": "MIT*",
+        "repository": "github:fabiospampinato/stubborn-fs",
+        "licenseUrl": "github:fabiospampinato/stubborn-fs",
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
     },
     "sucrase@3.34.0": {
         "licenses": "MIT",
@@ -2405,6 +2695,18 @@
         "licenses": "Apache-2.0",
         "repository": "https://github.com/malept/sumchecker",
         "licenseUrl": "https://github.com/malept/sumchecker/raw/master/LICENSE",
+        "parents": "dot-x"
+    },
+    "supabase@2.78.1": {
+        "licenses": "MIT",
+        "repository": "https://github.com/supabase/cli",
+        "licenseUrl": "https://github.com/supabase/cli/raw/master/LICENSE",
+        "parents": "dot-x"
+    },
+    "superjson@2.2.2": {
+        "licenses": "MIT",
+        "repository": "https://github.com/blitz-js/superjson",
+        "licenseUrl": "https://github.com/blitz-js/superjson/raw/master/LICENSE",
         "parents": "dot-x"
     },
     "supports-color@0.2.0": {
@@ -2431,16 +2733,10 @@
         "licenseUrl": "https://github.com/tailwindlabs/tailwindcss/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "tauri-plugin-autostart-api@0.0.0": {
-        "licenses": "MIT or APACHE-2.0",
-        "parents": "dot-x"
-    },
-    "tauri-plugin-store-api@0.0.0": {
-        "licenses": "MIT or APACHE-2.0",
-        "parents": "dot-x"
-    },
-    "tauri-plugin-websocket-api@0.0.0": {
-        "licenses": "MIT or APACHE-2.0",
+    "tar@7.5.11": {
+        "licenses": "BlueOak-1.0.0",
+        "repository": "https://github.com/isaacs/node-tar",
+        "licenseUrl": "https://github.com/isaacs/node-tar/raw/master/LICENSE.md",
         "parents": "dot-x"
     },
     "thenify-all@1.6.0": {
@@ -2455,28 +2751,16 @@
         "licenseUrl": "https://github.com/thenables/thenify/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "to-array@0.1.4": {
+    "tinyglobby@0.2.15": {
         "licenses": "MIT",
-        "repository": "https://github.com/Raynos/to-array",
-        "licenseUrl": "http://github.com/Raynos/to-array/raw/master/LICENSE",
-        "parents": "dot-x"
-    },
-    "to-readable-stream@1.0.0": {
-        "licenses": "MIT",
-        "repository": "https://github.com/sindresorhus/to-readable-stream",
-        "licenseUrl": "https://github.com/sindresorhus/to-readable-stream/raw/master/license",
+        "repository": "https://github.com/SuperchupuDev/tinyglobby",
+        "licenseUrl": "https://github.com/SuperchupuDev/tinyglobby/raw/master/LICENSE",
         "parents": "dot-x"
     },
     "to-regex-range@5.0.1": {
         "licenses": "MIT",
         "repository": "https://github.com/micromatch/to-regex-range",
         "licenseUrl": "https://github.com/micromatch/to-regex-range/raw/master/LICENSE",
-        "parents": "dot-x"
-    },
-    "toidentifier@1.0.1": {
-        "licenses": "MIT",
-        "repository": "https://github.com/component/toidentifier",
-        "licenseUrl": "https://github.com/component/toidentifier/raw/master/LICENSE",
         "parents": "dot-x"
     },
     "treeify@1.1.0": {
@@ -2503,34 +2787,82 @@
         "licenseUrl": "https://github.com/privatenumber/tsx/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "tunnel@0.0.6": {
-        "licenses": "MIT",
-        "repository": "https://github.com/koichik/node-tunnel",
-        "licenseUrl": "https://github.com/koichik/node-tunnel/raw/master/LICENSE",
-        "parents": "dot-x"
-    },
     "type-fest@0.13.1": {
         "licenses": "(MIT OR CC0-1.0)",
         "repository": "https://github.com/sindresorhus/type-fest",
         "licenseUrl": "https://github.com/sindresorhus/type-fest/raw/master/license",
         "parents": "dot-x"
     },
-    "type-is@1.6.18": {
-        "licenses": "MIT",
-        "repository": "https://github.com/jshttp/type-is",
-        "licenseUrl": "https://github.com/jshttp/type-is/raw/master/LICENSE",
-        "parents": "dot-x"
+    "type-fest@4.41.0": {
+        "licenses": "(MIT OR CC0-1.0)",
+        "repository": "https://github.com/sindresorhus/type-fest",
+        "licenseUrl": "https://github.com/sindresorhus/type-fest/raw/master/license-cc0",
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
     },
-    "typedarray@0.0.6": {
+    "typedoc-plugin-markdown@4.9.0": {
         "licenses": "MIT",
-        "repository": "https://github.com/substack/typedarray",
-        "licenseUrl": "https://github.com/substack/typedarray/raw/master/LICENSE",
-        "parents": "dot-x"
+        "repository": "https://github.com/typedoc2md/typedoc-plugin-markdown",
+        "licenseUrl": "https://github.com/typedoc2md/typedoc-plugin-markdown/raw/master/LICENSE",
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
+    },
+    "typedoc@0.28.14": {
+        "licenses": "Apache-2.0",
+        "repository": "https://github.com/TypeStrong/TypeDoc",
+        "licenseUrl": "https://github.com/TypeStrong/TypeDoc/raw/master/LICENSE",
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
     },
     "typescript@5.2.2": {
         "licenses": "Apache-2.0",
         "repository": "https://github.com/Microsoft/TypeScript",
         "licenseUrl": "https://github.com/Microsoft/TypeScript/raw/master/LICENSE.txt",
+        "parents": "dot-x"
+    },
+    "typescript@5.9.3": {
+        "licenses": "Apache-2.0",
+        "repository": "https://github.com/microsoft/TypeScript",
+        "licenseUrl": "https://github.com/microsoft/TypeScript/raw/master/LICENSE.txt",
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
+    },
+    "uc.micro@2.1.0": {
+        "licenses": "MIT",
+        "repository": "https://github.com/markdown-it/uc.micro",
+        "licenseUrl": "https://github.com/markdown-it/uc.micro/raw/master/LICENSE.txt",
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
+    },
+    "ufo@1.6.1": {
+        "licenses": "MIT",
+        "repository": "https://github.com/unjs/ufo",
+        "licenseUrl": "https://github.com/unjs/ufo/raw/master/LICENSE",
+        "parents": "dot-x"
+    },
+    "uint8array-extras@1.5.0": {
+        "licenses": "MIT",
+        "repository": "https://github.com/sindresorhus/uint8array-extras",
+        "licenseUrl": "https://github.com/sindresorhus/uint8array-extras/raw/master/license",
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
+    },
+    "uncrypto@0.1.3": {
+        "licenses": "MIT",
+        "repository": "https://github.com/unjs/uncrypto",
+        "licenseUrl": "https://github.com/unjs/uncrypto/raw/master/LICENSE",
+        "parents": "dot-x"
+    },
+    "undici-types@6.21.0": {
+        "licenses": "MIT",
+        "repository": "https://github.com/nodejs/undici",
+        "licenseUrl": "https://github.com/nodejs/undici/raw/master/LICENSE",
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
+    },
+    "undici-types@7.18.2": {
+        "licenses": "MIT",
+        "repository": "https://github.com/nodejs/undici",
+        "licenseUrl": "https://github.com/nodejs/undici/raw/master/LICENSE",
+        "parents": "@types/node:dot-x"
+    },
+    "unicorn-magic@0.3.0": {
+        "licenses": "MIT",
+        "repository": "https://github.com/sindresorhus/unicorn-magic",
+        "licenseUrl": "https://github.com/sindresorhus/unicorn-magic/raw/master/license",
         "parents": "dot-x"
     },
     "universalify@0.1.2": {
@@ -2539,22 +2871,10 @@
         "licenseUrl": "https://github.com/RyanZim/universalify/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "unpipe@1.0.0": {
-        "licenses": "MIT",
-        "repository": "https://github.com/stream-utils/unpipe",
-        "licenseUrl": "https://github.com/stream-utils/unpipe/raw/master/LICENSE",
-        "parents": "dot-x"
-    },
     "update-browserslist-db@1.0.13": {
         "licenses": "MIT",
         "repository": "https://github.com/browserslist/update-db",
         "licenseUrl": "https://github.com/browserslist/update-db/raw/master/LICENSE",
-        "parents": "dot-x"
-    },
-    "url-parse-lax@3.0.0": {
-        "licenses": "MIT",
-        "repository": "https://github.com/sindresorhus/url-parse-lax",
-        "licenseUrl": "https://github.com/sindresorhus/url-parse-lax/raw/master/license",
         "parents": "dot-x"
     },
     "util-deprecate@1.0.2": {
@@ -2569,12 +2889,6 @@
         "licenseUrl": "https://github.com/isaacs/util-extend/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "utils-merge@1.0.1": {
-        "licenses": "MIT",
-        "repository": "https://github.com/jaredhanson/utils-merge",
-        "licenseUrl": "https://github.com/jaredhanson/utils-merge/raw/master/LICENSE",
-        "parents": "dot-x"
-    },
     "validate-npm-package-license@3.0.4": {
         "licenses": "Apache-2.0",
         "repository": "https://github.com/kemitchell/validate-npm-package-license.js",
@@ -2587,7 +2901,13 @@
         "licenseUrl": "https://github.com/jshttp/vary/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "vite@4.4.11": {
+    "vite-hot-client@2.1.0": {
+        "licenses": "MIT",
+        "repository": "https://github.com/antfu/vite-hot-client",
+        "licenseUrl": "https://github.com/antfu/vite-hot-client/raw/master/LICENSE",
+        "parents": "dot-x"
+    },
+    "vite@6.3.6": {
         "licenses": "MIT",
         "repository": "https://github.com/vitejs/vite",
         "licenseUrl": "https://github.com/vitejs/vite/raw/master/LICENSE.md",
@@ -2617,16 +2937,16 @@
         "licenseUrl": "https://github.com/Jexordexan/vue-slicksort/raw/master/LICENSE",
         "parents": "dot-x"
     },
+    "vue-sonner@2.0.9": {
+        "licenses": "MIT",
+        "repository": "https://github.com/xiaoluoboding/vue-sonner",
+        "licenseUrl": "https://github.com/xiaoluoboding/vue-sonner/raw/master/LICENSE",
+        "parents": "dot-x"
+    },
     "vue-template-compiler@2.7.14": {
         "licenses": "MIT",
         "repository": "https://github.com/vuejs/vue",
         "licenseUrl": "https://github.com/vuejs/vue/raw/master/LICENSE",
-        "parents": "dot-x"
-    },
-    "vue-toastification@2.0.0-rc.5": {
-        "licenses": "MIT",
-        "repository": "https://github.com/Maronato/vue-toastification",
-        "licenseUrl": "https://github.com/Maronato/vue-toastification/raw/master/LICENCE",
         "parents": "dot-x"
     },
     "vue-tsc@1.8.19": {
@@ -2647,6 +2967,18 @@
         "licenseUrl": "https://github.com/vuejs/core/raw/master/LICENSE",
         "parents": "dot-x"
     },
+    "web-streams-polyfill@3.3.3": {
+        "licenses": "MIT",
+        "repository": "https://github.com/MattiasBuelens/web-streams-polyfill",
+        "licenseUrl": "https://github.com/MattiasBuelens/web-streams-polyfill/raw/master/LICENSE",
+        "parents": "dot-x"
+    },
+    "when-exit@2.1.4": {
+        "licenses": "MIT",
+        "repository": "github:fabiospampinato/when-exit",
+        "licenseUrl": "github:fabiospampinato/when-exit",
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
+    },
     "which@2.0.2": {
         "licenses": "ISC",
         "repository": "https://github.com/isaacs/node-which",
@@ -2659,23 +2991,23 @@
         "licenseUrl": "https://github.com/npm/wrappy/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "ws@7.5.10": {
-        "licenses": "MIT",
-        "repository": "https://github.com/websockets/ws",
-        "licenseUrl": "https://github.com/websockets/ws/raw/master/LICENSE",
+    "write-file-atomic@7.0.1": {
+        "licenses": "ISC",
+        "repository": "https://github.com/npm/write-file-atomic",
+        "licenseUrl": "https://github.com/npm/write-file-atomic/raw/master/LICENSE.md",
         "parents": "dot-x"
     },
     "ws@8.17.1": {
         "licenses": "MIT",
         "repository": "https://github.com/websockets/ws",
         "licenseUrl": "https://github.com/websockets/ws/raw/master/LICENSE",
-        "parents": "engine.io:dot-x"
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
     },
-    "xmlhttprequest-ssl@1.6.3": {
+    "xmlhttprequest-ssl@2.1.2": {
         "licenses": "MIT",
         "repository": "https://github.com/mjwwit/node-XMLHttpRequest",
         "licenseUrl": "http://creativecommons.org/licenses/MIT/",
-        "parents": "dot-x"
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
     },
     "yallist@4.0.0": {
         "licenses": "ISC",
@@ -2683,7 +3015,19 @@
         "licenseUrl": "https://github.com/isaacs/yallist/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "yaml@2.3.3": {
+    "yallist@5.0.0": {
+        "licenses": "BlueOak-1.0.0",
+        "repository": "https://github.com/isaacs/yallist",
+        "licenseUrl": "https://github.com/isaacs/yallist/raw/master/LICENSE.md",
+        "parents": "tar:dot-x"
+    },
+    "yaml@2.8.1": {
+        "licenses": "ISC",
+        "repository": "github:eemeli/yaml",
+        "licenseUrl": "github:eemeli/yaml",
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
+    },
+    "yaml@2.8.2": {
         "licenses": "ISC",
         "repository": "github:eemeli/yaml",
         "licenseUrl": "github:eemeli/yaml",
@@ -2695,10 +3039,10 @@
         "licenseUrl": "https://github.com/thejoshwolfe/yauzl/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "yeast@0.1.2": {
+    "yoctocolors@2.1.2": {
         "licenses": "MIT",
-        "repository": "https://github.com/unshiftio/yeast",
-        "licenseUrl": "https://github.com/unshiftio/yeast/raw/master/LICENSE",
+        "repository": "https://github.com/sindresorhus/yoctocolors",
+        "licenseUrl": "https://github.com/sindresorhus/yoctocolors/raw/master/license",
         "parents": "dot-x"
     }
 }

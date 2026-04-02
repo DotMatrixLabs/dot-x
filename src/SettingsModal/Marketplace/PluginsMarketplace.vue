@@ -111,6 +111,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { toast } from 'vue-sonner';
 import PluginDetailModal from './PluginDetailModal.vue';
+import { usePluginStore } from '../../store/pluginStore';
 import MarketplaceStats, {
 	MARKETPLACE_REGISTRY_URL,
 	formatMarketplaceErrorMessage,
@@ -232,7 +233,7 @@ export default {
 			if (plugin.isDownloading) return;
 			plugin.isDownloading = true;
 			try {
-				await invoke('uninstall_marketplace_plugin', { pluginId: plugin.id });
+				await usePluginStore().uninstallPluginId(plugin.id);
 				toast.success(`Successfully uninstalled ${plugin.name}`);
 				this.$emit('uninstalled', plugin);
 			} catch (error) {
