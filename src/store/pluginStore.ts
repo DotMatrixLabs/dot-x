@@ -11,6 +11,7 @@ import { toast } from "vue-sonner";
 
 const UNEXPECTED_PLUGIN_DISCONNECT_GRACE_MS = 1500;
 const pendingUnexpectedDisconnects = new Map<string, ReturnType<typeof setTimeout>>();
+const expectedPluginDisconnects = new Map<string, ReturnType<typeof setTimeout>>();
 let refreshPluginUpdatesPromise: Promise<Record<string, PluginUpdateRecord>> | null = null;
 
 function normalizeErrorMessage(error: unknown): string | null {
@@ -159,6 +160,57 @@ export const usePluginStore = defineStore("pluginStore", {
             clearTimeout(pending);
             pendingUnexpectedDisconnects.delete(pluginId);
         },
+        markExpectedDisconnect(pluginId: string, timeoutMs = 5000) {
+            if (!pluginId) {
+                return;
+            }
+
+            const existing = expectedPluginDisconnects.get(pluginId);
+            if (existing) {
+                clearTimeout(existing);
+            }
+
+            const timeout = setTimeout(() => {
+                expectedPluginDisconnects.delete(pluginId);
+            }, timeoutMs);
+            expectedPluginDisconnects.set(pluginId, timeout);
+        },
+        clearExpectedDisconnect(pluginId: string) {
+            const pending = expectedPluginDisconnects.get(pluginId);
+            if (!pending) {
+                return;
+            }
+
+            clearTimeout(pending);
+            expectedPluginDisconnects.delete(pluginId);
+        },
+        async stopPluginIntentionally(pluginId: string) {
+            if (!pluginId) {
+                return;
+            }
+
+            this.cancelPendingUnexpectedDisconnect(pluginId);
+            this.markExpectedDisconnect(pluginId);
+            await invoke("stop_plugin", { pluginId });
+        },
+        async uninstallPluginId(pluginId: string) {
+            if (!pluginId) {
+                return;
+            }
+
+            try {
+                await this.stopPluginIntentionally(pluginId);
+            } catch (error) {
+                console.error(`Failed to stop plugin ${pluginId} before uninstall:`, error);
+            }
+
+            try {
+                await invoke("uninstall_marketplace_plugin", { pluginId });
+            } catch (error) {
+                this.clearExpectedDisconnect(pluginId);
+                throw error;
+            }
+        },
         async getLatestPluginFailureReason(pluginId: string) {
             try {
                 const rawLogs = await invoke<string>("get_plugin_logs", { pluginId });
@@ -195,6 +247,12 @@ export const usePluginStore = defineStore("pluginStore", {
         },
         handlePluginDisconnected(plugin: { id: string; name?: string; error?: string | null }) {
             if (!plugin?.id) {
+                return;
+            }
+
+            if (expectedPluginDisconnects.has(plugin.id)) {
+                this.clearExpectedDisconnect(plugin.id);
+                this.removeConnectedPlugin(plugin.id);
                 return;
             }
 
@@ -252,6 +310,7 @@ export const usePluginStore = defineStore("pluginStore", {
         upsertConnectedPlugin(plugin: PluginConnectionInfo) {
             if (!plugin?.id) return;
             this.cancelPendingUnexpectedDisconnect(plugin.id);
+            this.clearExpectedDisconnect(plugin.id);
             this.connectedPlugins = {
                 ...this.connectedPlugins,
                 [plugin.id]: plugin,
@@ -290,7 +349,7 @@ export const usePluginStore = defineStore("pluginStore", {
                 await PluginStorage.setEnabledPluginIds(Array.from(this.enabledPlugins));
 
                 try {
-                    await invoke("stop_plugin", { pluginId });
+                    await this.stopPluginIntentionally(pluginId);
                 } catch (error) {
                     console.error(`Failed to stop plugin ${pluginId} before restart:`, error);
                 }
@@ -331,7 +390,7 @@ export const usePluginStore = defineStore("pluginStore", {
                 await PluginStorage.setEnabledPluginIds(Array.from(this.enabledPlugins));
 
                 try {
-                    await invoke("stop_plugin", { pluginId });
+                    await this.stopPluginIntentionally(pluginId);
                 } catch (error) {
                     console.error(`Failed to stop plugin ${pluginId}:`, error);
                 }

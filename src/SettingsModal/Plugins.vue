@@ -178,7 +178,11 @@ import { toast } from 'vue-sonner';
 import PluginsMarketplace from './Marketplace/PluginsMarketplace.vue';
 import PluginDetailModal from './Marketplace/PluginDetailModal.vue';
 import PluginLogsModal from '../components/PluginLogsModal.vue';
-import { MARKETPLACE_REGISTRY_URL } from '../ts/marketplaceStats';
+import MarketplaceStats, {
+	MARKETPLACE_REGISTRY_URL,
+	resolveMarketplaceDownloadCount,
+	resolveMarketplaceLikeState,
+} from '../ts/marketplaceStats';
 
 export default {
 	name: "Plugins",
@@ -197,7 +201,7 @@ export default {
 			default: null,
 		},
 	},
-	emits: ['openSettings'],
+	emits: ['openSettings', 'installed-plugins-changed'],
 
 	data() {
 		return {
@@ -298,7 +302,7 @@ export default {
 			const pluginLabel = plugin.name || plugin.id;
 			this.setPluginActionState(plugin.id, { busy: true });
 			try {
-				await invoke('uninstall_marketplace_plugin', { pluginId: plugin.id });
+				await usePluginStore().uninstallPluginId(plugin.id);
 				if (this.selectedPlugin?.id === plugin.id) {
 					this.showDetailModal = false;
 					this.selectedPlugin = null;
@@ -479,9 +483,59 @@ export default {
 
 			return null;
 		},
-		openPluginDetail(plugin) {
+		async enrichPluginDetailWithMarketplaceStats(detailPlugin) {
+			if (!detailPlugin?.id) {
+				return detailPlugin;
+			}
+
+			try {
+				const [likedPluginIds, likeCountOverrides, downloadCountOverrides, response] = await Promise.all([
+					MarketplaceStats.getLikedPluginIds(),
+					MarketplaceStats.getLikeCountOverrides(),
+					MarketplaceStats.getDownloadCountOverrides(),
+					fetch(MARKETPLACE_REGISTRY_URL),
+				]);
+
+				if (!response.ok) {
+					throw new Error(`Failed to fetch registry: ${response.statusText}`);
+				}
+
+				const data = await response.json();
+				const registryPlugin = (data?.plugins || []).find((entry) => entry?.id === detailPlugin.id);
+				if (!registryPlugin) {
+					return detailPlugin;
+				}
+
+				const localLikeState = resolveMarketplaceLikeState(
+					detailPlugin.id,
+					Number(registryPlugin.likes || 0),
+					likedPluginIds,
+					likeCountOverrides,
+				);
+
+				return {
+					...registryPlugin,
+					...detailPlugin,
+					author: detailPlugin.author || registryPlugin.author,
+					description: detailPlugin.description || registryPlugin.description,
+					repo: detailPlugin.repo || registryPlugin.repo,
+					tags: detailPlugin.tags?.length ? detailPlugin.tags : registryPlugin.tags,
+					likes: localLikeState.likes,
+					isLiked: localLikeState.isLiked,
+					downloads: resolveMarketplaceDownloadCount(
+						detailPlugin.id,
+						Number(registryPlugin.downloads || 0),
+						downloadCountOverrides,
+					),
+				};
+			} catch (error) {
+				console.error('Failed to enrich plugin detail with marketplace stats', error);
+				return detailPlugin;
+			}
+		},
+		async openPluginDetail(plugin) {
 			const m = plugin.manifest;
-			this.selectedPlugin = {
+			const detailPlugin = {
 				...m,
 				id: plugin.id,
 				name: plugin.name,
@@ -491,8 +545,15 @@ export default {
 				manifest: m,
 				external: plugin.external,
 			};
+			this.selectedPlugin = detailPlugin;
 			this.selectedPluginInstalled = !plugin.external;
 			this.showDetailModal = true;
+
+			const enrichedPlugin = await this.enrichPluginDetailWithMarketplaceStats(detailPlugin);
+			if (this.selectedPlugin?.id !== detailPlugin.id) {
+				return;
+			}
+			this.selectedPlugin = enrichedPlugin;
 		},
 		openLogs(plugin) {
 			this.selectedLogPlugin = plugin;
@@ -523,6 +584,7 @@ export default {
                 const installed = await invoke('list_installed_plugins');
                 if (Array.isArray(installed)) {
                     this.installedPlugins = installed;
+					this.$emit('installed-plugins-changed', installed);
                 }
 			} catch (e) {
                 console.error('Failed to list installed plugins', e);
