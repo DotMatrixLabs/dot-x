@@ -273,8 +273,6 @@ export class APIClient {
       const connect = () => {
         if (this.isDestroyed) return;
         
-        console.log(`Attempting to connect to plugin server at ${this.config.serverUrl}...`);
-        
         this.socket = io(this.config.serverUrl, {
           timeout: this.config.connectionTimeout,
           forceNew: true,
@@ -284,9 +282,7 @@ export class APIClient {
         
 
         this.socket.on('plugin.action', (data: { action: string; params?: any }) => {
-          console.log('Received action!', data);
           const cb = this.actionCallbacks.get(data.action);
-          console.log('Action callback:', cb);
           if (cb) {
             try {
               cb(data.params);
@@ -297,23 +293,19 @@ export class APIClient {
         });
 
         this.socket.on('plugin.device_update', (data: DeviceChanges) => {
-          console.log('Received device update event');
           this.onDeviceUpdate(data);
         });
 
         this.socket.on('plugin.device_connected', (data: DeviceInfo) => {
-          console.log('Received device connected event', data);
           this.deviceAPI.triggerConnect(data);
         });
 
         this.socket.on('plugin.device_disconnected', (data: DeviceInfo) => {
-          console.log('Received device disconnected event', data);
           this.deviceAPI.triggerDisconnect(data);
         });
 
         // Request handler from app: single topic with method routing
         this.socket.on('plugin.request', (data: { method: string; params?: any; request_id?: string }, ack: (response: any) => void) => {
-          console.log('Received plugin request:', data);
           const { method, request_id } = data || {};
           let response: any = { success: false, error: 'Unknown method', request_id, method };
 
@@ -330,10 +322,6 @@ export class APIClient {
           }
 
           ack(response);
-        });
-
-        this.socket.onAny((eventName, ...args) => { //TODO: remove this before release
-          console.log(`Received event: ${eventName} with arguments:`, args);
         });
         
         const registrationTimeoutId = setTimeout(() => {
@@ -380,9 +368,7 @@ export class APIClient {
           
           this.socket.emit('register', this.pluginInfo, (ack: any) => {
             clearTimeout(registrationTimeoutId);
-            console.log('Registration response:', ack);
             if (ack.status === 'success') {
-              console.log('Plugin registered successfully!!');
               this.isRegistered = true;
 
               resolve();
