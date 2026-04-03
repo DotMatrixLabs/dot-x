@@ -86,7 +86,12 @@ function copyRecursive(sourcePath, destinationPath) {
 
 function loadProjectMetadata() {
   const manifest = readJson(path.join(repoRoot, 'manifest.json'), 'manifest.json');
-  const packageJson = readJson(path.join(repoRoot, 'package.json'), 'package.json');
+
+  let packageJson = null;
+  const packageJsonPath = path.join(repoRoot, 'package.json');
+  if (fs.existsSync(packageJsonPath)) {
+    packageJson = readJson(packageJsonPath, 'package.json');
+  }
 
   return {
     manifest,
@@ -114,7 +119,7 @@ function validateMarketplaceManifest(manifest, packageJson) {
     throw new Error('manifest.json permissions must contain only strings');
   }
 
-  if (packageJson.version !== manifest.version) {
+  if (packageJson !== null && packageJson.version !== manifest.version) {
     throw new Error(
       `package.json version (${packageJson.version}) must match manifest.json version (${manifest.version})`
     );
