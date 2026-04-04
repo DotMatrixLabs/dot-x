@@ -1,6 +1,6 @@
 {
   "name": "@dotmatrixlabs/dotx-plugin-sdk",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "SDK for developing Dot X plugins",
   "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
