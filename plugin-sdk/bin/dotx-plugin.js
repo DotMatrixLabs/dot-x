@@ -197,7 +197,9 @@ function runVerifyRelease() {
     const acceptedTags = new Set([manifest.version, `v${manifest.version}`]);
     if (!acceptedTags.has(releaseTag)) {
       throw new Error(
-        `Release tag ${releaseTag} must match ${manifest.version} or v${manifest.version}`
+        `Release tag "${releaseTag}" does not match the version in manifest.json ("${manifest.version}"). ` +
+        `Expected tag: "${manifest.version}" or "v${manifest.version}". ` +
+        `Update manifest.json (and package.json if present) to match the release tag, or use the correct tag.`
       );
     }
   }
