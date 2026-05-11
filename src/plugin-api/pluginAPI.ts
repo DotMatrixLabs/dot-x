@@ -11,6 +11,7 @@ import { useDeckerStore } from "../store/deckerStore.ts";
 import EventBus from '../js/eventBus.js';
 import RGBController from '../ts/RGBController';
 import ConfigStore from '../ts/config';
+import SelectedApps from '../ts/appsToControl';
 
 export class PluginAPI {
   private static instance: PluginAPI | null = null;
@@ -255,6 +256,46 @@ export class PluginAPI {
             request_id: request.request_id,
             success: false,
             error: `Failed to get device info: ${error instanceof Error ? error.message : String(error)}`
+          };
+        }
+      } else if (request.method === 'channelTargets.getForChannel') {
+        try {
+          const channel = request.params?.channel;
+          if (channel === undefined || channel === null || channel === '') {
+            response = {
+              request_id: request.request_id,
+              success: false,
+              error: 'channelTargets.getForChannel requires params.channel'
+            };
+          } else {
+            const channelKey = channel.toString();
+            const targets = await SelectedApps.getChannelTargets(channelKey);
+            response = {
+              request_id: request.request_id,
+              success: true,
+              data: { channel: channelKey, targets }
+            };
+          }
+        } catch (error) {
+          response = {
+            request_id: request.request_id,
+            success: false,
+            error: `Failed to get channel targets: ${error instanceof Error ? error.message : String(error)}`
+          };
+        }
+      } else if (request.method === 'channelTargets.getAll') {
+        try {
+          const channels = await SelectedApps.getAllChannelTargets();
+          response = {
+            request_id: request.request_id,
+            success: true,
+            data: { channels }
+          };
+        } catch (error) {
+          response = {
+            request_id: request.request_id,
+            success: false,
+            error: `Failed to get channel targets: ${error instanceof Error ? error.message : String(error)}`
           };
         }
       } else if (request.method.startsWith('rgb.')) {

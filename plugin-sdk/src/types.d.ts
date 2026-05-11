@@ -131,6 +131,19 @@ export interface PluginContext {
   pluginDir: string;
 }
 
+export type ChannelTarget = string;
+
+export type ChannelTargetsByChannel = Record<string, ChannelTarget[]>;
+
+export interface ChannelTargetsForChannelResponse {
+  channel: string;
+  targets: ChannelTarget[];
+}
+
+export interface ChannelTargetsAllResponse {
+  channels: ChannelTargetsByChannel;
+}
+
 export interface PluginAPI {
   // Local persistent config storage helpers (scoped per plugin cwd)
   config: {
@@ -147,6 +160,12 @@ export interface PluginAPI {
   // UI Components
   ui: {
     showToast: (params: ToastParams) => Promise<void>;
+  };
+
+  // Channel Targets
+  channelTargets: {
+    getForChannel: (channel: number | string) => Promise<ChannelTargetsForChannelResponse>;
+    getAll: () => Promise<ChannelTargetsAllResponse>;
   };
 
   // Plugin Management (pluginId automatically injected)
