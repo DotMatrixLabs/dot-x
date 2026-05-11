@@ -4,6 +4,7 @@ import type { PluginAPI } from './types';
 import { SettingsBuilder, ActionMapper } from './ui';
 import type { SettingsSections } from './types';
 import { createDeviceAPI, type DeviceAPI } from './device';
+import type { ChannelTargetsAPI } from './channel-targets';
 import * as fs from 'fs';
 import * as path from 'path';
 import Conf from 'conf';
@@ -102,6 +103,20 @@ class Plugin {
    * ```
    */
   public device: DeviceAPI;
+
+  /**
+   * Channel targets API for reading apps, devices, and system features selected on channels.
+   *
+   * @example
+   * ```typescript
+   * const channelZero = await this.channelTargets.getForChannel(0);
+   * console.log(channelZero.targets);
+   *
+   * const allChannels = await this.channelTargets.getAll();
+   * console.log(allChannels.channels);
+   * ```
+   */
+  public channelTargets: ChannelTargetsAPI;
   
   /**
    * Action mapper for creating System Utilities buttons.
@@ -184,6 +199,7 @@ class Plugin {
     // this.settings = this.client.settings;
     this.ui = this.client.ui as any;
     this.device = this.client.device;
+    this.channelTargets = this.client.channelTargets;
 
     // Initialize local config store in the same folder as the plugin entry file.
     const entryDir = process.cwd();
