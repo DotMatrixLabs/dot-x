@@ -148,6 +148,19 @@ export interface CreateSettingsParams {
   options?: SettingsOptions;
 }
 
+export type ChannelTarget = string;
+
+export type ChannelTargetsByChannel = Record<string, ChannelTarget[]>;
+
+export interface ChannelTargetsForChannelResponse {
+  channel: string;
+  targets: ChannelTarget[];
+}
+
+export interface ChannelTargetsAllResponse {
+  channels: ChannelTargetsByChannel;
+}
+
 export interface PluginAPI {
   // Settings Management
   settings: {
@@ -212,6 +225,15 @@ export interface PluginAPI {
     }) => Promise<void>;
 
 
+  };
+
+  // Channel Targets
+  channelTargets: {
+    getForChannel: (params: {
+      channel: number | string;
+    }) => Promise<ChannelTargetsForChannelResponse>;
+
+    getAll: () => Promise<ChannelTargetsAllResponse>;
   };
 
   // Plugin Management (pluginId automatically injected)

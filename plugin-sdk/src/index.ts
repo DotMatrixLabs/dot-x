@@ -47,6 +47,7 @@
  * - **Device Management**: Monitor device connections and value updates
  * - **Settings Page**: Rich UI builder with inputs, switches, buttons, and more
  * - **Action Mapper**: Register System Utilities buttons
+ * - **Channel Targets**: Read apps, devices, and system features selected on channels
  * - **Global UI**: Toast notifications
  * - **Data Storage**: Persistent configuration with dot notation
  * 
@@ -128,6 +129,25 @@ export { DeviceAPI, createDeviceAPI } from './device';
  * @group Device Management
  */
 export type { DeviceInfo, DeviceChanges, DeviceConnectionCallback, DeviceUpdateCallback } from './device';
+
+/**
+ * Channel targets API for reading apps, devices, and system features selected on channels.
+ *
+ * @group Channel Targets
+ */
+export { ChannelTargetsAPI, createChannelTargetsAPI } from './channel-targets';
+
+/**
+ * Channel target types.
+ *
+ * @group Channel Targets
+ */
+export type {
+  ChannelTarget,
+  ChannelTargetsByChannel,
+  ChannelTargetsForChannelResponse,
+  ChannelTargetsAllResponse
+} from './channel-targets';
 
 /**
  * Default export for convenience - the Plugin base class.

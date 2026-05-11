@@ -1,6 +1,7 @@
 import { io, Socket } from 'socket.io-client';
 import type { SettingsSections, ToastParams, ActionMappings, SystemUtilButton } from './types';
 import { DeviceAPI, createDeviceAPI, type DeviceInfo } from './device';
+import { ChannelTargetsAPI, createChannelTargetsAPI } from './channel-targets';
 
 // Default port for backwards compatibility
 const DEFAULT_PORT = 3001;
@@ -227,6 +228,7 @@ export class APIClient {
   private settingsSchema?: SettingsSections;
   private actionMappings?: ActionMappings;
   private deviceAPI: DeviceAPI;
+  private channelTargetsAPI: ChannelTargetsAPI;
   
   constructor(pluginInfo: PluginInfo, config: ConnectionConfig = {}) {
     this.pluginInfo = pluginInfo;
@@ -242,6 +244,7 @@ export class APIClient {
     };
     console.log(`Plugin connecting to server at ${this.config.serverUrl}`);
     this.deviceAPI = createDeviceAPI((method, params) => this.call(method, params), this);
+    this.channelTargetsAPI = createChannelTargetsAPI((method, params) => this.call(method, params));
     this.connectionPromise = this.initializeConnection();
   }
   
@@ -510,6 +513,13 @@ export class APIClient {
    */
   get device(): DeviceAPI {
     return this.deviceAPI;
+  }
+
+  /**
+   * Channel targets API for reading selected apps, devices, and system features.
+   */
+  get channelTargets(): ChannelTargetsAPI {
+    return this.channelTargetsAPI;
   }
   
   /**
