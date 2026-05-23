@@ -156,7 +156,7 @@ function runPackage() {
 
   const distDir = path.join(repoRoot, 'dist');
   const stageDir = path.join(distDir, 'package');
-  const dotxPath = path.join(distDir, `${manifest.id}.dotx`);
+  const dotxPath = path.join(distDir, `${manifest.id}.dotxplugin`);
 
   fs.mkdirSync(distDir, { recursive: true });
   ensureCleanDir(stageDir);
