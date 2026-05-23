@@ -21,6 +21,8 @@ const MAX_LOG_LINES: usize = 5000; // per plugin in-memory
 const MAX_LOG_FILE_BYTES: u64 = 5 * 1024 * 1024; // 5MB per plugin log file
 const MAX_LOG_BACKUPS: u8 = 2; // plugin.log.1 .. plugin.log.3
 const PROCESS_REAPER_INTERVAL_SECS: u64 = 2;
+#[cfg(target_os = "windows")]
+const CREATE_NO_WINDOW: u32 = 0x08000000;
 
 fn process_table() -> Arc<RwLock<HashMap<String, tokio::process::Child>>> {
   PROCESS_TABLE
@@ -714,6 +716,9 @@ async fn spawn_deno_process(app_handle: &AppHandle, dir: &Path, plugin_id: &str)
   // Spawn `deno run ... <manifest.main>` with stdout/stderr piped
   let deno_bin = resolve_deno_path(app_handle).unwrap_or_else(|| PathBuf::from("deno"));
   let mut cmd = Command::new(deno_bin);
+  #[cfg(target_os = "windows")]
+  cmd.creation_flags(CREATE_NO_WINDOW);
+
   cmd.arg("run")
     .arg("--unstable-detect-cjs");
 
@@ -727,6 +732,7 @@ async fn spawn_deno_process(app_handle: &AppHandle, dir: &Path, plugin_id: &str)
     .env("DOTX_PLUGIN_DIR", &plugin_dir)
     .env("DOTX_PLUGIN_PLATFORM", &platform_id)
     .env("DOTX_PLUGIN_PORT", &port_str)
+    .stdin(std::process::Stdio::null())
     .stdout(std::process::Stdio::piped())
     .stderr(std::process::Stdio::piped());
 
