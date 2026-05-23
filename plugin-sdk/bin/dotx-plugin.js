@@ -211,7 +211,7 @@ function printUsage() {
   console.log(`Usage: dotx-plugin <command>
 
 Commands:
-  package           Build dist/plugin.zip from manifest.json and the file in manifest.main
+  package           Build dist/<plugin-name>.dotxplugin from manifest.json and the file in manifest.main
   verify-release    Validate manifest/package versions and optional RELEASE_TAG
 `);
 }

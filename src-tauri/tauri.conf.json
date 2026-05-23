@@ -50,7 +50,6 @@
     "longDescription": "Desktop app for DotMatrixLabs products",
     "resources": [
       "licenses/*",
-      "../plugins/**",
       "resources/deno/*"
     ],
     "windows": {
