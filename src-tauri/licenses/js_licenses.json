@@ -23,25 +23,7 @@
         "licenseUrl": "https://github.com/babel/babel/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "@clack/core@1.2.0": {
-        "licenses": "MIT",
-        "repository": "https://github.com/bombshell-dev/clack",
-        "licenseUrl": "https://github.com/bombshell-dev/clack/raw/master/LICENSE",
-        "parents": "@dotmatrixlabs/create-dotx-plugin"
-    },
-    "@clack/prompts@1.2.0": {
-        "licenses": "MIT",
-        "repository": "https://github.com/bombshell-dev/clack",
-        "licenseUrl": "https://github.com/bombshell-dev/clack/raw/master/LICENSE",
-        "parents": "@dotmatrixlabs/create-dotx-plugin"
-    },
-    "@dotmatrixlabs/create-dotx-plugin@1.0.0": {
-        "licenses": "UNKNOWN",
-        "repository": "https://github.com/Frogbyte-io/dot-x",
-        "licenseUrl": "https://github.com/Frogbyte-io/dot-x",
-        "parents": "UNDEFINED"
-    },
-    "@dotmatrixlabs/dotx-plugin-sdk@1.0.0": {
+    "@dotmatrixlabs/dotx-plugin-sdk@1.1.1": {
         "licenses": "UNKNOWN",
         "repository": "https://github.com/Frogbyte-io/dot-x",
         "licenseUrl": "https://github.com/Frogbyte-io/dot-x",
@@ -63,7 +45,7 @@
         "licenses": "MIT",
         "repository": "https://github.com/evanw/esbuild",
         "licenseUrl": "https://github.com/evanw/esbuild",
-        "parents": "rgb-demo"
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
     },
     "@esbuild/win32-x64@0.25.6": {
         "licenses": "MIT",
@@ -1255,7 +1237,7 @@
         "licenses": "MIT",
         "repository": "https://github.com/evanw/esbuild",
         "licenseUrl": "https://github.com/evanw/esbuild/raw/master/LICENSE.md",
-        "parents": "rgb-demo"
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
     },
     "esbuild@0.25.6": {
         "licenses": "MIT",
@@ -1317,29 +1299,11 @@
         "licenseUrl": "https://github.com/mrmlnc/fast-glob/raw/master/LICENSE",
         "parents": "@ts-morph/common:dot-x"
     },
-    "fast-string-truncated-width@1.2.1": {
-        "licenses": "MIT",
-        "repository": "github:fabiospampinato/fast-string-truncated-width",
-        "licenseUrl": "github:fabiospampinato/fast-string-truncated-width",
-        "parents": "@dotmatrixlabs/create-dotx-plugin"
-    },
-    "fast-string-width@1.1.0": {
-        "licenses": "MIT",
-        "repository": "github:fabiospampinato/fast-string-width",
-        "licenseUrl": "github:fabiospampinato/fast-string-width",
-        "parents": "@dotmatrixlabs/create-dotx-plugin"
-    },
     "fast-uri@3.1.0": {
         "licenses": "BSD-3-Clause",
         "repository": "https://github.com/fastify/fast-uri",
         "licenseUrl": "https://github.com/fastify/fast-uri/raw/master/LICENSE",
         "parents": "@dotmatrixlabs/dotx-plugin-sdk"
-    },
-    "fast-wrap-ansi@0.1.6": {
-        "licenses": "MIT",
-        "repository": "https://github.com/43081j/fast-wrap-ansi",
-        "licenseUrl": "https://github.com/43081j/fast-wrap-ansi/raw/master/LICENSE",
-        "parents": "@dotmatrixlabs/create-dotx-plugin"
     },
     "fastparse@1.1.2": {
         "licenses": "MIT",
@@ -1953,10 +1917,6 @@
         "licenseUrl": "https://github.com/substack/node-mkdirp/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "mqtt-plugin@1.0.0": {
-        "licenses": "MIT",
-        "parents": "UNDEFINED"
-    },
     "ms@2.1.2": {
         "licenses": "MIT",
         "repository": "https://github.com/zeit/ms",
@@ -2471,10 +2431,6 @@
         "licenseUrl": "https://github.com/davidmarkclements/rfdc/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "rgb-demo@1.0.0": {
-        "licenses": "MIT",
-        "parents": "UNDEFINED"
-    },
     "roarr@2.15.4": {
         "licenses": "BSD-3-Clause",
         "repository": "https://github.com/gajus/roarr",
@@ -2564,12 +2520,6 @@
         "repository": "https://github.com/tapjs/signal-exit",
         "licenseUrl": "https://github.com/tapjs/signal-exit/raw/master/LICENSE.txt",
         "parents": "dot-x"
-    },
-    "sisteransi@1.0.5": {
-        "licenses": "MIT",
-        "repository": "https://github.com/terkelg/sisteransi",
-        "licenseUrl": "https://github.com/terkelg/sisteransi/raw/master/license",
-        "parents": "@dotmatrixlabs/create-dotx-plugin"
     },
     "slide@1.1.6": {
         "licenses": "ISC",
