@@ -638,9 +638,9 @@ async fn main() {
             Some(vec!["--hidden"]),
         ))
         .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
-            // Check if a .dotx file was passed (skip argv[0] which is the exe path).
+            // Check if a .dotxplugin file was passed (skip argv[0] which is the exe path).
             let dotx_path = argv.iter().skip(1)
-                .find(|arg| arg.to_lowercase().ends_with(".dotx"))
+                .find(|arg| arg.to_lowercase().ends_with(".dotxplugin"))
                 .cloned();
 
             if let Some(window) = app.get_webview_window("main") {
@@ -699,9 +699,9 @@ async fn main() {
 
             let (_menu, _tray) = build_tray(&app.handle())?;
 
-            // Check if a .dotx file was passed at launch (skip argv[0] = exe path).
+            // Check if a .dotxplugin file was passed at launch (skip argv[0] = exe path).
             for arg in std::env::args().skip(1) {
-                if arg.to_lowercase().ends_with(".dotx") && std::path::Path::new(&arg).exists() {
+                if arg.to_lowercase().ends_with(".dotxplugin") && std::path::Path::new(&arg).exists() {
                     if let Ok(mut guard) = PENDING_DOTX_PATH.lock() {
                         *guard = Some(arg);
                     }
