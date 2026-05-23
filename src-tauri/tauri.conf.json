@@ -65,7 +65,14 @@
         "dialogImagePath": "./icons/WixInstaller.bmp"
       }
     },
-    "createUpdaterArtifacts": "v1Compatible"
+    "createUpdaterArtifacts": "v1Compatible",
+    "fileAssociations": [
+      {
+        "ext": ["dotx"],
+        "name": "Dot X Plugin",
+        "description": "Dot X Plugin Package"
+      }
+    ]
   },
   
 

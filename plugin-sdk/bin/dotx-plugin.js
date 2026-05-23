@@ -156,11 +156,11 @@ function runPackage() {
 
   const distDir = path.join(repoRoot, 'dist');
   const stageDir = path.join(distDir, 'package');
-  const zipPath = path.join(distDir, 'plugin.zip');
+  const dotxPath = path.join(distDir, `${manifest.id}.dotx`);
 
   fs.mkdirSync(distDir, { recursive: true });
   ensureCleanDir(stageDir);
-  fs.rmSync(zipPath, { force: true });
+  fs.rmSync(dotxPath, { force: true });
 
   copyRecursive(path.join(repoRoot, 'manifest.json'), path.join(stageDir, 'manifest.json'));
   copyRecursive(entryAbsolutePath, path.join(stageDir, entryPath));
@@ -183,9 +183,9 @@ function runPackage() {
 
   const zip = new AdmZip();
   zip.addLocalFolder(stageDir);
-  zip.writeZip(zipPath);
+  zip.writeZip(dotxPath);
 
-  console.log(`Created ${path.relative(repoRoot, zipPath)}`);
+  console.log(`Created ${path.relative(repoRoot, dotxPath)}`);
 }
 
 function runVerifyRelease() {
