@@ -771,13 +771,13 @@ pub async fn install_marketplace_plugin(app_handle: AppHandle, plugin_id: String
     Ok(())
 }
 
-/// Read the manifest.json out of a .dotx file (a zip) without extracting anything else.
+/// Read the manifest.json out of a .dotxplugin file (a zip) without extracting anything else.
 fn read_manifest_from_dotx(file_path: &str) -> Result<serde_json::Value, String> {
     let bytes = fs::read(file_path)
         .map_err(|e| format!("Failed to read plugin file: {}", e))?;
     let reader = std::io::Cursor::new(&bytes);
     let mut archive = zip::ZipArchive::new(reader)
-        .map_err(|e| format!("Not a valid .dotx file: {}", e))?;
+        .map_err(|e| format!("Not a valid .dotxplugin file: {}", e))?;
 
     for i in 0..archive.len() {
         let mut entry = archive.by_index(i).map_err(|e| format!("Zip entry error: {}", e))?;
@@ -796,13 +796,13 @@ fn read_manifest_from_dotx(file_path: &str) -> Result<serde_json::Value, String>
     Err("Plugin file is missing manifest.json".to_string())
 }
 
-/// Return the manifest of a .dotx file so the frontend can show the install confirmation dialog.
+/// Return the manifest of a .dotxplugin file so the frontend can show the install confirmation dialog.
 #[tauri::command]
 pub fn get_dotx_manifest(file_path: String) -> Result<serde_json::Value, String> {
     read_manifest_from_dotx(&file_path)
 }
 
-/// Install a .dotx file from a local path. Validates, extracts, and replaces any existing version.
+/// Install a .dotxplugin file from a local path. Validates, extracts, and replaces any existing version.
 /// Returns the manifest JSON so the frontend knows which plugin was installed.
 #[tauri::command]
 pub async fn install_local_plugin(app_handle: AppHandle, file_path: String) -> Result<serde_json::Value, String> {

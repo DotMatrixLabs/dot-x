@@ -68,7 +68,7 @@
     "createUpdaterArtifacts": "v1Compatible",
     "fileAssociations": [
       {
-        "ext": ["dotx"],
+        "ext": ["dotxplugin"],
         "name": "Dot X Plugin",
         "description": "Dot X Plugin Package"
       }
