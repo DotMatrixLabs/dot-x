@@ -49,7 +49,7 @@ Use `npx` as the primary scaffold command for the scoped package.
 Options:
 
 - `--deno` (default): Deno + TypeScript template
-- `--node`: Node + TypeScript + esbuild template with `plugin.zip` packaging and a GitHub Release workflow
+- `--node`: Node + TypeScript + esbuild template with `<plugin-name>.dotxplugin` packaging and a GitHub Release workflow
 - `--id <id>`: Override generated plugin id
 - `--force`: Overwrite existing files
 
@@ -69,9 +69,9 @@ npm start
 
 The generated Node template also includes:
 
-- `npm run package` to build `dist/plugin.zip`
+- `npm run package` to build `dist/<plugin-name>.dotxplugin`
 - `npm run release:verify-version` to validate the release tag and marketplace manifest
-- `.github/workflows/release-plugin.yml` to publish `plugin.zip` on version tags
+- `.github/workflows/release-plugin.yml` to publish `<plugin-name>.dotxplugin` on version tags
 - a shared `@dotmatrixlabs/dotx-plugin-sdk` CLI (`dotx-plugin`) for packaging and release validation
 - a normal `@dotmatrixlabs/dotx-plugin-sdk` npm dependency, so it no longer depends on a sibling `dot-x` checkout
 
@@ -98,7 +98,7 @@ npm start
 3. Edit `manifest.json`:
 
 - set `id`, `name`, `version`, `dotxVersion`, and `permissions`
-- add `packaging.include` if you need extra files in `plugin.zip`
+- add `packaging.include` if you need extra files in `<plugin-name>.dotxplugin`
 
 4. Build the marketplace package:
 
@@ -110,7 +110,7 @@ npm run package
 
 - commit and push the plugin repo
 - push a tag such as `v0.1.0`
-- the generated `.github/workflows/release-plugin.yml` workflow builds `dist/plugin.zip` and uploads it to the GitHub Release
+- the generated `.github/workflows/release-plugin.yml` workflow builds `dist/<plugin-name>.dotxplugin` and uploads it to the GitHub Release
 
 ### Creating a Plugin
 
@@ -377,7 +377,7 @@ interface PluginManifest {
   dotxVersion?: string; // Required DotX version (semver range)
   permissions?: string[]; // Requested plugin permissions
   packaging?: {
-    include?: string[]; // Extra files or folders to include in marketplace plugin.zip
+    include?: string[]; // Extra files or folders to include in marketplace <plugin-name>.dotxplugin
   };
   main: string;         // Entry point file
 }
@@ -391,7 +391,7 @@ The Node scaffold uses the shared `@dotmatrixlabs/dotx-plugin-sdk` CLI:
 npm run package
 ```
 
-This builds the file referenced by `manifest.main` and creates `dist/plugin.zip` with:
+This builds the file referenced by `manifest.main` and creates `dist/<plugin-name>.dotxplugin` with:
 
 - `manifest.json`
 - the entry file declared in `manifest.main`
