@@ -8,6 +8,9 @@
     <!-- Plugin UI Components -->
     <Plugin />
     <Toaster position="bottom-right" :theme="colorScheme" rich-colors />
+
+    <!-- .dotx install modal (shown when a plugin file is opened) -->
+    <DotxInstallModal ref="dotxInstallModal" />
   </div>
 </template>
 
@@ -17,6 +20,7 @@ import SettingsModal from "./SettingsModal/SettingsModal.vue";
 import AppsModal from "./AppSelectModal/AppsModal.vue";
 import SliderOverview from "./SliderOverview.vue";
 import Plugin from "./Plugins/Plugin.vue";
+import DotxInstallModal from "./components/DotxInstallModal.vue";
 import { Toaster, toast } from "vue-sonner";
 import ConfigStore from "./ts/config.ts";
 import Decker from "./ts/decker.ts";
@@ -26,9 +30,11 @@ import { usePluginStore } from "./store/pluginStore";
 import PluginAPI from "./plugin-api/pluginAPI";
 import { mapState } from "pinia";
 import { version } from '@tauri-apps/plugin-os';
+import { invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
 
 export default {
-  components: { TopBar, SettingsModal, SliderOverview, AppsModal, Plugin, Toaster },
+  components: { TopBar, SettingsModal, SliderOverview, AppsModal, Plugin, Toaster, DotxInstallModal },
   name: "App",
 
   data() {
@@ -86,6 +92,10 @@ export default {
     //   return this.currentTheme;
     // },
 
+    openDotxFile(filePath) {
+      this.$refs.dotxInstallModal.open(filePath);
+    },
+
     settingsToggled() {
       this.settingsModalOpen = !this.settingsModalOpen;
     },
@@ -118,6 +128,17 @@ export default {
 
   async mounted() {
     await PluginAPI.initialize();
+
+    // Listen for .dotx files opened while the app is already running.
+    listen('dotx-open-file', (event) => {
+      this.openDotxFile(event.payload);
+    });
+
+    // Pick up a .dotx file that was passed when the app was launched fresh.
+    const pendingPath = await invoke('consume_pending_dotx_install').catch(() => null);
+    if (pendingPath) {
+      this.openDotxFile(pendingPath);
+    }
     const pluginStore = usePluginStore();
     await pluginStore.loadPersistedPluginState();
     void pluginStore.refreshPluginUpdates();

@@ -771,6 +771,117 @@ pub async fn install_marketplace_plugin(app_handle: AppHandle, plugin_id: String
     Ok(())
 }
 
+/// Read the manifest.json out of a .dotx file (a zip) without extracting anything else.
+fn read_manifest_from_dotx(file_path: &str) -> Result<serde_json::Value, String> {
+    let bytes = fs::read(file_path)
+        .map_err(|e| format!("Failed to read plugin file: {}", e))?;
+    let reader = std::io::Cursor::new(&bytes);
+    let mut archive = zip::ZipArchive::new(reader)
+        .map_err(|e| format!("Not a valid .dotx file: {}", e))?;
+
+    for i in 0..archive.len() {
+        let mut entry = archive.by_index(i).map_err(|e| format!("Zip entry error: {}", e))?;
+        let is_manifest = entry.enclosed_name()
+            .map(|p| p == std::path::Path::new("manifest.json"))
+            .unwrap_or(false);
+        if !is_manifest { continue; }
+
+        let mut contents = String::new();
+        entry.read_to_string(&mut contents)
+            .map_err(|e| format!("Failed to read manifest.json: {}", e))?;
+        return serde_json::from_str(&contents)
+            .map_err(|e| format!("Invalid manifest.json: {}", e));
+    }
+
+    Err("Plugin file is missing manifest.json".to_string())
+}
+
+/// Return the manifest of a .dotx file so the frontend can show the install confirmation dialog.
+#[tauri::command]
+pub fn get_dotx_manifest(file_path: String) -> Result<serde_json::Value, String> {
+    read_manifest_from_dotx(&file_path)
+}
+
+/// Install a .dotx file from a local path. Validates, extracts, and replaces any existing version.
+/// Returns the manifest JSON so the frontend knows which plugin was installed.
+#[tauri::command]
+pub async fn install_local_plugin(app_handle: AppHandle, file_path: String) -> Result<serde_json::Value, String> {
+    let bytes = tokio::task::spawn_blocking({
+        let path = file_path.clone();
+        move || fs::read(&path).map_err(|e| format!("Failed to read plugin file: {}", e))
+    }).await.unwrap_or_else(|e| Err(format!("Read task failed: {}", e)))?;
+
+    // Validate the zip structure and manifest before touching anything on disk.
+    inspect_plugin_zip(&bytes)?;
+
+    let manifest: serde_json::Value = {
+        let reader = std::io::Cursor::new(&bytes);
+        let mut archive = zip::ZipArchive::new(reader)
+            .map_err(|e| format!("Failed to open zip: {}", e))?;
+        let mut manifest_json = serde_json::Value::Null;
+        for i in 0..archive.len() {
+            let mut entry = archive.by_index(i).map_err(|e| format!("Zip entry error: {}", e))?;
+            let is_manifest = entry.enclosed_name()
+                .map(|p| p == std::path::Path::new("manifest.json"))
+                .unwrap_or(false);
+            if !is_manifest { continue; }
+            let mut contents = String::new();
+            entry.read_to_string(&mut contents)
+                .map_err(|e| format!("Failed to read manifest.json: {}", e))?;
+            manifest_json = serde_json::from_str(&contents)
+                .map_err(|e| format!("Invalid manifest.json: {}", e))?;
+            break;
+        }
+        if manifest_json.is_null() {
+            return Err("Plugin file is missing manifest.json".to_string());
+        }
+        manifest_json
+    };
+
+    let plugin_id = manifest
+        .get("id")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| "manifest.json is missing an \"id\" field".to_string())?
+        .to_string();
+
+    let should_restart = is_plugin_enabled_in_store(&app_handle, &plugin_id);
+    let _ = plugin_runtime::stop_plugin(plugin_id.clone()).await;
+
+    let plugins_dir = ensure_plugins_dir(&app_handle)?;
+    let app_data_dir = app_handle.path().app_data_dir()
+        .map_err(|e| format!("App data dir not available: {}", e))?;
+
+    let temp_base = app_data_dir.join("plugins").join(".tmp");
+    fs::create_dir_all(&temp_base)
+        .map_err(|e| format!("Failed to create temp directory: {}", e))?;
+
+    let temp_dir = temp_base.join(format!(
+        "{}-{}",
+        plugin_id,
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs()
+    ));
+    let extracted_dir = temp_dir.join("plugin");
+
+    let result: Result<(), String> = (|| {
+        extract_plugin_zip(&bytes, &extracted_dir)?;
+        validate_extracted_plugin_dir(&extracted_dir, &plugin_id)?;
+        replace_installed_plugin_dir(&plugins_dir, &plugin_id, &extracted_dir)
+    })();
+
+    let _ = fs::remove_dir_all(&temp_dir);
+    result?;
+
+    if should_restart {
+        let _ = plugin_runtime::start_plugin(app_handle, plugin_id.clone()).await;
+    }
+
+    info!("Installed local plugin: {}", plugin_id);
+    Ok(manifest)
+}
+
 #[tauri::command]
 pub async fn uninstall_marketplace_plugin(app_handle: AppHandle, plugin_id: String) -> Result<(), String> {
     let _ = plugin_runtime::stop_plugin(plugin_id.clone()).await;

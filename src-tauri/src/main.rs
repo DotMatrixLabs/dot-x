@@ -3,7 +3,7 @@
 
 use log::{error, info, trace};
 use serde_json::{json, Value};
-use tauri::{AppHandle, Manager, WebviewWindow, Wry};
+use tauri::{AppHandle, Emitter, Manager, WebviewWindow, Wry};
 use std::fs;
 use std::fs::File;
 use windows_volume_control::{AudioController, CoinitMode};
@@ -38,6 +38,13 @@ use tauri_plugin_cli::CliExt;
 use std::os::unix::fs::PermissionsExt;
 
 static APP: OnceCell<tauri::AppHandle> = OnceCell::new();
+
+static PENDING_DOTX_PATH: std::sync::Mutex<Option<String>> = std::sync::Mutex::new(None);
+
+#[tauri::command]
+fn consume_pending_dotx_install() -> Option<String> {
+    PENDING_DOTX_PATH.lock().ok()?.take()
+}
 
 // create the error type that represents all errors possible in our program
 #[derive(Debug, thiserror::Error)]
@@ -611,7 +618,10 @@ async fn main() {
             plugin_marketplace::open_plugins_folder,
             plugin_marketplace::check_marketplace_plugin_updates,
             plugin_marketplace::install_marketplace_plugin,
-            plugin_marketplace::uninstall_marketplace_plugin
+            plugin_marketplace::uninstall_marketplace_plugin,
+            plugin_marketplace::get_dotx_manifest,
+            plugin_marketplace::install_local_plugin,
+            consume_pending_dotx_install
         ])
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_os::init())
@@ -627,16 +637,23 @@ async fn main() {
             MacosLauncher::LaunchAgent,
             Some(vec!["--hidden"]),
         ))
-        .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+        .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
+            // Check if a .dotx file was passed (skip argv[0] which is the exe path).
+            let dotx_path = argv.iter().skip(1)
+                .find(|arg| arg.to_lowercase().ends_with(".dotx"))
+                .cloned();
+
             if let Some(window) = app.get_webview_window("main") {
-                if matches!(window.is_visible(), Ok(false)) {
-                    let _ = window.show();
-                    show_notification(app, "Dot X", "Dot X is already running");
-                }
-                if matches!(window.is_minimized(), Ok(true)) {
-                    let _ = window.unminimize();
-                }
+                let _ = window.show();
+                let _ = window.unminimize();
                 let _ = window.set_focus();
+                if let Some(path) = dotx_path {
+                    let _ = app.emit("dotx-open-file", path);
+                } else {
+                    if matches!(window.is_visible(), Ok(false)) {
+                        show_notification(app, "Dot X", "Dot X is already running");
+                    }
+                }
             } else {
                 error!("Main window not found during single-instance handling");
             }
@@ -681,6 +698,16 @@ async fn main() {
             }
 
             let (_menu, _tray) = build_tray(&app.handle())?;
+
+            // Check if a .dotx file was passed at launch (skip argv[0] = exe path).
+            for arg in std::env::args().skip(1) {
+                if arg.to_lowercase().ends_with(".dotx") && std::path::Path::new(&arg).exists() {
+                    if let Ok(mut guard) = PENDING_DOTX_PATH.lock() {
+                        *guard = Some(arg);
+                    }
+                    break;
+                }
+            }
 
             // This gets any command line arguments passed to the app
             let matches = app.cli().matches().unwrap_or_default();
