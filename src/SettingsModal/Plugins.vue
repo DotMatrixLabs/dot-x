@@ -166,6 +166,7 @@
 			:plugin-name="selectedLogPlugin?.name || selectedLogPlugin?.id || 'Plugin'"
 			@close="showLogsModal = false; selectedLogPlugin = null"
 		/>
+		<Confirmation ref="deleteConfirmationModal" />
 	</Teleport>
 </template>
 
@@ -178,6 +179,7 @@ import { toast } from 'vue-sonner';
 import PluginsMarketplace from './Marketplace/PluginsMarketplace.vue';
 import PluginDetailModal from './Marketplace/PluginDetailModal.vue';
 import PluginLogsModal from '../components/PluginLogsModal.vue';
+import Confirmation from '../components/Confirmation.vue';
 import MarketplaceStats, {
 	MARKETPLACE_REGISTRY_URL,
 	resolveMarketplaceDownloadCount,
@@ -190,6 +192,7 @@ export default {
 		PluginsMarketplace,
 		PluginDetailModal,
 		PluginLogsModal,
+		Confirmation,
 	},
 	props: {
 		modalOpen: {
@@ -300,6 +303,18 @@ export default {
 			}
 
 			const pluginLabel = plugin.name || plugin.id;
+
+			try {
+				await this.$refs.deleteConfirmationModal.openConfirmation(
+					'Remove plugin?',
+					`Are you sure you want to remove "${pluginLabel}" and all of its data? This cannot be undone.`,
+					'Remove',
+					'Cancel',
+				);
+			} catch {
+				return;
+			}
+
 			this.setPluginActionState(plugin.id, { busy: true });
 			try {
 				await usePluginStore().uninstallPluginId(plugin.id);
