@@ -15,3 +15,7 @@
 - Align the SDK, host implementation, generated types, and README so they expose the same plugin API surface.
 - [x] Either implement or remove/document unsupported SDK APIs such as `this.settings.createSettings`, `ui.showModal`, and `ui.showConfirmation`.
 - Add tests for permission approval, uninstall cleanup, plugin crash/restart flow, and SDK-to-host API compatibility.
+
+
+- [ ] Plugin install modal should be above settings modal, not below it. Currently the plugin install modal is rendered inside the settings modal, which causes it to be hidden behind the settings modal backdrop and appear disabled. The plugin install modal should be rendered at the app level, not inside the settings modal, so it appears above the settings modal and is fully interactive.
+- [ ] When a plugin is starting up, it should show a loading state in the UI in the sidebar instead of just showing nothing. This will give users feedback that the plugin is launching and improve the user experience. Do this if possible in a simple way, without adding too much complexity to the plugin lifecycle management. Even a simple "Loading..." text or spinner in the sidebar while the plugin is starting would be a big improvement over showing nothing.
