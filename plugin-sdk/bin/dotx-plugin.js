@@ -119,11 +119,6 @@ function validateMarketplaceManifest(manifest, packageJson) {
     throw new Error('manifest.json permissions must contain only strings');
   }
 
-  if (packageJson !== null && packageJson.version !== manifest.version) {
-    throw new Error(
-      `package.json version (${packageJson.version}) must match manifest.json version (${manifest.version})`
-    );
-  }
 }
 
 function getManifestEntryPath(manifest) {
@@ -199,7 +194,7 @@ function runVerifyRelease() {
       throw new Error(
         `Release tag "${releaseTag}" does not match the version in manifest.json ("${manifest.version}"). ` +
         `Expected tag: "${manifest.version}" or "v${manifest.version}". ` +
-        `Update manifest.json (and package.json if present) to match the release tag, or use the correct tag.`
+        `Update manifest.json to match the release tag, or use the correct tag.`
       );
     }
   }
