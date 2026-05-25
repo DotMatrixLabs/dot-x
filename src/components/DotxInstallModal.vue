@@ -1,5 +1,5 @@
 <template>
-  <div v-if="visible" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+  <div v-if="visible" class="fixed inset-0 z-[1100] flex items-center justify-center bg-black/60">
     <div class="modal-box w-full max-w-sm relative">
       <!-- Installing / done states -->
       <template v-if="phase === 'installing'">
