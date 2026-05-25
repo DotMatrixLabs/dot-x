@@ -141,6 +141,7 @@ export default {
     }
     const pluginStore = usePluginStore();
     await pluginStore.loadPersistedPluginState();
+    pluginStore.markEnabledPluginsStarting();
     void pluginStore.refreshPluginUpdates();
     console.log("Plugin server started");
     

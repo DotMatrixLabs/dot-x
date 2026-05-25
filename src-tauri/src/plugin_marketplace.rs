@@ -669,7 +669,7 @@ fn approval_entry_matches_plugin_id(entry: &Value, plugin_id: &str) -> bool {
 pub async fn install_marketplace_plugin(app_handle: AppHandle, plugin_id: String, registry_url: String) -> Result<(), String> {
     let should_restart_after_install = is_plugin_enabled_in_store(&app_handle, &plugin_id);
 
-    let _ = plugin_runtime::stop_plugin(plugin_id.clone()).await;
+    let _ = plugin_runtime::stop_plugin(app_handle.clone(), plugin_id.clone()).await;
 
     let plugins_dir = ensure_plugins_dir(&app_handle)?;
     let app_data_dir = app_handle.path().app_data_dir()
@@ -845,7 +845,7 @@ pub async fn install_local_plugin(app_handle: AppHandle, file_path: String) -> R
         .to_string();
 
     let should_restart = is_plugin_enabled_in_store(&app_handle, &plugin_id);
-    let _ = plugin_runtime::stop_plugin(plugin_id.clone()).await;
+    let _ = plugin_runtime::stop_plugin(app_handle.clone(), plugin_id.clone()).await;
 
     let plugins_dir = ensure_plugins_dir(&app_handle)?;
     let app_data_dir = app_handle.path().app_data_dir()
@@ -884,7 +884,7 @@ pub async fn install_local_plugin(app_handle: AppHandle, file_path: String) -> R
 
 #[tauri::command]
 pub async fn uninstall_marketplace_plugin(app_handle: AppHandle, plugin_id: String) -> Result<(), String> {
-    let _ = plugin_runtime::stop_plugin(plugin_id.clone()).await;
+    let _ = plugin_runtime::stop_plugin(app_handle.clone(), plugin_id.clone()).await;
 
     let plugin_dir = find_plugin_dir_by_id(&app_handle, &plugin_id)
         .ok_or_else(|| format!("Plugin {} not found", plugin_id))?;
