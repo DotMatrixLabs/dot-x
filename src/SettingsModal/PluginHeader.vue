@@ -67,7 +67,6 @@
 </template>
 
 <script>
-import { invoke } from '@tauri-apps/api/core';
 import { mapState } from 'pinia';
 import { usePluginStore } from '../store/pluginStore';
 import { toast } from 'vue-sonner';
@@ -170,7 +169,7 @@ export default {
     async restartPlugin() {
       if (!this.plugin?.id) return;
       try {
-        await invoke('restart_plugin', { pluginId: this.plugin.id });
+        await usePluginStore().restartPluginIntentionally(this.plugin.id);
         toast.success(`${this.plugin?.name || this.plugin?.id} restarted`);
         // Reload settings after successful restart
         EventBus.emit('plugin:settingsUpdated', { pluginId: this.plugin.id });
