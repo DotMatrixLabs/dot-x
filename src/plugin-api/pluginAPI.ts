@@ -6,7 +6,7 @@ import type {
 } from './schema';
 import { settingsManager } from './settings';
 import { uiManager } from './ui';
-import { usePluginStore } from '../store/pluginStore';
+import { usePluginStore, type PluginLifecycleEvent } from '../store/pluginStore';
 import { useDeckerStore } from "../store/deckerStore.ts";
 import EventBus from '../js/eventBus.js';
 import RGBController from '../ts/RGBController';
@@ -175,6 +175,11 @@ export class PluginAPI {
     });
     listen('plugin/api_event', (event) => {
       console.log('Received API event:', event.payload);
+    });
+    listen('plugin/lifecycle', (event) => {
+      const lifecycleEvent = event.payload as PluginLifecycleEvent;
+      usePluginStore().handlePluginLifecycle(lifecycleEvent);
+      console.log('Received lifecycle event:', event.payload);
     });
     listen('plugin/connected', (event) => {
       const plugin = event.payload as { id: string; name: string; version?: string; connected_at?: string };

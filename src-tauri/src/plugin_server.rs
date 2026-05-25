@@ -179,6 +179,17 @@ impl PluginServer {
                             connections.write().await.insert(plugin_info.id.clone(), connection);
 
                             // Emit to frontend
+                            let _ = app_handle.emit("plugin/lifecycle", serde_json::json!({
+                                "id": &plugin_info.id,
+                                "name": &plugin_info.name,
+                                "version": &plugin_info.version,
+                                "connected_at": &plugin_info.connected_at,
+                                "status": "connected",
+                                "error": null,
+                                "exitCode": null,
+                                "signal": null,
+                                "expected": false,
+                            }));
                             let _ = app_handle.emit("plugin/connected", &plugin_info);
 
                             // Send acknowledgment

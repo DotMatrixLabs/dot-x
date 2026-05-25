@@ -10,8 +10,11 @@ import { invoke } from "@tauri-apps/api/core";
 import { toast } from "vue-sonner";
 
 const UNEXPECTED_PLUGIN_DISCONNECT_GRACE_MS = 1500;
+const PLUGIN_STARTING_TIMEOUT_MS = 10000;
 const pendingUnexpectedDisconnects = new Map<string, ReturnType<typeof setTimeout>>();
 const expectedPluginDisconnects = new Map<string, ReturnType<typeof setTimeout>>();
+const startingPluginTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
+const lifecycleFailureNotifiedAt = new Map<string, number>();
 let refreshPluginUpdatesPromise: Promise<Record<string, PluginUpdateRecord>> | null = null;
 
 function normalizeErrorMessage(error: unknown): string | null {
@@ -44,7 +47,10 @@ function extractPluginFailureReason(rawLogs: string | null): string | null {
         .map((line) => line.replace(/^\[(stdout|stderr)\]\s*/i, "").trim())
         .filter((line) => !line.toLowerCase().includes("no logs available"))
         .filter((line) => !line.toLowerCase().includes("logs will appear"))
-        .filter((line) => !line.toLowerCase().includes("make sure the plugin is running"));
+        .filter((line) => !line.toLowerCase().includes("make sure the plugin is running"))
+        .filter((line) => !/^connected to plugin server$/i.test(line))
+        .filter((line) => !/^waiting for connection to be established/i.test(line))
+        .filter((line) => !/^plugin connecting to server/i.test(line));
 
     if (lines.length === 0) {
         return null;
@@ -64,8 +70,21 @@ interface PluginConnectionInfo {
     connected_at?: string;
 }
 
+export interface PluginLifecycleEvent {
+    id: string;
+    name?: string;
+    version?: string;
+    connected_at?: string;
+    status: "starting" | "connected" | "start_failed" | "exited" | "stopped";
+    error?: string | null;
+    exitCode?: number | null;
+    signal?: string | null;
+    expected?: boolean;
+}
+
 interface PluginStoreState {
     activePlugins: Set<string>;
+    startingPlugins: Set<string>;
     enabledPlugins: Set<string>;
     approvedPlugins: Set<string>;
     checkingForPluginUpdates: boolean;
@@ -77,6 +96,7 @@ interface PluginStoreState {
 export const usePluginStore = defineStore("pluginStore", {
     state: (): PluginStoreState => ({
         activePlugins: new Set<string>(),
+        startingPlugins: new Set<string>(),
         enabledPlugins: new Set<string>(),
         approvedPlugins: new Set<string>(),
         checkingForPluginUpdates: false,
@@ -86,6 +106,7 @@ export const usePluginStore = defineStore("pluginStore", {
     }),
     getters: {
         getActivePlugins: (state) => state.activePlugins,
+        getStartingPlugins: (state) => state.startingPlugins,
         getEnabledPlugins: (state) => state.enabledPlugins,
         getConnectedPlugins: (state) => state.connectedPlugins,
         getPluginUpdates: (state) => state.pluginUpdates,
@@ -151,6 +172,113 @@ export const usePluginStore = defineStore("pluginStore", {
 
             return refreshPluginUpdatesPromise;
         },
+        markPluginStarting(pluginId: string, timeoutMs = PLUGIN_STARTING_TIMEOUT_MS) {
+            if (!pluginId) {
+                return;
+            }
+
+            const existing = startingPluginTimeouts.get(pluginId);
+            if (existing) {
+                clearTimeout(existing);
+            }
+
+            const next = new Set(this.startingPlugins);
+            next.add(pluginId);
+            this.startingPlugins = next;
+
+            const timeout = setTimeout(() => {
+                this.clearPluginStarting(pluginId);
+            }, timeoutMs);
+            startingPluginTimeouts.set(pluginId, timeout);
+        },
+        clearPluginStarting(pluginId: string) {
+            const pending = startingPluginTimeouts.get(pluginId);
+            if (pending) {
+                clearTimeout(pending);
+                startingPluginTimeouts.delete(pluginId);
+            }
+
+            if (!this.startingPlugins.has(pluginId)) {
+                return;
+            }
+
+            const next = new Set(this.startingPlugins);
+            next.delete(pluginId);
+            this.startingPlugins = next;
+        },
+        markEnabledPluginsStarting(timeoutMs = PLUGIN_STARTING_TIMEOUT_MS) {
+            for (const pluginId of Array.from(this.enabledPlugins || [])) {
+                if (!this.activePlugins.has(pluginId)) {
+                    this.markPluginStarting(pluginId, timeoutMs);
+                }
+            }
+        },
+        rememberLifecycleFailureToast(pluginId: string) {
+            lifecycleFailureNotifiedAt.set(pluginId, Date.now());
+        },
+        wasLifecycleFailureToastRecent(pluginId: string, windowMs = 2000) {
+            const notifiedAt = lifecycleFailureNotifiedAt.get(pluginId);
+            return Boolean(notifiedAt && Date.now() - notifiedAt < windowMs);
+        },
+        handlePluginLifecycle(event: PluginLifecycleEvent) {
+            if (!event?.id || !event?.status) {
+                return;
+            }
+
+            const pluginId = event.id;
+            const pluginName = event.name || this.connectedPlugins?.[pluginId]?.name || pluginId;
+
+            if (event.status === "starting") {
+                this.cancelPendingUnexpectedDisconnect(pluginId);
+                this.markPluginStarting(pluginId, 30000);
+                return;
+            }
+
+            if (event.status === "connected") {
+                this.upsertConnectedPlugin({
+                    id: pluginId,
+                    name: event.name || pluginId,
+                    version: event.version,
+                    connected_at: event.connected_at,
+                });
+                return;
+            }
+
+            this.clearPluginStarting(pluginId);
+
+            if (event.status === "stopped") {
+                this.removeConnectedPlugin(pluginId);
+                return;
+            }
+
+            if (event.status === "start_failed") {
+                this.removeConnectedPlugin(pluginId);
+                this.rememberLifecycleFailureToast(pluginId);
+                toast.error(`Failed to start ${pluginName}`, {
+                    description: normalizeErrorMessage(event.error) || "The plugin process could not be started.",
+                });
+                return;
+            }
+
+            if (event.status === "exited") {
+                this.removeConnectedPlugin(pluginId);
+                if (event.expected || expectedPluginDisconnects.has(pluginId)) {
+                    this.clearExpectedDisconnect(pluginId);
+                    return;
+                }
+
+                this.cancelPendingUnexpectedDisconnect(pluginId);
+                this.rememberLifecycleFailureToast(pluginId);
+                const exitDetail = event.exitCode != null
+                    ? `Exited with code ${event.exitCode}.`
+                    : event.signal
+                        ? `Exited from signal ${event.signal}.`
+                        : null;
+                toast.error(`${pluginName} crashed`, {
+                    description: normalizeErrorMessage(event.error) || exitDetail || "The plugin process exited unexpectedly.",
+                });
+            }
+        },
         cancelPendingUnexpectedDisconnect(pluginId: string) {
             const pending = pendingUnexpectedDisconnects.get(pluginId);
             if (!pending) {
@@ -204,6 +332,7 @@ export const usePluginStore = defineStore("pluginStore", {
                 await invoke("restart_plugin", { pluginId });
             } catch (error) {
                 this.clearExpectedDisconnect(pluginId);
+                this.clearPluginStarting(pluginId);
                 throw error;
             }
         },
@@ -254,8 +383,25 @@ export const usePluginStore = defineStore("pluginStore", {
                 return null;
             }
         },
+        async refreshConnectedPluginsFromBackend() {
+            try {
+                const plugins = await invoke<PluginConnectionInfo[]>("get_connected_plugins");
+                if (!Array.isArray(plugins)) {
+                    return [];
+                }
+
+                this.setConnectedPlugins(plugins);
+                return plugins;
+            } catch (error) {
+                console.error("Failed to refresh connected plugins:", error);
+                return [];
+            }
+        },
         scheduleUnexpectedDisconnectToast(plugin: { id: string; name?: string; error?: string | null }) {
             if (!plugin?.id) {
+                return;
+            }
+            if (this.wasLifecycleFailureToastRecent(plugin.id)) {
                 return;
             }
 
@@ -298,12 +444,13 @@ export const usePluginStore = defineStore("pluginStore", {
                 return;
             }
 
+            this.clearPluginStarting(pluginId);
             const next = new Set(this.enabledPlugins);
             next.delete(pluginId);
             this.enabledPlugins = next;
             await PluginStorage.setEnabledPluginIds(Array.from(this.enabledPlugins));
         },
-        async waitForPluginActive(pluginId: string, timeoutMs = 4000) {
+        async waitForPluginActive(pluginId: string, timeoutMs = 10000) {
             const startedAt = Date.now();
 
             while (Date.now() - startedAt < timeoutMs) {
@@ -311,13 +458,26 @@ export const usePluginStore = defineStore("pluginStore", {
                     return true;
                 }
 
-                await new Promise((resolve) => setTimeout(resolve, 100));
+                const connectedPlugins = await this.refreshConnectedPluginsFromBackend();
+                if (connectedPlugins.some((plugin) => plugin?.id === pluginId)) {
+                    return true;
+                }
+
+                await new Promise((resolve) => setTimeout(resolve, 250));
             }
 
-            return this.activePlugins.has(pluginId);
+            if (this.activePlugins.has(pluginId)) {
+                return true;
+            }
+
+            const connectedPlugins = await this.refreshConnectedPluginsFromBackend();
+            return connectedPlugins.some((plugin) => plugin?.id === pluginId);
         },
         setActivePlugins(plugins: string[]) {
             this.activePlugins = new Set(plugins);
+            for (const pluginId of plugins) {
+                this.clearPluginStarting(pluginId);
+            }
         },
         setConnectedPlugins(plugins: PluginConnectionInfo[]) {
             const nextConnectedPlugins: PluginStoreState["connectedPlugins"] = {};
@@ -327,11 +487,15 @@ export const usePluginStore = defineStore("pluginStore", {
             }
             this.connectedPlugins = nextConnectedPlugins;
             this.activePlugins = new Set(Object.keys(nextConnectedPlugins));
+            for (const pluginId of Object.keys(nextConnectedPlugins)) {
+                this.clearPluginStarting(pluginId);
+            }
         },
         addActivePlugin(plugin: string) {
             const next = new Set(this.activePlugins);
             next.add(plugin);
             this.activePlugins = next;
+            this.clearPluginStarting(plugin);
         },
         removeActivePlugin(plugin: string) {
             const next = new Set(this.activePlugins);
@@ -345,6 +509,7 @@ export const usePluginStore = defineStore("pluginStore", {
             if (!plugin?.id) return;
             this.cancelPendingUnexpectedDisconnect(plugin.id);
             this.clearExpectedDisconnect(plugin.id);
+            this.clearPluginStarting(plugin.id);
             this.connectedPlugins = {
                 ...this.connectedPlugins,
                 [plugin.id]: plugin,
@@ -391,14 +556,18 @@ export const usePluginStore = defineStore("pluginStore", {
                 try {
                     await invoke("start_plugin", { pluginId });
                 } catch (error) {
+                    this.clearPluginStarting(pluginId);
                     await this.rollbackEnabledPlugin(pluginId);
                     console.error(`Failed to start plugin ${pluginId}:`, error);
-                    toast.error(`Failed to start plugin ${pluginId}: ${normalizeErrorMessage(error) || "Unknown error"}`);
+                    if (!this.wasLifecycleFailureToastRecent(pluginId)) {
+                        toast.error(`Failed to start plugin ${pluginId}: ${normalizeErrorMessage(error) || "Unknown error"}`);
+                    }
                     return false;
                 }
 
                 const connected = await this.waitForPluginActive(pluginId);
                 if (!connected) {
+                    this.clearPluginStarting(pluginId);
                     await this.rollbackEnabledPlugin(pluginId);
                     try {
                         await invoke("stop_plugin", { pluginId });
@@ -406,11 +575,13 @@ export const usePluginStore = defineStore("pluginStore", {
                         console.error(`Failed to clean up plugin ${pluginId} after startup timeout:`, error);
                     }
                     const reason = await this.getLatestPluginFailureReason(pluginId);
-                    toast.error(
-                        reason
-                            ? `Plugin ${pluginId} failed to start: ${reason}`
-                            : `Plugin ${pluginId} did not connect after startup. Check plugin logs for details.`,
-                    );
+                    if (!this.wasLifecycleFailureToastRecent(pluginId)) {
+                        toast.error(
+                            reason
+                                ? `Plugin ${pluginId} failed to start: ${reason}`
+                                : `Plugin ${pluginId} did not connect after startup. Check plugin logs for details.`,
+                        );
+                    }
                     return false;
                 }
             }
@@ -418,6 +589,7 @@ export const usePluginStore = defineStore("pluginStore", {
         },
         async disablePluginId(pluginId: string) {
             if (this.enabledPlugins.has(pluginId)) {
+                this.clearPluginStarting(pluginId);
                 const next = new Set(this.enabledPlugins);
                 next.delete(pluginId);
                 this.enabledPlugins = next;
