@@ -97,7 +97,7 @@
           <component
             :modalOpen="modalOpen"
             :is="activeTab"
-            :key="activeTab"
+            :key="activeTab === 'PluginSettings' && activePlugin ? `PluginSettings-${activePlugin.id}` : activeTab"
             :plugin="activePlugin"
             @openSettings="openSettings"
             @installed-plugins-changed="handleInstalledPluginsChanged"
