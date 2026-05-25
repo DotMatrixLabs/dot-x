@@ -378,10 +378,7 @@ export default {
 			});
 
 			try {
-				await invoke('install_marketplace_plugin', {
-					pluginId: plugin.id,
-					registryUrl: MARKETPLACE_REGISTRY_URL,
-				});
+				await usePluginStore().installMarketplacePlugin(plugin.id, MARKETPLACE_REGISTRY_URL);
 				await this.fetchPlugins();
 				await this.loadEnabledState();
 				await usePluginStore().refreshPluginUpdates();

@@ -107,7 +107,6 @@
 </template>
 
 <script>
-import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { toast } from 'vue-sonner';
 import PluginDetailModal from './PluginDetailModal.vue';
@@ -215,10 +214,7 @@ export default {
 			if (plugin.isDownloading) return;
 			plugin.isDownloading = true;
 			try {
-				await invoke('install_marketplace_plugin', {
-					pluginId: plugin.id,
-					registryUrl: MARKETPLACE_REGISTRY_URL,
-				});
+				await usePluginStore().installMarketplacePlugin(plugin.id, MARKETPLACE_REGISTRY_URL);
 				void this.recordDownload(plugin);
 				toast.success(`Successfully installed ${plugin.name}`);
 				this.$emit('installed', plugin);

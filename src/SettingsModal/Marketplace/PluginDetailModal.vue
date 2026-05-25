@@ -144,7 +144,6 @@
 </template>
 
 <script>
-import { invoke } from '@tauri-apps/api/core';
 import { mapState } from 'pinia';
 import { usePluginStore } from '../../store/pluginStore';
 import { toast } from 'vue-sonner';
@@ -343,10 +342,7 @@ export default {
 			if (!this.plugin?.id || this.plugin.isDownloading) return;
 			this.plugin.isDownloading = true;
 			try {
-				await invoke('install_marketplace_plugin', {
-					pluginId: this.plugin.id,
-					registryUrl: MARKETPLACE_REGISTRY_URL,
-				});
+				await usePluginStore().installMarketplacePlugin(this.plugin.id, MARKETPLACE_REGISTRY_URL);
 				void this.recordDownload();
 				toast.success(`Successfully installed ${this.plugin.name || this.plugin.id}`);
 				this.$emit('installed', this.plugin);
@@ -420,7 +416,7 @@ export default {
 		async restartPlugin() {
 			if (!this.plugin?.id) return;
 			try {
-				await invoke('restart_plugin', { pluginId: this.plugin.id });
+				await usePluginStore().restartPluginIntentionally(this.plugin.id);
 				toast.success(`${this.plugin?.name || this.plugin?.id} restarted`);
 				EventBus.emit('plugin:settingsUpdated', { pluginId: this.plugin.id });
 			} catch (e) {

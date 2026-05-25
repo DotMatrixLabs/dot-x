@@ -193,6 +193,40 @@ export const usePluginStore = defineStore("pluginStore", {
             this.markExpectedDisconnect(pluginId);
             await invoke("stop_plugin", { pluginId });
         },
+        async restartPluginIntentionally(pluginId: string) {
+            if (!pluginId) {
+                return;
+            }
+
+            this.cancelPendingUnexpectedDisconnect(pluginId);
+            this.markExpectedDisconnect(pluginId);
+            try {
+                await invoke("restart_plugin", { pluginId });
+            } catch (error) {
+                this.clearExpectedDisconnect(pluginId);
+                throw error;
+            }
+        },
+        async installMarketplacePlugin(pluginId: string, registryUrl: string) {
+            if (!pluginId) {
+                return;
+            }
+
+            const expectsDisconnect = this.activePlugins.has(pluginId) || Boolean(this.connectedPlugins[pluginId]);
+            if (expectsDisconnect) {
+                this.cancelPendingUnexpectedDisconnect(pluginId);
+                this.markExpectedDisconnect(pluginId, 15000);
+            }
+
+            try {
+                await invoke("install_marketplace_plugin", { pluginId, registryUrl });
+            } catch (error) {
+                if (expectsDisconnect) {
+                    this.clearExpectedDisconnect(pluginId);
+                }
+                throw error;
+            }
+        },
         async uninstallPluginId(pluginId: string) {
             if (!pluginId) {
                 return;
