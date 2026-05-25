@@ -1,7 +1,7 @@
 use std::{ collections::{HashMap, HashSet, VecDeque}, fs, path::{Component, Path, PathBuf}, };
 use log::{error, info, warn};
 use once_cell::sync::OnceCell;
-use serde_json::Value;
+use serde_json::{json, Value};
 use std::sync::Arc;
 use tauri::{AppHandle, Manager};
 use tauri::Emitter;
@@ -13,6 +13,7 @@ use crate::plugin_server::get_active_port;
 // Global process table: plugin_id -> Child process
 static PROCESS_TABLE: OnceCell<Arc<RwLock<HashMap<String, tokio::process::Child>>>> = OnceCell::new();
 static PROCESS_REAPER_STARTED: OnceCell<()> = OnceCell::new();
+static EXPECTED_PROCESS_EXITS: OnceCell<Arc<RwLock<HashSet<String>>>> = OnceCell::new();
 
 // Global logs table: plugin_id -> captured logs (stdout + stderr)
 static LOGS_TABLE: OnceCell<Arc<RwLock<HashMap<String, VecDeque<String>>>>> = OnceCell::new();
@@ -34,6 +35,31 @@ fn logs_table() -> Arc<RwLock<HashMap<String, VecDeque<String>>>> {
   LOGS_TABLE
     .get_or_init(|| Arc::new(RwLock::new(HashMap::new())))
     .clone()
+}
+
+fn expected_process_exits() -> Arc<RwLock<HashSet<String>>> {
+  EXPECTED_PROCESS_EXITS
+    .get_or_init(|| Arc::new(RwLock::new(HashSet::new())))
+    .clone()
+}
+
+fn emit_plugin_lifecycle(
+  app_handle: &AppHandle,
+  plugin_id: &str,
+  status: &str,
+  error: Option<String>,
+  exit_code: Option<i32>,
+  signal: Option<String>,
+  expected: Option<bool>,
+) {
+  let _ = app_handle.emit("plugin/lifecycle", json!({
+    "id": plugin_id,
+    "status": status,
+    "error": error,
+    "exitCode": exit_code,
+    "signal": signal,
+    "expected": expected,
+  }));
 }
 
 fn make_backup_path(base: &Path, index: u8) -> PathBuf {
@@ -602,42 +628,68 @@ fn build_deno_permission_args(plugin_dir: &Path, permissions: &[String], port: u
   flags
 }
 
-async fn is_running(plugin_id: &str) -> bool {
-  reap_exited_processes().await;
+async fn is_running(app_handle: &AppHandle, plugin_id: &str) -> bool {
+  reap_exited_processes(app_handle).await;
   let table = process_table();
   let map = table.read().await;
   map.contains_key(plugin_id)
 }
 
-async fn reap_exited_processes() {
+#[cfg(unix)]
+fn exit_signal(status: &std::process::ExitStatus) -> Option<String> {
+  use std::os::unix::process::ExitStatusExt;
+  status.signal().map(|signal| signal.to_string())
+}
+
+#[cfg(not(unix))]
+fn exit_signal(_status: &std::process::ExitStatus) -> Option<String> {
+  None
+}
+
+async fn reap_exited_processes(app_handle: &AppHandle) {
   let table = process_table();
   let mut map = table.write().await;
 
-  let mut exited_plugins: Vec<String> = Vec::new();
+  let mut exited_plugins: Vec<(String, Option<i32>, Option<String>)> = Vec::new();
   for (id, child) in map.iter_mut() {
     match child.try_wait() {
       Ok(Some(status)) => {
         info!("Plugin {} exited with status {}", id, status);
-        exited_plugins.push(id.clone());
+        exited_plugins.push((id.clone(), status.code(), exit_signal(&status)));
       }
       Ok(None) => {}
       Err(e) => {
         warn!("Failed to inspect plugin {} process state: {}", id, e);
-        exited_plugins.push(id.clone());
+        exited_plugins.push((id.clone(), None, None));
       }
     }
   }
 
-  for id in exited_plugins {
+  for (id, exit_code, signal) in exited_plugins {
     map.remove(&id);
+    let expected = {
+      let expected_exits = expected_process_exits();
+      let mut expected_map = expected_exits.write().await;
+      expected_map.remove(&id)
+    };
+    emit_plugin_lifecycle(
+      app_handle,
+      &id,
+      "exited",
+      None,
+      exit_code,
+      signal,
+      Some(expected),
+    );
   }
 }
 
-fn ensure_process_reaper_started() {
+fn ensure_process_reaper_started(app_handle: AppHandle) {
   PROCESS_REAPER_STARTED.get_or_init(|| {
+    let app_handle = app_handle.clone();
     tokio::spawn(async move {
       loop {
-        reap_exited_processes().await;
+        reap_exited_processes(&app_handle).await;
         tokio::time::sleep(std::time::Duration::from_secs(PROCESS_REAPER_INTERVAL_SECS)).await;
       }
     });
@@ -741,16 +793,30 @@ async fn spawn_deno_process(app_handle: &AppHandle, dir: &Path, plugin_id: &str)
 }
 
 async fn start_plugin_internal(app_handle: &AppHandle, plugin_id: &str) -> Result<(), String> {
-  ensure_process_reaper_started();
+  ensure_process_reaper_started(app_handle.clone());
 
-  if is_running(plugin_id).await {
+  if is_running(app_handle, plugin_id).await {
     return Ok(());
   }
 
-  let dir = find_plugin_dir_by_id(app_handle, plugin_id)
-    .ok_or_else(|| format!("Plugin {} not found", plugin_id))?;
+  emit_plugin_lifecycle(app_handle, plugin_id, "starting", None, None, None, Some(false));
 
-  let mut child = spawn_deno_process(app_handle, &dir, plugin_id).await?;
+  let dir = match find_plugin_dir_by_id(app_handle, plugin_id) {
+    Some(dir) => dir,
+    None => {
+      let error = format!("Plugin {} not found", plugin_id);
+      emit_plugin_lifecycle(app_handle, plugin_id, "start_failed", Some(error.clone()), None, None, Some(false));
+      return Err(error);
+    }
+  };
+
+  let mut child = match spawn_deno_process(app_handle, &dir, plugin_id).await {
+    Ok(child) => child,
+    Err(error) => {
+      emit_plugin_lifecycle(app_handle, plugin_id, "start_failed", Some(error.clone()), None, None, Some(false));
+      return Err(error);
+    }
+  };
 
   // Capture stdout
   if let Some(stdout) = child.stdout.take() {
@@ -769,12 +835,21 @@ async fn start_plugin_internal(app_handle: &AppHandle, plugin_id: &str) -> Resul
   Ok(())
 }
 
-async fn stop_plugin_internal(plugin_id: &str) -> Result<(), String> {
+async fn stop_plugin_internal(app_handle: &AppHandle, plugin_id: &str) -> Result<(), String> {
   let table = process_table();
   let mut map = table.write().await;
   if let Some(mut child) = map.remove(plugin_id) {
     if let Ok(Some(status)) = child.try_wait() {
       info!("Plugin {} was already stopped with status {}", plugin_id, status);
+      emit_plugin_lifecycle(
+        app_handle,
+        plugin_id,
+        "stopped",
+        None,
+        status.code(),
+        exit_signal(&status),
+        Some(true),
+      );
       return Ok(());
     }
 
@@ -784,11 +859,13 @@ async fn stop_plugin_internal(plugin_id: &str) -> Result<(), String> {
       error!("Failed to kill plugin {}: {}", plugin_id, e);
     }
     info!("Stopped plugin {}", plugin_id);
+    emit_plugin_lifecycle(app_handle, plugin_id, "stopped", None, None, None, Some(true));
     
     // Note: We keep logs in memory even after plugin stops for debugging
     Ok(())
   } else {
     // Not running; treat as success
+    emit_plugin_lifecycle(app_handle, plugin_id, "stopped", None, None, None, Some(true));
     Ok(())
   }
 }
@@ -828,14 +905,14 @@ pub async fn start_plugin(app_handle: AppHandle, plugin_id: String) -> Result<St
 }
 
 #[tauri::command]
-pub async fn stop_plugin(plugin_id: String) -> Result<String, String> {
-  stop_plugin_internal(&plugin_id).await?;
+pub async fn stop_plugin(app_handle: AppHandle, plugin_id: String) -> Result<String, String> {
+  stop_plugin_internal(&app_handle, &plugin_id).await?;
   Ok(format!("Plugin {} stopped", plugin_id))
 }
 
 #[tauri::command]
 pub async fn restart_plugin(app_handle: AppHandle, plugin_id: String) -> Result<String, String> {
-  let _ = stop_plugin_internal(&plugin_id).await; // ignore error if not running
+  let _ = stop_plugin_internal(&app_handle, &plugin_id).await; // ignore error if not running
   start_plugin_internal(&app_handle, &plugin_id).await?;
   Ok(format!("Plugin {} restarted", plugin_id))
 }

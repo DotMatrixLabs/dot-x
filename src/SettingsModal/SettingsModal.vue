@@ -53,8 +53,13 @@
                 @click="openSettings(plugin)"
                 class="flex items-center w-full px-2 py-1.5 rounded-btn text-sm text-left hover:bg-base-content/10 transition-colors min-w-0"
                 :class="activeTab === 'PluginSettings' && activePlugin?.id === plugin.id ? 'bg-primary text-primary-content hover:bg-primary' : ''"
+                :disabled="plugin.isStarting"
               >
                 <span class="truncate">{{ plugin.name }}</span>
+                <span v-if="plugin.isStarting" class="flex items-center gap-1 text-xs opacity-70 ml-auto shrink-0">
+                  <span class="loading loading-spinner loading-xs"></span>
+                  Loading...
+                </span>
                 <span v-if="plugin.external" class="badge badge-outline badge-info badge-xs ml-auto shrink-0">External</span>
               </button>
               </template>
@@ -76,8 +81,13 @@
                 @click="openSettings(plugin)"
                 class="flex items-center w-full px-2 py-1.5 rounded-btn text-sm text-left hover:bg-base-content/10 transition-colors min-w-0"
                 :class="activeTab === 'PluginSettings' && activePlugin?.id === plugin.id ? 'bg-primary text-primary-content hover:bg-primary' : ''"
+                :disabled="plugin.isStarting"
               >
                 <span class="truncate">{{ plugin.name }}</span>
+                <span v-if="plugin.isStarting" class="flex items-center gap-1 text-xs opacity-70 ml-auto shrink-0">
+                  <span class="loading loading-spinner loading-xs"></span>
+                  Loading...
+                </span>
                 <span v-if="plugin.external" class="badge badge-outline badge-info badge-xs ml-auto shrink-0">External</span>
               </button>
             </template>
@@ -161,7 +171,7 @@ export default {
   },
 
   computed: {
-    ...mapState(usePluginStore, ['activePlugins', 'connectedPlugins']),
+    ...mapState(usePluginStore, ['activePlugins', 'startingPlugins', 'connectedPlugins']),
     visiblePluginTabs() {
       const installedById = new Map(
         (this.installedPlugins || []).map((plugin) => [
@@ -173,31 +183,36 @@ export default {
           },
         ])
       );
-      const visibleIds = new Set(Array.from(this.activePlugins || []));
+      const visibleIds = new Set([
+        ...Array.from(this.activePlugins || []),
+        ...Array.from(this.startingPlugins || []),
+      ]);
 
       return Array.from(visibleIds)
         .map((id) => {
+          const isStarting = this.startingPlugins?.has?.(id) && !this.activePlugins?.has?.(id);
           const installedPlugin = installedById.get(id);
           if (installedPlugin) {
-            return installedPlugin;
+            return { ...installedPlugin, isStarting };
           }
 
           const connectedPlugin = this.connectedPlugins?.[id];
           if (!connectedPlugin) {
-            return { id, name: id, external: false };
+            return { id, name: id, external: false, isStarting };
           }
 
           return {
             ...connectedPlugin,
             description: 'Connected externally',
             external: true,
+            isStarting,
           };
         })
         .sort((a, b) => (a.name || a.id).localeCompare(b.name || b.id));
     },
     pluginTabsKey() {
       return this.visiblePluginTabs
-        .map((plugin) => `${plugin.id}:${this.activePlugins?.has?.(plugin.id) ? 'active' : 'inactive'}`)
+        .map((plugin) => `${plugin.id}:${this.activePlugins?.has?.(plugin.id) ? 'active' : 'inactive'}:${plugin.isStarting ? 'starting' : 'idle'}`)
         .sort()
         .join('|');
     },
@@ -290,7 +305,7 @@ export default {
       }
     },
     openSettings(plugin) {
-      if (!this.visiblePluginTabs.some((candidate) => candidate.id === plugin?.id)) {
+      if (plugin?.isStarting || !this.visiblePluginTabs.some((candidate) => candidate.id === plugin?.id)) {
         return;
       }
       this.activeTab = "PluginSettings"
