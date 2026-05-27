@@ -147,8 +147,12 @@ export interface PluginInfo {
   id: string;
   name: string;
   version: string;
+  connected_at?: string;
   author?: string;
   description?: string;
+  sdkVersion?: string;
+  hostApiVersion?: string;
+  capabilities?: string[];
   status?: 'active' | 'inactive' | 'error';
   lastError?: string;
 }
