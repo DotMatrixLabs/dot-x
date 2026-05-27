@@ -28,7 +28,11 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
           package-manager-cache: false
 
-      - name: Install dependencies
+      - name: Install root dependencies
+        working-directory: .
+        run: npm install
+
+      - name: Install SDK dependencies
         run: npm install
 
       - name: Verify tag matches package version
