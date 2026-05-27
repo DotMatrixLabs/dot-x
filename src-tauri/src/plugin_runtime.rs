@@ -524,7 +524,10 @@ fn build_deno_permission_args(plugin_dir: &Path, permissions: &[String], port: u
   let mut seen: HashSet<String> = HashSet::new();
   let mut net_scopes: HashSet<String> = HashSet::new();
   let mut allow_all_net = false;
-  let mut allow_env_all = true; // default: full env for SDK / node compat
+  // Baseline runtime capability, not a manifest permission:
+  // the SDK and Node compatibility layer expect unrestricted environment access.
+  // User-approved plugin permissions are read from manifest.json and applied below.
+  let mut allow_env_all = true;
   let mut allow_sys_all = false;
   let mut sys_scopes: HashSet<String> = HashSet::new();
   sys_scopes.insert("homedir".to_string());

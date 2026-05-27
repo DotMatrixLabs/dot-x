@@ -1,29 +1,16 @@
 <template>
-	<!-- Permission approval dialog -->
-	<dialog class="modal" :class="{ 'modal-open': permissionDialog.show }">
-		<div class="modal-box max-w-sm">
-			<h3 class="font-bold text-base mb-1">Permission Request</h3>
-			<p class="text-sm label-text mb-3">
-				<span class="font-medium">{{ permissionDialog.plugin?.name || permissionDialog.plugin?.id }}</span>
-				is requesting access to the following:
-			</p>
-			<ul class="flex flex-col gap-1 mb-4">
-				<li
-					v-for="perm in permissionDialog.permissions"
-					:key="perm.key"
-					class="flex items-center gap-2 text-sm"
-				>
-					<i :class="perm.icon" class="w-4 text-center opacity-60"></i>
-					<span>{{ perm.label }}</span>
-				</li>
-			</ul>
-			<div class="modal-action mt-0">
-				<button class="btn btn-sm btn-ghost" @click="denyPermissions">Deny</button>
-				<button class="btn btn-sm btn-primary" @click="approvePermissions">Allow</button>
-			</div>
-		</div>
-		<div class="modal-backdrop" @click="denyPermissions"></div>
-	</dialog>
+	<PluginPermissionDialog
+		:visible="permissionDialog.show"
+		:plugin="permissionDialog.plugin"
+		:permissions="permissionDialog.permissions"
+		@approve="approvePermissions"
+		@deny="denyPermissions"
+	/>
+
+	<PluginSystemInfoDialog
+		:visible="showPluginSystemInfo"
+		@close="showPluginSystemInfo = false"
+	/>
 
 	<div class="flex flex-col h-full w-full p-4 gap-4 bg-base-100 text-base-content">
 		<!-- Plugin system options -->
@@ -76,11 +63,11 @@
 								@click="openPluginDetail(plugin)"
 							>{{ plugin.name }}</button>
 							<span v-else class="">{{ plugin.name }}</span>
-							<span class="label-text text-xs">
+							<span class="label-text text-xs opacity-60">
 								Version: {{ plugin.version || 'Unknown' }}<span v-if="plugin.author"> • {{ plugin.author }}</span>
 							</span>
 							<div class="flex items-center gap-2 flex-wrap mt-0.5">
-								<span class="text-xs label-text">{{ plugin.description }}</span>
+								<span class="text-xs label-text opacity-90">{{ plugin.description }}</span>
 								<span v-if="plugin.external" class="badge badge-outline badge-info badge-xs">External</span>
 								<span v-if="plugin.updateInfo?.hasUpdate" class="badge badge-warning badge-xs">Update available</span>
 								<span v-if="plugin.updateInfo?.hasUpdate" class="text-xs text-warning">Latest: {{ plugin.updateInfo.latestVersion }}</span>
@@ -151,6 +138,16 @@
 			</div>
 		</div>
 
+		<div v-if="!marketplaceOpen" class="flex flex-col w-full justify-center px-2 mt-auto mb-1">
+			<button
+				type="button"
+				class="mb-1 hover:underline text-center text-xs opacity-50 cursor-pointer bg-transparent border-0 p-0"
+				@click="showPluginSystemInfo = true"
+			>
+				About plugin system
+			</button>
+		</div>
+
 	</div>
 
 	<Teleport to="body">
@@ -178,6 +175,8 @@ import { listen } from '@tauri-apps/api/event';
 import { toast } from 'vue-sonner';
 import PluginsMarketplace from './Marketplace/PluginsMarketplace.vue';
 import PluginDetailModal from './Marketplace/PluginDetailModal.vue';
+import PluginPermissionDialog from './PluginPermissionDialog.vue';
+import PluginSystemInfoDialog from './PluginSystemInfoDialog.vue';
 import PluginLogsModal from '../components/PluginLogsModal.vue';
 import Confirmation from '../components/Confirmation.vue';
 import MarketplaceStats, {
@@ -191,6 +190,8 @@ export default {
 	components: {
 		PluginsMarketplace,
 		PluginDetailModal,
+		PluginPermissionDialog,
+		PluginSystemInfoDialog,
 		PluginLogsModal,
 		Confirmation,
 	},
@@ -216,6 +217,7 @@ export default {
 			showDetailModal: false,
 			showLogsModal: false,
 			selectedLogPlugin: null,
+			showPluginSystemInfo: false,
 			unlistenProgress: null,
 			pluginActionStateById: {},
 			permissionDialog: {
