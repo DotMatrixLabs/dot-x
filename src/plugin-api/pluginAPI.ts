@@ -182,7 +182,15 @@ export class PluginAPI {
       console.log('Received lifecycle event:', event.payload);
     });
     listen('plugin/connected', (event) => {
-      const plugin = event.payload as { id: string; name: string; version?: string; connected_at?: string };
+      const plugin = event.payload as {
+        id: string;
+        name: string;
+        version?: string;
+        connected_at?: string;
+        sdkVersion?: string;
+        hostApiVersion?: string;
+        capabilities?: string[];
+      };
       usePluginStore().upsertConnectedPlugin(plugin);
       console.log('Received connected event:', event.payload);
     });
@@ -409,7 +417,15 @@ export class PluginAPI {
   public async getConnectedPlugins() {
     try {
       const plugins = await invoke('get_connected_plugins');
-      return plugins as Array<{ id: string; name: string; version: string; connected_at: string }>;
+      return plugins as Array<{
+        id: string;
+        name: string;
+        version: string;
+        connected_at: string;
+        sdkVersion?: string;
+        hostApiVersion?: string;
+        capabilities?: string[];
+      }>;
     } catch (e) {
       console.error('Failed to get connected plugins', e);
       return [] as any[];
