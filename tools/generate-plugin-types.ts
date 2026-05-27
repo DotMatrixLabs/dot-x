@@ -1,6 +1,6 @@
-import { Project, SourceFile, InterfaceDeclaration } from 'ts-morph';
-import { writeFileSync } from 'fs';
-import { join, resolve, dirname } from 'path';
+import { Project, InterfaceDeclaration } from 'ts-morph';
+import { mkdirSync, writeFileSync } from 'fs';
+import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -23,9 +23,10 @@ export function generatePluginTypes() {
   
   // Write to npm package
   const outputPath = resolve(__dirname, '..', 'plugin-sdk', 'src', 'generated', 'types.ts');
+  mkdirSync(dirname(outputPath), { recursive: true });
   writeFileSync(outputPath, clientCode);
   
-  console.log('✅ Plugin types generated successfully');
+  console.log('Plugin types generated successfully');
 }
 
 function generateClientCode(apiInterface: InterfaceDeclaration): string {

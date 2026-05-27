@@ -589,10 +589,12 @@ if (require.main === module) {
 
 ### Regenerating Types
 
-To regenerate types after API changes:
+The SDK publishes declarations generated from `src/plugin-api/schema.ts`. Regenerate them after host API changes so plugin projects get the same IntelliSense and type checking that Dot X supports at runtime:
 
 ```bash
+cd plugin-sdk
 npm run generate-types
+npm run build:types
 ```
 
 ## Example Plugin

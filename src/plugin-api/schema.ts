@@ -11,141 +11,148 @@ export interface ApiResponse {
   error?: string;
 }
 
-interface BaseSettingsField {
+export interface ToastParams {
+  /** The message to display. */
+  message: string;
+  /** Visual style of the toast. Defaults to "info". */
+  type?: 'info' | 'success' | 'warning' | 'error';
+  /** Auto-dismiss duration in milliseconds. Defaults to 3000. */
+  duration?: number;
+}
+
+export interface PluginConfigStore {
+  set: (key: string | Record<string, any>, value?: any) => void;
+  get: <T = any>(key: string, defaultValue?: T) => T | undefined;
+  delete: (key: string) => void;
+  clear: () => void;
+  has: (key: string) => boolean;
+  all: () => Record<string, any>;
+  path: () => string;
+  init: (options?: {
+    schema?: Record<string, any>;
+    defaults?: Record<string, any>;
+  }) => void;
+}
+
+export interface BaseSettingsField {
   label: string;
-  tab?: string;
   section?: string;
   default?: any;
   placeholder?: string;
   required?: boolean;
   description?: string;
-  help?: string;
+  disabled?: boolean;
 }
 
-export interface TextField extends BaseSettingsField {
-  type: 'text' | 'password' | 'textarea' | 'color' | 'file' | 'number';
-  options?: never;
-}
-
-export interface BooleanField extends BaseSettingsField {
-  type: 'boolean';
-  options?: never;
-}
-
-export interface SelectField extends BaseSettingsField {
-  type: 'select';
-  options: Array<{ value: any; label: string }>;
+export interface InputField extends BaseSettingsField {
+  type: 'text' | 'password' | 'textarea' | 'color' | 'file' | 'number' | 'ip_address' | 'mac_address';
+  onChange?: (data: { value: any }) => void;
+  onChangeActionId?: string;
 }
 
 export interface ButtonField extends BaseSettingsField {
   type: 'button';
   text?: string;
-  style?: 'primary' | 'secondary' | 'danger';
-  onClick: () => void;
+  variant?: 'primary' | 'secondary' | 'danger';
+  onClick?: () => void;
   actionId?: string;
 }
 
+export interface SwitchField extends BaseSettingsField {
+  type: 'switch';
+  onChange?: (data: { value: boolean }) => void;
+  onChangeActionId?: string;
+}
+
+export interface SelectField extends BaseSettingsField {
+  type: 'select';
+  options: Array<{ value: any; label: string }>;
+  onChange?: (data: { value: any }) => void;
+  onChangeActionId?: string;
+}
+
+export interface TextField extends BaseSettingsField {
+  type: 'text_display';
+  text?: string;
+  variant?: 'default' | 'muted' | 'info' | 'success' | 'warning' | 'error';
+}
+
+export interface BadgeField extends BaseSettingsField {
+  type: 'badge';
+  text?: string;
+  variant?: 'default' | 'muted' | 'info' | 'success' | 'warning' | 'error';
+}
+
+export interface InfoField extends BaseSettingsField {
+  type: 'info';
+  text?: string;
+  variant?: 'default' | 'info' | 'success' | 'warning' | 'error';
+  showIcon?: boolean;
+}
+
 export type SettingsField =
-  | TextField
-  | BooleanField
+  | InputField
+  | ButtonField
+  | SwitchField
   | SelectField
-  | ButtonField;
+  | TextField
+  | BadgeField
+  | InfoField;
 
-export type SettingsSchema = Record<string, SettingsField>;
+export type SettingsComponent = { key: string } & SettingsField;
 
-export interface TabConfig {
-  title: string;
-  icon?: string;
-  description?: string;
-  order?: number;
-  visible?: boolean;
-  condition?: () => boolean;
-  badge?: string | number | (() => string | number);
-  color?: string;
-  onClick?: () => void;
-}
-
-export interface TabConfiguration {
-  [key: string]: TabConfig;
-}
-
-export interface SettingsOptions {
-  tabs?: TabConfiguration;
-  defaultTab?: string;
-  showTabIcons?: boolean;
-  tabPosition?: 'top' | 'left' | 'right';
-  autoSave?: boolean;
-  validateOnChange?: boolean;
-}
-
-export interface PluginSettingsResponse {
-  success: boolean;
-  settingsId: string;
-  error?: string;
-}
-
-export interface UIComponent {
-  type: string;
-  props?: Record<string, any>;
-  children?: UIComponent[];
-}
-
-export interface ModalButton {
-  label: string;
-  action: () => void;
-  style?: 'primary' | 'secondary' | 'danger';
+export interface SettingsSection {
+  key: string;
+  name?: string;
+  title?: string;
   disabled?: boolean;
+  hidden?: boolean;
+  expandable?: boolean;
+  expanded?: boolean;
+  components: SettingsComponent[];
 }
 
-export interface ModalResult {
-  button?: string;
-  data?: any;
-  cancelled: boolean;
+export interface SettingsSections {
+  sections: SettingsSection[];
 }
 
-export interface PluginInfo {
-  id: string;
+export interface DeviceInfo {
   name: string;
-  version: string;
-  author: string;
-  description: string;
-  status: 'active' | 'inactive' | 'error';
-  lastError?: string;
+  port: string;
+  state: 'connected' | 'disconnected';
+  connected_at?: string;
 }
 
-export interface PluginConfig {
-  enabled: boolean;
-  autoStart: boolean;
-  permissions: string[];
-  resources: {
-    maxMemory?: number;
-    maxCpu?: number;
-  };
+export interface DeviceChanges {
+  changes: Array<{ index: number; oldValue: number; newValue: number }>;
+  values: Array<{ value: number }>;
 }
 
-export interface APIError {
-  code: string;
-  message: string;
-  details?: any;
+export type DeviceConnectionCallback = (device: DeviceInfo) => void | Promise<void>;
+
+export type DeviceUpdateCallback = (data: DeviceChanges) => void | Promise<void>;
+
+export type RGBEffect =
+  | 'rainbow'
+  | 'static'
+  | 'off'
+  | 'lightningStorm'
+  | 'candle'
+  | 'perimeter'
+  | 'breathing';
+
+export interface RGBState {
+  effect: RGBEffect;
+  speed: number;
+  brightness: number;
+  color: string;
 }
 
-export interface PluginContext {
-  pluginId: string;
-  pluginDir: string;
-}
-
-export type SystemEvent = 
-  | 'theme-changed'
-  | 'language-changed'
-  | 'app-ready'
-  | 'app-closing'
-  | 'plugin-loaded'
-  | 'plugin-unloaded'
-  | 'settings-changed';
-
-export interface CreateSettingsParams {
-  schema: SettingsSchema;
-  options?: SettingsOptions;
+export interface RGBOptions {
+  effect: RGBEffect;
+  speed: number;
+  brightness: number;
+  color: string;
 }
 
 export type ChannelTarget = string;
@@ -161,151 +168,42 @@ export interface ChannelTargetsAllResponse {
   channels: ChannelTargetsByChannel;
 }
 
+export interface PluginInfo {
+  id: string;
+  name: string;
+  version: string;
+  author?: string;
+  description?: string;
+  status?: 'active' | 'inactive' | 'error';
+  lastError?: string;
+}
+
 export interface PluginAPI {
-  // Settings Management
-  settings: {
-    // Create settings instance (called by plugin developers)
-    createSettings: (params: CreateSettingsParams) => Promise<PluginSettingsResponse>;
-    
-    // Internal methods (pluginId injected automatically)
-    setValue: (params: {
-      key: string;
-      value: any;
-    }) => Promise<void>;
-    
-    getValue: (params: {
-      key: string;
-    }) => Promise<any>;
-    
-    setVisibility: (params: {
-      key: string;
-      visible: boolean;
-    }) => Promise<void>;
-    
-    setError: (params: {
-      key: string;
-      error: string | null;
-    }) => Promise<void>;
-    
-    setEnabled: (params: {
-      key: string;
-      enabled: boolean;
-    }) => Promise<void>;
-    
-    setActiveTab: (params: {
-      tabKey: string;
-    }) => Promise<void>;
-    
-    addTab: (params: {
-      tabKey: string;
-      config: TabConfig;
-    }) => Promise<void>;
-    
-    removeTab: (params: {
-      tabKey: string;
-    }) => Promise<void>;
-    
-    setTabVisibility: (params: {
-      tabKey: string;
-      visible: boolean;
-    }) => Promise<void>;
+  config: PluginConfigStore;
 
-    saveData: (params: {
-      key: string;
-      value: any;
-    }) => Promise<void>;
-  };
-
-  // UI Components
   ui: {
-    showToast: (params: {
-      message: string;
-      type?: 'info' | 'success' | 'warning' | 'error';
-      duration?: number;
-    }) => Promise<void>;
-
-
+    showToast: (params: ToastParams) => Promise<void>;
   };
 
-  // Channel Targets
+  device: {
+    getConnected: () => Promise<DeviceInfo[]>;
+    isConnected: () => Promise<boolean>;
+    onConnect: (callback: DeviceConnectionCallback) => void;
+    onDisconnect: (callback: DeviceConnectionCallback) => void;
+    onUpdate: (callback: DeviceUpdateCallback) => void;
+    rgb: {
+      setEffect: (effectName: RGBEffect, speed: number, brightness: number, color: string) => Promise<void>;
+      setBrightness: (brightness: number) => Promise<void>;
+      setColor: (color: string) => Promise<void>;
+      setSpeed: (speed: number) => Promise<void>;
+      turnOff: () => Promise<void>;
+      getAvailableEffects: () => readonly RGBEffect[];
+      getCurrentState: () => RGBState;
+    };
+  };
+
   channelTargets: {
-    getForChannel: (params: {
-      channel: number | string;
-    }) => Promise<ChannelTargetsForChannelResponse>;
-
+    getForChannel: (channel: number | string) => Promise<ChannelTargetsForChannelResponse>;
     getAll: () => Promise<ChannelTargetsAllResponse>;
-  };
-
-  // Plugin Management (pluginId automatically injected)
-  plugin: {
-    // getInfo: () => Promise<PluginInfo>;
-    
-    // setStatus: (params: {
-    //   status: 'active' | 'inactive' | 'error';
-    //   message?: string;
-    // }) => Promise<void>;
-    
-    // getConfig: () => Promise<PluginConfig>;
-    
-    // updateConfig: (params: {
-    //   config: Partial<PluginConfig>;
-    // }) => Promise<void>;
-    
-    // getManifest: () => Promise<PluginManifest>;
-  };
-
-  // System Integration
-  system: {
-    // getVersion: () => Promise<string>;
-    
-    // getTheme: () => Promise<'light' | 'dark'>;
-    
-    // getLanguage: () => Promise<string>;
-
-    subscribe: (params: {
-      event: SystemEvent;
-      callback: (data: any) => void;
-    }) => Promise<string>; // returns subscription ID
-    
-    unsubscribe: (params: {
-      subscriptionId: string;
-    }) => Promise<void>;
-  };
-
-  // Events (pub/sub system)
-  events: {
-    emit: (params: {
-      event: string;
-      data?: any;
-    }) => Promise<void>;
-    
-    on: (params: {
-      event: string;
-      callback: (data: any) => void;
-    }) => Promise<string>; // returns listener ID
-    
-    off: (params: {
-      listenerId: string;
-    }) => Promise<void>;
-    
-    once: (params: {
-      event: string;
-      callback: (data: any) => void;
-    }) => Promise<void>;
-    
-    sliderChange: (params: {
-      pluginId: string;
-      callback: (data: any) => void;
-    }) => Promise<void>;
-
-    deviceDisconnected: (params: {
-      pluginId: string;
-      callback: (data: any) => void;
-    }) => Promise<void>;
-
-    deviceConnected: (params: {
-      pluginId: string;
-      callback: (data: any) => void;
-    }) => Promise<void>;
   };
 }

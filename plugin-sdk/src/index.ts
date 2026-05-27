@@ -110,11 +110,36 @@ export type { UISection } from './ui';
 export { RGBController, createRGBController } from './rgb';
 
 /**
- * RGB types for effect names and options.
- * 
- * @group RGB Control
+ * Shared public SDK types generated from the host API schema.
  */
-export type { RGBEffect, RGBOptions } from './types';
+export type {
+  ActionMappings,
+  ApiRequest,
+  ApiResponse,
+  ButtonField,
+  ChannelTarget,
+  ChannelTargetsAllResponse,
+  ChannelTargetsByChannel,
+  ChannelTargetsForChannelResponse,
+  DeviceChanges,
+  DeviceConnectionCallback,
+  DeviceInfo,
+  DeviceUpdateCallback,
+  InputField,
+  PluginAPI,
+  PluginConfigStore,
+  RGBEffect,
+  RGBOptions,
+  RGBState,
+  SelectField,
+  SettingsComponent,
+  SettingsField,
+  SettingsSection,
+  SettingsSections,
+  SwitchField,
+  SystemUtilButton,
+  ToastParams,
+} from './types';
 
 /**
  * Device management API for monitoring device connections and updates.
@@ -124,30 +149,11 @@ export type { RGBEffect, RGBOptions } from './types';
 export { DeviceAPI, createDeviceAPI } from './device';
 
 /**
- * Device information and event types.
- * 
- * @group Device Management
- */
-export type { DeviceInfo, DeviceChanges, DeviceConnectionCallback, DeviceUpdateCallback } from './device';
-
-/**
  * Channel targets API for reading apps, devices, and system features selected on channels.
  *
  * @group Channel Targets
  */
 export { ChannelTargetsAPI, createChannelTargetsAPI } from './channel-targets';
-
-/**
- * Channel target types.
- *
- * @group Channel Targets
- */
-export type {
-  ChannelTarget,
-  ChannelTargetsByChannel,
-  ChannelTargetsForChannelResponse,
-  ChannelTargetsAllResponse
-} from './channel-targets';
 
 /**
  * Default export for convenience - the Plugin base class.

@@ -23,7 +23,7 @@
         "licenseUrl": "https://github.com/babel/babel/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "@dotmatrixlabs/dotx-plugin-sdk@1.1.1": {
+    "@dotmatrixlabs/dotx-plugin-sdk@1.1.2": {
         "licenses": "UNKNOWN",
         "repository": "https://github.com/Frogbyte-io/dot-x",
         "licenseUrl": "https://github.com/Frogbyte-io/dot-x",

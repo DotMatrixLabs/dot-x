@@ -46,9 +46,10 @@
   ],
   "scripts": {
     "clean": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\"",
-    "build": "npm run clean && npm run build:js && npm run build:types",
+    "build": "npm run generate-types && npm run clean && npm run build:js && npm run build:types",
+    "generate-types": "npm --prefix .. run generate-types",
     "build:js": "node ./scripts/build-package.mjs",
-    "build:types": "tsc -p tsconfig.build.json && node -e \"require('fs').copyFileSync('src/types.d.ts', 'dist/types.d.ts')\"",
+    "build:types": "tsc -p tsconfig.build.json",
     "docs:generate": "node ./scripts/generate-docs.mjs",
     "docs:sync": "node ./scripts/sync-components.mjs",
     "docs:build": "node ./scripts/build-docs.mjs",
