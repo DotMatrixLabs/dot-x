@@ -242,8 +242,8 @@ All API calls use waitForAck for guaranteed responses:
 ```typescript
 // API request with 30-second timeout
 socket.emit('api_request', {
-  method: 'settings.setValue',
-  params: { key: 'test', value: 'hello' },
+  method: 'ui.showToast',
+  params: { message: 'Hello from my plugin', type: 'info' },
   request_id: 'unique_id'
 }, (response) => {
   if (response.success) {
