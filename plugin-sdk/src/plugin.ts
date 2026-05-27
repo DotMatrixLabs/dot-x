@@ -133,7 +133,7 @@ class Plugin {
    *   });
    * ```
    */
-  public actionmapper: any;
+  public actionmapper: ActionMapper;
   
   /**
    * Settings page builder for creating plugin settings UI.
@@ -155,7 +155,9 @@ class Plugin {
    * });
    * ```
    */
-  public settingsPage: any;
+  public settingsPage: {
+    addSettings: (buildFn: (builder: SettingsBuilder) => void) => Promise<void>;
+  };
   
   /**
    * Local persistent configuration storage.
