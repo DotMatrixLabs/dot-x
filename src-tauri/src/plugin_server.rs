@@ -69,6 +69,11 @@ pub struct PluginInfo {
     pub name: String,
     pub version: String,
     pub connected_at: String,
+    #[serde(rename = "sdkVersion")]
+    pub sdk_version: Option<String>,
+    #[serde(rename = "hostApiVersion")]
+    pub host_api_version: Option<String>,
+    pub capabilities: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -184,6 +189,9 @@ impl PluginServer {
                                 "name": &plugin_info.name,
                                 "version": &plugin_info.version,
                                 "connected_at": &plugin_info.connected_at,
+                                "sdkVersion": &plugin_info.sdk_version,
+                                "hostApiVersion": &plugin_info.host_api_version,
+                                "capabilities": &plugin_info.capabilities,
                                 "status": "connected",
                                 "error": null,
                                 "exitCode": null,

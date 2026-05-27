@@ -68,6 +68,9 @@ interface PluginConnectionInfo {
     name: string;
     version?: string;
     connected_at?: string;
+    sdkVersion?: string;
+    hostApiVersion?: string;
+    capabilities?: string[];
 }
 
 export interface PluginLifecycleEvent {
@@ -75,6 +78,9 @@ export interface PluginLifecycleEvent {
     name?: string;
     version?: string;
     connected_at?: string;
+    sdkVersion?: string;
+    hostApiVersion?: string;
+    capabilities?: string[];
     status: "starting" | "connected" | "start_failed" | "exited" | "stopped";
     error?: string | null;
     exitCode?: number | null;
@@ -240,6 +246,9 @@ export const usePluginStore = defineStore("pluginStore", {
                     name: event.name || pluginId,
                     version: event.version,
                     connected_at: event.connected_at,
+                    sdkVersion: event.sdkVersion,
+                    hostApiVersion: event.hostApiVersion,
+                    capabilities: event.capabilities,
                 });
                 return;
             }

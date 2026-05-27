@@ -2,9 +2,21 @@ import { io, Socket } from 'socket.io-client';
 import type { SettingsSections, ToastParams, ActionMappings, SystemUtilButton } from './types';
 import { DeviceAPI, createDeviceAPI, type DeviceInfo } from './device';
 import { ChannelTargetsAPI, createChannelTargetsAPI } from './channel-targets';
+import sdkPackage from '../package.json';
 
 // Default port for backwards compatibility
 const DEFAULT_PORT = 3001;
+export const DOTX_PLUGIN_SDK_VERSION = sdkPackage.version;
+export const DOTX_HOST_API_VERSION = DOTX_PLUGIN_SDK_VERSION;
+export const DOTX_SUPPORTED_CAPABILITIES = [
+  'ui.toast',
+  'settings.schema',
+  'actions.systemUtilButtons',
+  'device.connection',
+  'device.updates',
+  'device.rgb',
+  'channelTargets.read',
+] as const;
 
 /**
  * Gets the plugin server port from environment variable or returns default.
@@ -68,6 +80,9 @@ export interface PluginInfo {
   name: string;
   version: string;
   connected_at: string;
+  sdkVersion?: string;
+  hostApiVersion?: string;
+  capabilities?: string[];
 }
 
 /**
@@ -231,7 +246,12 @@ export class APIClient {
   private channelTargetsAPI: ChannelTargetsAPI;
   
   constructor(pluginInfo: PluginInfo, config: ConnectionConfig = {}) {
-    this.pluginInfo = pluginInfo;
+    this.pluginInfo = {
+      ...pluginInfo,
+      sdkVersion: pluginInfo.sdkVersion || DOTX_PLUGIN_SDK_VERSION,
+      hostApiVersion: pluginInfo.hostApiVersion || DOTX_HOST_API_VERSION,
+      capabilities: pluginInfo.capabilities || [...DOTX_SUPPORTED_CAPABILITIES],
+    };
     // Use dynamic port from environment variable, or fall back to default
     const defaultUrl = getDefaultServerUrl();
     this.config = {

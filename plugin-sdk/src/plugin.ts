@@ -687,7 +687,10 @@ export async function runPlugin(PluginClass: typeof Plugin, config?: ConnectionC
     id: pluginId,
     name: pluginName,
     version: version,
-    connected_at: new Date().toISOString()
+    connected_at: new Date().toISOString(),
+    sdkVersion: manifest?.sdkVersion,
+    hostApiVersion: manifest?.hostApiVersion,
+    capabilities: Array.isArray(manifest?.capabilities) ? manifest.capabilities : undefined,
   };
   
   let plugin: Plugin;

@@ -66,7 +66,12 @@ export { default as Plugin, runPlugin } from './plugin';
  * 
  * @group Advanced/Internal
  */
-export { APIClient } from './client';
+export {
+  APIClient,
+  DOTX_HOST_API_VERSION,
+  DOTX_PLUGIN_SDK_VERSION,
+  DOTX_SUPPORTED_CAPABILITIES,
+} from './client';
 
 /**
  * Connection configuration and plugin metadata types.
