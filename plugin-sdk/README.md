@@ -383,6 +383,17 @@ interface PluginManifest {
 }
 ```
 
+### Runtime Permissions
+
+`manifest.json` `permissions` are user-approved plugin permissions. They request extra Deno runtime capabilities such as `net`, `read`, `write`, `run`, `ffi`, `sys`, `hrtime`, or `all`.
+
+Dot X also grants baseline runtime capabilities required for the SDK/runtime itself. These are not represented in `manifest.permissions` and are not part of the user-approved permission hash:
+
+- `--allow-env` for SDK and Node compatibility.
+- Read/write access inside the plugin install directory.
+- Network access to the local Dot X plugin server on `localhost`/`127.0.0.1`.
+- Limited system account information used by runtime compatibility code.
+
 ## Marketplace Packaging
 
 The Node scaffold uses the shared `@dotmatrixlabs/dotx-plugin-sdk` CLI:
