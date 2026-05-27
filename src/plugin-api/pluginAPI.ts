@@ -32,15 +32,6 @@ export class PluginAPI {
 
   private constructor() {
     this.setupEventHandlers();
-    console.log('hellow')
-
-    setTimeout(() => {
-      console.log('hallowwwwwwwwwwwwwwwwwwww')
-      const deckerStore = useDeckerStore();
-      console.log('deckystore', deckerStore)
-      console.log('Sliders:', deckerStore.getSliders);
-      
-    }, 5000);
   }
 
   public static getInstance(): PluginAPI {
