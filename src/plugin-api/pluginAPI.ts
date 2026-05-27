@@ -4,7 +4,6 @@ import type {
   ApiRequest, 
   ApiResponse
 } from './schema';
-import { settingsManager } from './settings';
 import { uiManager } from './ui';
 import { usePluginStore, type PluginLifecycleEvent } from '../store/pluginStore';
 import { useDeckerStore } from "../store/deckerStore.ts";
@@ -210,21 +209,7 @@ export class PluginAPI {
     try {
       let response: ApiResponse;
 
-      // Check if this is a settings method
-      if (request.method.startsWith('settings.')) {
-        const methodName = request.method.split('.')[1];
-        
-        // Check if the method exists in settingsManager
-        if (typeof settingsManager[methodName as keyof typeof settingsManager] === 'function') {
-          response = await (settingsManager[methodName as keyof typeof settingsManager] as Function)(request);
-        } else {
-          response = {
-            request_id: request.request_id,
-            success: false,
-            error: `Unknown settings method: ${methodName}`
-          };
-        }
-      } else if (request.method.startsWith('ui.')) {
+      if (request.method.startsWith('ui.')) {
         // Check if this is a UI method
         const methodName = request.method.split('.')[1];
         
