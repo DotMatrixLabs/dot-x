@@ -1,2 +1,0 @@
-- [] Add support for plugins to read app list on a selected on a channel, and get full app list for all channels, potentially with a permission requirement for the full list.
-- [] Add support for plugins to read current focused app, with subscription support for changes, and potentially a permission requirement.
