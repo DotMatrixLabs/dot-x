@@ -1,4 +1,5 @@
 <template>
+	<div class="flex flex-col h-full min-h-0 w-full px-2 pb-1 gap-2 bg-base-100 text-base-content">
 	<PluginPermissionDialog
 		:visible="permissionDialog.show"
 		:plugin="permissionDialog.plugin"
@@ -11,10 +12,8 @@
 		:visible="showPluginSystemInfo"
 		@close="showPluginSystemInfo = false"
 	/>
-
-	<div class="flex flex-col h-full w-full p-4 gap-4 bg-base-100 text-base-content">
 		<!-- Plugin system options -->
-		<div v-if="!marketplaceOpen" class="flex items-center justify-between">
+		<div v-if="!marketplaceOpen" class="flex items-center justify-between shrink-0">
 			<div class="">
 				<h2 class="">Install plugins</h2>
 				<p class="text-xs px-0 label-text">Browse and install plugins to extend what Dot X can do</p>
@@ -27,6 +26,7 @@
 		<!-- Marketplace -->
 		<PluginsMarketplace
 			v-else
+			class="flex-1 min-h-0"
 			:installed-plugin-ids="installedPluginIds"
 			@close="closeMarketplace"
 			@download="downloadPlugin"
@@ -35,120 +35,118 @@
 			@uninstalled="handlePluginUninstalled"
 		/>
 
-		<!-- Plugin list -->
-		<div v-if="!marketplaceOpen" class="flex flex-col overflow-y-auto">
-
-			<div class="flex flex-row justify-between">
-				<h3 class="">Plugins: </h3>
-				<div class="">
-					<button title="Reload plugins" class="mx-1 btn btn-ghost btn-square btn-sm" @click="reloadPlugins">
-						<i class="fa-solid fa-rotate-right"></i>
-					</button>
-                    <button title="Open Plugin Folder" class="mx-1 btn btn-ghost btn-square btn-sm" @click="openPluginFolder">
-						<i class="fa-solid fa-folder-open"></i>
-					</button>
+		<!-- Plugin list + About footer -->
+		<div v-if="!marketplaceOpen" class="flex flex-col flex-1 min-h-0">
+			<div class="flex flex-col flex-1 min-h-0 overflow-y-auto pr-1">
+				<div class="flex flex-row justify-between">
+					<h3 class="">Plugins: </h3>
+					<div class="">
+						<button title="Reload plugins" class="mx-1 btn btn-ghost btn-square btn-sm" @click="reloadPlugins">
+							<i class="fa-solid fa-rotate-right"></i>
+						</button>
+	                    <button title="Open Plugin Folder" class="mx-1 btn btn-ghost btn-square btn-sm" @click="openPluginFolder">
+							<i class="fa-solid fa-folder-open"></i>
+						</button>
+					</div>
 				</div>
+				<div v-if="plugins.length > 0">
+					<div v-for="plugin in plugins" :key="plugin.id" class="">
+						<div class="divider m-0 p-0"> </div>
+						<div class="flex justify-between items-start p-1">
 
-			</div>
-			<div v-if="plugins.length > 0">
-				<div v-for="plugin in plugins" :key="plugin.id" class="">
-					<div class="divider m-0 p-0"> </div>
-					<div class="flex justify-between items-start p-1">
-
-						<!-- Plugin info -->
-						<div class="flex flex-col">
-							<button
-								v-if="pluginHasReadme(plugin)"
-								class="text-left hover:underline cursor-pointer w-fit"
-								@click="openPluginDetail(plugin)"
-							>{{ plugin.name }}</button>
-							<span v-else class="">{{ plugin.name }}</span>
-							<span class="label-text text-xs opacity-60">
-								Version: {{ plugin.version || 'Unknown' }}<span v-if="plugin.author"> • {{ plugin.author }}</span>
-							</span>
-							<div class="flex items-center gap-2 flex-wrap mt-0.5">
-								<span class="text-xs label-text opacity-90">{{ plugin.description }}</span>
-								<span v-if="plugin.external" class="badge badge-outline badge-info badge-xs">External</span>
-								<span v-if="plugin.updateInfo?.hasUpdate" class="badge badge-warning badge-xs">Update available</span>
-								<span v-if="plugin.updateInfo?.hasUpdate" class="text-xs text-warning">Latest: {{ plugin.updateInfo.latestVersion }}</span>
-							</div>
-							<div v-if="plugin.validationErrors?.length" class="flex items-start gap-1.5 mt-1 p-1.5 rounded bg-warning/10 border border-warning/30">
-								<i class="fa-solid fa-triangle-exclamation text-warning text-xs mt-0.5 shrink-0"></i>
-								<div class="flex flex-col gap-0.5">
-									<span v-for="(err, i) in plugin.validationErrors" :key="i" class="text-xs text-warning">{{ err }}</span>
+							<!-- Plugin info -->
+							<div class="flex flex-col">
+								<button
+									v-if="pluginHasReadme(plugin)"
+									class="text-left hover:underline cursor-pointer w-fit"
+									@click="openPluginDetail(plugin)"
+								>{{ plugin.name }}</button>
+								<span v-else class="">{{ plugin.name }}</span>
+								<span class="label-text text-xs opacity-60">
+									Version: {{ plugin.version || 'Unknown' }}<span v-if="plugin.author"> • {{ plugin.author }}</span>
+								</span>
+								<div class="flex items-center gap-2 flex-wrap mt-0.5">
+									<span class="text-xs label-text opacity-90">{{ plugin.description }}</span>
+									<span v-if="plugin.external" class="badge badge-outline badge-info badge-xs">External</span>
+									<span v-if="plugin.updateInfo?.hasUpdate" class="badge badge-warning badge-xs">Update available</span>
+									<span v-if="plugin.updateInfo?.hasUpdate" class="text-xs text-warning">Latest: {{ plugin.updateInfo.latestVersion }}</span>
+								</div>
+								<div v-if="plugin.validationErrors?.length" class="flex items-start gap-1.5 mt-1 p-1.5 rounded bg-warning/10 border border-warning/30">
+									<i class="fa-solid fa-triangle-exclamation text-warning text-xs mt-0.5 shrink-0"></i>
+									<div class="flex flex-col gap-0.5">
+										<span v-for="(err, i) in plugin.validationErrors" :key="i" class="text-xs text-warning">{{ err }}</span>
+									</div>
 								</div>
 							</div>
+							<!-- Actions -->
+							<div class="flex items-center gap-3 my-auto">
+								<!-- Settings -->
+								<button
+									v-if="!plugin.external"
+									title="Delete plugin"
+									class="btn btn-ghost btn-square btn-sm"
+									:disabled="plugin.isBusy"
+									@click="deletePlugin(plugin)"
+								>
+									<i class="fa-solid fa-trash"></i>
+								</button>
+								<button v-if="!plugin.external" title="Logs" class="btn btn-ghost btn-square btn-sm" @click="openLogs(plugin)">
+									<i class="fa-solid fa-file-lines"></i>
+								</button>
+								<button
+									v-if="plugin.updateInfo?.hasUpdate"
+									title="Download and install update"
+									class="btn btn-ghost btn-square btn-sm"
+									:disabled="plugin.isBusy"
+									@click="updatePlugin(plugin)"
+								>
+									<span v-if="plugin.isBusy && plugin.downloadProgress" class="loading loading-spinner loading-xs"></span>
+									<i v-else class="fa-solid fa-download"></i>
+								</button>
+								<button
+									v-else
+									:title="canOpenSettings(plugin) ? 'Settings' : 'Enable plugin to configure settings'"
+									class="btn btn-ghost btn-square btn-sm"
+									:disabled="!canOpenSettings(plugin)"
+									@click="openSettings(plugin)"
+								>
+									<i class="fa-solid fa-gear"></i>
+								</button>
+								<!-- Enable / Disable -->
+								<input
+									v-if="!plugin.external"
+									type="checkbox"
+									class="toggle toggle-primary"
+									:checked="plugin.enabled"
+									@change="togglePlugin(plugin, $event)"
+								/>
+							</div>
 						</div>
-						<!-- Actions -->
-						<div class="flex items-center gap-3 my-auto">
-							<!-- Settings -->
-							<button
-								v-if="!plugin.external"
-								title="Delete plugin"
-								class="btn btn-ghost btn-square btn-sm"
-								:disabled="plugin.isBusy"
-								@click="deletePlugin(plugin)"
-							>
-								<i class="fa-solid fa-trash"></i>
-							</button>
-							<button v-if="!plugin.external" title="Logs" class="btn btn-ghost btn-square btn-sm" @click="openLogs(plugin)">
-								<i class="fa-solid fa-file-lines"></i>
-							</button>
-							<button
-								v-if="plugin.updateInfo?.hasUpdate"
-								title="Download and install update"
-								class="btn btn-ghost btn-square btn-sm"
-								:disabled="plugin.isBusy"
-								@click="updatePlugin(plugin)"
-							>
-								<span v-if="plugin.isBusy && plugin.downloadProgress" class="loading loading-spinner loading-xs"></span>
-								<i v-else class="fa-solid fa-download"></i>
-							</button>
-							<button
-								v-else
-								:title="canOpenSettings(plugin) ? 'Settings' : 'Enable plugin to configure settings'"
-								class="btn btn-ghost btn-square btn-sm"
-								:disabled="!canOpenSettings(plugin)"
-								@click="openSettings(plugin)"
-							>
-								<i class="fa-solid fa-gear"></i>
-							</button>
-							<!-- Enable / Disable -->
-							<input
-								v-if="!plugin.external"
-								type="checkbox"
-								class="toggle toggle-primary"
-								:checked="plugin.enabled"
-								@change="togglePlugin(plugin, $event)"
-							/>
+						<div v-if="plugin.downloadProgress" class="px-1 pb-1">
+							<progress
+								class="progress progress-primary w-full h-1"
+								:value="plugin.downloadProgress.progress"
+								max="100"
+							></progress>
 						</div>
-					</div>
-					<div v-if="plugin.downloadProgress" class="px-1 pb-1">
-						<progress
-							class="progress progress-primary w-full h-1"
-							:value="plugin.downloadProgress.progress"
-							max="100"
-						></progress>
 					</div>
 				</div>
+				<div v-else>
+					<div class="divider m-0"></div>
+					<h3 class="label-text text-center mt-2">No plugins available</h3>
+				</div>
 			</div>
-			<div v-else>
-				<div class="divider m-0"></div>
-				<h3 class="label-text text-center mt-2">No plugins available</h3>
+
+			<div class="flex flex-col w-full justify-center pt-2 pb-1 shrink-0 absolute bottom-1 left-1/2 transform -translate-x-1/2">
+				<button
+					type="button"
+					class="hover:underline text-center text-xs opacity-50 cursor-pointer bg-transparent border-0 p-0"
+					@click="showPluginSystemInfo = true"
+				>
+					About plugin system
+				</button>
 			</div>
 		</div>
-
-		<div v-if="!marketplaceOpen" class="flex flex-col w-full justify-center px-2 mt-auto mb-1">
-			<button
-				type="button"
-				class="mb-1 hover:underline text-center text-xs opacity-50 cursor-pointer bg-transparent border-0 p-0"
-				@click="showPluginSystemInfo = true"
-			>
-				About plugin system
-			</button>
-		</div>
-
-	</div>
 
 	<Teleport to="body">
 		<PluginDetailModal
@@ -165,6 +163,7 @@
 		/>
 		<Confirmation ref="deleteConfirmationModal" />
 	</Teleport>
+	</div>
 </template>
 
 <script>
