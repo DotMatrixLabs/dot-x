@@ -14,7 +14,7 @@
             <span class="my-auto">Run in background: </span>
             <input type="checkbox" class="toggle toggle-primary mr-2" checked />
         </div> -->
-        <div data-setting="Run on startup" class="flex flex-row w-full justify-between px-2 mt-4">
+        <div data-setting="Run on startup" class="flex flex-row w-full justify-between px-2">
             <span class="my-auto">Run on startup: </span>
             <input type="checkbox" class="toggle toggle-primary mr-2" :checked="autoStartStatus" @change="toggleAutostart" />
         </div>

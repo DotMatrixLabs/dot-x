@@ -1,5 +1,5 @@
 <template>
-    <div class="flex flex-col justify-between items-center h-full w-full overflow-y-auto">
+    <div class="flex flex-col justify-start items-center h-full w-full overflow-y-auto">
         <StatsPanel v-if="statsModalOpen" :device="currentDevice" :modal-open="statsModalOpen" @close="statsToggled" />
         <!-- Device Selection -->
         <div data-setting="Device" class="flex flex-row w-full justify-between px-2">

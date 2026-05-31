@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col gap-4 w-full h-full overflow-y-auto p-2 pb-20">
+  <div class="flex flex-col gap-4 w-full h-full overflow-y-auto px-2 pb-20">
     <PluginHeader v-if="plugin" :plugin="plugin" />
 
     <div class="flex flex-col gap-4">

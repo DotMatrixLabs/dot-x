@@ -93,15 +93,17 @@
             </template>
           </div>
         </div>
-        <div class="col-span-2 w-full px-6 pt-16 pb-3">
-          <component
-            :modalOpen="modalOpen"
-            :is="activeTab"
-            :key="activeTab === 'PluginSettings' && activePlugin ? `PluginSettings-${activePlugin.id}` : activeTab"
-            :plugin="activePlugin"
-            @openSettings="openSettings"
-            @installed-plugins-changed="handleInstalledPluginsChanged"
-          />
+        <div class="col-span-2 w-full min-h-0 px-6 pt-12 flex flex-col">
+          <div class="flex-1 min-h-0 flex flex-col">
+            <component
+              :modalOpen="modalOpen"
+              :is="activeTab"
+              :key="activeTab === 'PluginSettings' && activePlugin ? `PluginSettings-${activePlugin.id}` : activeTab"
+              :plugin="activePlugin"
+              @openSettings="openSettings"
+              @installed-plugins-changed="handleInstalledPluginsChanged"
+            />
+          </div>
         </div>
       </div>
     </div>
