@@ -346,26 +346,33 @@ export const COMPONENT_METADATA = {
     baseProps: {},
     category: 'action',
     docs: {
-      title: 'Action Link',
-      description: 'Clickable hyperlink',
+      title: 'Link Field',
+      description: 'Button that opens a URL in a new tab, with an optional Font Awesome icon',
       examples: {
-        basic: { 
-          label: 'Documentation', 
-          link: 'docs',
-          linklabel: 'View Docs',
-          description: 'Basic internal link'
+        basic: {
+          href: 'https://docs.example.com',
+          text: 'View Documentation',
+          description: 'Basic link button without a label'
         },
-        'with-label': { 
-          label: 'Support Resources', 
-          link: 'help/support',
-          linklabel: 'Get Help',
-          description: 'Internal link with custom label'
+        'with-label': {
+          label: 'Documentation',
+          href: 'https://docs.example.com',
+          text: 'View Docs',
+          description: 'Link button with a label beside it'
         },
-        external: {
-          label: 'External Link',
-          link: 'settings/advanced',
-          linklabel: 'Advanced Settings',
-          description: 'Link to another section or page'
+        'with-icon': {
+          label: 'GitHub',
+          href: 'https://github.com/example/repo',
+          text: 'Source Code',
+          icon: 'fab fa-github',
+          description: 'Link button with a Font Awesome icon (swaps to external-link icon on hover)'
+        },
+        support: {
+          label: 'Help',
+          href: 'https://support.example.com',
+          text: 'Contact Support',
+          icon: 'fas fa-headset',
+          description: 'Support link with description',
         }
       }
     }
