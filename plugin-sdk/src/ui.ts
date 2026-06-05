@@ -10,7 +10,7 @@
  *
  * @module ui
  */
-import type { SettingsSections, InputField, ButtonField, SwitchField, SelectField, SettingsComponent, TextField, BadgeField, InfoField, SystemUtilButton, ActionMappings } from './types';
+import type { SettingsSections, InputField, ButtonField, SwitchField, SelectField, SettingsComponent, TextField, BadgeField, InfoField, LinkField, SystemUtilButton, ActionMappings } from './types';
 
 /**
  * Minimal config store interface used for persisting small key/value maps.
@@ -68,7 +68,8 @@ export type UISection = {
  * | Text | `addText(key)` | Read-only text display with styling |
  * | Badge | `addBadge(key)` | Status badge with colored styling |
  * | Info | `addInfo(key)` | Full-width alert banner for displaying messages |
- * 
+ * | Link | `addLink(key)` | Link button that opens a URL in a new tab |
+ *
  * @example
  * ```typescript
  * // Create a complete settings page
@@ -686,6 +687,62 @@ export class SettingsBuilder {
     const component: SettingsComponent = { key, ...(field as any) };
     section.components.push(component);
     return new InfoFieldHandle(component, this.createNotifier());
+  }
+
+  /**
+   * Adds a link button that opens a URL in a new tab.
+   *
+   * @category SettingsBuilder Components
+   *
+   * @param key - Unique identifier for the link
+   * @returns Handle for configuring the link
+   *
+   * ## LinkFieldHandle Methods
+   *
+   * | Method | Parameters | Required | Description |
+   * |--------|------------|----------|-------------|
+   * | `setHref(href)` | `string` | Yes | Sets the URL opened when the link is clicked |
+   * | `setText(text)` | `string` | No | Sets the text displayed on the link button |
+   * | `setIcon(icon)` | `string` | No | Sets the Font Awesome icon class (e.g. `'fas fa-book'`) |
+   * | `setLabel(label)` | `string` | No | Sets the label text beside the link button |
+   * | `setDesc(description)` | `string` | No | Sets help text below the link button |
+   * | `assign(props)` | `Partial<LinkField>` | No | Bulk assign multiple properties |
+   *
+   * @example
+   * ```typescript
+   * // Basic link
+   * settings.addLink('docs')
+   *   .setHref('https://docs.example.com')
+   *   .setText('View Documentation');
+   *
+   * // Link with a Font Awesome icon
+   * settings.addLink('github')
+   *   .setLabel('Source Code')
+   *   .setHref('https://github.com/example/repo')
+   *   .setText('GitHub Repository')
+   *   .setIcon('fab fa-github');
+   *
+   * // Support link with description
+   * settings.addLink('support')
+   *   .setLabel('Help')
+   *   .setHref('https://support.example.com')
+   *   .setText('Contact Support')
+   *   .setIcon('fas fa-headset')
+   *   .setDesc('Opens in a new browser tab');
+   * ```
+   */
+  addLink(key: string): LinkFieldHandle {
+    const field: LinkField = {
+      type: 'link',
+      label: '',
+      href: '',
+      text: '',
+    } as LinkField;
+
+    const section = this.ensureCurrentSection();
+    const component: SettingsComponent = { key, ...(field as any) };
+    section.components.push(component);
+    return new LinkFieldHandle(component, this.createNotifier());
   }
 
   /**
@@ -1783,11 +1840,97 @@ export class InfoFieldHandle {
 }
 
 /**
+ * Handle for configuring a link button field.
+ *
+ * Returned by {@link SettingsBuilder.addLink}. Provides methods to configure
+ * link properties like URL, button text, icon, and label.
+ *
+ * @displayName Link Field
+ * @category SettingsBuilder Components
+ */
+export class LinkFieldHandle {
+  constructor(private component: SettingsComponent, private notifyChange?: () => void) {}
+
+  /**
+   * Sets the URL that opens when the link button is clicked. Always opens in a new tab.
+   *
+   * @param href - The full URL to open
+   * @returns The LinkFieldHandle for method chaining
+   */
+  setHref(href: string): this {
+    (this.component as any).href = href;
+    this.notifyChange?.();
+    return this;
+  }
+
+  /**
+   * Sets the text displayed on the link button. Defaults to the href value if not set.
+   *
+   * @param text - The button label text
+   * @returns The LinkFieldHandle for method chaining
+   */
+  setText(text: string): this {
+    (this.component as any).text = text;
+    this.notifyChange?.();
+    return this;
+  }
+
+  /**
+   * Sets the Font Awesome icon class displayed on the link button.
+   * On hover the icon is replaced with an external-link indicator.
+   *
+   * @param icon - Font Awesome class string, e.g. `'fas fa-book'`
+   * @returns The LinkFieldHandle for method chaining
+   */
+  setIcon(icon: string): this {
+    (this.component as any).icon = icon;
+    this.notifyChange?.();
+    return this;
+  }
+
+  /**
+   * Sets the label text displayed beside the link button.
+   *
+   * @param label - The label text to display
+   * @returns The LinkFieldHandle for method chaining
+   */
+  setLabel(label: string): this {
+    (this.component as any).label = label;
+    this.notifyChange?.();
+    return this;
+  }
+
+  /**
+   * Sets the help text displayed below the link button.
+   *
+   * @param description - The description text to display
+   * @returns The LinkFieldHandle for method chaining
+   */
+  setDesc(description: string): this {
+    (this.component as any).description = description;
+    this.notifyChange?.();
+    return this;
+  }
+
+  /**
+   * Bulk assigns multiple properties to the link field.
+   *
+   * @param props - Object containing properties to assign
+   * @returns The LinkFieldHandle for method chaining
+   */
+  assign(props: Partial<LinkField>): this {
+    Object.assign(this.component as any, props);
+    this.notifyChange?.();
+    return this;
+  }
+}
+
+/**
  * Handle for configuring a select dropdown field.
- * 
+ *
  * Returned by {@link SettingsBuilder.addSelect}. Provides methods to configure
  * select properties like label, options, value, and change handlers.
- * 
+ *
  * @displayName Select Field
  * @category SettingsBuilder Components
  */
