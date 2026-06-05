@@ -14,6 +14,7 @@ export type {
   DeviceUpdateCallback,
   InfoField,
   InputField,
+  LinkField,
   PluginAPI,
   PluginConfigStore,
   PluginInfo,

@@ -84,10 +84,10 @@ export type { ConnectionConfig, PluginInfo } from './client';
  * UI builder classes and factory functions.
  * 
  */
-export { 
-  SettingsBuilder, 
-  createSettingsBuilder, 
-  ActionMapper, 
+export {
+  SettingsBuilder,
+  createSettingsBuilder,
+  ActionMapper,
   createActionMapper,
   SectionHandle,
   InputFieldHandle,
@@ -96,6 +96,8 @@ export {
   SelectFieldHandle,
   TextFieldHandle,
   BadgeFieldHandle,
+  InfoFieldHandle,
+  LinkFieldHandle,
   SystemUtilButtonHandle
 } from './ui';
 
@@ -121,6 +123,7 @@ export type {
   ActionMappings,
   ApiRequest,
   ApiResponse,
+  BadgeField,
   ButtonField,
   ChannelTarget,
   ChannelTargetsAllResponse,
@@ -130,7 +133,9 @@ export type {
   DeviceConnectionCallback,
   DeviceInfo,
   DeviceUpdateCallback,
+  InfoField,
   InputField,
+  LinkField,
   PluginAPI,
   PluginConfigStore,
   RGBEffect,
@@ -143,6 +148,7 @@ export type {
   SettingsSections,
   SwitchField,
   SystemUtilButton,
+  TextField,
   ToastParams,
 } from './types';
 

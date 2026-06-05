@@ -90,6 +90,16 @@ export interface InfoField extends BaseSettingsField {
   showIcon?: boolean;
 }
 
+export interface LinkField extends BaseSettingsField {
+  type: 'link';
+  /** The URL to open when the link button is clicked. Opens in a new tab. */
+  href: string;
+  /** Text displayed on the link button. Defaults to the href value if not set. */
+  text?: string;
+  /** Font Awesome icon class (e.g. 'fas fa-book'). Defaults to a link icon. */
+  icon?: string;
+}
+
 export type SettingsField =
   | InputField
   | ButtonField
@@ -97,7 +107,8 @@ export type SettingsField =
   | SelectField
   | TextField
   | BadgeField
-  | InfoField;
+  | InfoField
+  | LinkField;
 
 export type SettingsComponent = { key: string } & SettingsField;
 
