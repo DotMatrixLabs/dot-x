@@ -23,7 +23,7 @@
         "licenseUrl": "https://github.com/babel/babel/raw/master/LICENSE",
         "parents": "dot-x"
     },
-    "@dotmatrixlabs/dotx-plugin-sdk@1.1.2": {
+    "@dotmatrixlabs/dotx-plugin-sdk@1.1.5": {
         "licenses": "UNKNOWN",
         "repository": "https://github.com/Frogbyte-io/dot-x",
         "licenseUrl": "https://github.com/Frogbyte-io/dot-x",
@@ -695,6 +695,12 @@
         "licenseUrl": "https://github.com/jshttp/accepts/raw/master/LICENSE",
         "parents": "dot-x"
     },
+    "adm-zip@0.5.17": {
+        "licenses": "MIT",
+        "repository": "https://github.com/cthackers/adm-zip",
+        "licenseUrl": "https://github.com/cthackers/adm-zip/raw/master/LICENSE",
+        "parents": "@dotmatrixlabs/dotx-plugin-sdk"
+    },
     "agent-base@7.1.4": {
         "licenses": "MIT",
         "repository": "https://github.com/TooTallNate/proxy-agents",
@@ -958,6 +964,10 @@
         "repository": "https://github.com/tj/commander.js",
         "licenseUrl": "https://github.com/tj/commander.js/raw/master/LICENSE",
         "parents": "dot-x"
+    },
+    "component-showcase@1.0.0": {
+        "licenses": "UNKNOWN",
+        "parents": "UNDEFINED"
     },
     "concat-map@0.0.1": {
         "licenses": "MIT",
