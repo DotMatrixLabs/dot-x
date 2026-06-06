@@ -55,6 +55,38 @@ class SelectedApps {
     }
 
     /**
+     * Gets the selected channel targets for a specific slider.
+     * Channel targets can be apps, devices, or system features.
+     * @param {number | string} sliderID - The ID of the slider.
+     * @returns {Promise<string[]>} The channel targets for the slider, or an empty array if not found.
+     */
+    async getChannelTargets(sliderID: number | string): Promise<string[]> {
+        await this.ensureLoaded();
+        const sliderIDString = sliderID?.toString();
+        if (!sliderIDString) return [];
+        const result = await this.store.get(sliderIDString);
+        return Array.isArray(result) ? result as string[] : [];
+    }
+
+    /**
+     * Gets selected channel targets for every stored channel.
+     * Channel targets can be apps, devices, or system features.
+     * @returns {Promise<Record<string, string[]>>} Channel targets keyed by channel ID.
+     */
+    async getAllChannelTargets(): Promise<Record<string, string[]>> {
+        await this.ensureLoaded();
+        const channels: Record<string, string[]> = {};
+        const keys = await this.store.keys();
+
+        for (const key of keys) {
+            const result = await this.store.get(key);
+            channels[key] = Array.isArray(result) ? result as string[] : [];
+        }
+
+        return channels;
+    }
+
+    /**
      * Gets all of the mapped apps
      * @returns {Promise<string[] | null>} The apps for the slider, or null if not found.
      */
