@@ -14,11 +14,11 @@
             <span class="my-auto">Run in background: </span>
             <input type="checkbox" class="toggle toggle-primary mr-2" checked />
         </div> -->
-        <div class="flex flex-row w-full justify-between px-2 mt-4">
+        <div data-setting="Run on startup" class="flex flex-row w-full justify-between px-2">
             <span class="my-auto">Run on startup: </span>
             <input type="checkbox" class="toggle toggle-primary mr-2" :checked="autoStartStatus" @change="toggleAutostart" />
         </div>
-        <div class="flex flex-row w-full justify-between px-2 mt-4">
+        <div data-setting="Act when Decker disconnects" class="flex flex-row w-full justify-between px-2 mt-4">
             <span class="my-auto">Act when Decker disconnects: <br></span>
             <input type="checkbox" class="toggle toggle-primary mr-2" :checked="actOnDeckerDisconnect" @change="toggleActOnDeckerDisconnect" />
         </div>
@@ -31,19 +31,19 @@
                 </option>
             </select>
         </div>
-        <div class="flex flex-row w-full justify-between px-2 mt-4 mb-2">
+        <div data-setting="Inverted sliders" class="flex flex-row w-full justify-between px-2 mt-4 mb-2">
             <span class="my-auto">Inverted sliders: <br></span>
             <input type="checkbox" class="toggle toggle-primary mr-2" :checked="invertedSliders" @change="toggleInvertedSliders" />
         </div>
         <div class="divider"><span class="opacity-50">Reset</span></div>
-        <div class="flex flex-row w-full justify-between px-2 mt-2">
+        <div data-setting="Reset Channel Settings" class="flex flex-row w-full justify-between px-2 mt-2">
             <div>
                 <label class="my-auto">Reset Channel Settings: <br></label>
                 <label class="text-xs opacity-50">Resets all selected apps and channel labels <br></label>
             </div>
             <button class="btn btn-xs btn-error btn-outline" @click="resetChannelSettings">Reset</button>
         </div>
-        <div class="flex flex-row w-full justify-between px-2 mt-4">
+        <div data-setting="Reset All Settings" class="flex flex-row w-full justify-between px-2 mt-4">
             <div>
                 <label class="my-auto">Reset All Settings <br></label>
                 <label class="text-xs opacity-50">Resets all user settings and channels to their default values<br></label>

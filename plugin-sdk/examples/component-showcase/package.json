@@ -1,0 +1,13 @@
+{
+  "name": "component-showcase",
+  "version": "1.0.0",
+  "description": "Demo plugin showcasing every settings builder component in the Dot X Plugin SDK",
+  "private": true,
+  "scripts": {
+    "build": "node build.mjs",
+    "package": "npm run build && node ../../bin/dotx-plugin.js package"
+  },
+  "dependencies": {
+    "@dotmatrixlabs/dotx-plugin-sdk": "file:../../"
+  }
+}

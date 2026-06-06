@@ -1,6 +1,7 @@
 <template>
+    <!-- TODO: Add divider between items -->
     <div class="flex flex-col justify-between items-center w-full">
-        <div class="flex flex-row w-full justify-between px-2 mt-4">
+        <div class="flex flex-row w-full justify-between px-2">
             <span class="my-auto">Running version {{ appVersion }}</span>
             <button @click="checkForUpdates" class="btn btn-xs">{{ checkingForUpdates ? "Checking for updates..." :
                 (updaterStatus ?? "Check for updates") }}</button>
