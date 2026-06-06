@@ -6,7 +6,7 @@ use serde_json::{json, Value};
 use tauri::{AppHandle, Emitter, Manager, WebviewWindow, Wry};
 use std::fs;
 use std::fs::File;
-use windows_volume_control::{AudioController, CoinitMode};
+use volume_control_rs::{AudioController, CoinitMode};
 use tauri_plugin_autostart::MacosLauncher;
 use midir::{MidiOutput};
 use std::collections::HashMap;
@@ -156,18 +156,12 @@ fn get_installed_apps() -> Result<CustomResponse, Error> {
 
 #[tauri::command]
 fn get_all_session_names() -> Result<Vec<String>, Error> {
-    unsafe {
-        let mut controller = AudioController::init(Some(CoinitMode::ApartmentThreaded));
-        controller.GetSessions();
-        controller.GetDefaultAudioEnpointVolumeControl();
-        controller.GetAllProcessSessions();
-        controller.GetAllAudioDevices();
-
-        // Collect all session names
-        let all_session_names = controller.get_all_session_names();
-
-        Ok(all_session_names)
-    }
+    let mut controller = AudioController::init(Some(CoinitMode::ApartmentThreaded));
+    controller.get_sessions();
+    controller.get_default_audio_endpoint_volume_control();
+    controller.get_all_process_sessions();
+    controller.get_all_audio_devices();
+    Ok(controller.get_all_session_names())
 }
 
 fn value_to_i32_vec(value: &Value) -> Option<Vec<i32>> {
@@ -314,73 +308,54 @@ fn active_window_failure_context() -> String {
 
 #[tauri::command]
 fn set_application_volume(name: &str, volume: f32) -> Result<(), Error> {
-    unsafe {
-        let controller = get_initialized_audio_controller();
+    let controller = get_initialized_audio_controller();
+    let current_sessions = controller.get_sessions_by_name(name.to_string());
 
-        // println!("All session names: {:?}", controller.get_all_session_names());
-
-        // Get the current session by name
-        let current_sessions = controller.get_sessions_by_name(name.to_string());
-
-        //if multiple sessions are found, change the volume for all of them
-        if !current_sessions.is_empty() {
-            for session in current_sessions {
-                println!("Setting volume for session: {}", name);
-                println!("{}", session.getVolume().to_string());
-                if volume < 0.01 {
-                    session.setMute(true);
-                    // Also set application volume to 0. This is not actually needed, but it's visually pleasing since the slider is at 0 and makes it easier to see which applications are muted.
-                    session.setVolume(0.0);
-                } else {
-                    session.setMute(false);
-                    session.setVolume(volume);
-                }
+    if !current_sessions.is_empty() {
+        for session in current_sessions {
+            println!("Setting volume for session: {}", name);
+            println!("{}", session.get_volume());
+            if volume < 0.01 {
+                session.set_mute(true);
+                // Also set application volume to 0. Visually pleasing since the slider is at 0.
+                session.set_volume(0.0);
+            } else {
+                session.set_mute(false);
+                session.set_volume(volume);
             }
-        } else {
-            // Handle the case where the session was not found (e.g., return an error)
-            return Err(Error::SessionNotFound);
         }
+    } else {
+        return Err(Error::SessionNotFound);
     }
 
     Ok(())
 }
 
-// Helper function to create and initialize an AudioController
-unsafe fn get_initialized_audio_controller() -> AudioController {
-    let mut controller = unsafe { AudioController::init(Some(CoinitMode::ApartmentThreaded)) };
-    unsafe { controller.GetSessions(); }
-    unsafe { controller.GetDefaultAudioEnpointVolumeControl(); }
-    unsafe { controller.GetAllProcessSessions(); }
-    unsafe { controller.GetAllAudioDevices(); }
+fn get_initialized_audio_controller() -> AudioController {
+    let mut controller = AudioController::init(Some(CoinitMode::ApartmentThreaded));
+    controller.get_sessions();
+    controller.get_default_audio_endpoint_volume_control();
+    controller.get_all_process_sessions();
+    controller.get_all_audio_devices();
     controller
 }
 
 #[tauri::command]
 fn get_all_audio_devices() -> Result<Vec<String>, Error> {
-    unsafe {
-        let controller = get_initialized_audio_controller();
-        let all_device_names = controller.get_all_device_names();
-        println!("All device names: {:?}", all_device_names);
-        Ok(all_device_names)
-    }
+    let controller = get_initialized_audio_controller();
+    let all_device_names = controller.get_all_device_names();
+    println!("All device names: {:?}", all_device_names);
+    Ok(all_device_names)
 }
 
 #[tauri::command]
 fn get_output_devices() -> Result<Vec<String>, Error> {
-    unsafe {
-        let controller = get_initialized_audio_controller();
-        let output_device_names = controller.get_output_device_names();
-        Ok(output_device_names)
-    }
+    Ok(get_initialized_audio_controller().get_output_device_names())
 }
 
 #[tauri::command]
 fn get_input_devices() -> Result<Vec<String>, Error> {
-    unsafe {
-        let controller = get_initialized_audio_controller();
-        let input_device_names = controller.get_input_device_names();
-        Ok(input_device_names)
-    }
+    Ok(get_initialized_audio_controller().get_input_device_names())
 }
 
 #[tauri::command]
