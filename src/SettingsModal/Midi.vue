@@ -2,11 +2,11 @@
     <div class="flex flex-col items-center h-full w-full gap-4">
 
         <!-- Enable Midi -->
-        <div class="flex flex-row w-full justify-between px-2 mt-4">
+        <div data-setting="Enable MIDI Output" class="flex flex-row w-full justify-between px-2">
             <span class="my-auto">Enable MIDI Output: </span>
             <input type="checkbox" class="toggle toggle-primary mr-2" :checked="midiEnabled" @change="toggleMidi" />
         </div>
-        <div class="flex flex-row w-full justify-between px-2">
+        <div data-setting="MIDI Port" class="flex flex-row w-full justify-between px-2">
             <span class="shrink-0 pt-1">Port: </span>
             <select @change="portSelected" v-model="selectedPort"
                 class="select select-bordered select-sm w-2/3 mx-2 capitalize truncate">
@@ -15,7 +15,7 @@
                 </option>
             </select>
         </div>
-        <div class="flex flex-row w-full justify-between px-2">
+        <div data-setting="MIDI documentation" class="flex flex-row w-full justify-between px-2">
             <span class="shrink-0 pt-1">MIDI documentation: </span>
             <div class="flex justify-evenly items-center">
                 <button @click="openLink('https://dml.gg/midi')" class="btn btn-sm">Docs<i class="fa-solid fa-book fa-lg"></i></button>
@@ -25,14 +25,13 @@
 </template>
 
 <script>
-import { useToast } from "vue-toastification";
+import { toast } from "vue-sonner";
 import Decker from "../ts/decker.ts";
 import ConfigStore from "../ts/config.ts";
 import decker from "../ts/decker.ts";
 import { trackEvent } from "@aptabase/tauri";
 import { openLink } from "../ts/helpers.ts";
 
-const toast = useToast();
 const openLinkMethod = openLink;
 
 

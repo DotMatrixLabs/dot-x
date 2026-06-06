@@ -1,16 +1,16 @@
 <template>
     <div class="flex flex-col gap-4 w-full h-64 overflow-y-scroll p-2">
-        <div class="grid grid-cols-3 w-1/2 m-auto gap-4">
-            <div class="flex flex-col justify-center items-center" v-for="utility in utilities" :key="utility.id">
-                <button :disabled="(utility.id === 'output' && deviceSelectors.output.devices.length === 0) || (utility.id === 'input' && deviceSelectors.input.devices.length === 0)" @click="setActiveUtility(utility.id)" class="btn btn-circle"
-                    :class="activeUtilities?.includes(utility.id) ? 'btn-primary' : ''">
+        <div class="grid grid-cols-3 w-1/2 m-auto gap-2">
+            <div class="flex flex-col justify-start items-center" v-for="utility in mergedUtilities" :key="utility.id">
+                <button :disabled="(utility.id === 'output' && deviceSelectors.output.devices.length === 0) || (utility.id === 'input' && deviceSelectors.input.devices.length === 0) || (utility.isPlugin && utility.raw?.disabled)" @click="setActiveUtility(utility.id)" class="btn btn-circle"
+                    :class="getUtilityActiveClass(utility)">
                     <i :class="utility.icon"></i>
                 </button>
-                <span class="text-base-content text-xs text-center capitalize my-1"> {{ utility.title }}</span>
+                <span class="text-base-content text-xs text-center capitalize my-1 h-10"> {{ utility.title }}</span>
             </div>
         </div>
 
-        <div v-if="activeUtilities?.includes('output') || activeUtilities?.includes('input')" class="divider label-text">Settings</div>
+        <div v-if="activeUtilities?.includes('output') || activeUtilities?.includes('input')" class="divider font-semibold text-base-content">Settings</div>
 
         <!-- Combined device selector -->
         <div v-show="activeUtilities?.includes(type)" v-for="(selector, type) in deviceSelectors" :key="type" class="w-4/5 m-auto">
@@ -59,14 +59,24 @@
                 </div>
             </div>
         </div>
+
+        <!-- Plugin per-button settings -->
+        <div v-for="btn in selectedPluginButtonsWithSettings" :key="btn.actionId || btn.id" class="w-4/5 m-auto">
+            <div class="divider label-text">{{btn.title}} Settings</div>
+            <PluginSettingsRenderer :sections="btn.settings" :pluginId="btn.pluginId" />
+        </div>
     </div>
 </template>
 
 <script>
 import SelectedApps from "../ts/appsToControl.ts";
 import SystemVolumeController from "../ts/volumeControl.ts";
+import pluginAPI from "../plugin-api/pluginAPI";
+import EventBus from "../js/eventBus.js";
+import PluginSettingsRenderer from "../components/PluginSettingsRenderer.vue";
 
 export default {
+    components: { PluginSettingsRenderer },
     props: {
         currentSliderID: Number,
     },
@@ -80,6 +90,7 @@ export default {
                 { title: "active window", icon: "fas fa-lg fa-window-maximize", id: "activeWindow"},
                 { title: "screen brightness", icon: "fas fa-lg fa-sun", id: "screen brightness"},
             ],
+            pluginButtons: [],
             activeUtilities: [],
             sessions: [],
             deviceSelectors: {
@@ -103,6 +114,22 @@ export default {
     },
 
     computed: {
+        mergedUtilities() {
+            return [
+                ...this.utilities,
+                ...(this.pluginButtons || [])
+                    .filter(btn => !btn.hidden)
+                    .map(btn => ({ id: btn.actionId || btn.id, title: btn.title || btn.id, icon: btn.icon || 'fas fa-lg fa-bolt', isPlugin: true, raw: btn }))
+            ];
+        },
+        selectedPluginButtonsWithSettings() {
+            const channelKey = String(this.currentSliderID);
+            return (this.pluginButtons || []).filter((b) => {
+                const selected = b?.selectedByChannel && typeof b.selectedByChannel === 'object' ? !!b.selectedByChannel[channelKey] : false;
+                const hasSettings = b && b.settings && Array.isArray(b.settings.sections) && b.settings.sections.length > 0;
+                return selected && hasSettings;
+            });
+        },
         getDeviceDisplayCount() {
             return (type, selectedDevices) => {
                 let count = selectedDevices.length;                
@@ -119,13 +146,62 @@ export default {
     },
 
     methods: {
+        async loadPluginButtons() {
+            try {
+                // Load buttons from all connected plugins and flatten
+                const plugins = await pluginAPI.getConnectedPlugins();
+                const all = [];
+                for (const p of (plugins || [])) {
+                    const actions = await pluginAPI.getPluginActions(p.id);
+                    if (actions && actions.buttons && actions.buttons.length) {
+                        console.log('actions.buttons', actions.buttons);
+                        all.push(...actions.buttons.map(b => ({ ...b, pluginId: p.id })));
+                        console.log('all', all);
+                    }
+                }
+                this.pluginButtons = all;
+            } catch (e) {
+                console.error('Failed to load plugin slider actions', e);
+                this.pluginButtons = [];
+            }
+        },
+        getUtilityActiveClass(utility){
+            if(utility.isPlugin){
+                const btn = utility?.raw || {};
+                const channelKey = String(this.currentSliderID);
+                const selectedForChannel = btn?.selectedByChannel && typeof btn.selectedByChannel === 'object'
+                    ? !!btn.selectedByChannel[channelKey]
+                    : false;
+                return selectedForChannel ? 'btn-primary' : '';
+            }
+            return this.activeUtilities?.includes(utility.id) ? 'btn-primary' : '';
+        },
         async setActiveUtility(utility) {
+            // If this is a plugin button (actionId) fire action to plugin
+            const pluginBtn = (this.pluginButtons || []).find(b => (b.actionId || b.id) === utility);
+            if (pluginBtn) {
+                try {
+                    const channelKey = String(this.currentSliderID);
+                    const currentlySelected = pluginBtn?.selectedByChannel && typeof pluginBtn.selectedByChannel === 'object'
+                        ? !!pluginBtn.selectedByChannel[channelKey]
+                        : false;
+                    await pluginAPI.emitAction(
+                        pluginBtn.pluginId,
+                        pluginBtn.actionId || pluginBtn.id,
+                        { selected: !currentlySelected, channel: this.currentSliderID }
+                    );
+                } catch (e) {
+                    console.error('Failed to emit plugin action for slider button', e);
+                }
+                return;
+            }
+            
+            // default behavior for built-in utilities
             await SelectedApps.toggleApps(this.currentSliderID.toString(), utility);
             await this.getActiveUtilities();
 
-            // If output was just selected, check if we need to auto-select default device
+            // If output/input auto-select logic
             if (utility === 'output') {
-                //if output was deselected, remove all devices toggled, else select default device
                 if(!this.activeUtilities.some(item => item === 'output')){  
                     this.removeDevicesToggledApps('output');
                 } else {
@@ -133,9 +209,7 @@ export default {
                     await this.getActiveUtilities();
                 }
             }
-            // If input was just selected, check if we need to auto-select default device
             else if (utility === 'input') {
-                //if input was deselected, remove all devices toggled, else select default device
                 if(!this.activeUtilities.some(item => item === 'input')){
                     this.removeDevicesToggledApps('input');
                 } else {
@@ -143,8 +217,6 @@ export default {
                     await this.getActiveUtilities();
                 }
             }
-
-
         },
 
         async removeDevicesToggledApps(type){
@@ -323,12 +395,23 @@ export default {
         this.loadOutputDevices();
         this.loadInputDevices();
         this.setupDeviceUpdateInterval();
+        this.loadPluginButtons();
+
+        // Listen for plugin action updates to refresh action buttons
+        this._actionsUpdatedHandler = ({ pluginId }) => {
+            // We currently refresh all plugin buttons for simplicity
+            this.loadPluginButtons();
+        };
+        EventBus.on('plugin:actionsUpdated', this._actionsUpdatedHandler);
     },
     
     beforeUnmount() {
         // Clean up interval when component is destroyed
         if (this.deviceUpdateInterval) {
             clearInterval(this.deviceUpdateInterval);
+        }
+        if (this._actionsUpdatedHandler) {
+            EventBus.off('plugin:actionsUpdated', this._actionsUpdatedHandler);
         }
     },
 }

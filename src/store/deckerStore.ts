@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import Stats from '../ts/stats.ts';
+import eventBus from '../js/eventBus.js';
 
 export const useDeckerStore = defineStore('decker', {
   state: () => ({
@@ -15,15 +16,18 @@ export const useDeckerStore = defineStore('decker', {
   actions: {
     setSliders(sliders: number[]) {
       //map all values from 0-1023 to 0-100
+      let change = false;
       sliders = sliders.map((value) => Math.round((value / 1023) * 100));
       sliders.forEach((value, index) => {
         if (value === this.prevSliders[index]) return;
         value = this.prevSliders[index] - value;
+        change = true;
         //if the number is negative, make it positive
         if (value < 0) value = value * -1;
         Stats.logSliderChange(index, value);
       });
       this.sliders = sliders;
+      if (change) eventBus.emit('device-update', { changes: this.sliders.map((newValue, index) => ({ index, oldValue: this.prevSliders[index], newValue })), sliders: this.sliders });
       this.prevSliders = sliders;
     },
 

@@ -1,0 +1,73 @@
+{
+  "name": "@dotmatrixlabs/dotx-plugin-sdk",
+  "version": "1.1.5",
+  "description": "SDK for developing Dot X plugins",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs",
+      "default": "./dist/index.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "dotx-plugin": "bin/dotx-plugin.js"
+  },
+  "files": [
+    "dist/",
+    "bin/",
+    "README.md",
+    "package.json"
+  ],
+  "engines": {
+    "node": ">=16"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Frogbyte-io/dot-x.git",
+    "directory": "plugin-sdk"
+  },
+  "bugs": {
+    "url": "https://github.com/Frogbyte-io/dot-x/issues"
+  },
+  "homepage": "https://github.com/Frogbyte-io/dot-x/tree/main/plugin-sdk",
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "dotx",
+    "plugin",
+    "sdk",
+    "socket.io"
+  ],
+  "scripts": {
+    "clean": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\"",
+    "build": "npm run generate-types && npm run clean && npm run build:js && npm run build:types",
+    "generate-types": "npm --prefix .. run generate-types",
+    "build:js": "node ./scripts/build-package.mjs",
+    "build:types": "tsc -p tsconfig.build.json",
+    "docs:generate": "node ./scripts/generate-docs.mjs",
+    "docs:sync": "node ./scripts/sync-components.mjs",
+    "docs:build": "node ./scripts/build-docs.mjs",
+    "docs:build:fast": "node ./scripts/build-docs.mjs --skip-typedoc",
+    "test": "node ./scripts/test-cli.mjs",
+    "prepack": "npm run build"
+  },
+  "dependencies": {
+    "adm-zip": "^0.5.16",
+    "conf": "^14.0.0",
+    "socket.io-client": "^4.7.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.0",
+    "@types/socket.io-client": "^3.0.0",
+    "esbuild": "^0.25.6",
+    "typedoc": "^0.28.14",
+    "typedoc-plugin-markdown": "^4.9.0",
+    "typescript": "^5.7.0"
+  }
+}
