@@ -42,7 +42,7 @@ socketioxide = "0.16.3"
 axum = "0.7"
 futures-util = "0.3"
 tauri-plugin-log = { version = "2" }
-active-win-pos-rs = "0.9.1"
+active-win-pos-rs = "0.11.0"
 cargo-license = "0.7.0"
 lazy_static = "1.4.0"
 tauri-plugin-fs = "2"

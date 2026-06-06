@@ -260,14 +260,56 @@ fn detach_midi_device() -> Result<(), Error> {
 fn get_active_app_name() -> String {
     match get_active_window() {
         Ok(active_window) => {
-            println!("Active window: {:?}", active_window);
+            trace!("Active window: {:?}", active_window);
             active_window.app_name.to_string()
         }
         Err(err) => {
-            eprintln!("Failed to get active window: {:?}", err);
+            error!(
+                "Failed to get active window: {:?}; {}",
+                err,
+                active_window_failure_context()
+            );
             "Unknown".to_string() // Return a default value if an error occurs
         }
     }
+}
+
+#[cfg(target_os = "linux")]
+fn active_window_failure_context() -> String {
+    let wayland_display = std::env::var("WAYLAND_DISPLAY").unwrap_or_default();
+    let x11_display = std::env::var("DISPLAY").unwrap_or_default();
+    let current_desktop = std::env::var("XDG_CURRENT_DESKTOP").unwrap_or_default();
+    let desktop_session = std::env::var("DESKTOP_SESSION").unwrap_or_default();
+    let has_hyprland = std::env::var_os("HYPRLAND_INSTANCE_SIGNATURE").is_some();
+    let has_kde = std::env::var_os("KDE_FULL_SESSION").is_some()
+        || current_desktop.to_lowercase().contains("kde")
+        || desktop_session.to_lowercase().contains("plasma");
+    let is_gnome = current_desktop.to_lowercase().contains("gnome")
+        || desktop_session.to_lowercase().contains("gnome");
+
+    let backend = if !wayland_display.is_empty() && has_kde {
+        "KDE Wayland/KWin"
+    } else if !wayland_display.is_empty() && has_hyprland {
+        "Hyprland Wayland"
+    } else if !wayland_display.is_empty() && is_gnome {
+        "GNOME Wayland (validation required)"
+    } else if !wayland_display.is_empty() {
+        "unknown Wayland compositor"
+    } else if !x11_display.is_empty() {
+        "X11/XCB"
+    } else {
+        "unknown display server"
+    };
+
+    format!(
+        "platform=linux backend={} WAYLAND_DISPLAY={} DISPLAY={} XDG_CURRENT_DESKTOP={} DESKTOP_SESSION={} expected_support='X11/XCB, KDE Wayland, Hyprland Wayland' build_packages='libxcb-ewmh-dev libxcb-randr0-dev libdbus-1-dev pkg-config'",
+        backend, wayland_display, x11_display, current_desktop, desktop_session
+    )
+}
+
+#[cfg(not(target_os = "linux"))]
+fn active_window_failure_context() -> String {
+    format!("platform={}", std::env::consts::OS)
 }
 
 #[tauri::command]
