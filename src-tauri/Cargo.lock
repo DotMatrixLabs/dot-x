@@ -5156,8 +5156,7 @@ dependencies = [
 
 [[package]]
 name = "psp"
-version = "0.1.0"
-source = "git+https://github.com/Frogbyte-io/psp#8d9e959c0d463fa76ff669e58ebe2a11afe7995b"
+version = "0.2.0"
 dependencies = [
  "cocoa 0.24.1",
  "core-foundation 0.9.4",

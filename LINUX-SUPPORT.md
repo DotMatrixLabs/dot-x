@@ -4,23 +4,54 @@
 
 > I'm adding Linux support to Dot X, a Tauri 2 desktop app. The goal list is at `d:\dot-x\LINUX-SUPPORT.md`. The repo is at `d:\dot-x`. Read the goal list and the relevant source files before making changes.
 
+Testing is done on an Ubuntu 26.04 VirtualBox VM reached over SSH (`ssh dotx@127.0.0.1 -p 2222`). The VM now has a live PipeWire/pipewire-pulse audio server and `Xvfb` + `openbox` available, so the audio and X11 paths can be functionally exercised headless. Edit on Windows, `scp -P 2222` / `tar | ssh` the changed files to `~/dotx-build/{dot-x,volume-control-rs,psp}`, build on the VM.
+
 ---
 
-## What Needs Porting
+## Verified working on Linux (functionally tested on the VM)
 
-| What | Current | Needs | Status |
-|---|---|---|---|
-| Per-app audio control | `volume-control-rs` (custom crate) | Linux backend (PulseAudio/PipeWire) | ✅ Done — Linux backend rewritten to compile against `libpulse-binding` 2.30 (`Arc<Mutex<Mainloop>>`, `VolumeLinear` conversion, guard-scoped `result` borrows). Builds clean |
-| Active window detection | `active-win-pos-rs` `0.11.0` | X11/XCB, KDE Wayland, Hyprland Wayland | ✅ Code in place + failure-context diagnostics. ⚠️ GNOME Wayland still needs validation |
-| Installed apps list | `installed` crate (`linux-support` branch) | Parse `.desktop` files | ✅ Branch has a cfg-gated `platform/linux.rs`; struct fields match. Runtime test pending |
-| Registry access | `winreg` | Remove — not needed on Linux | ✅ Removed (was unused) |
-| Window blur/Mica effect | `window-vibrancy` / `window-shadows` | Skip on Linux (or KDE blur later) | ✅ Both crates excluded from Linux via `cfg(not(target_os = "linux"))`; usage already `cfg(windows)`-gated. ⚠️ No Linux blur yet |
-| Deno runtime binary | `resources/deno/deno-x86_64-pc-windows-msvc.zip` | Add Linux archive | ✅ Added `deno-x86_64-unknown-linux-gnu.zip` (v2.4.3); extraction + `chmod +x` implemented |
-| Hide console on spawn | `CREATE_NO_WINDOW` Win32 flag | Gate out on Linux | ✅ Already `cfg(windows)`-gated |
-| Screen brightness | `brightness` crate | sysfs / DDC-CI | ⚠️ Cross-platform crate; runtime test pending (DDC/CI may need `libddcutil-dev` + `i2c-dev`) |
-| MIDI devices | `midir` | ALSA backend | ⚠️ Cross-platform; runtime test pending |
-| Serial port (Decker) | `serialport` | Linux backend | ⚠️ Cross-platform; runtime test pending |
-| Power suspend/resume | `psp` crate (Frogbyte) | logind / D-Bus | ⚠️ `psp` ships a Linux (`zbus`/logind) backend **but it `unwrap()`s a logind call for `/org/freedesktop/login1/session/auto`**, which panics when that object isn't resolvable (SSH, containers, some headless sessions) — and the D-Bus call blocks ~25s until timeout first. Worked around app-side: power-monitor init now runs on a background thread wrapped in `catch_unwind`, so it can neither block startup nor crash the app. **Upstream fix needed in `psp`** (handle the error instead of `unwrap`; don't block) |
+These were ported **and** functionally tested — they are no longer on the porting to-do list:
+
+- **App build / run / package** — builds (debug + release), installs from `.deb`, launches and stays running, packages as `.deb` + `.AppImage`.
+- **Per-app audio control** — list sessions, set per-app volume (verified round-trip: set `0.25` → reads back `0.25`), mute (round-trip verified), plus output/input device lists. Tested against pipewire-pulse with a real `pw-play` sink-input. Fixed 3 backend bugs in `volume-control-rs` (see below).
+- **Audio output / input device lists** — listed and named correctly (`get_output_device_names` / `get_input_device_names`).
+- **Installed applications list** — `.desktop` parsing returns real apps (28 on the VM, incl. Dot X itself) with name / executable / source.
+- **Active window detection (X11)** — `active-win-pos-rs` 0.11 returns the correct `app_name` (from `WM_CLASS`) and `pid` under Xvfb + openbox. This is exactly what `get_active_app_name()` consumes. (Hyprland and KDE/`kdotool` backends are compiled in but not yet validated; see below for GNOME Wayland.)
+- **MIDI device enumeration** — `midir` (ALSA backend) lists input and output ports (verified against `snd-virmidi` virtual ports). Note: requires the user to be in the `audio` group for `/dev/snd/seq` access — a real desktop login grants this automatically (an SSH session does not without re-login). Full CC send/receive round-trip not yet exercised.
+- **Deno runtime** — bundled `deno-x86_64-unknown-linux-gnu.zip` extracts, `chmod +x`, and runs (`deno 2.4.3`).
+- **System tray** — initializes via libayatana-appindicator at startup.
+- **Power monitor (`psp`) no longer crashes headless** — the logind `unwrap` panic is gone and suspend/resume events are now actually emitted (see fix below).
+- **Windows-only crates removed/gated** — `winreg` dropped; `window-vibrancy` / `window-shadows` gated to non-Linux.
+
+---
+
+## Still needs work / unverified
+
+| What | Current | Next step |
+|---|---|---|
+| Screen brightness | `brightness` crate compiles & is wired | Untested — the VM has no backlight. Needs real hardware (sysfs) or external monitor DDC/CI (`libddcutil-dev` build dep + `i2c-dev` module). |
+| MIDI — CC round-trip | enumeration verified | Sending/receiving control-change messages over a port not yet exercised (only port listing). |
+| Serial port (Decker) | `serialport` compiles | Untested. `tools/virtual-decker` + a `socat` PTY pair can emulate the firmware over a serial endpoint. Note: the device picker currently lists USB serial ports only, so a virtual port needs to be set directly (or add a test/virtual mode). |
+| Active window — GNOME Wayland | X11 verified; Hyprland + KDE backends compiled | Validate on GNOME Wayland (the VM's real session). GNOME Wayland may not expose active-window info through the supported backends — may need a fork/upstream contribution. |
+| Auto-start on login | — | Not implemented (e.g. write a `~/.config/autostart/*.desktop`). |
+| Auto-update on Linux | bundles build with `createUpdaterArtifacts` | Needs `TAURI_SIGNING_PRIVATE_KEY` (release secret) + an update endpoint, then validate the update flow. |
+| CI on Linux | — | No CI yet — add a Linux job that installs the build deps below and runs `yarn tauri build`. |
+
+---
+
+## Backend bug fixes made on this branch (functional, found via VM testing)
+
+### `volume-control-rs` Linux audio backend
+1. **Teardown crash** — `AudioController` declared `mainloop` before `context`, and sessions held `Arc` clones of both. Rust drops fields top-to-bottom, so the mainloop was freed before the context and libpulse aborted (`Assertion '!e->dead' ... mainloop_io_free()`). Fixed by reordering fields (`sessions`, then `context`, then `mainloop`), clearing sessions first in `Drop`, and disconnecting the context + stopping the loop in `Drop`.
+2. **Setters were no-ops on quick teardown** — `set_volume`/`set_mute` submitted the introspect op with a `None` callback and did **not** wait, so the op never reached the server before the controller dropped. Now they pass a completion callback and block until it fires (same pattern as the getters).
+3. **Asymmetric volume** — the setter wrote `Volume::from(VolumeLinear(..))` (PipeWire's cubic perceptual curve) but the getter read the raw `cv.avg()/NORMAL` fraction, so set `0.25` read back `~0.63` (`cbrt(0.25)`). The getter now applies the inverse `VolumeLinear` conversion, so set/get round-trip.
+
+### `psp` Linux power monitor (fixed in `D:\psp`)
+- Replaced every `.unwrap()` in the linux backend with proper error propagation (`?` / `map_err`) so it can no longer panic.
+- **Lock/unlock monitoring is now optional**: resolving the caller's logind session (`/org/freedesktop/login1/session/auto`) fails over SSH / in containers / some headless sessions. Instead of aborting (or panicking), it degrades gracefully and **keeps suspend/resume monitoring alive** (those are Manager signals and need no session).
+- **Suspend/Resume are now actually emitted** — the previous backend only `dbg!`'d the `PrepareForSleep` signal and never sent `PowerState::Suspend`/`Resume`, so the app's suspend handling was dead code. `PrepareForSleep(start=true→Suspend, false→Resume)` is now sent on the channel.
+- Verified over SSH: `start_listening()` returns `Ok(())` immediately (no panic, no ~25 s logind timeout block).
+- **Dependency wiring:** `src-tauri/Cargo.toml` currently uses the path dep `psp = { path = "../../psp" }` so the fix is actually used. The git dep line is kept commented. **Decision needed:** push the fix to `github.com/Frogbyte-io/psp` and switch back to the git dep, or vendor `psp`, before this branch can build anywhere `D:\psp` isn't checked out alongside (incl. CI). The app-side `catch_unwind` in `power_monitor.rs` is now belt-and-suspenders and can stay.
 
 ---
 
@@ -42,14 +73,12 @@ Package notes:
 - `libwebkit2gtk-4.1-dev` / `librsvg2-dev` — Tauri 2 webview backend (and the usual Tauri build deps).
 - `libxcb-ewmh-dev` / `libxcb-randr0-dev` — `active-win-pos-rs` X11/XCB backend.
 - `libdbus-1-dev` — D-Bus, used by `psp` (logind power events).
-- `libpulse-dev` — links `libpulse-binding` for the `volume-control-rs` Linux audio backend. Runtime needs `libpulse0` (declared as a `.deb` dependency).
+- `libpulse-dev` — links `libpulse-binding` for the `volume-control-rs` Linux audio backend. Runtime needs `libpulse0` (declared as a `.deb` dependency). On a PipeWire system, `pipewire-pulse` provides the server.
 - `libudev-dev` — required by `libudev-sys` (pulled in by `serialport`/`brightness`).
 - `libasound2-dev` — required by `alsa-sys` (the `midir` ALSA backend).
 - `libayatana-appindicator3-dev` — system tray icon. Runtime needs `libayatana-appindicator3-1`.
 
-`active-win-pos-rs` should be tested on X11, KDE Wayland, Hyprland Wayland, and GNOME Wayland. GNOME Wayland may require a follow-up fork or upstream contribution if the compositor does not expose active-window information through the currently supported backends.
-
-`brightness` (screen brightness) uses sysfs for internal panels and DDC/CI for external monitors. If DDC/CI control is required, install `libddcutil-dev` at build time and ensure the `i2c-dev` kernel module is loaded at runtime — validate on the VM.
+`brightness` uses sysfs for internal panels and DDC/CI for external monitors. If DDC/CI is required, install `libddcutil-dev` at build time and load the `i2c-dev` kernel module at runtime.
 
 ---
 
@@ -58,7 +87,7 @@ Package notes:
 ```sh
 # from repo root
 yarn install
-yarn tauri build            # produces .deb and .AppImage (see bundle targets below)
+yarn tauri build            # produces .deb and .AppImage
 ```
 
 Bundle targets are set to `["deb", "appimage"]` via `src-tauri/tauri.linux.conf.json`
@@ -74,27 +103,21 @@ file scopes Linux resource bundling to the Linux Deno archive and declares the
 
 ## Goals
 
-- [x] App compiles and runs on Linux — **verified on Ubuntu 26.04**: builds (debug + release), installs from `.deb`, launches and stays running, extracts & runs the bundled Deno runtime, initializes the tray and store
-- [x] App packages as `.deb` and `.AppImage` — **verified**: both bundles produced by `yarn tauri build` (`.deb` installs cleanly; only the Linux Deno archive is shipped). *Updater-artifact signing needs `TAURI_SIGNING_PRIVATE_KEY` (a release secret) — unrelated to packaging.*
-- [~] Audio session control works - list, mute, and set volume per application — *backend compiles & is wired; functional test needs an audio sink on the VM*
-- [~] Audio output devices are listed and selectable — *backend ready; functional test pending*
-- [~] Audio input (mic) devices are listed and selectable — *backend ready; functional test pending*
-- [~] Plugin system works - plugins install, load, and run via the Deno runtime — *Deno runtime extracts & runs (`deno 2.4.3`) verified; full plugin round-trip test pending*
-- [~] Active window detection works (reports which app is in focus) — *`active-win-pos-rs` 0.11 compiled in; runtime test pending (needs a windowed session)*
-- [~] Installed applications are listed — *`installed` Linux backend compiled in; runtime test pending*
-- [~] Screen brightness control works — *`brightness` compiled in; runtime test pending (VM has no backlight)*
-- [x] System tray icon appears and functions — *tray (libayatana-appindicator) initializes at startup; needs a panel/SNI host for full interaction*
+- [x] App compiles and runs on Linux — verified on Ubuntu 26.04 (builds, installs from `.deb`, launches and stays running, extracts & runs the bundled Deno runtime, initializes tray + store)
+- [x] App packages as `.deb` and `.AppImage` — both bundles produced by `yarn tauri build`. *Updater-artifact signing needs `TAURI_SIGNING_PRIVATE_KEY` (a release secret) — unrelated to packaging.*
+- [x] Audio session control works — list, mute, and set volume per application — **functionally verified** against pipewire-pulse (per-app volume round-trip + mute)
+- [x] Audio output devices are listed and selectable — **verified**
+- [x] Audio input (mic) devices are listed and selectable — **verified**
+- [~] Plugin system works — *Deno runtime extracts & runs; full plugin round-trip still pending*
+- [x] Active window detection works (X11) — **verified** (`app_name` + `pid`). GNOME Wayland still unvalidated.
+- [x] Installed applications are listed — **verified** (28 `.desktop` apps)
+- [ ] Screen brightness control works — *compiles; untested (VM has no backlight)*
+- [x] System tray icon appears and functions — *initializes; needs a panel/SNI host for full interaction*
 - [ ] Auto-start on login works
-- [ ] App auto-updates work on Linux — *bundles build with `createUpdaterArtifacts`; needs signing key + endpoint validation*
+- [ ] App auto-updates work on Linux — *needs signing key + endpoint validation*
 - [ ] CI builds and tests on Linux automatically
-- [x] `volume-control-rs` - cross-platform audio crate replacing `windows-volume-control`, with Windows and Linux backends — Linux backend now compiles and is wired up
-
-### Build/runtime fixes made on this branch
-- **`volume-control-rs` Linux backend**: rewrote against `libpulse-binding` 2.30 — `Arc<Mutex<Mainloop>>` (all `Mainloop` methods need `&mut`), `Volume::from(VolumeLinear(..))` for linear conversion, ready-state polling instead of `mainloop.wait()`, and guard-scoped `result` borrows. (Previously 29 compile errors; never built on Linux before.)
-- **Deno on Linux**: bundled `deno-x86_64-unknown-linux-gnu.zip` (v2.4.3) and implemented zip extraction + `chmod 0o755` for Unix in `ensure_deno_extracted`.
-- **`psp` panic**: power-monitor init moved to a background thread + `catch_unwind` so its logind `unwrap`/timeout can't crash or stall the app. See the power row above — upstream `psp` fix still recommended.
-- **Removed/gated Windows-only crates**: dropped unused `winreg`; gated `window-vibrancy`/`window-shadows` to non-Linux.
-- **Per-platform bundling**: `tauri.linux.conf.json` sets `deb`+`appimage` targets, ships only the Linux Deno archive, and declares `libpulse0`.
+- [x] `volume-control-rs` — cross-platform audio crate replacing `windows-volume-control`, Linux backend now functional (3 bugs fixed)
+- [x] `psp` power monitor — no longer panics headless; suspend/resume emitted (fix in `D:\psp`)
 
 ### Build deps discovered on the VM (now in the prerequisites above)
 `libpulse-dev` (audio), `libudev-dev` (`serialport`/`brightness`), `libasound2-dev` (`midir` ALSA). Most Tauri libs (webkit2gtk-4.1, gtk3, xcb, appindicator, dbus) were already present on Ubuntu 26.04.
