@@ -1,0 +1,17 @@
+{
+  "bundle": {
+    "targets": ["deb", "appimage"],
+    "resources": [
+      "licenses/*",
+      "resources/deno/deno-x86_64-unknown-linux-gnu.zip"
+    ],
+    "linux": {
+      "deb": {
+        "depends": [
+          "libpulse0",
+          "libayatana-appindicator3-1"
+        ]
+      }
+    }
+  }
+}

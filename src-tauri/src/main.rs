@@ -47,10 +47,10 @@ fn consume_pending_dotx_install() -> Option<String> {
 }
 
 // create the error type that represents all errors possible in our program
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug)]
 enum Error {
-    #[error(transparent)]
-    Io(#[from] std::io::Error),
+    Io(std::io::Error),
+    InstalledApps(String),
     SessionNotFound,
     Connection,
     InitError,
@@ -60,10 +60,17 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Error::Io(inner) => write!(f, "IO Error: {}", inner),
+            Error::InstalledApps(inner) => write!(f, "Installed apps error: {}", inner),
             Error::SessionNotFound => write!(f, "Session not found"),
             Error::Connection => write!(f, "Decker error"),
             Error::InitError => write!(f, "Initialization error"),
         }
+    }
+}
+
+impl From<std::io::Error> for Error {
+    fn from(value: std::io::Error) -> Self {
+        Error::Io(value)
     }
 }
 
@@ -81,6 +88,22 @@ impl serde::Serialize for Error {
 #[derive(serde::Serialize)]
 struct CustomResponse {
     app_list: Vec<String>,
+    apps: Vec<InstalledAppResponse>,
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct InstalledAppResponse {
+    id: String,
+    name: String,
+    version: String,
+    publisher: String,
+    executable: String,
+    executable_name: String,
+    launch_id: String,
+    source_path: String,
+    source: String,
+    aliases: Vec<String>,
 }
 
 #[derive(serde::Serialize)]
@@ -142,15 +165,31 @@ fn get_available_midi_output_port_names() -> Result<MidiPortNames, Error> {
 
 #[tauri::command]
 fn get_installed_apps() -> Result<CustomResponse, Error> {
-    let apps = installed::list().expect("list apps");
+    let apps = installed::list().map_err(|error| Error::InstalledApps(error.to_string()))?;
     let mut app_list = Vec::new();
+    let mut installed_apps = Vec::new();
     for app in apps {
         // metadata accessor fns, these are only evaluated when used
         let name = app.name().to_string();
-        app_list.push(name);
+        if name.trim().is_empty() {
+            continue;
+        }
+        app_list.push(name.clone());
+        installed_apps.push(InstalledAppResponse {
+            id: app.id,
+            name,
+            version: app.version,
+            publisher: app.publisher,
+            executable: app.executable,
+            executable_name: app.executable_name,
+            launch_id: app.launch_id,
+            source_path: app.source_path,
+            source: format!("{:?}", app.source),
+            aliases: app.aliases,
+        });
     }
     // Create the Response struct
-    let app_list_response = CustomResponse { app_list: app_list };
+    let app_list_response = CustomResponse { app_list: app_list, apps: installed_apps };
     Ok(app_list_response)
 }
 
@@ -546,31 +585,47 @@ fn ensure_deno_extracted(app: &tauri::AppHandle) -> Result<std::path::PathBuf, S
 
     fs::create_dir_all(&deno_dir).map_err(|e| format!("Failed to create deno dir: {}", e))?;
 
+    // Resolve the bundled Deno archive for the current platform.
     #[cfg(target_os = "windows")]
     let archive_rel = "resources/deno/deno-x86_64-pc-windows-msvc.zip";
-    #[cfg(not(target_os = "windows"))]
-    let archive_rel = "resources/deno/unsupported-platform"; // placeholder
+    #[cfg(target_os = "linux")]
+    let archive_rel = "resources/deno/deno-x86_64-unknown-linux-gnu.zip";
+    #[cfg(not(any(target_os = "windows", target_os = "linux")))]
+    let archive_rel = "";
+
+    if archive_rel.is_empty() {
+        return Err("Bundled Deno is not available for this platform".to_string());
+    }
 
     let archive_path = path_resolver.resolve(archive_rel, tauri::path::BaseDirectory::Resource)
         .map_err(|e| format!("Bundled Deno archive not found at {}: {}", archive_rel, e))?;
 
-    if cfg!(target_os = "windows") {
-        let file = File::open(&archive_path).map_err(|e| format!("Failed to open Deno zip: {}", e))?;
-        let mut zip = zip::ZipArchive::new(file).map_err(|e| format!("Failed to read Deno zip: {}", e))?;
-        for i in 0..zip.len() {
-            let mut zipped_file = zip.by_index(i).map_err(|e| format!("Zip entry error: {}", e))?;
-            let entry_path = match zipped_file.enclosed_name() { Some(p) => p.to_owned(), None => continue };
-            let out_path = deno_dir.join(entry_path);
-            if zipped_file.is_dir() {
-                fs::create_dir_all(&out_path).map_err(|e| format!("Create dir failed: {}", e))?;
-            } else {
-                if let Some(parent) = out_path.parent() { fs::create_dir_all(parent).map_err(|e| format!("Create dir failed: {}", e))?; }
-                let mut outfile = File::create(&out_path).map_err(|e| format!("Create file failed: {}", e))?;
-                std::io::copy(&mut zipped_file, &mut outfile).map_err(|e| format!("Write file failed: {}", e))?;
-            }
+    // The Windows and Linux archives are both plain zips containing the Deno
+    // executable at the root; extract every entry into the data dir.
+    let file = File::open(&archive_path).map_err(|e| format!("Failed to open Deno zip: {}", e))?;
+    let mut zip = zip::ZipArchive::new(file).map_err(|e| format!("Failed to read Deno zip: {}", e))?;
+    for i in 0..zip.len() {
+        let mut zipped_file = zip.by_index(i).map_err(|e| format!("Zip entry error: {}", e))?;
+        let entry_path = match zipped_file.enclosed_name() { Some(p) => p.to_owned(), None => continue };
+        let out_path = deno_dir.join(entry_path);
+        if zipped_file.is_dir() {
+            fs::create_dir_all(&out_path).map_err(|e| format!("Create dir failed: {}", e))?;
+        } else {
+            if let Some(parent) = out_path.parent() { fs::create_dir_all(parent).map_err(|e| format!("Create dir failed: {}", e))?; }
+            let mut outfile = File::create(&out_path).map_err(|e| format!("Create file failed: {}", e))?;
+            std::io::copy(&mut zipped_file, &mut outfile).map_err(|e| format!("Write file failed: {}", e))?;
         }
-    } else {
-        return Err("Bundled Deno not available for this platform".to_string());
+    }
+
+    // On Unix the extracted Deno binary needs its executable bit set before it can be spawned.
+    #[cfg(unix)]
+    if deno_exe_default.exists() {
+        let mut perms = fs::metadata(&deno_exe_default)
+            .map_err(|e| format!("Failed to read Deno permissions: {}", e))?
+            .permissions();
+        perms.set_mode(0o755);
+        fs::set_permissions(&deno_exe_default, perms)
+            .map_err(|e| format!("Failed to set Deno executable bit: {}", e))?;
     }
 
     if deno_exe_default.exists() {
@@ -683,7 +738,14 @@ async fn main() {
         })
         .setup(|app| {
             {
-                power_monitor::setup_power_monitoring();
+                // Run power-monitor setup off the critical path. psp's logind
+                // D-Bus calls can block for ~25s (until timeout) on sessions
+                // where the logind session object isn't resolvable (SSH,
+                // containers, some headless setups); don't let that delay the
+                // rest of setup (Deno bootstrap, tray, plugin auto-start).
+                std::thread::spawn(|| {
+                    power_monitor::setup_power_monitoring();
+                });
             }
             start_aptabase_heartbeat(app.handle().clone());
             let mut props_map = HashMap::new();
