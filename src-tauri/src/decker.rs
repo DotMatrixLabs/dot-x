@@ -4,12 +4,12 @@ use serde::ser::SerializeMap;
 use serde::{Deserialize, Serialize};
 use serde_json;
 use serde_json::Value;
-use serialport::{available_ports, SerialPortType};
+use serialport::{SerialPortType, available_ports};
 use std::collections::BTreeMap;
 use std::io::{self, Cursor, Read};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::{
-    sync::{mpsc, Mutex},
+    sync::{Mutex, mpsc},
     thread::{self},
     time::Duration,
 };
@@ -167,6 +167,18 @@ pub struct USBDevice {
     product: String,
 }
 
+#[cfg(target_os = "linux")]
+fn serial_device(port_name: String, port_type: String) -> USBDevice {
+    USBDevice {
+        port_name,
+        port_type,
+        vid: 0,
+        pid: 0,
+        manufacturer: String::new(),
+        product: String::new(),
+    }
+}
+
 #[tauri::command]
 pub fn get_devices() -> Vec<USBDevice> {
     let mut usb_devices = Vec::new(); // Create an empty vector to store USB devices
@@ -190,6 +202,14 @@ pub fn get_devices() -> Vec<USBDevice> {
                         };
                         usb_devices.push(device); // Add the USB device to the vector
                     }
+                    #[cfg(target_os = "linux")]
+                    _ => {
+                        if std::env::var_os("DOTX_SHOW_ALL_SERIAL_PORTS").is_some() {
+                            usb_devices
+                                .push(serial_device(p.port_name.clone(), "Serial".to_string()));
+                        }
+                    }
+                    #[cfg(not(target_os = "linux"))]
                     _ => {} // Ignore non-USB ports
                 }
             }
@@ -198,6 +218,22 @@ pub fn get_devices() -> Vec<USBDevice> {
             error!("Error listing serial ports - {:?}", e);
             eprintln!("{:?}", e);
             eprintln!("Error listing serial ports");
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    if let Ok(extra_ports) = std::env::var("DOTX_EXTRA_SERIAL_PORTS") {
+        for port_name in extra_ports
+            .split(',')
+            .map(str::trim)
+            .filter(|port_name| !port_name.is_empty())
+        {
+            if !usb_devices
+                .iter()
+                .any(|device| device.port_name == port_name)
+            {
+                usb_devices.push(serial_device(port_name.to_string(), "Serial".to_string()));
+            }
         }
     }
 
@@ -287,7 +323,7 @@ pub fn initialize_decker(
                                 }
                                 std::mem::drop(port); // Drop the port to close it
                                 info!("Disconnected");
-                                panic!("Disconnected");
+                                break;
                             }
                             match serialize_decker_data(&command) {
                                 Ok(serialized_data) => {
@@ -380,7 +416,7 @@ pub fn initialize_decker(
                             }
                             std::mem::drop(port); // Drop the port to close it
                             error!("An error occurred while reading serial data: {:?}", e);
-                            panic!("An error occurred while reading serial data: {:?}", e);
+                            break;
                         }
                     }
                     thread::sleep(Duration::from_millis(5));
@@ -408,9 +444,13 @@ pub fn disconnect_decker() {
         }
     };
     if let Some(sender) = sender.as_ref() {
-        sender.send("disconnect".to_owned()).unwrap();
+        if let Err(e) = sender.send("disconnect".to_owned()) {
+            error!("Failed to send disconnect command: {}", e);
+        }
     } else {
-        eprintln!("Sender not initialized. Make sure to initialize it before calling send_decker_command.");
+        eprintln!(
+            "Sender not initialized. Make sure to initialize it before calling send_decker_command."
+        );
     }
 }
 
@@ -469,6 +509,8 @@ pub fn send_decker_command(command: &str, options: Option<Options>) {
             error!("Failed to send payload: {}", e);
         }
     } else {
-        eprintln!("Sender not initialized. Make sure to initialize it before calling send_decker_command.");
+        eprintln!(
+            "Sender not initialized. Make sure to initialize it before calling send_decker_command."
+        );
     }
 }

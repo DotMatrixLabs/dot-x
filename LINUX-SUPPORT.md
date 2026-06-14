@@ -31,7 +31,7 @@ These were ported **and** functionally tested — they are no longer on the port
 |---|---|---|
 | Screen brightness | `brightness` crate compiles & is wired | Untested — the VM has no backlight. Needs real hardware (sysfs) or external monitor DDC/CI (`libddcutil-dev` build dep + `i2c-dev` module). |
 | MIDI — CC round-trip | enumeration verified | Sending/receiving control-change messages over a port not yet exercised (only port listing). |
-| Serial port (Decker) | `serialport` compiles | Untested. `tools/virtual-decker` + a `socat` PTY pair can emulate the firmware over a serial endpoint. Note: the device picker currently lists USB serial ports only, so a virtual port needs to be set directly (or add a test/virtual mode). |
+| Serial port (Decker) | `serialport` compiles; Linux device enumeration verified on VM | Default picker lists the real USB Decker (`/dev/ttyACM0`, VID `1240`, PID `58918`). For VM/PTY testing, set `DOTX_EXTRA_SERIAL_PORTS=/dev/pts/N`; for raw debug enumeration, set `DOTX_SHOW_ALL_SERIAL_PORTS=1`. Full firmware protocol round-trip is still pending. |
 | Active window — GNOME Wayland | X11 verified; Hyprland + KDE backends compiled | Validate on GNOME Wayland (the VM's real session). GNOME Wayland may not expose active-window info through the supported backends — may need a fork/upstream contribution. |
 | Auto-start on login | — | Not implemented (e.g. write a `~/.config/autostart/*.desktop`). |
 | Auto-update on Linux | bundles build with `createUpdaterArtifacts` | Needs `TAURI_SIGNING_PRIVATE_KEY` (release secret) + an update endpoint, then validate the update flow. |
@@ -52,6 +52,13 @@ These were ported **and** functionally tested — they are no longer on the port
 - **Suspend/Resume are now actually emitted** — the previous backend only `dbg!`'d the `PrepareForSleep` signal and never sent `PowerState::Suspend`/`Resume`, so the app's suspend handling was dead code. `PrepareForSleep(start=true→Suspend, false→Resume)` is now sent on the channel.
 - Verified over SSH: `start_listening()` returns `Ok(())` immediately (no panic, no ~25 s logind timeout block).
 - **Dependency wiring:** `src-tauri/Cargo.toml` currently uses the path dep `psp = { path = "../../psp" }` so the fix is actually used. The git dep line is kept commented. **Decision needed:** push the fix to `github.com/Frogbyte-io/psp` and switch back to the git dep, or vendor `psp`, before this branch can build anywhere `D:\psp` isn't checked out alongside (incl. CI). The app-side `catch_unwind` in `power_monitor.rs` is now belt-and-suspenders and can stay.
+
+### Linux Decker serial device listing
+- Default Linux device listing still avoids the noisy legacy `/dev/ttyS*` entries reported by `serialport` as `Unknown`.
+- USB devices are listed normally; verified on the VM with a Decker at `/dev/ttyACM0` (VID `1240`, PID `58918`).
+- `DOTX_EXTRA_SERIAL_PORTS=/dev/pts/N[,/dev/pts/M]` appends explicit serial endpoints for PTY/virtual firmware testing without cluttering normal users' device picker.
+- `DOTX_SHOW_ALL_SERIAL_PORTS=1` exposes every `serialport::available_ports()` entry for low-level debugging.
+- Serial thread disconnect/read-error handling now exits cleanly instead of intentionally panicking the thread.
 
 ---
 
