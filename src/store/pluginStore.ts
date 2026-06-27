@@ -15,6 +15,7 @@ const pendingUnexpectedDisconnects = new Map<string, ReturnType<typeof setTimeou
 const expectedPluginDisconnects = new Map<string, ReturnType<typeof setTimeout>>();
 const startingPluginTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
 const lifecycleFailureNotifiedAt = new Map<string, number>();
+const pluginSystemUtilityButtonRefreshes = new Map<string, Promise<PluginSystemUtilityButton[]>>();
 let refreshPluginUpdatesPromise: Promise<Record<string, PluginUpdateRecord>> | null = null;
 
 function normalizeErrorMessage(error: unknown): string | null {
@@ -73,6 +74,23 @@ interface PluginConnectionInfo {
     capabilities?: string[];
 }
 
+export interface PluginSystemUtilityButton {
+    id: string;
+    actionId?: string;
+    title?: string;
+    icon?: string;
+    hidden?: boolean;
+    disabled?: boolean;
+    selectedByChannel?: Record<string, boolean>;
+    settings?: {
+        sections?: unknown[];
+        [key: string]: unknown;
+    };
+    pluginId: string;
+    pluginName?: string;
+    [key: string]: unknown;
+}
+
 export interface PluginLifecycleEvent {
     id: string;
     name?: string;
@@ -97,6 +115,8 @@ interface PluginStoreState {
     lastPluginUpdateCheckAt: string | null;
     pluginUpdates: Record<string, PluginUpdateRecord>;
     connectedPlugins: Record<string, PluginConnectionInfo>;
+    pluginSystemUtilityButtonsByPlugin: Record<string, PluginSystemUtilityButton[]>;
+    loadingPluginSystemUtilityButtons: boolean;
 }
 
 export const usePluginStore = defineStore("pluginStore", {
@@ -109,6 +129,8 @@ export const usePluginStore = defineStore("pluginStore", {
         lastPluginUpdateCheckAt: null,
         pluginUpdates: {},
         connectedPlugins: {},
+        pluginSystemUtilityButtonsByPlugin: {},
+        loadingPluginSystemUtilityButtons: false,
     }),
     getters: {
         getActivePlugins: (state) => state.activePlugins,
@@ -116,8 +138,149 @@ export const usePluginStore = defineStore("pluginStore", {
         getEnabledPlugins: (state) => state.enabledPlugins,
         getConnectedPlugins: (state) => state.connectedPlugins,
         getPluginUpdates: (state) => state.pluginUpdates,
+        getPluginSystemUtilityButtons: (state) => Object.values(state.pluginSystemUtilityButtonsByPlugin).flat(),
     },
     actions: {
+        async requestPluginActions(pluginId: string): Promise<{ buttons?: unknown[] }> {
+            const requestId = `req_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+            const response = await invoke<{
+                request_id: string;
+                success: boolean;
+                data?: {
+                    success?: boolean;
+                    data?: {
+                        buttons?: unknown[];
+                    };
+                    error?: string;
+                };
+                error?: string;
+            }>("send_to_plugin_with_ack", {
+                pluginId,
+                event: "plugin.request",
+                data: {
+                    method: "get_actions",
+                    params: {},
+                    request_id: requestId,
+                },
+            });
+
+            if (!response.success) {
+                throw new Error(response.error || "Plugin action request failed");
+            }
+
+            const pluginResponse = response.data;
+            if (pluginResponse && pluginResponse.success === false) {
+                throw new Error(pluginResponse.error || "Plugin action request failed");
+            }
+
+            return pluginResponse?.data || { buttons: [] };
+        },
+        async refreshPluginSystemUtilityButtons(pluginId?: string): Promise<PluginSystemUtilityButton[]> {
+            if (pluginId) {
+                const existingRefresh = pluginSystemUtilityButtonRefreshes.get(pluginId);
+                if (existingRefresh) {
+                    return existingRefresh;
+                }
+
+                const refresh = (async () => {
+                    const plugin = this.connectedPlugins[pluginId];
+                    if (!plugin) {
+                        this.removePluginSystemUtilityButtons(pluginId);
+                        return [];
+                    }
+
+                    try {
+                        const actions = await this.requestPluginActions(pluginId);
+                        const buttons = Array.isArray(actions?.buttons)
+                            ? actions.buttons.map((button) => ({
+                                ...(button && typeof button === "object" ? button as Record<string, unknown> : {}),
+                                pluginId,
+                                pluginName: plugin.name,
+                            })) as PluginSystemUtilityButton[]
+                            : [];
+
+                        this.pluginSystemUtilityButtonsByPlugin = {
+                            ...this.pluginSystemUtilityButtonsByPlugin,
+                            [pluginId]: buttons,
+                        };
+                        return buttons;
+                    } catch (error) {
+                        console.error(`Failed to load system utility buttons for plugin ${pluginId}`, error);
+                        return this.pluginSystemUtilityButtonsByPlugin[pluginId] || [];
+                    } finally {
+                        pluginSystemUtilityButtonRefreshes.delete(pluginId);
+                    }
+                })();
+
+                pluginSystemUtilityButtonRefreshes.set(pluginId, refresh);
+                return refresh;
+            }
+
+            this.loadingPluginSystemUtilityButtons = true;
+            try {
+                let plugins = Object.values(this.connectedPlugins);
+                if (plugins.length === 0) {
+                    try {
+                        const backendPlugins = await invoke<PluginConnectionInfo[]>("get_connected_plugins");
+                        if (Array.isArray(backendPlugins) && backendPlugins.length > 0) {
+                            this.setConnectedPlugins(backendPlugins, { refreshSystemUtilityButtons: false });
+                            plugins = backendPlugins;
+                        }
+                    } catch (error) {
+                        console.error("Failed to refresh connected plugins before loading system utility buttons:", error);
+                    }
+                }
+
+                const connectedPluginIds = new Set(plugins.map((plugin) => plugin.id));
+                const nextButtonsByPlugin = { ...this.pluginSystemUtilityButtonsByPlugin };
+                for (const cachedPluginId of Object.keys(nextButtonsByPlugin)) {
+                    if (!connectedPluginIds.has(cachedPluginId)) {
+                        delete nextButtonsByPlugin[cachedPluginId];
+                    }
+                }
+                this.pluginSystemUtilityButtonsByPlugin = nextButtonsByPlugin;
+
+                const refreshed: PluginSystemUtilityButton[][] = await Promise.all(
+                    plugins.map((plugin) => this.refreshPluginSystemUtilityButtons(plugin.id)),
+                );
+                return refreshed.flat();
+            } finally {
+                this.loadingPluginSystemUtilityButtons = false;
+            }
+        },
+        removePluginSystemUtilityButtons(pluginId: string) {
+            if (!pluginId || !this.pluginSystemUtilityButtonsByPlugin[pluginId]) {
+                return;
+            }
+
+            const nextButtonsByPlugin = { ...this.pluginSystemUtilityButtonsByPlugin };
+            delete nextButtonsByPlugin[pluginId];
+            this.pluginSystemUtilityButtonsByPlugin = nextButtonsByPlugin;
+        },
+        setCachedPluginSystemUtilityButtonSelected(pluginId: string, buttonId: string, channel: number | string, selected: boolean) {
+            const buttons = this.pluginSystemUtilityButtonsByPlugin[pluginId];
+            if (!buttons) {
+                return;
+            }
+
+            const channelKey = String(channel);
+            this.pluginSystemUtilityButtonsByPlugin = {
+                ...this.pluginSystemUtilityButtonsByPlugin,
+                [pluginId]: buttons.map((button) => {
+                    if ((button.actionId || button.id) !== buttonId) {
+                        return button;
+                    }
+
+                    return {
+                        ...button,
+                        selectedByChannel: {
+                            ...(button.selectedByChannel || {}),
+                            [channelKey]: selected,
+                        },
+                    };
+                }),
+            };
+        },
         async loadPersistedPluginState() {
             const persistedState = await PluginStorage.loadPersistedPluginState();
             this.enabledPlugins = new Set(persistedState.enabledPluginIds);
@@ -488,7 +651,8 @@ export const usePluginStore = defineStore("pluginStore", {
                 this.clearPluginStarting(pluginId);
             }
         },
-        setConnectedPlugins(plugins: PluginConnectionInfo[]) {
+        setConnectedPlugins(plugins: PluginConnectionInfo[], options: { refreshSystemUtilityButtons?: boolean } = {}) {
+            const { refreshSystemUtilityButtons = true } = options;
             const nextConnectedPlugins: PluginStoreState["connectedPlugins"] = {};
             for (const plugin of plugins) {
                 if (!plugin?.id) continue;
@@ -498,6 +662,9 @@ export const usePluginStore = defineStore("pluginStore", {
             this.activePlugins = new Set(Object.keys(nextConnectedPlugins));
             for (const pluginId of Object.keys(nextConnectedPlugins)) {
                 this.clearPluginStarting(pluginId);
+            }
+            if (refreshSystemUtilityButtons) {
+                void this.refreshPluginSystemUtilityButtons();
             }
         },
         addActivePlugin(plugin: string) {
@@ -524,12 +691,14 @@ export const usePluginStore = defineStore("pluginStore", {
                 [plugin.id]: plugin,
             };
             this.addActivePlugin(plugin.id);
+            void this.refreshPluginSystemUtilityButtons(plugin.id);
         },
         removeConnectedPlugin(pluginId: string) {
             const nextConnectedPlugins = { ...this.connectedPlugins };
             delete nextConnectedPlugins[pluginId];
             this.connectedPlugins = nextConnectedPlugins;
             this.removeActivePlugin(pluginId);
+            this.removePluginSystemUtilityButtons(pluginId);
         },
         isPluginApproved(target: PluginApprovalTarget) {
             const approvalKey = getPluginApprovalKey(createPluginApprovalRecord(target));

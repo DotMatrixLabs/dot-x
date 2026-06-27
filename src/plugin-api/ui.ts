@@ -3,6 +3,7 @@ import type {
   ApiResponse
 } from './schema';
 import EventBus from '../js/eventBus';
+import { usePluginStore } from '../store/pluginStore';
 
 export class UIManager {
   /**
@@ -53,7 +54,13 @@ export class UIManager {
   async actionsUpdated(_request: ApiRequest & { plugin_id?: string }): Promise<ApiResponse> {
     try {
       // Broadcast that a plugin's action mappings changed so the UI can refresh
-      EventBus.emit('plugin:actionsUpdated', { pluginId: _request && (_request as any).plugin_id });
+      const pluginId = _request && (_request as any).plugin_id;
+      EventBus.emit('plugin:actionsUpdated', { pluginId });
+      if (pluginId) {
+        void usePluginStore().refreshPluginSystemUtilityButtons(pluginId);
+      } else {
+        void usePluginStore().refreshPluginSystemUtilityButtons();
+      }
       return {
         request_id: _request.request_id,
         success: true,
