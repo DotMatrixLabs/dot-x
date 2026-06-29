@@ -29,7 +29,7 @@ import { useDeckerStore } from "./store/deckerStore.ts";
 import { usePluginStore } from "./store/pluginStore";
 import PluginAPI from "./plugin-api/pluginAPI";
 import { mapState } from "pinia";
-import { version } from '@tauri-apps/plugin-os';
+import { version, platform } from '@tauri-apps/plugin-os';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 
@@ -46,6 +46,7 @@ export default {
       currentSliderID: null,
       colorScheme: "dark",
       isWin10: true,
+      isLinux: false,
     };
   },
 
@@ -55,14 +56,13 @@ export default {
     }),
 
     backgroundColor() {
-      if(this.isWin10) return "bg-base-100";
+      if(this.isLinux || this.isWin10) return "bg-base-100";
       return "bg-transparent";
     },
 
-    
     backgroundColorTopBar() {
-      if(this.isWin10) return "bg-base-400 bg-opacity-20";
-      return "bg-black bg-opacity-10 ";
+      if(this.isLinux || this.isWin10) return "bg-base-400 bg-opacity-20";
+      return "bg-black bg-opacity-10";
     },
 
 
@@ -156,6 +156,7 @@ export default {
       ? "dark"
       : "light";
 
+    this.isLinux = (await platform()) === 'linux';
     this.setThemeFromOS();
 
     document.documentElement.setAttribute("data-theme", this.colorScheme);
