@@ -1,0 +1,9 @@
+[env]
+# On Ubuntu 24.04 the soup-3.0 pkg-config package was renamed to libsoup-3.0.
+# The soup-3.0.pc alias in src-tauri/pkgconfig/ bridges the gap so that
+# soup3-sys (pulled in by webkit2gtk) finds it without any system-level symlink.
+# pkg-config always searches PKG_CONFIG_PATH *in addition to* its compiled-in
+# system paths, so setting this to our local dir does not hide system packages.
+# force=false means we only set it when PKG_CONFIG_PATH is not already set
+# (CI or developer machines that already have it set are unaffected).
+PKG_CONFIG_PATH = { value = "src-tauri/pkgconfig", relative = true, force = false }
