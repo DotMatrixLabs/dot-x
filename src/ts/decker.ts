@@ -118,6 +118,7 @@ class Decker {
         }).catch((error) => {
             console.log("Error connecting to Decker😭😭",error)
             deckerStore.setConnected(false);
+            throw error;
         });
         // await invoke('init_process');
 

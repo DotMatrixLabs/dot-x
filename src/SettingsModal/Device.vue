@@ -275,7 +275,16 @@ export default {
             }
             ConfigStore.set("comPort", this.currentDevice.port_name);
             ConfigStore.save();
-            await Decker.init(this.currentDevice.port_name);
+            try {
+                await Decker.init(this.currentDevice.port_name);
+            } catch (error) {
+                const msg = String(error);
+                if (msg.includes('Permission denied') || msg.includes('Access is denied')) {
+                    toast.error(`Permission denied on ${this.currentDevice.port_name}. Try replugging the device. If that doesn't help, run: sudo sh -c 'echo SUBSYSTEM==\"tty\", KERNEL==\"ttyACM[0-9]*\", TAG+=\"uaccess\" > /etc/udev/rules.d/99-dot-x.rules && udevadm control --reload-rules && udevadm trigger'`, { duration: 12000 });
+                } else {
+                    toast.error(`Failed to connect to device: ${msg}`);
+                }
+            }
         },
 
 
