@@ -10,7 +10,12 @@
         "depends": [
           "libpulse0",
           "libayatana-appindicator3-1"
-        ]
+        ],
+        "files": {
+          "/etc/udev/rules.d/99-dot-x.rules": "extra/99-dot-x.rules"
+        },
+        "postInstallScript": "extra/postinst.sh",
+        "preRemoveScript": "extra/prerm.sh"
       }
     }
   }
