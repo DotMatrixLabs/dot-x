@@ -1914,7 +1914,6 @@ dependencies = [
  "psp",
  "reqwest",
  "rmp-serde",
- "rustc_version",
  "semver",
  "sentry",
  "serde",
