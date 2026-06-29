@@ -4,7 +4,10 @@
 
 > I'm adding Linux support to Dot X, a Tauri 2 desktop app. The goal list is at `d:\dot-x\LINUX-SUPPORT.md`. The repo is at `d:\dot-x`. Read the goal list and the relevant source files before making changes.
 
-Testing is done on an Ubuntu 26.04 VirtualBox VM reached over SSH (`ssh dotx@127.0.0.1 -p 2222`). The VM now has a live PipeWire/pipewire-pulse audio server and `Xvfb` + `openbox` available, so the audio and X11 paths can be functionally exercised headless. Edit on Windows, `scp -P 2222` / `tar | ssh` the changed files to `~/dotx-build/{dot-x,volume-control-rs,psp}`, build on the VM.
+Testing is done on remote machines running ubuntu. Currently up for testing:
+
+- `ssh ananords@192.168.68.149` — Ubuntu 24.04.3, real Decker (`VM-5SW`) on `/dev/ttyACM0`. SSH key auth installed (my `id_ed25519`). No `/sys/class/backlight`; external monitor present but off.
+
 
 ---
 
@@ -21,6 +24,8 @@ These were ported **and** functionally tested — they are no longer on the port
 - **Deno runtime** — bundled `deno-x86_64-unknown-linux-gnu.zip` extracts, `chmod +x`, and runs (`deno 2.4.3`).
 - **System tray** — initializes via libayatana-appindicator at startup.
 - **Power monitor (`psp`) no longer crashes headless** — the logind `unwrap` panic is gone and suspend/resume events are now actually emitted (see fix below).
+- **Serial port / Decker** — fully verified end-to-end through the real `dot_x` binary on `ananords@192.168.68.149` (Ubuntu 24.04, `VM-5SW` Decker fw `0.0.3` at `/dev/ttyACM0`, VID `1240`/PID `58918`): `get_devices()` enumerates with correct VID/PID, `connect_decker` opens port + sets DTR, 75+ `slider-change` events decoded by real `rmp_serde`, `get-device-info` round-trip returns `firmwareVersion`/`deviceModel`/`serialNumber`. No issues.
+- **Auto-start on login** — `tauri_plugin_autostart` writes/removes `~/.config/autostart/Dot X.desktop` (XDG autostart spec) correctly. Enable/disable/is_enabled round-trip verified on Ubuntu 24.04.
 - **Windows-only crates removed/gated** — `winreg` dropped; `window-vibrancy` / `window-shadows` gated to non-Linux.
 
 ---
@@ -29,11 +34,11 @@ These were ported **and** functionally tested — they are no longer on the port
 
 | What | Current | Next step |
 |---|---|---|
-| Screen brightness | `brightness` crate compiles & is wired | Untested — the VM has no backlight. Needs real hardware (sysfs) or external monitor DDC/CI (`libddcutil-dev` build dep + `i2c-dev` module). |
+| Screen brightness | `brightness` crate compiles & is wired | Still untested. `ananords@192.168.68.149` has **no `/sys/class/backlight`** (desktop, no internal panel) and its only external monitor is powered off, so DDC/CI over `/dev/i2c-*` won't answer either. Needs a laptop (sysfs backlight) or a powered-on DDC/CI monitor with `libddcutil-dev` + `i2c-dev` loaded. |
 | MIDI — CC round-trip | enumeration verified | Sending/receiving control-change messages over a port not yet exercised (only port listing). |
-| Serial port (Decker) | `serialport` compiles; Linux device enumeration verified on VM | Default picker lists the real USB Decker (`/dev/ttyACM0`, VID `1240`, PID `58918`). For VM/PTY testing, set `DOTX_EXTRA_SERIAL_PORTS=/dev/pts/N`; for raw debug enumeration, set `DOTX_SHOW_ALL_SERIAL_PORTS=1`. Full firmware protocol round-trip is still pending. |
-| Active window — GNOME Wayland | X11 verified; Hyprland + KDE backends compiled | Validate on GNOME Wayland (the VM's real session). GNOME Wayland may not expose active-window info through the supported backends — may need a fork/upstream contribution. |
-| Auto-start on login | — | Not implemented (e.g. write a `~/.config/autostart/*.desktop`). |
+| Serial port (Decker) | **Fully verified end-to-end through the real Rust binary** on `ananords@192.168.68.149` (Ubuntu 24.04, Decker `VM-5SW` fw `0.0.3` at `/dev/ttyACM0`, VID `04d8`/1240, PID `e626`/58918) | Exercised through the actual compiled `dot_x` binary (cargo debug build + Xvfb headless): `get_devices()` returns `{port_name:"/dev/ttyACM0", port_type:"USB", vid:1240, pid:58918, manufacturer:"Frogbyte AS", product:"Decker"}`; `connect_decker` opens the port and sets DTR; 75+ live `slider-change` events decoded by real `rmp_serde` deserialization (values 0–1023, all 5 sliders); `send_decker_command("get-device-info")` returns `{firmwareVersion:"0.0.3", deviceModel:"VM-5SW", serialNumber:…}`. No issues found. For VM/PTY testing, set `DOTX_EXTRA_SERIAL_PORTS=/dev/pts/N`; for raw debug enumeration, set `DOTX_SHOW_ALL_SERIAL_PORTS=1`. |
+| Active window — GNOME Wayland | **Confirmed broken on GNOME 42+** | `active-win-pos-rs` 0.11 uses `org.gnome.Shell.Eval` for GNOME Wayland, which was disabled in GNOME 42 for security. Probed on `ananords@192.168.68.149` (GNOME Wayland on Ubuntu 24.04): `Shell.Eval` returns `(false, '')`. Hyprland (`hyprctl`) and KDE (`kdotool`) backends compile but those compositors aren't present. **Fix requires**: either a GNOME Shell extension exposing active-window via a safe D-Bus interface, or a PR to `active-win-pos-rs` using the GNOME Mutter `org.gnome.Mutter.IdleMonitor` / `DisplayConfig` API (neither currently exposes focus). For now, `get_active_app_name()` returns empty/error on GNOME Wayland — MIDI/Decker automation that depends on it won't trigger automatically on this session type. |
+| Auto-start on login | **Verified on Linux** via `tauri_plugin_autostart` | Plugin writes `~/.config/autostart/Dot X.desktop` (XDG autostart spec) when enabled and removes it when disabled. Tested on Ubuntu 24.04: `plugin:autostart\|enable` → file created; `is_enabled` → true; `disable` → file removed; `is_enabled` → false. Correct round-trip. The `Exec` path in the .desktop comes from `/proc/self/exe` — no issue in a real install; a mid-run binary replacement (e.g. during a debug rebuild) would append `(deleted)` which is harmless. |
 | Auto-update on Linux | bundles build with `createUpdaterArtifacts` | Needs `TAURI_SIGNING_PRIVATE_KEY` (release secret) + an update endpoint, then validate the update flow. |
 | CI on Linux | — | No CI yet — add a Linux job that installs the build deps below and runs `yarn tauri build`. |
 
@@ -70,14 +75,16 @@ Install these packages in local Linux environments and CI images before building
 sudo apt-get update
 sudo apt-get install -y \
   build-essential pkg-config curl wget file \
-  libwebkit2gtk-4.1-dev librsvg2-dev \
+  libwebkit2gtk-4.1-dev librsvg2-dev libgtk-3-dev \
   libxcb-ewmh-dev libxcb-randr0-dev libdbus-1-dev \
   libpulse-dev libudev-dev libasound2-dev \
   libayatana-appindicator3-dev
 ```
 
 Package notes:
-- `libwebkit2gtk-4.1-dev` / `librsvg2-dev` — Tauri 2 webview backend (and the usual Tauri build deps).
+- `libwebkit2gtk-4.1-dev` / `librsvg2-dev` / `libgtk-3-dev` — Tauri 2 webview backend (and the usual Tauri build deps). `libgtk-3-dev` is required for `gdk-sys` even though `libwebkit2gtk-4.1-dev` pulls in the runtime library; the dev headers must be explicitly listed.
+- **Ubuntu 24.04 (Noble) quirk:** `libsoup-3.0.pc` is installed as `libsoup-3.0` but the `soup3-sys` Rust crate looks for package name `soup-3.0`. After installing `libsoup-3.0-dev`, create the alias: `sudo ln -sf /usr/lib/x86_64-linux-gnu/pkgconfig/libsoup-3.0.pc /usr/lib/x86_64-linux-gnu/pkgconfig/soup-3.0.pc`
+- **Ubuntu 24.04 quirk:** if `libpsl-dev` / `libsysprof-capture-4-dev` show "no installation candidate", the cause is a configured foreign dpkg architecture (e.g. arm64 on an amd64 host) whose repo lacks those packages. Fix with `sudo dpkg --remove-architecture arm64 && sudo apt-get update` before installing.
 - `libxcb-ewmh-dev` / `libxcb-randr0-dev` — `active-win-pos-rs` X11/XCB backend.
 - `libdbus-1-dev` — D-Bus, used by `psp` (logind power events).
 - `libpulse-dev` — links `libpulse-binding` for the `volume-control-rs` Linux audio backend. Runtime needs `libpulse0` (declared as a `.deb` dependency). On a PipeWire system, `pipewire-pulse` provides the server.
@@ -120,9 +127,10 @@ file scopes Linux resource bundling to the Linux Deno archive and declares the
 - [x] Installed applications are listed — **verified** (28 `.desktop` apps)
 - [ ] Screen brightness control works — *compiles; untested (VM has no backlight)*
 - [x] System tray icon appears and functions — *initializes; needs a panel/SNI host for full interaction*
-- [ ] Auto-start on login works
+- [x] Auto-start on login works — **verified** via `tauri_plugin_autostart` writing `~/.config/autostart/Dot X.desktop` (XDG spec). Enable/disable/is_enabled round-trip tested on Ubuntu 24.04.
 - [ ] App auto-updates work on Linux — *needs signing key + endpoint validation*
 - [ ] CI builds and tests on Linux automatically
+- [x] Serial port / Decker — **fully verified end-to-end through the real Rust binary**: `get_devices()` enumerates the Decker with correct VID/PID, `connect_decker` opens the port, 75+ live `slider-change` events decoded by `rmp_serde`, and `get-device-info` round-trip returns firmware/model/serial. Tested on `ananords@192.168.68.149` (Ubuntu 24.04, real `VM-5SW` Decker on `/dev/ttyACM0`).
 - [x] `volume-control-rs` — cross-platform audio crate replacing `windows-volume-control`, Linux backend now functional (3 bugs fixed)
 - [x] `psp` power monitor — no longer panics headless; suspend/resume emitted (fix in `D:\psp`)
 
