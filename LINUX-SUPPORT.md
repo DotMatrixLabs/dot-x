@@ -7,6 +7,7 @@
 Testing is done on Ubuntu. Currently up for testing:
 
 - **`ananords-dev` (local machine)** — Ubuntu 24.04.3 LTS (kernel 6.17.0-19-generic), real Decker (`VM-5SW`) on `/dev/ttyACM0`, GNOME Wayland session on tty2. No `/sys/class/backlight`; external HP 24uh monitor on HDMI-A-1 (`/dev/i2c-1`), DDC/CI working. Primary test machine — run commands directly, no SSH needed.
+- **`bazzite`** — Also available for testing.
 - `ssh ananords@192.168.68.149` — previously used remote Ubuntu 24.04.3 machine. SSH key may need re-installing if host key changed.
 
 To launch the app on `ananords-dev` with the live Wayland display:
