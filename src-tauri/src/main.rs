@@ -156,6 +156,8 @@ fn get_available_midi_output_port_names() -> Result<MidiPortNames, Error> {
             }
         };
     }
+    #[cfg(unix)]
+    available_ports.push(midi::midi::VIRTUAL_OUTPUT_PORT_NAME.to_string());
 
     let available_ports_response = MidiPortNames {
         names: available_ports,
@@ -260,6 +262,9 @@ fn attach_midi_device(
 ) -> Result<(), Error> {
     let midi_sliders_vec = value_to_i32_vec(&midi_sliders).unwrap_or_default();
     let midi_configuration_vec = value_to_object_vec(&midi_configuration).unwrap_or_default();
+    unsafe {
+        midi::midi::ENABLED = true;
+    }
     let midi_controller = midi::midi::new(
         "Decker",
         output_port,
@@ -269,11 +274,11 @@ fn attach_midi_device(
     match midi_controller {
         Ok(_midi_controller) => {
             info!("Midi port {}: Port name: {}", output_port, output_name);
-            unsafe {
-                midi::midi::ENABLED = true;
-            }
         }
         Err(error) => {
+            unsafe {
+                midi::midi::ENABLED = false;
+            }
             error!("[attach_midi_device] Dot X Error: {:?}", error);
             return Err(Error::Connection);
         }

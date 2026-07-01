@@ -27,7 +27,7 @@ WAYLAND_DISPLAY=wayland-0 XDG_RUNTIME_DIR=/run/user/1000 \
 | High | **Screen brightness (DDC/CI)** | `brightness` crate 0.8 is sysfs-only. `/sys/class/backlight/` is empty on this desktop (external monitor only). Tauri `set_screen_brightness` silently no-ops — no error, no effect. | Switch to DDC/CI: use the `ddc-hi` crate, shell out to `ddcutil`, or bind `libddcutil`. The HP 24uh on `/dev/i2c-1` responds correctly to `ddcutil setvcp 10 <val>`. Also needs a laptop to test the sysfs path. |
 | High | **Active window — GNOME Wayland** | `active-win-pos-rs` 0.11 uses `org.gnome.Shell.Eval` which was disabled in GNOME 42 for security. `Shell.Eval` returns `(false, '')`. MIDI/Decker automation that depends on focus detection won't trigger on GNOME Wayland. | Need a GNOME Shell extension exposing active-window via a safe D-Bus interface, or upstream PR to `active-win-pos-rs` using an alternative Mutter API. |
 | Medium | **`psp` path dep must be resolved** | `src-tauri/Cargo.toml` uses `psp = { path = "../../psp" }` which only works when `psp` is checked out alongside. CI and any machine without that path will fail to build. | Push the `psp` fix to `github.com/Frogbyte-io/psp` and switch back to the git dep (already commented in Cargo.toml). |
-| Medium | **MIDI CC send/receive round-trip** | Only port enumeration has been tested. Actually sending and receiving control-change messages has not been exercised. | Connect two virtual MIDI ports (`snd-virmidi`) and test the full CC round-trip from the app UI. |
+| Medium | **MIDI CC send/receive round-trip** | Port enumeration, virtual output creation, and CC message construction are tested. Actually sending Decker-driven control-change messages through the app UI and receiving them in another client has not been exercised. | Use the built-in `Dot X Virtual MIDI` output and test the full CC round-trip from the app UI into a MIDI monitor/DAW. |
 | Medium | **Full plugin round-trip** | Deno runtime extracts and runs. The actual plugin load/execute/event flow has not been tested end-to-end from the UI. | Install a test `.dotxplugin`, verify it loads, executes, and emits events. |
 | Low | **App auto-updates on Linux** | Bundles build with `createUpdaterArtifacts` but update flow has not been validated. | Needs `TAURI_SIGNING_PRIVATE_KEY` (release secret) + an update endpoint, then trigger and validate the update flow. |
 | Low | **CI on Linux** | Linux CI has been added but still needs validation in GitHub Actions, especially while `psp` and `volume-control-rs` are checked out as sibling path dependencies and updater signing secrets may be required for bundle artifacts. | Validate `.github/workflows/linux-ci.yml` in GitHub Actions and switch path dependencies back to git/crates dependencies when their Linux fixes are published. |
@@ -47,6 +47,8 @@ These have all been functionally tested on `ananords-dev` (Ubuntu 24.04.3, GNOME
 - **Installed applications list** — `.desktop` parsing returns real apps with name / executable / source.
 - **Active window detection (X11)** — `active-win-pos-rs` 0.11 returns correct `app_name` (from `WM_CLASS`) and `pid` under Xvfb + openbox. *(GNOME Wayland is broken — see TODO above.)*
 - **MIDI device enumeration** — `midir` (ALSA backend) lists input and output ports. Requires user to be in the `audio` group for `/dev/snd/seq` access (a real desktop login grants this; SSH sessions may not). CC send/receive not yet tested.
+- **MIDI CC message construction** — verified 2026-07-01 in `dotx-ubuntu-ci` distrobox: backend unit tests cover Decker slider value mapping (`0..1023` → `0..127`), default channel/CC behavior, configured channel/CC behavior, and invalid channel rejection. Full ALSA virtual-port/UI send/receive round-trip is still open.
+- **MIDI virtual output port** — verified 2026-07-01 in `dotx-ubuntu-ci` distrobox with `DOTX_TEST_ALSA_MIDI=1`: `midir::os::unix::VirtualOutput` creates `Dot X Virtual MIDI`, and the port is visible to receiving MIDI clients while the connection is alive.
 - **Deno runtime** — bundled `deno-x86_64-unknown-linux-gnu.zip` extracts, `chmod +x`, and runs.
 - **Power monitor (`psp`)** — no longer panics headless; logind session resolution degrades gracefully over SSH; suspend/resume events are now actually emitted. Fix is in `../../psp` (path dep — see TODO to publish).
 - **Serial port / Decker** — fully verified end-to-end on `ananords-dev` (Ubuntu 24.04, `VM-5SW` Decker fw `0.0.3` at `/dev/ttyACM0`, VID `04d8`/1240, PID `e626`/58918): `get_devices()` enumerates with correct VID/PID, `connect_decker` opens port + sets DTR, 75+ live `slider-change` events decoded by `rmp_serde`, `get-device-info` round-trip returns firmware/model/serial.
@@ -72,7 +74,7 @@ These have all been functionally tested on `ananords-dev` (Ubuntu 24.04.3, GNOME
 - [x] Deno runtime runs (plugin system partially working)
 - [~] Plugin system works — Deno runs; full round-trip not yet tested
 - [ ] Screen brightness control works — **blocked: sysfs-only crate, DDC/CI not wired**
-- [ ] MIDI CC send/receive round-trip
+- [~] MIDI CC send/receive round-trip — virtual output + CC byte construction verified; UI-driven receive side still open
 - [ ] Active window on GNOME Wayland — **broken by design (Shell.Eval disabled)**
 - [ ] App auto-updates on Linux
 - [~] CI builds and tests on Linux automatically — workflow added; GitHub Actions run not yet validated
@@ -108,6 +110,7 @@ These have all been functionally tested on `ananords-dev` (Ubuntu 24.04.3, GNOME
 sudo apt-get update
 sudo apt-get install -y \
   build-essential pkg-config curl wget file \
+  libssl-dev \
   libwebkit2gtk-4.1-dev librsvg2-dev libgtk-3-dev \
   libxcb-ewmh-dev libxcb-randr0-dev libdbus-1-dev \
   libpulse-dev libudev-dev libasound2-dev \
@@ -116,6 +119,7 @@ sudo apt-get install -y \
 
 Package notes:
 - `libwebkit2gtk-4.1-dev` / `librsvg2-dev` / `libgtk-3-dev` — Tauri 2 webview. `libgtk-3-dev` must be listed explicitly even though `libwebkit2gtk-4.1-dev` pulls in the runtime.
+- `libssl-dev` — OpenSSL link libraries used by Rust dependencies such as `reqwest` / updater support.
 - **Ubuntu 24.04 quirk:** `libsoup-3.0.pc` is installed as `libsoup-3.0` but `soup3-sys` looks for `soup-3.0`. Fix: `sudo ln -sf /usr/lib/x86_64-linux-gnu/pkgconfig/libsoup-3.0.pc /usr/lib/x86_64-linux-gnu/pkgconfig/soup-3.0.pc`
 - **Ubuntu 24.04 quirk:** if `libpsl-dev` / `libsysprof-capture-4-dev` show "no installation candidate", a foreign dpkg arch (e.g. arm64) is configured without a matching repo. Fix: `sudo dpkg --remove-architecture arm64 && sudo apt-get update`.
 - `libxcb-ewmh-dev` / `libxcb-randr0-dev` — `active-win-pos-rs` X11/XCB backend.
