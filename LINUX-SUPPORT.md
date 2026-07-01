@@ -30,7 +30,7 @@ WAYLAND_DISPLAY=wayland-0 XDG_RUNTIME_DIR=/run/user/1000 \
 | Medium | **MIDI CC send/receive round-trip** | Only port enumeration has been tested. Actually sending and receiving control-change messages has not been exercised. | Connect two virtual MIDI ports (`snd-virmidi`) and test the full CC round-trip from the app UI. |
 | Medium | **Full plugin round-trip** | Deno runtime extracts and runs. The actual plugin load/execute/event flow has not been tested end-to-end from the UI. | Install a test `.dotxplugin`, verify it loads, executes, and emits events. |
 | Low | **App auto-updates on Linux** | Bundles build with `createUpdaterArtifacts` but update flow has not been validated. | Needs `TAURI_SIGNING_PRIVATE_KEY` (release secret) + an update endpoint, then trigger and validate the update flow. |
-| Low | **CI on Linux** | No CI job exists for Linux. The branch can only be built manually. | Add a Linux job to CI that installs the build deps and runs `yarn tauri build`. |
+| Low | **CI on Linux** | Linux CI has been added but still needs validation in GitHub Actions, especially while `psp` and `volume-control-rs` are checked out as sibling path dependencies and updater signing secrets may be required for bundle artifacts. | Validate `.github/workflows/linux-ci.yml` in GitHub Actions and switch path dependencies back to git/crates dependencies when their Linux fixes are published. |
 
 ---
 
@@ -75,7 +75,7 @@ These have all been functionally tested on `ananords-dev` (Ubuntu 24.04.3, GNOME
 - [ ] MIDI CC send/receive round-trip
 - [ ] Active window on GNOME Wayland — **broken by design (Shell.Eval disabled)**
 - [ ] App auto-updates on Linux
-- [ ] CI builds and tests on Linux automatically
+- [~] CI builds and tests on Linux automatically — workflow added; GitHub Actions run not yet validated
 
 ---
 
@@ -102,6 +102,8 @@ These have all been functionally tested on `ananords-dev` (Ubuntu 24.04.3, GNOME
 
 ## Linux Build Prerequisites
 
+### Ubuntu / Debian
+
 ```sh
 sudo apt-get update
 sudo apt-get install -y \
@@ -124,6 +126,61 @@ Package notes:
 - `libayatana-appindicator3-dev` — system tray. Runtime needs `libayatana-appindicator3-1`.
 
 For DDC/CI brightness (once implemented): `libddcutil-dev` at build time, `i2c-dev` kernel module at runtime.
+
+### Fedora / RHEL
+
+```sh
+sudo dnf install \
+  webkit2gtk4.1-devel openssl-devel curl wget file \
+  libappindicator-gtk3-devel librsvg2-devel \
+  libxcb-devel alsa-lib-devel pulseaudio-libs-devel \
+  systemd-devel dbus-devel
+sudo dnf groupinstall "Development Tools"
+```
+
+### Bazzite / Fedora Atomic (immutable OS)
+
+Bazzite cannot install `-devel` packages natively — use [Distrobox](https://distrobox.it/) (pre-installed on Bazzite) to create a mutable Fedora container that shares your home directory:
+
+```sh
+# One-time setup: create a Fedora development container
+distrobox create --name fedora-dev --image fedora:41
+distrobox enter fedora-dev
+
+# Inside the container, install build dependencies
+sudo dnf install \
+  webkit2gtk4.1-devel openssl-devel curl wget file \
+  libappindicator-gtk3-devel librsvg2-devel \
+  libxcb-devel alsa-lib-devel pulseaudio-libs-devel \
+  systemd-devel dbus-devel nodejs npm
+sudo dnf groupinstall "Development Tools"
+
+# Install Rust (inside the container)
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source ~/.cargo/env
+
+# Install yarn
+npm install -g yarn
+```
+
+After the one-time setup, enter the container and build normally:
+
+```sh
+distrobox enter fedora-dev
+cd ~/Code/dot-x
+yarn tauri dev
+```
+
+The container shares your home directory, so your code edits are immediately visible inside it.
+
+**Serial port access (Decker):** Distrobox shares `/dev/` from the host, but group memberships may not transfer into a fresh container. If you get "permission denied" on `/dev/ttyACM0`, add yourself to `dialout` inside the container:
+
+```sh
+distrobox enter fedora-dev
+sudo usermod -a -G dialout $USER
+exit
+distrobox enter fedora-dev  # re-enter so the group takes effect
+```
 
 ---
 
