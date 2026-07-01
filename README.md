@@ -21,7 +21,65 @@ Desktop interface for DotMatrixLabs Decker physical volume mixer built with Taur
 
 - [Node.js](https://nodejs.org/) 22+ and [Yarn](https://yarnpkg.com/)
 - [Rust](https://rustup.rs/) 1.90.0
-- Windows 10/11
+- Windows 10/11, or Linux (see below)
+
+#### Linux — Ubuntu / Debian
+
+```bash
+sudo apt-get update
+sudo apt-get install -y \
+  build-essential pkg-config curl wget file \
+  libwebkit2gtk-4.1-dev librsvg2-dev libgtk-3-dev \
+  libxcb-ewmh-dev libxcb-randr0-dev libdbus-1-dev \
+  libpulse-dev libudev-dev libasound2-dev \
+  libayatana-appindicator3-dev
+```
+
+#### Linux — Fedora / RHEL
+
+```bash
+sudo dnf install \
+  webkit2gtk4.1-devel openssl-devel curl wget file \
+  libappindicator-gtk3-devel librsvg2-devel \
+  libxcb-devel alsa-lib-devel pulseaudio-libs-devel \
+  systemd-devel dbus-devel
+sudo dnf groupinstall "Development Tools"
+```
+
+#### Linux — Bazzite / Fedora Atomic (immutable OS)
+
+Bazzite cannot install `-devel` packages natively. Use [Distrobox](https://distrobox.it/) (pre-installed on Bazzite) to build inside a mutable Fedora container that shares your home directory.
+
+**One-time setup:**
+
+```bash
+distrobox create --name fedora-dev --image fedora:41
+distrobox enter fedora-dev
+
+sudo dnf install \
+  webkit2gtk4.1-devel openssl-devel curl wget file \
+  libappindicator-gtk3-devel librsvg2-devel \
+  libxcb-devel alsa-lib-devel pulseaudio-libs-devel \
+  systemd-devel dbus-devel nodejs npm
+sudo dnf groupinstall "Development Tools"
+
+# Install Rust and Yarn inside the container
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source ~/.cargo/env
+npm install -g yarn
+
+# Allow serial port access to the Decker
+sudo usermod -a -G dialout $USER
+exit && distrobox enter fedora-dev  # re-enter so the group takes effect
+```
+
+**Daily use** — enter the container and build normally:
+
+```bash
+distrobox enter fedora-dev
+cd ~/Code/dot-x
+yarn tauri dev
+```
 
 ### Setup
 
