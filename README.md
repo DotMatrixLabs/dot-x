@@ -29,6 +29,7 @@ Desktop interface for DotMatrixLabs Decker physical volume mixer built with Taur
 sudo apt-get update
 sudo apt-get install -y \
   build-essential pkg-config curl wget file \
+  libssl-dev \
   libwebkit2gtk-4.1-dev librsvg2-dev libgtk-3-dev \
   libxcb-ewmh-dev libxcb-randr0-dev libdbus-1-dev \
   libpulse-dev libudev-dev libasound2-dev \
@@ -152,4 +153,3 @@ Recommended VS Code extensions:
 2. Make your changes
 3. Test with actual hardware
 4. Submit for internal review
-

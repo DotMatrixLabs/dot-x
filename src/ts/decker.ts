@@ -179,10 +179,18 @@ class Decker {
     public async attachMidiDevice(outputPort: number) {
         const deckerStore = useDeckerStore();
         const outputName = await ConfigStore.get("midiOutputPort");
+        const devices = await this.getMidiDevices() as { names: string[] };
+        const resolvedOutputPort = devices.names.findIndex((device: string) => device === outputName);
         const MAX_RETRIES = 5;
         let retries = 0;
         let sliderApps: Array<string>[] = [];
         let midiSliders: Array<Number> = [];
+
+        if (resolvedOutputPort >= 0) {
+            outputPort = resolvedOutputPort;
+            await ConfigStore.set("midiOutputPortNumber", resolvedOutputPort);
+            ConfigStore.save();
+        }
 
         // Wait for deckerStore.getSliders to not return an empty array. This takes some time when the app is first started.
         while (deckerStore.getSliders.length === 0) {
@@ -293,4 +301,3 @@ class Decker {
 }
 
 export default (new Decker());
-
