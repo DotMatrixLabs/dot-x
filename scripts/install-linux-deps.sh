@@ -31,6 +31,7 @@ sudo apt-get update -qq
 info "Installing build dependencies…"
 sudo apt-get install -y --fix-missing \
     build-essential pkg-config curl wget file \
+    libssl-dev \
     libwebkit2gtk-4.1-dev librsvg2-dev libgtk-3-dev \
     libxcb-ewmh-dev libxcb-randr0-dev libdbus-1-dev \
     libpulse-dev libudev-dev libasound2-dev \
