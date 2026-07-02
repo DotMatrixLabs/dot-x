@@ -10,7 +10,7 @@ use serde_json::Value;
 use futures_util::{pin_mut, StreamExt};
 
 // Constants for port range
-const DEFAULT_PORT: u16 = 3001;
+pub const DEFAULT_PORT: u16 = 3001;
 const PORT_RANGE_START: u16 = 3001;
 const PORT_RANGE_END: u16 = 3099;
 
