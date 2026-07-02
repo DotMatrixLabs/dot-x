@@ -8,7 +8,7 @@ use tauri::Emitter;
 use tokio::{process::Command, sync::RwLock, io::{AsyncBufReadExt, BufReader, AsyncWriteExt, AsyncRead}};
 use tokio::fs as async_fs;
 use chrono::Local;
-use crate::plugin_server::get_active_port;
+use crate::plugin_server::{get_active_port, start_plugin_server, DEFAULT_PORT};
 
 // Global process table: plugin_id -> Child process
 static PROCESS_TABLE: OnceCell<Arc<RwLock<HashMap<String, tokio::process::Child>>>> = OnceCell::new();
@@ -802,6 +802,8 @@ async fn start_plugin_internal(app_handle: &AppHandle, plugin_id: &str) -> Resul
     return Ok(());
   }
 
+  ensure_plugin_server_running(app_handle).await?;
+
   emit_plugin_lifecycle(app_handle, plugin_id, "starting", None, None, None, Some(false));
 
   let dir = match find_plugin_dir_by_id(app_handle, plugin_id) {
@@ -836,6 +838,15 @@ async fn start_plugin_internal(app_handle: &AppHandle, plugin_id: &str) -> Resul
   map.insert(plugin_id.to_string(), child);
   info!("Started plugin {}", plugin_id);
   Ok(())
+}
+
+async fn ensure_plugin_server_running(app_handle: &AppHandle) -> Result<u16, String> {
+  let active_port = get_active_port();
+  if active_port > 0 {
+    return Ok(active_port);
+  }
+
+  start_plugin_server(app_handle.clone(), DEFAULT_PORT).await
 }
 
 async fn stop_plugin_internal(app_handle: &AppHandle, plugin_id: &str) -> Result<(), String> {
@@ -934,6 +945,14 @@ pub async fn start_enabled_plugins(app_handle: AppHandle) -> Result<usize, Strin
 
 pub fn auto_start_enabled_plugins(app_handle: AppHandle) {
   tauri::async_runtime::spawn(async move {
+    match ensure_plugin_server_running(&app_handle).await {
+      Ok(port) => info!("Plugin server ready on port {} before plugin auto-start", port),
+      Err(e) => {
+        error!("Failed to start plugin server before plugin auto-start: {}", e);
+        return;
+      }
+    }
+
     match start_enabled_plugins(app_handle).await {
       Ok(count) => info!("Auto-started {} enabled plugins", count),
       Err(e) => error!("Failed to auto-start plugins: {}", e),
