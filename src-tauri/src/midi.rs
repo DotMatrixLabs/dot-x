@@ -1,9 +1,9 @@
 pub mod midi {
     use crate::{decker, get_app_handle};
     use log::{debug, error, info, trace};
-    use midir::{MidiOutput, MidiOutputConnection, MidiOutputPort};
     #[cfg(unix)]
     use midir::os::unix::VirtualOutput;
+    use midir::{MidiOutput, MidiOutputConnection, MidiOutputPort};
     use std::error::Error;
     use std::thread;
     use std::time::Duration;
@@ -156,8 +156,7 @@ pub mod midi {
         let mut midi = Midi::new("Decker");
         let midi_out = MidiOutput::new("Decker Output")?;
         let output_ports = get_available_output_ports()?;
-        if output_ports.is_empty()
-            && !is_virtual_output_port(output_ports.len(), midi_output_port)
+        if output_ports.is_empty() && !is_virtual_output_port(output_ports.len(), midi_output_port)
         {
             error!("No available MIDI output ports.");
         }
@@ -249,11 +248,15 @@ pub mod midi {
 
     #[cfg(test)]
     mod tests {
-        use super::{control_change_message, is_virtual_output_port, map_to_range};
         #[cfg(unix)]
         use super::connect_output;
+        use super::{control_change_message, is_virtual_output_port, map_to_range};
         #[cfg(unix)]
         use midir::{MidiInput, MidiOutput};
+        #[cfg(unix)]
+        use std::sync::mpsc;
+        #[cfg(unix)]
+        use std::time::Duration;
 
         #[test]
         fn maps_decker_slider_range_to_midi_value_range() {
@@ -321,6 +324,52 @@ pub mod midi {
             );
 
             drop(conn);
+        }
+
+        #[cfg(unix)]
+        #[test]
+        fn sends_control_change_through_virtual_output_when_alsa_midi_test_is_enabled() {
+            if std::env::var_os("DOTX_TEST_ALSA_MIDI").is_none() {
+                return;
+            }
+
+            let midi_out = MidiOutput::new("Dot X Test Output").unwrap();
+            let mut conn_out = connect_output(midi_out, &[], 0).unwrap();
+
+            let midi_in = MidiInput::new("Dot X Test Input").unwrap();
+            let input_port = midi_in
+                .ports()
+                .into_iter()
+                .find(|port| {
+                    midi_in
+                        .port_name(port)
+                        .map(|name| name.contains(super::VIRTUAL_OUTPUT_PORT_NAME))
+                        .unwrap_or(false)
+                })
+                .expect("virtual MIDI output should be visible to input clients");
+
+            let (tx, rx) = mpsc::channel();
+            let _conn_in = midi_in
+                .connect(
+                    &input_port,
+                    "Dot X Test Receiver",
+                    move |_timestamp, message, _| {
+                        tx.send(message.to_vec()).unwrap();
+                    },
+                    (),
+                )
+                .unwrap();
+
+            let message =
+                control_change_message(1, 1023, &[("3".to_string(), "74".to_string())]).unwrap();
+            conn_out.send(&message).unwrap();
+
+            assert_eq!(
+                rx.recv_timeout(Duration::from_secs(2)).unwrap(),
+                message.to_vec()
+            );
+
+            drop(conn_out);
         }
     }
 }
