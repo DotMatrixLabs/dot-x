@@ -35,7 +35,7 @@ For development on Bazzite, use `yarn dev:linux`. It enters the Fedora Distrobox
 
 | Priority | What | Why it's broken | Fix |
 |---|---|---|---|
-| High | **Screen brightness (DDC/CI)** | `brightness` crate 0.8 is sysfs-only. `/sys/class/backlight/` is empty on this desktop (external monitor only). Tauri `set_screen_brightness` silently no-ops — no error, no effect. | Switch to DDC/CI: use the `ddc-hi` crate, shell out to `ddcutil`, or bind `libddcutil`. The HP 24uh on `/dev/i2c-1` responds correctly to `ddcutil setvcp 10 <val>`. Also needs a laptop to test the sysfs path. |
+| High | **Screen brightness (DDC/CI)** | Upstream `brightness` crate 0.8 is sysfs-only. `/sys/class/backlight/` is empty on external-monitor desktops. | Implementation started 2026-07-02 in `Frogbyte-io/brightness`: Dot X now points `brightness` at the Frogbyte fork, which keeps sysfs backlight support and adds Linux DDC/CI devices by parsing `ddcutil detect --terse` and using VCP code `10` for get/set. Verified the fork directly on `bazzite` with a Philips monitor at `/dev/i2c-2`: `cargo run --example list_displays_async` returned `ddcci-display-1`, friendly name `card1-HDMI-A-1`, brightness `83%`. Dot X `cargo check` passes. Still needs app/UI-driven verification on `ananords-dev` HP 24uh and a laptop to make sure the sysfs path still works. Runtime now requires `ddcutil` for external-monitor DDC/CI brightness. |
 | High | **Active window — GNOME Wayland** | `active-win-pos-rs` 0.11 uses `org.gnome.Shell.Eval` which was disabled in GNOME 42 for security. `Shell.Eval` returns `(false, '')`. MIDI/Decker automation that depends on focus detection won't trigger on GNOME Wayland. | Need a GNOME Shell extension exposing active-window via a safe D-Bus interface, or upstream PR to `active-win-pos-rs` using an alternative Mutter API. |
 | Medium | **`psp` path dep must be resolved** | `src-tauri/Cargo.toml` uses `psp = { path = "../../psp" }` which only works when `psp` is checked out alongside. CI and any machine without that path will fail to build. | Push the `psp` fix to `github.com/Frogbyte-io/psp` and switch back to the git dep (already commented in Cargo.toml). |
 | Medium | **MIDI CC send/receive round-trip** | Port enumeration, virtual output creation, CC message construction, and backend virtual-output send/receive are tested. Actually sending Decker-driven control-change messages through the app UI and receiving them in another client has not been exercised. | Use the built-in `Dot X Virtual MIDI` output and test the full CC round-trip from the app UI into a MIDI monitor/DAW. |
@@ -88,7 +88,7 @@ These have all been functionally tested on `ananords-dev` (Ubuntu 24.04.3, GNOME
 - [x] Auto-start on login works
 - [x] Deno runtime runs (plugin system partially working)
 - [~] Plugin system works — SDK build/packaging/install/spawn verified; blocked on a real plugin-server-startup race (see TODO) before Socket.IO round-trip and settings UI can be tested
-- [ ] Screen brightness control works — **blocked: sysfs-only crate, DDC/CI not wired**
+- [~] Screen brightness control works — DDC/CI support wired in the Frogbyte `brightness` fork via `ddcutil`; app/UI verification and laptop sysfs regression test still needed
 - [~] MIDI CC send/receive round-trip — virtual output + CC byte construction verified; UI-driven receive side still open
 - [ ] Active window on GNOME Wayland — **broken by design (Shell.Eval disabled)**
 - [ ] App auto-updates on Linux
@@ -129,7 +129,7 @@ sudo apt-get install -y \
   libwebkit2gtk-4.1-dev librsvg2-dev libgtk-3-dev \
   libxcb-ewmh-dev libxcb-randr0-dev libdbus-1-dev \
   libpulse-dev libudev-dev libasound2-dev \
-  libayatana-appindicator3-dev
+  libayatana-appindicator3-dev ddcutil
 ```
 
 Package notes:
@@ -143,8 +143,9 @@ Package notes:
 - `libudev-dev` — `libudev-sys` (used by `serialport` and `brightness`).
 - `libasound2-dev` — `alsa-sys` for `midir` ALSA backend.
 - `libayatana-appindicator3-dev` — system tray. Runtime needs `libayatana-appindicator3-1`.
+- `ddcutil` — external-monitor DDC/CI brightness backend used by the Frogbyte `brightness` fork.
 
-For DDC/CI brightness (once implemented): `libddcutil-dev` at build time, `i2c-dev` kernel module at runtime.
+For DDC/CI brightness: `ddcutil` at runtime, `i2c-dev` kernel module loaded, and permission to access the relevant `/dev/i2c-*` device.
 
 ### Fedora / RHEL
 
@@ -153,7 +154,7 @@ sudo dnf install \
   webkit2gtk4.1-devel openssl-devel curl wget file \
   libappindicator-gtk3-devel librsvg2-devel \
   libxcb-devel alsa-lib-devel pulseaudio-libs-devel \
-  systemd-devel dbus-devel
+  systemd-devel dbus-devel ddcutil
 sudo dnf groupinstall "Development Tools"
 ```
 
@@ -175,7 +176,7 @@ sudo dnf install \
   webkit2gtk4.1-devel openssl-devel curl wget file \
   libappindicator-gtk3-devel librsvg2-devel \
   libxcb-devel alsa-lib-devel pulseaudio-libs-devel \
-  systemd-devel dbus-devel nodejs npm
+  systemd-devel dbus-devel ddcutil nodejs npm
 sudo dnf groupinstall "Development Tools"
 
 # Install Rust (inside the container)
