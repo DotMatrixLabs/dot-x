@@ -36,6 +36,7 @@ sudo apt-get install -y --fix-missing \
     libxcb-ewmh-dev libxcb-randr0-dev libdbus-1-dev \
     libpulse-dev libudev-dev libasound2-dev \
     libayatana-appindicator3-dev \
+    ddcutil \
     xvfb
 
 # ── 4. Fix Ubuntu 24.04 soup-3.0 pkg-config naming ───────────────────────────

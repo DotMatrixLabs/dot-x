@@ -858,8 +858,7 @@ dependencies = [
 [[package]]
 name = "brightness"
 version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "96cbd6161e57989ea8b90d5adc0faf20eda8c0995a14cdbc63a8855ab7e4149e"
+source = "git+https://github.com/Frogbyte-io/brightness.git#1861f19efe698540f29ef31dab0ebd54be53bf88"
 dependencies = [
  "blocking",
  "cfg-if",
