@@ -447,7 +447,10 @@ async fn show_brightness(dev: &BrightnessDevice) -> Result<(), brightness::Error
     Ok(())
 }
 
-#[tauri::command]
+// Runs on Tauri's threadpool instead of the main event loop: opening the serial
+// port (and the up-to-250ms wait for a stale connection to close) must not block
+// the UI thread, or a slow/failing device (e.g. a permission error) freezes the app.
+#[tauri::command(async)]
 fn connect_decker(window: WebviewWindow, port_name: &str, inverted: bool) -> Result<(), Error> {
     println!(
         "Connecting Decker at port: {}, inverted: {}",
