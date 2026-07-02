@@ -9,7 +9,7 @@
                 <option class="w-full" v-for="(device, index) in devices" :value="device" :key="index">
                     {{ deviceName(device) }}
                 </option>
-                <option v-if="connectionState" class="w-full" value="disconnect">
+                <option v-if="connectionState || currentDevice" class="w-full" value="disconnect">
                     Disconnect
                 </option>
             </select>
