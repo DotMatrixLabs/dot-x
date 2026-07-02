@@ -7,7 +7,7 @@
 Testing is done on Ubuntu. Currently up for testing:
 
 - **`ananords-dev` (local machine)** — Ubuntu 24.04.3 LTS (kernel 6.17.0-19-generic), real Decker (`VM-5SW`) on `/dev/ttyACM0`, GNOME Wayland session on tty2. No `/sys/class/backlight`; external HP 24uh monitor on HDMI-A-1 (`/dev/i2c-1`), DDC/CI working. Primary test machine — run commands directly, no SSH needed.
-- **`bazzite`** — Also available for testing.
+- **`bazzite`** — Also available for testing. NVIDIA GeForce GTX 1660 SUPER (driver 610.43), KDE Plasma/KWin Wayland. **The app crashes immediately on launch here without `WEBKIT_DISABLE_DMABUF_RENDERER=1`** — see TODO ("App crashes on launch — NVIDIA + Wayland explicit sync"). For development/builds, prefer Distrobox instead of the immutable host; native Bazzite has the runtime `.so` files but not the `-devel` pkg-config metadata or unversioned linker names needed by `yarn tauri dev`. Real Decker also present at `/dev/ttyACM0`, but the user account isn't in the `dialout` group and the `99-dot-x.rules` udev rule isn't installed on this machine, so serial access needs one of those fixed before Decker/MIDI-round-trip testing can happen here.
 - `ssh ananords@192.168.68.149` — previously used remote Ubuntu 24.04.3 machine. SSH key may need re-installing if host key changed.
 
 To launch the app on `ananords-dev` with the live Wayland display:
@@ -17,6 +17,16 @@ WAYLAND_DISPLAY=wayland-0 XDG_RUNTIME_DIR=/run/user/1000 \
   XDG_CURRENT_DESKTOP=ubuntu:GNOME \
   src-tauri/target/debug/dot_x &> /tmp/dotx.log &
 ```
+
+To launch the app on `bazzite` from an already-built binary (env vars are already set in a normal desktop login shell there, but the NVIDIA/WebKit workarounds are required):
+```sh
+GDK_BACKEND=x11 \
+  WEBKIT_DISABLE_DMABUF_RENDERER=1 \
+  WEBKIT_DISABLE_COMPOSITING_MODE=1 \
+  src-tauri/target/debug/dot_x &> /tmp/dotx.log &
+```
+
+For development on Bazzite, use `yarn dev:linux`. It enters the Fedora Distrobox automatically on the immutable host, checks for Linux build dependencies, and applies the WebKit/X11 launch flags. Plain `yarn tauri dev` is intentionally left as the raw Tauri command.
 
 ---
 
@@ -28,7 +38,9 @@ WAYLAND_DISPLAY=wayland-0 XDG_RUNTIME_DIR=/run/user/1000 \
 | High | **Active window — GNOME Wayland** | `active-win-pos-rs` 0.11 uses `org.gnome.Shell.Eval` which was disabled in GNOME 42 for security. `Shell.Eval` returns `(false, '')`. MIDI/Decker automation that depends on focus detection won't trigger on GNOME Wayland. | Need a GNOME Shell extension exposing active-window via a safe D-Bus interface, or upstream PR to `active-win-pos-rs` using an alternative Mutter API. |
 | Medium | **`psp` path dep must be resolved** | `src-tauri/Cargo.toml` uses `psp = { path = "../../psp" }` which only works when `psp` is checked out alongside. CI and any machine without that path will fail to build. | Push the `psp` fix to `github.com/Frogbyte-io/psp` and switch back to the git dep (already commented in Cargo.toml). |
 | Medium | **MIDI CC send/receive round-trip** | Port enumeration, virtual output creation, and CC message construction are tested. Actually sending Decker-driven control-change messages through the app UI and receiving them in another client has not been exercised. | Use the built-in `Dot X Virtual MIDI` output and test the full CC round-trip from the app UI into a MIDI monitor/DAW. |
-| Medium | **Full plugin round-trip** | Deno runtime extracts and runs. The actual plugin load/execute/event flow has not been tested end-to-end from the UI. | Install a test `.dotxplugin`, verify it loads, executes, and emits events. |
+| High | **App crashes on launch — NVIDIA + Wayland explicit sync** | On `bazzite` (NVIDIA GeForce GTX 1660 SUPER, driver 610.43, KWin/Plasma Wayland), the app crashes ~0.3s after launch: `Gdk-Message: Error 71 (Protocol error) dispatching to Wayland display`, with KWin logging `wl_display#1.error(wp_linux_drm_syncobj_surface_v1, 4, "explicit sync is used, but no acquire point is set")`. WebKitGTK's DMA-BUF/GPU renderer commits a buffer via `wp_linux_drm_syncobj_manager_v1` without setting an acquire timeline point first — a protocol violation KWin now enforces strictly. Reproduces from a clean boot, unrelated to plugins/session state. | Workaround confirmed: launch with `WEBKIT_DISABLE_DMABUF_RENDERER=1` env var (forces WebKitGTK off the DMA-BUF/explicit-sync path). Needs a permanent fix: either set this env var by default on Linux (at least for NVIDIA), gate it on GPU vendor detection, or track upstream WebKitGTK/Mesa/NVIDIA fixes for explicit-sync acquire points. |
+| High | **Reliable Linux dev launch on Bazzite** | Verified 2026-07-02 on native Bazzite 44: plain `yarn tauri dev` failed at link time because the host has runtime libraries under `/lib64` but lacks development packages/pkg-config metadata/unversioned linker names for `dbus-1`, `xcb`, `udev`, ALSA, GTK/WebKit, `libsoup-3.0`, etc. Temporary `/tmp` symlinks made the linker pass, but that is not a real fix. Wayland launch then crashed unless forced away from WebKitGTK's DMA-BUF path; `GDK_BACKEND=x11 WEBKIT_DISABLE_DMABUF_RENDERER=1 WEBKIT_DISABLE_COMPOSITING_MODE=1` produced a real rendered 800x600 window. | Use `yarn dev:linux`. It auto-enters `DOTX_DISTROBOX_NAME` (default `fedora-dev`) on native Bazzite, runs a dependency preflight, and applies the WebKit/X11 flags. It does not auto-install packages because that may require sudo and should be explicit. For native host testing, use already-built binaries/packages and the launch flags above. Do not rely on temporary linker symlinks; either layer the proper `-devel` packages with `rpm-ostree` if native builds are required, or keep native host testing runtime-only. |
+| Medium | **Full plugin round-trip** | SDK build, `.dotxplugin` packaging/install, and Deno process spawn+execute are now verified (see below). Found a real bug: `auto_start_enabled_plugins` runs at backend init and starts enabled plugins immediately, but the plugin Socket.IO server only starts when the frontend calls `start_plugin_server` — which apparently never happens (or happens too late) when the app launches tray-first/hidden. The plugin's own 5-attempt/2s retry loop exhausts (`ECONNREFUSED 127.0.0.1:3001`) before the server ever binds, so auto-started plugins never connect. | Either start the plugin Socket.IO server from the Rust backend before/alongside `auto_start_enabled_plugins` (not gated on frontend init), or delay `auto_start_enabled_plugins` until `start_plugin_server` has confirmed a bound port. Then re-verify the UI-driven install flow (`install_local_plugin` / `DotxInstallModal.vue`) and settings-page rendering. |
 | Low | **App auto-updates on Linux** | Bundles build with `createUpdaterArtifacts` but update flow has not been validated. | Needs `TAURI_SIGNING_PRIVATE_KEY` (release secret) + an update endpoint, then trigger and validate the update flow. |
 | Low | **CI on Linux** | Linux CI has been added but still needs validation in GitHub Actions, especially while `psp` and `volume-control-rs` are checked out as sibling path dependencies and updater signing secrets may be required for bundle artifacts. | Validate `.github/workflows/linux-ci.yml` in GitHub Actions and switch path dependencies back to git/crates dependencies when their Linux fixes are published. |
 
@@ -54,6 +66,7 @@ These have all been functionally tested on `ananords-dev` (Ubuntu 24.04.3, GNOME
 - **Serial port / Decker** — fully verified end-to-end on `ananords-dev` (Ubuntu 24.04, `VM-5SW` Decker fw `0.0.3` at `/dev/ttyACM0`, VID `04d8`/1240, PID `e626`/58918): `get_devices()` enumerates with correct VID/PID, `connect_decker` opens port + sets DTR, 75+ live `slider-change` events decoded by `rmp_serde`, `get-device-info` round-trip returns firmware/model/serial.
 - **Auto-start on login** — `tauri_plugin_autostart` writes/removes `~/.config/autostart/Dot X.desktop` (XDG autostart spec). Enable/disable/is_enabled round-trip verified on Ubuntu 24.04.
 - **Windows-only crates removed/gated** — `winreg` dropped; `window-vibrancy` / `window-shadows` gated to non-Linux.
+- **Plugin SDK build + packaging + install (backend)** — verified 2026-07-02 on `bazzite` (with `WEBKIT_DISABLE_DMABUF_RENDERER=1`, see TODO): `@dotmatrixlabs/dotx-plugin-sdk` builds, the `component-showcase` example packages into a real `.dotxplugin` via `dotx-plugin package`, `install_local_plugin`-style extraction into `app_data_dir/plugins/<id>` passes `validate_manifest` (dotxVersion `>=1.1.4` against app `1.2.3`), and `auto_start_enabled_plugins` spawns the Deno process correctly (`deno run --unstable-detect-cjs --allow-read=... --allow-net=127.0.0.1:3001,localhost:3001 dist/main.js`), which executes real plugin code (`onLoad` logs "Starting Component Showcase v1.0.0..."). Socket.IO registration currently fails — see TODO (plugin server start race).
 
 ---
 
@@ -72,7 +85,7 @@ These have all been functionally tested on `ananords-dev` (Ubuntu 24.04.3, GNOME
 - [x] Serial port / Decker works end-to-end
 - [x] Auto-start on login works
 - [x] Deno runtime runs (plugin system partially working)
-- [~] Plugin system works — Deno runs; full round-trip not yet tested
+- [~] Plugin system works — SDK build/packaging/install/spawn verified; blocked on a real plugin-server-startup race (see TODO) before Socket.IO round-trip and settings UI can be tested
 - [ ] Screen brightness control works — **blocked: sysfs-only crate, DDC/CI not wired**
 - [~] MIDI CC send/receive round-trip — virtual output + CC byte construction verified; UI-driven receive side still open
 - [ ] Active window on GNOME Wayland — **broken by design (Shell.Eval disabled)**
@@ -144,7 +157,11 @@ sudo dnf groupinstall "Development Tools"
 
 ### Bazzite / Fedora Atomic (immutable OS)
 
-Bazzite cannot install `-devel` packages natively — use [Distrobox](https://distrobox.it/) (pre-installed on Bazzite) to create a mutable Fedora container that shares your home directory:
+Bazzite cannot install `-devel` packages natively with normal `dnf`. For development, run `yarn tauri dev` inside [Distrobox](https://distrobox.it/) (pre-installed on Bazzite) or layer the build dependencies with `rpm-ostree` and reboot. Distrobox is the preferred path because it keeps the immutable host clean while still sharing your home directory and desktop session.
+
+Do not use temporary linker symlinks as a development setup. A 2026-07-02 native-host test showed that `/lib64` has runtime libraries such as `libgtk-3.so.0`, `libwebkit2gtk-4.1.so.0`, `libdbus-1.so.3`, and `libudev.so.1`, but Rust/Tauri links against unversioned names such as `-lgtk-3`, `-lwebkit2gtk-4.1`, `-ldbus-1`, and `-ludev`. Symlinking those names in `/tmp` can make one build pass, but it bypasses pkg-config, misses headers/metadata, and will fail unpredictably as dependencies change.
+
+Create a mutable Fedora container:
 
 ```sh
 # One-time setup: create a Fedora development container
@@ -167,15 +184,18 @@ source ~/.cargo/env
 npm install -g yarn
 ```
 
-After the one-time setup, enter the container and build normally:
+After the one-time setup, use the Linux dev wrapper:
 
 ```sh
-distrobox enter fedora-dev
 cd ~/Code/dot-x
-yarn tauri dev
+yarn dev:linux
 ```
 
+On native Bazzite, `yarn dev:linux` runs `distrobox enter <container> -- ...` automatically. It prefers `DOTX_DISTROBOX_NAME`, then `fedora-dev`, then `dotx-ubuntu-ci`, then the first available Distrobox. Inside Distrobox, or on normal mutable Linux distros, it runs `yarn tauri dev` directly. Set `DOTX_SKIP_DISTROBOX=1` only when intentionally testing a layered native host.
+
 The container shares your home directory, so your code edits are immediately visible inside it.
+
+The `GDK_BACKEND=x11` and WebKit flags are currently recommended on Bazzite/NVIDIA even from Distrobox because the GUI still renders through the host Wayland/XWayland session. Without them, WebKitGTK may crash on KWin Wayland explicit sync or produce a mapped but black webview.
 
 **Serial port access (Decker):** Distrobox shares `/dev/` from the host, but group memberships may not transfer into a fresh container. If you get "permission denied" on `/dev/ttyACM0`, add yourself to `dialout` inside the container:
 
@@ -192,9 +212,12 @@ distrobox enter fedora-dev  # re-enter so the group takes effect
 
 ```sh
 # from repo root
+yarn setup:linux              # Ubuntu/Debian only; installs build prerequisites
 yarn install
 yarn tauri build            # produces .deb and .AppImage
 ```
+
+`yarn setup:linux` runs `scripts/install-linux-deps.sh`. `yarn dev:linux` does not run it automatically; it only reports missing commands/pkg-config packages and tells you which setup command to run. This keeps dev launch from unexpectedly invoking `sudo` or mutating the host/container. Use `yarn dev:linux --check-only` to run the dependency preflight without starting the app.
 
 Bundle targets are `["deb", "appimage"]` via `src-tauri/tauri.linux.conf.json` (Tauri auto-merges this on top of `tauri.conf.json`). That file also scopes Linux resource bundling to the Linux Deno archive and declares `libpulse0` as a `.deb` runtime dependency.
 
