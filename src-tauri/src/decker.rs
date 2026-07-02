@@ -287,8 +287,9 @@ pub fn initialize_decker(
             println!("Connected to \"{}\"", port_name);
             info!("Connected to \"{}\"", port_name);
             if let Err(e) = port.write_data_terminal_ready(true) {
-                error!("Failed to set DTR to true: {}", e);
-                return Err(e.into());
+                // Not all serial endpoints support modem control lines (e.g. PTYs
+                // used for virtual firmware testing), so don't abort the connection.
+                warn!("Failed to set DTR to true: {}", e);
             }
 
             let (tx, rx): (mpsc::Sender<String>, mpsc::Receiver<String>) = mpsc::channel(); // Spawn a thread to handle incoming data
