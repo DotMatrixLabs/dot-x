@@ -50,8 +50,7 @@ tauri-plugin-shell = "2"
 chrono = "0.4"
 brightness = { git = "https://github.com/Frogbyte-io/brightness.git" }
 futures = "0.3.31"
-#psp = { git = "https://github.com/Frogbyte-io/psp" }
-psp = { path = "../../psp" }
+psp = { git = "https://github.com/Frogbyte-io/psp" }
 base64ct = "=1.7.1"
 zip = "=0.6.6"
 tauri-plugin-process = "2"

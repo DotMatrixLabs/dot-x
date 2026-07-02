@@ -29,7 +29,6 @@ jobs:
         shell: bash
         run: |
           git clone --depth 1 https://github.com/Frogbyte-io/volume-control-rs.git ../volume-control-rs
-          git clone --depth 1 https://github.com/Frogbyte-io/psp.git ../psp
 
       - name: Setup Node.js
         uses: actions/setup-node@v4

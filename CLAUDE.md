@@ -20,7 +20,7 @@ Desktop companion app for the DotMatrixLabs Decker physical volume mixer. Tauri 
 
 ## Build constraints
 
-- Sibling path dependencies: `volume-control-rs` and `psp` must be checked out at `../../` relative to `src-tauri/`. Builds fail without them. Don't "fix" these paths to git deps unless asked — they carry unpublished Linux fixes.
+- Sibling path dependency: `volume-control-rs` must be checked out at `../../` relative to `src-tauri/`. Builds fail without it. Don't "fix" the path to a git dep unless asked — it carries unpublished Linux fixes. (`psp` was switched back to a git dep 2026-07-03 after its Linux fixes were published.)
 - `serialport` is pinned to `=4.3.0` (newer versions read slowly). Don't bump it.
 - Platform-specific code must be `#[cfg(target_os = ...)]`-gated. When fixing Linux, don't break the Windows build (and vice versa); say so explicitly if you could only verify one platform.
 - On Bazzite the host is immutable: builds work via committed `src-tauri/pkgconfig/` + `src-tauri/lib/` symlinks + `.cargo/config.toml`, but prefer Distrobox (`yarn dev:linux` handles it).
