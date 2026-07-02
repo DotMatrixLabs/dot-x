@@ -641,8 +641,31 @@ fn ensure_deno_extracted(app: &tauri::AppHandle) -> Result<std::path::PathBuf, S
     Err("Deno executable not found after extraction".to_string())
 }
 
+// WebKitGTK's DMA-BUF/GPU renderer can commit a buffer via
+// wp_linux_drm_syncobj_manager_v1 without setting an acquire timeline point
+// first, which NVIDIA's proprietary driver + KWin (and possibly other
+// compositors) reject as a protocol violation, crashing the app ~0.3s after
+// launch under Wayland (X11 has a separate blank-window issue). Delegate
+// detection + the session-appropriate fix to webkit2gtk-nvidia-quirk, unless
+// the user has already set one of its target env vars explicitly.
+#[cfg(target_os = "linux")]
+fn apply_nvidia_wayland_webkit_workaround() {
+    let user_overrode = std::env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER").is_some()
+        || std::env::var_os("__NV_DISABLE_EXPLICIT_SYNC").is_some();
+    if user_overrode {
+        return;
+    }
+    webkit2gtk_nvidia_quirk::apply_workaround_with_options(
+        webkit2gtk_nvidia_quirk::ApplyWorkaroundOptions::default(),
+    );
+}
+
+#[cfg(not(target_os = "linux"))]
+fn apply_nvidia_wayland_webkit_workaround() {}
+
 #[tokio::main]
 async fn main() {
+    apply_nvidia_wayland_webkit_workaround();
 
     let client = sentry::init((
         "https://4e7acf1ba609c747863f8e3117f062e2@sentry-ingest.frogbyte.io/3",
