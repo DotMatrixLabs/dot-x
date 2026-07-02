@@ -106,7 +106,7 @@ function printDependencyHelp(missing) {
     console.error("Run:");
     console.error("  sudo dnf install webkit2gtk4.1-devel openssl-devel curl wget file \\");
     console.error("    libappindicator-gtk3-devel librsvg2-devel libxcb-devel alsa-lib-devel \\");
-    console.error("    pulseaudio-libs-devel systemd-devel dbus-devel nodejs npm");
+    console.error("    pulseaudio-libs-devel systemd-devel dbus-devel ddcutil nodejs npm");
     console.error("  sudo dnf groupinstall \"Development Tools\"");
   } else {
     console.error("Install the Linux build prerequisites listed in LINUX-SUPPORT.md.");
@@ -120,7 +120,7 @@ function preflightLinuxDeps() {
   if (skipPreflight || dryRun) return;
 
   const missing = [];
-  for (const command of ["node", "yarn", "cargo", "pkg-config"]) {
+  for (const command of ["node", "yarn", "cargo", "pkg-config", "ddcutil"]) {
     if (!commandExists(command)) missing.push(`command: ${command}`);
   }
 
