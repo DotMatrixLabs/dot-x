@@ -132,6 +132,7 @@
     "sentry:allow-envelope",
     "sentry:allow-event",
     "process:allow-restart",
-    "shell:default"
+    "shell:default",
+    "mcp-bridge:default"
   ]
 }

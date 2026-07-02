@@ -685,7 +685,11 @@ async fn main() {
     // Then set up panic handler
     setup_panic_handler(client.clone());
 
-    tauri::Builder::default()
+    let builder = tauri::Builder::default();
+    #[cfg(debug_assertions)]
+    let builder = builder.plugin(tauri_plugin_mcp_bridge::init());
+
+    builder
         .invoke_handler(tauri::generate_handler![
             get_installed_apps,
             get_all_session_names,
