@@ -267,15 +267,14 @@ pub fn initialize_decker(
     }
     let baud_rate: u32 = 115_200;
 
-    // Check if the connection is already open and close it if it is.
-    if let Ok(ports) = available_ports() {
-        for port_info in ports {
-            if port_info.port_name == port_name {
-                eprintln!("Port \"{}\" is already open. Closing it...", port_name);
-                warn!("Port \"{}\" is already open. Closing it...", port_name);
-                kill_decker_thread();
-            }
-        }
+    // Close the existing connection if one is currently open. `port_name` is always
+    // present in `available_ports()` here (it was just picked from that list), so
+    // checking against it would kill the background thread on every attempt,
+    // including the very first one. Check whether a connection is actually live instead.
+    if SENDER.lock().unwrap().is_some() {
+        eprintln!("Port \"{}\" is already open. Closing it...", port_name);
+        warn!("Port \"{}\" is already open. Closing it...", port_name);
+        kill_decker_thread();
     }
 
     let port = serialport::new(port_name, baud_rate)
@@ -305,6 +304,7 @@ pub fn initialize_decker(
                 }
                 loop {
                     if !SHOULD_RUN.load(Ordering::Relaxed) {
+                        *SENDER.lock().unwrap() = None;
                         break;
                     }
                     match rx.try_recv() {
@@ -323,6 +323,7 @@ pub fn initialize_decker(
                                     error!("Failed to emit connection-change event: {}", err);
                                 }
                                 std::mem::drop(port); // Drop the port to close it
+                                *SENDER.lock().unwrap() = None;
                                 info!("Disconnected");
                                 break;
                             }
@@ -416,6 +417,7 @@ pub fn initialize_decker(
                                 error!("Failed to emit connection-change event: {}", err);
                             }
                             std::mem::drop(port); // Drop the port to close it
+                            *SENDER.lock().unwrap() = None;
                             error!("An error occurred while reading serial data: {:?}", e);
                             break;
                         }
