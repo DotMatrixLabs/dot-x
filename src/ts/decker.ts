@@ -154,8 +154,8 @@ class Decker {
     public async disconnect() {
         console.log("Disconnecting from Decker...");
         await invoke('disconnect_decker');
-        this.sliderListenerDetatcher();
-        this.MIDIListenerDetatcher();
+        this.sliderListenerDetatcher?.();
+        this.MIDIListenerDetatcher?.();
     }
 
 
@@ -244,7 +244,9 @@ class Decker {
             const device = newDevices.find((device:any) => device.port_name === comPort);
             if(!device) return;
             if(device.port_name === comPort && !deckerStore.connected){
-                this.init(comPort);
+                this.init(comPort).catch((error) => {
+                    console.log("Retry connecting to Decker failed:", error);
+                });
             }
         }, 1000);
     }
