@@ -4,6 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:linux": "node scripts/dev-linux.mjs",
+    "setup:linux": "bash scripts/install-linux-deps.sh",
     "build": "npm run licenses && vue-tsc --noEmit && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
