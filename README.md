@@ -88,6 +88,28 @@ Recommended VS Code extensions:
 - Initial build takes time (Rust compilation + package downloads)
 - Requires exact Rust version 1.75.0: `rustup install 1.75.0 && rustup override set 1.75.0`
 
+### Windows installer & auto-updates
+
+The Windows build produces an NSIS installer with `installMode: currentUser`
+(see `src-tauri/tauri.conf.json`). It installs to `%LOCALAPPDATA%\Dot X` and
+registers under `HKCU`, so **installing and auto-updating never require admin
+rights**.
+
+- The MSI (WiX) target is intentionally not built. MSI installs are always
+  per-machine in Tauri, which is why v1.x updates required admin. Don't re-add
+  `msi` to `bundle.targets` unless per-machine installs are wanted again.
+- `installMode: "both"` (a per-user/per-machine choice dialog) was considered
+  and rejected: Tauri implements it with `MULTIUSER_EXECUTIONLEVEL Highest`,
+  which triggers a UAC prompt for admin users even for per-user installs and
+  on every auto-update.
+- **Migration from v1.x:** the Tauri NSIS installer detects an existing
+  per-machine MSI install (matching `DisplayName` "Dot X" + `Publisher`
+  "dot-x" under `HKLM\...\Uninstall`) and uninstalls it before installing
+  per-user. That one-time uninstall shows a single UAC prompt; afterwards
+  updates run without elevation. For v1.x clients to auto-update into v2, the
+  `-setup.nsis.zip` updater artifact (produced via
+  `createUpdaterArtifacts: v1Compatible`) must be published on Anystack.
+
 ## Contributing
 
 1. Create a feature branch
