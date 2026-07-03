@@ -102,13 +102,41 @@ rights**.
   and rejected: Tauri implements it with `MULTIUSER_EXECUTIONLEVEL Highest`,
   which triggers a UAC prompt for admin users even for per-user installs and
   on every auto-update.
-- **Migration from v1.x:** the Tauri NSIS installer detects an existing
-  per-machine MSI install (matching `DisplayName` "Dot X" + `Publisher`
-  "dot-x" under `HKLM\...\Uninstall`) and uninstalls it before installing
-  per-user. That one-time uninstall shows a single UAC prompt; afterwards
-  updates run without elevation. For v1.x clients to auto-update into v2, the
+#### Migration from the v1.x MSI install
+
+Existing users are on the per-machine MSI (in `Program Files`, registered under
+`HKLM`). The Tauri v2 NSIS installer handles the switch automatically: on run it
+enumerates `HKLM\...\Uninstall`, finds the entry whose `DisplayName` +
+`Publisher` equals `Dot X` + `dot-x` and whose uninstall string is an
+`msiexec` call, then runs that MSI uninstaller **before** installing per-user.
+This happens on both paths — a manually downloaded `-setup.exe` and an
+auto-update — because the installer's `WixMode` check runs ahead of its
+`UpdateMode` check.
+
+Things to know about the transition:
+
+- **One unavoidable UAC prompt.** Removing a per-machine `Program Files`
+  install requires admin, so the one-time MSI uninstall triggers a single UAC
+  prompt. This is inherent to leaving admin-land, not something we can suppress.
+  Every update *after* the migration is fully elevation-free.
+- **The v1→v2 auto-update surfaces that UAC mid-update.** A v1.x client that
+  auto-updates will show the UAC prompt during what otherwise looks like a
+  background update. If the user **declines** it (or is a standard user with
+  UAC locked down), the MSI is left in place and the per-user install may not
+  complete — leaving the app in a half-migrated state. For the smoothest
+  rollout, consider announcing v2 as a manual download for existing users
+  rather than relying solely on the silent auto-update for the jump.
+- **Do NOT set `bundle.publisher` in the config.** The match above works only
+  because both v1 and v2 derive the manufacturer as `dot-x` from the
+  `com.dot-x.dev` identifier (neither sets an explicit publisher). Adding a
+  `publisher` field changes the NSIS installer's manufacturer string, the
+  `HKLM` match stops firing, the old MSI is *not* removed, and the user ends up
+  with two copies installed — exactly the failure mode this migration exists to
+  prevent.
+- **Publishing:** for v1.x clients to auto-update into v2 at all, the
   `-setup.nsis.zip` updater artifact (produced via
-  `createUpdaterArtifacts: v1Compatible`) must be published on Anystack.
+  `createUpdaterArtifacts: v1Compatible`) plus its `.sig` must be published on
+  Anystack for the `windows-x86_64` slot.
 
 ## Contributing
 
