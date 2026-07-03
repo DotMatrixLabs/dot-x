@@ -736,6 +736,7 @@ async fn main() {
             plugin_runtime::stop_plugin,
             plugin_runtime::restart_plugin,
             plugin_runtime::start_enabled_plugins,
+            plugin_runtime::notify_frontend_ready,
             plugin_runtime::get_plugin_logs,
             plugin_runtime::clear_plugin_logs,
             plugin_marketplace::list_installed_plugins,
