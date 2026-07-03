@@ -8,8 +8,8 @@ function readTauriVersion(rootDir) {
 	const tauriConfPath = path.resolve(rootDir, 'src-tauri', 'tauri.conf.json');
 	const text = readFileSync(tauriConfPath, 'utf8');
 	const json = JSON.parse(text);
-	const version = json && json.package && json.package.version;
-	const productName = (json && json.package && json.package.productName) || 'Dot X';
+	const version = json && json.version;
+	const productName = (json && json.productName) || 'Dot X';
 	if (!version) {
 		throw new Error(`Could not read version from ${tauriConfPath}`);
 	}
@@ -17,31 +17,30 @@ function readTauriVersion(rootDir) {
 }
 
 function computeOldBase(productName, version) {
-	// Wix naming uses dots for prerelease, e.g. 1.2.3-1 -> 1.2.3.1
-	const wixVersion = String(version).replace(/-/g, '.');
-	return `${productName}_${wixVersion}_x64_en-US`;
+	// NSIS naming, e.g. "Dot X_2.0.0-1_x64-setup.exe"
+	return `${productName}_${version}_x64-setup`;
 }
 
 function renameBuildFiles(rootDir) {
-	const msiDir = path.resolve(rootDir, 'src-tauri', 'target', 'release', 'bundle', 'msi');
-	if (!existsSync(msiDir) || !statSync(msiDir).isDirectory()) {
-		throw new Error(`Build folder not found: ${msiDir}`);
+	const nsisDir = path.resolve(rootDir, 'src-tauri', 'target', 'release', 'bundle', 'nsis');
+	if (!existsSync(nsisDir) || !statSync(nsisDir).isDirectory()) {
+		throw new Error(`Build folder not found: ${nsisDir}`);
 	}
 
 	const { version, productName } = readTauriVersion(rootDir);
 	const oldBase = computeOldBase(productName, version);
 	const newBase = 'dot-x.windows-x86_64';
 
-	const entries = readdirSync(msiDir, { withFileTypes: true });
+	const entries = readdirSync(nsisDir, { withFileTypes: true });
 	let renamedCount = 0;
 	for (const entry of entries) {
 		if (!entry.isFile()) continue;
 		const name = entry.name;
 		if (name === oldBase || name.startsWith(oldBase + '.')) {
 			const suffix = name.slice(oldBase.length); // includes leading '.' if present
-			const srcPath = path.join(msiDir, name);
+			const srcPath = path.join(nsisDir, name);
 			const destName = newBase + suffix;
-			const destPath = path.join(msiDir, destName);
+			const destPath = path.join(nsisDir, destName);
 
 			if (existsSync(destPath)) {
 				rmSync(destPath, { force: true });
@@ -53,7 +52,7 @@ function renameBuildFiles(rootDir) {
 	}
 
 	if (renamedCount === 0) {
-		console.warn(`No files matched base "${oldBase}" in ${msiDir}`);
+		console.warn(`No files matched base "${oldBase}" in ${nsisDir}`);
 	} else {
 		console.log(`Done. Renamed ${renamedCount} file(s).`);
 	}
@@ -61,7 +60,7 @@ function renameBuildFiles(rootDir) {
 	// Open the build folder in Windows Explorer (only on Windows)
 	if (process.platform === 'win32') {
 		try {
-			const normalized = msiDir.replace(/\//g, '\\');
+			const normalized = nsisDir.replace(/\//g, '\\');
 			execSync(`cmd /c start "" "${normalized}"`, { stdio: 'ignore', windowsHide: true });
 		} catch {
 			// Non-fatal if opening fails
