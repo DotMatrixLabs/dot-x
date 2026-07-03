@@ -26,14 +26,14 @@ Primary dev/test happens on `bazzite` (KDE Wayland, NVIDIA) via Distrobox and `a
 | NVIDIA + Wayland launch crash | ✅ auto-mitigated |
 | Deno runtime | ✅ done |
 | Linux CI workflow | ✅ validated locally via `act`; real GitHub Actions run pending PR #187 merge |
-| Plugin system | ⚠️ mostly working — blocked on the `onLoad` UI-API race below |
+| Plugin system | ✅ auto-start, Socket.IO, `onLoad` blocking-UI calls, settings pages all working; install flow still needs a fresh-`.dotxplugin` pass |
 | App auto-updates | ❌ not validated |
 
 ---
 
 ## Open work
 
-- **Plugin `onLoad` UI API race** — a plugin that calls a blocking UI API (e.g. `ui.showToast`) from `onLoad` times out after 30s. The backend (`plugin_server.rs`) emits `plugin/api_request` and awaits a frontend reply, but the frontend only starts listening after `PluginAPI.initialize()` runs in `App.vue`'s `mounted()`. Auto-started plugins call `onLoad` before Vue mounts, so the event is dropped (Tauri `emit` doesn't queue for late subscribers). Reproducible 2/2. **Fix direction:** gate plugin auto-start (or blocking-UI-API calls) on a "frontend ready" signal, mirroring the existing "Socket.IO server ready before auto-start" fix but for the frontend side. Socket.IO registration and the Settings→Plugins page render fine; the install flow (`install_local_plugin` / `DotxInstallModal.vue`) still needs a fresh-`.dotxplugin` pass.
+- **Plugin install flow** — the runtime and auto-start paths are validated (see the `onLoad` fix below), but the install flow (`install_local_plugin` / `DotxInstallModal.vue`) still needs a fresh-`.dotxplugin` pass end-to-end.
 
 - **Screen brightness — remaining checks** — DDC/CI path works via the Frogbyte `brightness` fork (`ddcutil`, VCP code `10`). Still need: a regression check on a real laptop with `/sys/class/backlight` (confirm the sysfs path still works), and a real-hardware pass on `ananords-dev`'s HP 24uh.
 
@@ -74,6 +74,8 @@ Primary dev/test happens on `bazzite` (KDE Wayland, NVIDIA) via Distrobox and `a
 **`psp` (power monitor):** no more `.unwrap()` panics; logind session resolution degrades gracefully over SSH/containers; `PrepareForSleep` now emits `PowerState::Suspend`/`Resume`. Published to `github.com/Frogbyte-io/psp` (`f44a180`, 2026-07-03); `Cargo.toml` uses the git dep.
 
 **Linux Decker serial listing (`decker.rs`):** default listing hides legacy `/dev/ttyS*`; `DOTX_EXTRA_SERIAL_PORTS=/dev/pts/N` appends PTYs for virtual testing; `DOTX_SHOW_ALL_SERIAL_PORTS=1` shows everything; read-error handling exits cleanly instead of panicking. **DTR-on-connect fix:** `write_data_terminal_ready(true)` fails with `ENOTTY` on PTYs and used to abort the connection before the reader thread started; now a `warn!` instead of an aborting error, so PTY/virtual endpoints work.
+
+**Plugin `onLoad` UI-API race (`plugin_runtime.rs`, `pluginAPI.ts`):** auto-started plugins ran `onLoad` — including blocking UI API calls like `ui.showToast` / `settingsPage.addSettings`, which round-trip through the frontend via `plugin/api_request` — before the frontend registered its listeners in `PluginAPI.initialize()`, so the event was dropped and the plugin timed out after 30s (Tauri `emit` doesn't queue for late subscribers). Fix mirrors the existing "Socket.IO server ready before auto-start" gate on the frontend side: the frontend calls a new `notify_frontend_ready` command once its listeners are live (`setupTauriEventListeners()` now awaits `listen()` registration), and `auto_start_enabled_plugins` awaits `wait_for_frontend_ready()` (a `FRONTEND_READY` AtomicBool + tokio `Notify`, with a 10s fallback so headless/failed-frontend launches still start plugins) before spawning plugins. Verified on `bazzite`: pre-fix `onLoad` hung 30s on `ui.showToast`; post-fix it completes in ~30ms and the settings page renders.
 
 **Minor latent bug (not fixed):** `attachMidiDevice()` in `src/ts/decker.ts` waits for sliders with only 5×1s retries, then gives up permanently — auto-attach silently fails if no slider frame arrives within ~5s of connect. Fine for real hardware (streams continuously); a slow Decker could hit it, recoverable only by re-toggling MIDI in Settings.
 
