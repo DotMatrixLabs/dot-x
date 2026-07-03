@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, openSync, closeSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 
 const repoRoot = process.cwd();
@@ -116,6 +116,39 @@ function printDependencyHelp(missing) {
   console.error("Set DOTX_SKIP_LINUX_PREFLIGHT=1 to bypass this check.");
 }
 
+function getSerialDevicePaths() {
+  if (!existsSync("/dev")) return [];
+
+  return readdirSync("/dev")
+    .filter((name) => /^tty(ACM|USB)\d+$/.test(name))
+    .map((name) => `/dev/${name}`)
+    .sort();
+}
+
+function canOpenSerialDevice(path) {
+  try {
+    const fd = openSync(path, "r+");
+    closeSync(fd);
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+function printSerialAccessWarning(paths) {
+  console.warn("Linux serial devices are visible but not accessible to this process:");
+  for (const path of paths) {
+    console.warn(`  - ${path}`);
+  }
+
+  console.warn("");
+  console.warn("Dot X will show a copyable udev-rule fix if device connection fails.");
+  if (inContainer || process.env.DOTX_LINUX_DEV_INSIDE_DISTROBOX === "1") {
+    console.warn("Because this is running inside a container/Distrobox, apply serial access fixes on the host.");
+  }
+  console.warn("");
+}
+
 function preflightLinuxDeps() {
   if (skipPreflight || dryRun) return;
 
@@ -145,6 +178,11 @@ function preflightLinuxDeps() {
   if (missing.length > 0) {
     printDependencyHelp(missing);
     process.exit(1);
+  }
+
+  const inaccessibleSerialDevices = getSerialDevicePaths().filter((path) => !canOpenSerialDevice(path));
+  if (inaccessibleSerialDevices.length > 0) {
+    printSerialAccessWarning(inaccessibleSerialDevices);
   }
 }
 
