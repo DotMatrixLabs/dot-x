@@ -81,3 +81,6 @@ window-shadows = "0.2.2"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 webkit2gtk-nvidia-quirk = "1.3.0"
+# Already in the dependency tree via brightness/tauri-plugin-notification/tauri-plugin-single-instance;
+# depended on directly here too for the dotx-active-window GNOME Shell extension D-Bus client.
+zbus = "5"
