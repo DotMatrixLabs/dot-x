@@ -9,7 +9,7 @@ description: Launch and drive the Dot X app for development or verification. Use
 
 - **Linux (any distro, including Bazzite):** `yarn dev:linux`. It detects Bazzite and enters the Fedora Distrobox automatically, preflights build deps (`--check-only` to preflight only), and applies WebKit/NVIDIA workarounds. Run it in the background — the first Rust build takes several minutes.
 - **Windows / known-good Linux env:** `yarn tauri dev`.
-- **Already-built binary:** `src-tauri/target/debug/dot_x &> /tmp/dotx.log &`. When launching from a non-desktop shell (SSH, container), export the session env first — see "How to Start Any Session" in `LINUX-SUPPORT.md` for the exact per-machine incantations.
+- **Already-built binary:** `src-tauri/target/debug/dot_x &> /tmp/dotx.log &`. When launching from a non-desktop shell (SSH, container), export the session env first — see `TEST-MACHINES.md` for the exact per-machine incantations. **Gotcha:** the debug binary's bundled `devUrl` is `http://localhost:1420` (Vite) — without a dev server running behind it, the webview loads nothing but still looks alive (correctly sized/titled/`IsViewable` window, no crash logged), and all MCP-bridge webview tools (`webview_execute_js`, `webview_screenshot`, etc.) time out. Use `yarn dev:linux`/`yarn tauri dev` (which run Vite themselves) instead of the raw binary whenever you need the webview to render or need webview automation.
 
 Useful env vars:
 
@@ -26,7 +26,7 @@ The app is tray-first and may start with no visible window — that is normal, n
 
 Debug builds embed `tauri-plugin-mcp-bridge`, and `.mcp.json` wires up the `tauri` MCP server. Prefer these tools over guessing from code:
 
-- `mcp__tauri__ipc_execute_command` — invoke any registered `#[tauri::command]` (e.g. `get_devices`, `connect_decker`, `set_screen_brightness`).
+- `mcp__tauri__ipc_execute_command` — confirmed 2026-07-03 that with the pinned `tauri-plugin-mcp-bridge = "0.11"` (0.11.2), this only dispatches the bridge's own `plugin:mcp-bridge|*` commands, not arbitrary app `#[tauri::command]`s — calling e.g. `get_devices` or `connect_decker` through it fails with `Unsupported Tauri command: <name>`. To exercise app commands, drive the real UI instead (`webview_interact`/`webview_find_element`/`webview_dom_snapshot`) or fall back to editing the app's persisted config/store files, as documented in `LINUX-SUPPORT.md`'s brightness and MIDI verification entries.
 - `mcp__tauri__ipc_emit_event` / `ipc_monitor` / `ipc_get_captured` — emit and observe events like `slider-change`.
 - `mcp__tauri__read_logs` — backend logs without hunting for files.
 - `mcp__tauri__webview_screenshot` / `webview_dom_snapshot` / `webview_interact` — see and drive the UI (also works to surface the hidden main window via `manage_window`).

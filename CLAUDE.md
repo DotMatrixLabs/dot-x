@@ -1,6 +1,6 @@
 # Dot X — Claude Instructions
 
-Desktop companion app for the DotMatrixLabs Decker physical volume mixer. Tauri 2 (Rust backend) + Vue 3 / TypeScript / Pinia frontend, Tailwind + DaisyUI, with a Deno-based plugin system. Primary target is Windows; Linux support is being added (see `LINUX-SUPPORT.md` for current state, verified features, and per-machine launch instructions).
+Desktop companion app for the DotMatrixLabs Decker physical volume mixer. Tauri 2 (Rust backend) + Vue 3 / TypeScript / Pinia frontend, Tailwind + DaisyUI, with a Deno-based plugin system. Primary target is Windows; Linux support is being added (see `LINUX-SUPPORT.md` for current state and verified features, and `TEST-MACHINES.md` for the test-machine inventory and per-machine launch instructions).
 
 ## Commands
 

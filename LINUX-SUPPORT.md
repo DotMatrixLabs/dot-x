@@ -2,32 +2,7 @@
 
 ## How to Start Any Session
 
-> I'm adding Linux support to Dot X, a Tauri 2 desktop app. The goal list is at `LINUX-SUPPORT.md` in the repo root. **First check which machine you're running on** — the test machine may be local (no SSH) or remote.
-
-Testing is done on Ubuntu. Currently up for testing:
-
-- **`ananords-dev` (local machine)** — Ubuntu 24.04.3 LTS (kernel 6.17.0-19-generic), real Decker (`VM-5SW`) on `/dev/ttyACM0`, GNOME Wayland session on tty2. No `/sys/class/backlight`; external HP 24uh monitor on HDMI-A-1 (`/dev/i2c-1`), DDC/CI working. Primary test machine — run commands directly, no SSH needed.
-- **`bazzite`** — Also available for testing. NVIDIA GeForce GTX 1660 SUPER (driver 610.43), KDE Plasma/KWin Wayland. The app used to crash immediately on launch here; as of 2026-07-02 the app pulls in the `webkit2gtk-nvidia-quirk` crate, which detects NVIDIA + session type at startup and sets `__NV_DISABLE_EXPLICIT_SYNC=1` (Wayland) or `WEBKIT_DISABLE_DMABUF_RENDERER=1` (X11) itself, so no manual workaround is needed (see "Verified working on Linux"). For development/builds, prefer Distrobox instead of the immutable host; native Bazzite has the runtime `.so` files but not the `-devel` pkg-config metadata or unversioned linker names needed by `yarn tauri dev`. Real Decker also present at `/dev/ttyACM0`, but the user account isn't in the `dialout` group and the `99-dot-x.rules` udev rule isn't installed on this machine, so serial access needs one of those fixed before Decker/MIDI-round-trip testing can happen here.
-- `ssh ananords@192.168.68.149` — previously used remote Ubuntu 24.04.3 machine. SSH key may need re-installing if host key changed.
-
-To launch the app on `ananords-dev` with the live Wayland display:
-```sh
-WAYLAND_DISPLAY=wayland-0 XDG_RUNTIME_DIR=/run/user/1000 \
-  DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus \
-  XDG_CURRENT_DESKTOP=ubuntu:GNOME \
-  src-tauri/target/debug/dot_x &> /tmp/dotx.log &
-```
-
-To launch the app on `bazzite` from an already-built binary (env vars are already set in a normal desktop login shell there):
-```sh
-src-tauri/target/debug/dot_x &> /tmp/dotx.log &
-```
-As of 2026-07-02 the app auto-detects NVIDIA + session type (via `webkit2gtk-nvidia-quirk`) and sets `__NV_DISABLE_EXPLICIT_SYNC=1` on Wayland itself, so the crash workaround above is no longer needed manually — and unlike `WEBKIT_DISABLE_DMABUF_RENDERER=1`, it keeps WebKitGTK's fast DMA-BUF rendering path enabled. `GDK_BACKEND=x11` / `WEBKIT_DISABLE_COMPOSITING_MODE=1` are unrelated to the crash but can still be set if you hit a black/unrendered webview:
-```sh
-GDK_BACKEND=x11 WEBKIT_DISABLE_COMPOSITING_MODE=1 src-tauri/target/debug/dot_x &> /tmp/dotx.log &
-```
-
-For development on Bazzite, use `yarn dev:linux`. It enters the Fedora Distrobox automatically on the immutable host, checks for Linux build dependencies, and applies the WebKit/X11 launch flags. Plain `yarn tauri dev` is intentionally left as the raw Tauri command.
+> I'm adding Linux support to Dot X, a Tauri 2 desktop app. The goal list is at `LINUX-SUPPORT.md` in the repo root. **First check which machine you're running on** — the test machine may be local (no SSH) or remote. Machine inventory and per-machine launch commands are in `TEST-MACHINES.md`.
 
 ---
 
