@@ -1952,6 +1952,7 @@ dependencies = [
  "webkit2gtk-nvidia-quirk",
  "window-shadows",
  "window-vibrancy 0.5.3",
+ "zbus 5.12.0",
  "zip 0.6.6",
 ]
 

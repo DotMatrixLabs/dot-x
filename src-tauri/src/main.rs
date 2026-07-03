@@ -19,6 +19,8 @@ mod power_monitor;
 mod plugin_marketplace;
 mod plugin_server;
 mod plugin_runtime;
+#[cfg(target_os = "linux")]
+mod gnome_active_window;
 use once_cell::sync::OnceCell;
 use tauri::menu::{Menu, MenuBuilder, MenuItemBuilder, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent};
@@ -302,6 +304,13 @@ fn get_active_app_name() -> String {
             active_window.app_name.to_string()
         }
         Err(err) => {
+            #[cfg(target_os = "linux")]
+            if is_gnome_wayland() {
+                if let Some(wm_class) = gnome_active_window::get_gnome_active_window_class() {
+                    trace!("Active window (via dotx-active-window extension): {}", wm_class);
+                    return wm_class;
+                }
+            }
             error!(
                 "Failed to get active window: {:?}; {}",
                 err,
@@ -310,6 +319,16 @@ fn get_active_app_name() -> String {
             "Unknown".to_string() // Return a default value if an error occurs
         }
     }
+}
+
+#[cfg(target_os = "linux")]
+fn is_gnome_wayland() -> bool {
+    let wayland_display = std::env::var("WAYLAND_DISPLAY").unwrap_or_default();
+    let current_desktop = std::env::var("XDG_CURRENT_DESKTOP").unwrap_or_default();
+    let desktop_session = std::env::var("DESKTOP_SESSION").unwrap_or_default();
+    let is_gnome = current_desktop.to_lowercase().contains("gnome")
+        || desktop_session.to_lowercase().contains("gnome");
+    !wayland_display.is_empty() && is_gnome
 }
 
 #[cfg(target_os = "linux")]
@@ -322,15 +341,14 @@ fn active_window_failure_context() -> String {
     let has_kde = std::env::var_os("KDE_FULL_SESSION").is_some()
         || current_desktop.to_lowercase().contains("kde")
         || desktop_session.to_lowercase().contains("plasma");
-    let is_gnome = current_desktop.to_lowercase().contains("gnome")
-        || desktop_session.to_lowercase().contains("gnome");
+    let is_gnome = is_gnome_wayland();
 
     let backend = if !wayland_display.is_empty() && has_kde {
         "KDE Wayland/KWin"
     } else if !wayland_display.is_empty() && has_hyprland {
         "Hyprland Wayland"
-    } else if !wayland_display.is_empty() && is_gnome {
-        "GNOME Wayland (validation required)"
+    } else if is_gnome {
+        "GNOME Wayland (dotx-active-window extension not installed/enabled — see gnome-extension/ in the repo root)"
     } else if !wayland_display.is_empty() {
         "unknown Wayland compositor"
     } else if !x11_display.is_empty() {
@@ -340,7 +358,7 @@ fn active_window_failure_context() -> String {
     };
 
     format!(
-        "platform=linux backend={} WAYLAND_DISPLAY={} DISPLAY={} XDG_CURRENT_DESKTOP={} DESKTOP_SESSION={} expected_support='X11/XCB, KDE Wayland, Hyprland Wayland' build_packages='libxcb-ewmh-dev libxcb-randr0-dev libdbus-1-dev pkg-config'",
+        "platform=linux backend={} WAYLAND_DISPLAY={} DISPLAY={} XDG_CURRENT_DESKTOP={} DESKTOP_SESSION={} expected_support='X11/XCB, KDE Wayland, Hyprland Wayland, GNOME Wayland (via dotx-active-window extension)' build_packages='libxcb-ewmh-dev libxcb-randr0-dev libdbus-1-dev pkg-config'",
         backend, wayland_display, x11_display, current_desktop, desktop_session
     )
 }
