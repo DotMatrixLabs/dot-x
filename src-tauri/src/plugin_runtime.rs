@@ -3,9 +3,10 @@ use log::{error, info, warn};
 use once_cell::sync::OnceCell;
 use serde_json::{json, Value};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::{AppHandle, Manager};
 use tauri::Emitter;
-use tokio::{process::Command, sync::RwLock, io::{AsyncBufReadExt, BufReader, AsyncWriteExt, AsyncRead}};
+use tokio::{process::Command, sync::{RwLock, Notify}, io::{AsyncBufReadExt, BufReader, AsyncWriteExt, AsyncRead}};
 use tokio::fs as async_fs;
 use chrono::Local;
 use crate::plugin_server::{get_active_port, start_plugin_server, DEFAULT_PORT};
@@ -17,6 +18,17 @@ static EXPECTED_PROCESS_EXITS: OnceCell<Arc<RwLock<HashSet<String>>>> = OnceCell
 
 // Global logs table: plugin_id -> captured logs (stdout + stderr)
 static LOGS_TABLE: OnceCell<Arc<RwLock<HashMap<String, VecDeque<String>>>>> = OnceCell::new();
+
+// Set once the frontend has registered its plugin event listeners
+// (PluginAPI.initialize -> notify_frontend_ready). Plugin auto-start waits on
+// this so an auto-started plugin's onLoad blocking-UI call (`plugin/api_request`)
+// isn't emitted and dropped before the frontend is listening.
+static FRONTEND_READY: AtomicBool = AtomicBool::new(false);
+static FRONTEND_READY_NOTIFY: OnceCell<Notify> = OnceCell::new();
+
+// Fallback so plugins still auto-start on a headless/failed-frontend launch,
+// where notify_frontend_ready never arrives.
+const FRONTEND_READY_TIMEOUT_SECS: u64 = 10;
 
 const MAX_LOG_LINES: usize = 5000; // per plugin in-memory
 const MAX_LOG_FILE_BYTES: u64 = 5 * 1024 * 1024; // 5MB per plugin log file
@@ -943,6 +955,38 @@ pub async fn start_enabled_plugins(app_handle: AppHandle) -> Result<usize, Strin
   Ok(started)
 }
 
+fn frontend_ready_notify() -> &'static Notify {
+  FRONTEND_READY_NOTIFY.get_or_init(Notify::new)
+}
+
+/// Called from the frontend (`notify_frontend_ready`) once PluginAPI's event
+/// listeners are live. Idempotent.
+fn mark_frontend_ready() {
+  FRONTEND_READY.store(true, Ordering::Release);
+  frontend_ready_notify().notify_waiters();
+}
+
+/// Resolve once the frontend has signalled ready, or after a fallback timeout.
+async fn wait_for_frontend_ready() {
+  if FRONTEND_READY.load(Ordering::Acquire) {
+    return;
+  }
+  let notified = frontend_ready_notify().notified();
+  tokio::pin!(notified);
+  // Register as a waiter before the final flag check so a concurrent
+  // mark_frontend_ready() can't slip between the check and the await.
+  notified.as_mut().enable();
+  if FRONTEND_READY.load(Ordering::Acquire) {
+    return;
+  }
+  tokio::select! {
+    _ = notified => info!("Frontend ready; proceeding with plugin auto-start"),
+    _ = tokio::time::sleep(std::time::Duration::from_secs(FRONTEND_READY_TIMEOUT_SECS)) => {
+      warn!("Frontend not ready after {}s; auto-starting plugins anyway", FRONTEND_READY_TIMEOUT_SECS);
+    }
+  }
+}
+
 pub fn auto_start_enabled_plugins(app_handle: AppHandle) {
   tauri::async_runtime::spawn(async move {
     match ensure_plugin_server_running(&app_handle).await {
@@ -953,11 +997,20 @@ pub fn auto_start_enabled_plugins(app_handle: AppHandle) {
       }
     }
 
+    // Wait for the frontend's plugin API listeners before starting plugins, so
+    // a plugin's onLoad blocking-UI call isn't dropped (see FRONTEND_READY).
+    wait_for_frontend_ready().await;
+
     match start_enabled_plugins(app_handle).await {
       Ok(count) => info!("Auto-started {} enabled plugins", count),
       Err(e) => error!("Failed to auto-start plugins: {}", e),
     }
   });
+}
+
+#[tauri::command]
+pub fn notify_frontend_ready() {
+  mark_frontend_ready();
 }
 
 #[tauri::command]
