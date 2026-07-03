@@ -1,102 +1,85 @@
-# Linux Support Goals - Dot X
+# Linux Support — Dot X
 
-## How to Start Any Session
+Status and open work for Linux support. Machine inventory and per-machine launch commands are in `TEST-MACHINES.md`. **Check which machine you're on before running anything** (local vs. SSH, KDE vs. GNOME).
 
-> I'm adding Linux support to Dot X, a Tauri 2 desktop app. The goal list is at `LINUX-SUPPORT.md` in the repo root. **First check which machine you're running on** — the test machine may be local (no SSH) or remote. Machine inventory and per-machine launch commands are in `TEST-MACHINES.md`.
-
----
-
-## TODO — Things that still need fixing
-
-| Priority | What | Why it's broken | Fix |
-|---|---|---|---|
-| Medium | **Screen brightness (DDC/CI)** | Upstream `brightness` crate 0.8 is sysfs-only. `/sys/class/backlight/` is empty on external-monitor desktops. | Implementation started 2026-07-02 in `Frogbyte-io/brightness`: Dot X now points `brightness` at the Frogbyte fork, which keeps sysfs backlight support and adds Linux DDC/CI devices by parsing `ddcutil detect --terse` and using VCP code `10` for get/set. Verified the fork directly on `bazzite` with a Philips monitor at `/dev/i2c-2`: `cargo run --example list_displays_async` returned `ddcci-display-1`, friendly name `card1-HDMI-A-1`, brightness `83%`. **App/UI-driven verification completed 2026-07-02 on `bazzite`** (Philips 275E2F at `/dev/i2c-2`): built and ran the real app via `yarn dev:linux` in the `dotx-ubuntu-ci` Distrobox, simulated a Decker over a `socat` virtual serial port pair (msgpack-encoded `slider1..slider5` frames matching real firmware framing), set `comPort` to the virtual port and channel 0's mapped app to `"screen brightness"` via the app's own persisted config/store files (`config.json` / `selectedApps.json` — the same files the Settings UI writes), then fed slider values through the running app end-to-end: `slider-change` event → `SystemVolumeController` → `set_screen_brightness` Tauri command → Frogbyte `brightness` → `ddcutil`. Confirmed exact round-trip accuracy against `ddcutil getvcp 10` for two independent values (512/1023 → 50%, 921/1023 → 90%). Found and fixed a real bug in the process (see below): `write_data_terminal_ready` failed with ENOTTY on the PTY and aborted the connection before the reader thread even started, silently breaking the documented "virtual firmware testing" workflow (`DOTX_EXTRA_SERIAL_PORTS`) for any non-modem-control serial endpoint. Still needs a regression check on a real laptop with `/sys/class/backlight` to confirm the sysfs path is unaffected, and a real-hardware pass on `ananords-dev`'s HP 24uh. Runtime now requires `ddcutil` for external-monitor DDC/CI brightness. |
-| ~~High~~ Fixed | ~~Active window — GNOME Wayland~~ | `active-win-pos-rs` 0.11 uses `org.gnome.Shell.Eval` which was disabled in GNOME 42 for security. `Shell.Eval` returns `(false, '')`. GNOME Shell's own built-in `org.gnome.Shell.Introspect` interface (`GetWindows`/`GetRunningApplications`) looked like an obvious alternative, but investigation 2026-07-03 found it's gated behind an `xdg-desktop-portal` permission grant that only Flatpak-sandboxed apps can obtain — a plain call from `gdbus` got `AccessDenied` on real GNOME 46 (`ananords-dev`), and Dot X isn't Flatpak-packaged. MIDI/Decker automation that depends on focus detection wasn't triggering on GNOME Wayland. | Fixed 2026-07-03: added a small GNOME Shell extension, `gnome-extension/dotx-active-window@dot-x.dev/` (see its `README.md`), that runs with the Shell's own privileges (not subject to either restriction above) and exports a read-only D-Bus method — `org.dotx.ActiveWindow.GetFocusedWindow()` at `/org/dotx/ActiveWindow` on the `org.gnome.Shell` bus name, returning `(wm_class, title, pid)` from `global.display.focus_window`. `active-win-pos-rs` was **not** forked — no changes to it were needed, since this is new functionality (a custom D-Bus call) added alongside it, not a change to its internals. Backend: new `src-tauri/src/gnome_active_window.rs` module (Linux-only, using `zbus` — already in the dependency tree via `brightness`/`tauri-plugin-notification`/`tauri-plugin-single-instance`, so no new crate was needed either), wired into `get_active_app_name()` in `main.rs` as a fallback that only triggers when `active-win-pos-rs` fails *and* the session looks like GNOME Wayland; unavailable/failed extension calls fall through to the pre-existing "Unknown" behavior unchanged. **Verified 2026-07-03 end-to-end on `ananords-dev`** (GNOME Shell 46.0, Ubuntu 24.04.4, real GNOME Wayland session, reached via SSH per `TEST-MACHINES.md`): installed the extension, confirmed GNOME only discovers a **brand-new** extension after a full session logout/login (expected GNOME behavior, not a bug — extensions already loaded and later edited can update live, but first discovery needs a restart), then confirmed via raw `gdbus call` that focus tracking is live and correct — launching GNOME Calculator changed the result from the desktop's own window to `('org.gnome.Calculator', 'Calculator', <pid>)` immediately. Also built a standalone binary from the *exact* `gnome_active_window.rs` source (via a scratch `zbus`-only crate on `bazzite`, since `ananords-dev` has no Rust toolchain installed) and ran it on `ananords-dev` against the live session bus — it printed `OK: org.gnome.Calculator`, confirming the real Rust client code works, not just the raw D-Bus interface. Also found (not a bug, documenting for future debugging): GNOME Shell disables **all** user extensions while the screen is locked — `ananords-dev`'s session auto-locked from idle partway through testing, and a re-run of the same binary correctly returned `None` (rather than hanging or erroring) once `gdbus call` on the same object path started failing with `UnknownMethod: Object does not exist`; this is expected GNOME lock-screen security behavior, and the fallback handles it correctly by design. Also added a 2s call timeout in `get_gnome_active_window_class()` (runs the D-Bus call on a spawned thread, `mpsc::Receiver::recv_timeout`) after code review flagged that `get_active_app_name` is a synchronous, non-`async` `#[tauri::command]` polled every ~500ms (`src/ts/volumeControl.ts`) — without a bound, a hung Shell/extension could otherwise stall the webview's IPC thread for zbus's own much longer default timeout. **Privacy note:** the extension's D-Bus method has no caller restriction — any local process on the session bus can call it and read the focused window's title/PID, which reopens some of the surface `Shell.Eval`'s removal and `Introspect`'s portal-gating were meant to close. It's read-only (can't mutate anything) and is exactly the kind of narrowly-scoped interface those restrictions exist to still allow for a *trusted, explicitly-installed* extension — but it's a conscious tradeoff worth naming, not a hidden one. Not yet packaged into the Dot X installer/bundle (still a manual `gnome-extensions install` step — see the extension's `README.md`), not tested on GNOME 47/48, and `cargo check` for `gnome_active_window.rs` was only run on `bazzite` (KDE) since GNOME-Wayland-specific code paths need the actual GNOME machine to exercise, which is exactly what was done above. |
-| ~~High~~ Fixed | ~~App crashes on launch — NVIDIA + Wayland explicit sync~~ | On `bazzite` (NVIDIA GeForce GTX 1660 SUPER, driver 610.43, KWin/Plasma Wayland), the app crashed ~0.3s after launch: `Gdk-Message: Error 71 (Protocol error) dispatching to Wayland display`, with KWin logging `wl_display#1.error(wp_linux_drm_syncobj_surface_v1, 4, "explicit sync is used, but no acquire point is set")`. WebKitGTK commits a buffer via `wp_linux_drm_syncobj_manager_v1` without setting an acquire timeline point first — a protocol violation KWin now enforces strictly. (Electron/Chromium apps like the harness's own `t3-code` preview don't hit this: Chromium 134+/Electron 35+ landed a correct `linux-drm-syncobj-v1` implementation upstream, so no workaround is needed there — WebKitGTK never got the equivalent fix, see [WebKit bug 280210](https://bugs.webkit.org/show_bug.cgi?id=280210).) | Fixed 2026-07-02: added the [`webkit2gtk-nvidia-quirk`](https://crates.io/crates/webkit2gtk-nvidia-quirk) crate (Linux-only target dependency in `src-tauri/Cargo.toml`) and call `apply_workaround_with_options()` from `apply_nvidia_wayland_webkit_workaround()` at the top of `main()` in `src-tauri/src/main.rs`, unless the user already set `WEBKIT_DISABLE_DMABUF_RENDERER` or `__NV_DISABLE_EXPLICIT_SYNC` themselves. The crate detects the proprietary NVIDIA driver via sysfs and picks `__NV_DISABLE_EXPLICIT_SYNC=1` on Wayland (this crash) or `WEBKIT_DISABLE_DMABUF_RENDERER=1` on X11 (a separate blank-window bug) — the Wayland fix keeps WebKitGTK's fast DMA-BUF rendering path enabled, unlike disabling DMABUF outright. Verified on `bazzite`: rebuilt the pre-fix binary and confirmed `__NV_DISABLE_EXPLICIT_SYNC=1` alone (no other env vars) also prevents the crash; then verified the crate-integrated binary applies it automatically with zero env vars set — process stays alive past the ~0.3s crash window, no protocol errors, tray icon registers with `org.kde.StatusNotifierWatcher` normally. Distrobox does **not** sidestep this crash on its own: the container shares the host's GPU driver, kernel module, and Wayland socket, so WebKitGTK inside the container still talks to the same host KWin compositor through the same NVIDIA driver. `GDK_BACKEND=x11` / `WEBKIT_DISABLE_COMPOSITING_MODE=1` are unrelated to this crash (still may help with a separate black-webview rendering issue — untouched by this fix). |
-| High | **Reliable Linux dev launch on Bazzite** | Verified 2026-07-02 on native Bazzite 44: plain `yarn tauri dev` failed at link time because the host has runtime libraries under `/lib64` but lacks development packages/pkg-config metadata/unversioned linker names for `dbus-1`, `xcb`, `udev`, ALSA, GTK/WebKit, `libsoup-3.0`, etc. Temporary `/tmp` symlinks made the linker pass, but that is not a real fix. Wayland launch then crashed unless forced away from WebKitGTK's DMA-BUF path; `GDK_BACKEND=x11 WEBKIT_DISABLE_DMABUF_RENDERER=1 WEBKIT_DISABLE_COMPOSITING_MODE=1` produced a real rendered 800x600 window. | Use `yarn dev:linux`. It auto-enters `DOTX_DISTROBOX_NAME` (default `fedora-dev`) on native Bazzite, runs a dependency preflight, and applies the WebKit/X11 flags. It does not auto-install packages because that may require sudo and should be explicit. For native host testing, use already-built binaries/packages and the launch flags above. Do not rely on temporary linker symlinks; either layer the proper `-devel` packages with `rpm-ostree` if native builds are required, or keep native host testing runtime-only. **Debug-binary gotcha (found 2026-07-03):** `target/debug/dot_x`'s bundled config points `devUrl` at `http://localhost:1420` (`beforeDevCommand: yarn dev`, i.e. Vite). Launching the raw binary directly (as the "Already-built binary" launch path above suggests) without a Vite dev server running behind it produces a fully black, correctly-sized, correctly-titled, `IsViewable` window — everything *looks* alive (process up, window mapped, no crash/error logged) except the webview never loads any content, and the MCP bridge's `webview_execute_js`/`webview_screenshot` calls all time out because the in-page bridge script never runs. `GDK_BACKEND=x11`/`WEBKIT_DISABLE_DMABUF_RENDERER=1`/`WEBKIT_DISABLE_COMPOSITING_MODE=1` do not fix this — it's unrelated to the NVIDIA/black-webview rendering bug above. Use `yarn dev:linux` (which runs Vite itself) rather than the raw binary when you need the webview to actually render or need MCP-bridge webview automation. |
-| Medium | **Plugin `onLoad` UI API calls (e.g. `ui.showToast`) time out on Linux dev launch** | Re-verified 2026-07-03 on `bazzite` (see below): the 2026-07-02 Socket.IO-server-start-race fix is confirmed working — `component-showcase` now registers cleanly every launch (`Plugin registered: Component Showcase (component-showcase)`, no `ECONNREFUSED`). But calling a UI-blocking API from `onLoad` (this plugin's example calls `ui.showToast`) reproducibly times out after exactly 30000ms (`API request timeout: ui.showToast took longer than 30000ms`), 2/2 fresh runs. Root cause: the Rust side (`plugin_server.rs`) emits the Tauri event `plugin/api_request` and awaits the frontend's response with a timeout; the frontend only starts listening for that event once `PluginAPI.initialize()` runs, which happens in `App.vue`'s `mounted()` hook — i.e. only after the webview has loaded the page, downloaded/executed the JS bundle, and Vue has mounted. Auto-started plugins connect and can call `onLoad` (per the plugin.log timestamps) within ~300ms of the Rust backend spawning them, almost certainly before Vue has mounted, especially against a dev server that has to compile-on-request. Tauri's `emit` does not queue events for listeners that subscribe later, so any API call made in this window is emitted into the void and guaranteed to time out — not a flaky race, reproduced 2/2. | Gate plugin auto-start (or at least the point where plugins are allowed to call blocking UI APIs) on a "frontend ready" signal from `PluginAPI.initialize()` back to the Rust backend, analogous to the existing "Socket.IO server ready before auto-start" fix but for the frontend side of the pipe. |
-| Medium | **Full plugin round-trip — install flow / settings-page rendering** | Re-verified 2026-07-03 on `bazzite`: the Settings → Plugins page correctly lists `Component Showcase` v1.0.0 (Dotmatrix Labs) with its description and delete/docs/settings/enable controls, matching what `install_local_plugin` should produce (not re-tested from a fresh `.dotxplugin` install this pass — the packaging/install mechanism itself was already verified unchanged by the 2026-07-02 fix). | Full fresh-install-via-`DotxInstallModal.vue` pass and non-`onLoad` API calls (once the `onLoad` race above is fixed) still open. |
-| Low | **App auto-updates on Linux** | Bundles build with `createUpdaterArtifacts` but update flow has not been validated. | Needs `TAURI_SIGNING_PRIVATE_KEY` (release secret) + an update endpoint, then trigger and validate the update flow. |
-| ~~Low~~ Fixed | ~~CI on Linux~~ | GitHub Actions itself cannot run `linux-ci.yml` yet: `pull_request`/`workflow_dispatch`-triggered workflows are only recognized once the workflow file exists on the repo's default branch (`main`), and this file currently only exists on this feature branch (confirmed: `gh workflow run linux-ci.yml --ref 164-add-linux-support` → `404 workflow not found on the default branch`, and `git push` to this branch triggered no check run on PR #187). This resolves itself once the PR merges. | Validated 2026-07-03 by running the workflow locally instead, via [`act`](https://github.com/nektos/act) against the Podman Docker-compatible socket (`DOCKER_HOST=unix:///run/user/1000/podman/podman.sock`, `-P ubuntu-24.04=catthehacker/ubuntu:act-24.04`): every step succeeded — checkout, sibling-dependency clone (`volume-control-rs`; `psp` is a git dep as of 2026-07-03 so no separate clone step needed), Node/Yarn/Rust setup, `yarn install`, `yarn build`, and `cargo tauri build --no-bundle`. The final `yarn tauri build` (full bundle) step correctly skipped since no `TAURI_SIGNING_PRIVATE_KEY` secret was set, matching real CI behavior on PRs without secrets. Re-run `act push -W .github/workflows/linux-ci.yml -P ubuntu-24.04=catthehacker/ubuntu:act-24.04` to reproduce; once PR #187 merges, GitHub Actions will pick up the workflow on `main` and this can be dropped in favor of real CI runs. |
+Primary dev/test happens on `bazzite` (KDE Wayland, NVIDIA) via Distrobox and `ananords-dev` (Ubuntu 24.04, GNOME Wayland, real Decker).
 
 ---
 
-## Verified working on Linux
+## Status
 
-These have all been functionally tested on `ananords-dev` (Ubuntu 24.04.3, GNOME Wayland) or noted otherwise:
-
-- **App build / run / package** — builds (debug + release), installs from `.deb`, launches and stays running, packages as `.deb` + `.AppImage`.
-- **GUI window on GNOME Wayland** — verified 2026-06-29: app launches with `WAYLAND_DISPLAY=wayland-0`, WebKit2GTK starts `WebKitNetworkProcess` + `WebKitWebProcess`, Wayland surface is created, window renders. `window.show()` and `window.hide()` both work (logged). **Note:** window starts hidden (`visible: false` in config). The `--hidden` CLI arg check is a no-op when the flag is absent, so the app is tray-first — user sees nothing on launch until they click the tray icon (or a second instance is launched).
-- **System tray** — fully verified 2026-06-29 on GNOME Wayland: ayatana-appindicator icon registers with `org.kde.StatusNotifierWatcher`, `IsStatusNotifierHostRegistered=true`, icon visible in GNOME panel. Show/hide via tray menu and tray-click both work.
-- **Single-instance detection** — second launch sends `ExecuteCallback` to the first instance via D-Bus (`org.com_dot_x_dev.SingleInstance`); first instance shows its window and second instance exits without full initialization.
-- **Per-app audio control** — list sessions, set per-app volume (round-trip: set `0.25` → reads back `0.25`), mute (round-trip verified). Tested against pipewire-pulse with a real `pw-play` sink-input. 3 backend bugs fixed in `volume-control-rs` (see below).
-- **Audio output / input device lists** — listed and named correctly (`get_output_device_names` / `get_input_device_names`).
-- **Installed applications list** — `.desktop` parsing returns real apps with name / executable / source.
-- **Active window detection (X11)** — `active-win-pos-rs` 0.11 returns correct `app_name` (from `WM_CLASS`) and `pid` under Xvfb + openbox.
-- **Active window detection (GNOME Wayland)** — verified 2026-07-03 on `ananords-dev` (GNOME Shell 46.0) via the new `dotx-active-window` Shell extension + `gnome_active_window.rs` `zbus` client; see the TODO entry (now fixed) for full details.
-- **MIDI device enumeration** — `midir` (ALSA backend) lists input and output ports. Requires user to be in the `audio` group for `/dev/snd/seq` access (a real desktop login grants this; SSH sessions may not).
-- **MIDI CC message construction + backend send/receive** — verified 2026-07-02 in `dotx-ubuntu-ci` distrobox: backend unit tests cover Decker slider value mapping (`0..1023` → `0..127`), default channel/CC behavior, configured channel/CC behavior, invalid channel rejection, virtual output creation, and sending a configured CC message through `Dot X Virtual MIDI` into a real `MidiInput` receiver with `DOTX_TEST_ALSA_MIDI=1`.
-- **MIDI virtual output port** — verified 2026-07-01 in `dotx-ubuntu-ci` distrobox with `DOTX_TEST_ALSA_MIDI=1`: `midir::os::unix::VirtualOutput` creates `Dot X Virtual MIDI`, and the port is visible to receiving MIDI clients while the connection is alive.
-- **MIDI CC round-trip, app/UI-driven** — verified 2026-07-03 on `bazzite`: ran the real app via `yarn dev:linux` in the `dotx-ubuntu-ci` Distrobox, simulated a Decker over a `socat` PTY pair *created inside the Distrobox itself* (the container has its own `devpts` instance — a host-side PTY pair, as used for the brightness verification, is not visible inside; `DOTX_EXTRA_SERIAL_PORTS` and `comPort` must point at a PTY created inside whichever mount namespace the app process actually runs in), mapped channel 1 to MIDI with a custom `midiConfiguration` (channel 1, CC 20) via the app's persisted `config.json`/`selectedApps.json`, then toggled "Enable MIDI Output" on in the real Settings UI (via the `tauri-plugin-mcp-bridge` webview automation tools — `webview_screenshot`/`webview_dom_snapshot`/`webview_interact`, which only work once `beforeDevCommand`'s Vite dev server is actually running behind the debug binary; a `target/debug/dot_x` launched standalone shows a black window because its bundled `devUrl` is `http://localhost:1420` with nothing serving it). Confirmed via `aseqdump -p <client>:0` (a real external ALSA MIDI client, resolved by numeric address — resolving by the port's display name failed with "No such file or directory") receiving control-change messages for 5 slider positions with exact expected channel/CC/value: `0→0`, `256→32`, `512→64`, `768→95`, `1023→127`, all on channel 1 (`Ch 0` in 0-indexed `aseqdump` output) controller 20, matching `map_to_range` exactly. The UI screenshots also confirmed slider positions update live and the channel-1 button is correctly labeled "MIDI". Found a minor latent bug (not fixed): `attachMidiDevice()` in `src/ts/decker.ts` waits for `deckerStore.getSliders` to be non-empty with only 5 retries at 1s each, then gives up permanently if no slider frame arrives within ~5s of `connect_decker` succeeding — auto-attaching MIDI on app startup silently failed against the simulated Decker (which only sends frames when explicitly driven) until MIDI was toggled off/on via the Settings UI, which calls `attachMidiDevice` fresh once sliders are already populated. Unlikely to bite real hardware, which streams continuously from connect, but a slow/laggy real Decker could hit the same silent failure with no automatic recovery short of the user re-toggling the Settings switch.
-- **Deno runtime** — bundled `deno-x86_64-unknown-linux-gnu.zip` extracts, `chmod +x`, and runs.
-- **Power monitor (`psp`)** — no longer panics headless; logind session resolution degrades gracefully over SSH; suspend/resume events are now actually emitted. Published 2026-07-03 to `github.com/Frogbyte-io/psp` (`f44a180`) and `src-tauri/Cargo.toml` switched back to the git dep. Note: the original fixed working tree lived only on `ananords-dev` (unreachable that day), so the fixes were re-implemented on `bazzite` from the spec below and smoke-tested there (desktop session → `start_listening` returns `Ok`, dead system bus → clean `Err("D-Bus not available")`, no panics); the SSH-degradation path is covered by code review, not re-tested.
-- **Serial port / Decker** — fully verified end-to-end on `ananords-dev` (Ubuntu 24.04, `VM-5SW` Decker fw `0.0.3` at `/dev/ttyACM0`, VID `04d8`/1240, PID `e626`/58918): `get_devices()` enumerates with correct VID/PID, `connect_decker` opens port + sets DTR, 75+ live `slider-change` events decoded by `rmp_serde`, `get-device-info` round-trip returns firmware/model/serial.
-- **Auto-start on login** — `tauri_plugin_autostart` writes/removes `~/.config/autostart/Dot X.desktop` (XDG autostart spec). Enable/disable/is_enabled round-trip verified on Ubuntu 24.04.
-- **Windows-only crates removed/gated** — `winreg` dropped; `window-vibrancy` / `window-shadows` gated to non-Linux.
-- **NVIDIA + Wayland launch crash auto-mitigated** — verified 2026-07-02 on `bazzite` (NVIDIA GeForce GTX 1660 SUPER, KWin/Plasma Wayland): built the app in the `dotx-ubuntu-ci` Distrobox, then launched the binary directly on the host with no env vars set. `apply_nvidia_wayland_webkit_workaround()` (`src-tauri/src/main.rs`) delegates to the `webkit2gtk-nvidia-quirk` crate, which detected the NVIDIA driver + Wayland session and set `__NV_DISABLE_EXPLICIT_SYNC=1` before WebKit initialized; process stayed alive past the ~0.3s crash window with no protocol errors, and the tray icon registered with `org.kde.StatusNotifierWatcher` normally. See former TODO entry (now fixed) for details.
-- **Plugin SDK build + packaging + install (backend)** — verified 2026-07-02 on `bazzite` (with `WEBKIT_DISABLE_DMABUF_RENDERER=1`, see TODO): `@dotmatrixlabs/dotx-plugin-sdk` builds, the `component-showcase` example packages into a real `.dotxplugin` via `dotx-plugin package`, `install_local_plugin`-style extraction into `app_data_dir/plugins/<id>` passes `validate_manifest` (dotxVersion `>=1.1.4` against app `1.2.3`), and `auto_start_enabled_plugins` spawns the Deno process correctly (`deno run --unstable-detect-cjs --allow-read=... --allow-net=127.0.0.1:3001,localhost:3001 dist/main.js`), which executes real plugin code (`onLoad` logs "Starting Component Showcase v1.0.0...").
-- **Plugin Socket.IO auto-registration + settings-page rendering** — re-verified 2026-07-03 on `bazzite` via `yarn dev:linux`: the 2026-07-02 server-start-race fix holds — `component-showcase` registers cleanly on every fresh launch (`Plugin registered: Component Showcase (component-showcase)`, no `ECONNREFUSED`), and Settings → Plugins correctly lists the installed plugin with its name/version/author/description and delete/docs/settings/enable controls. `onLoad`'s `ui.showToast` call still times out — see TODO (a distinct, later race between plugin auto-start and frontend readiness, not the server-bind race this fix addressed).
-- **Screen brightness (DDC/CI), app/UI-driven** — verified 2026-07-02 on `bazzite` against a real Philips 275E2F monitor (`/dev/i2c-2`): ran the actual built app (not a standalone example) with a simulated Decker attached over a `socat` PTY pair feeding real msgpack `slider-change` firmware frames, mapped a channel to `"screen brightness"`, and confirmed `ddcutil getvcp 10` matched the commanded value exactly for multiple test points (e.g. slider `512/1023` → `50%`, `921/1023` → `90%`) after passing through the full `slider-change` → `SystemVolumeController` → `set_screen_brightness` → `brightness` (Frogbyte fork) → `ddcutil` pipeline. See TODO entry for the DTR bug found and fixed along the way, and for what's still open (laptop sysfs regression check, real hardware on `ananords-dev`).
+| Area | State |
+|---|---|
+| App build / run / package (`.deb`, `.AppImage`) | ✅ done |
+| GUI window on GNOME Wayland (tray-first, starts hidden) | ✅ done |
+| System tray (ayatana-appindicator) | ✅ done |
+| Single-instance detection | ✅ done |
+| Per-app audio: volume + mute | ✅ done |
+| Audio output/input device lists | ✅ done |
+| Installed applications list | ✅ done |
+| Serial port / Decker end-to-end | ✅ done (real hardware) |
+| Auto-start on login | ✅ done |
+| Active window — X11 | ✅ done |
+| Active window — GNOME Wayland | ✅ done (via `dotx-active-window` extension) |
+| MIDI CC send/receive round-trip | ✅ done (app/UI-driven) |
+| Screen brightness (DDC/CI) | ✅ works; still needs a laptop sysfs regression check + real-hardware pass on `ananords-dev` |
+| NVIDIA + Wayland launch crash | ✅ auto-mitigated |
+| Deno runtime | ✅ done |
+| Linux CI workflow | ✅ validated locally via `act`; real GitHub Actions run pending PR #187 merge |
+| Plugin system | ⚠️ mostly working — blocked on the `onLoad` UI-API race below |
+| App auto-updates | ❌ not validated |
 
 ---
 
-## Goals checklist
+## Open work
 
-- [x] App compiles and runs on Linux
-- [x] App packages as `.deb` and `.AppImage`
-- [x] GUI window renders on GNOME Wayland
-- [x] System tray icon appears and functions (GNOME Wayland verified)
-- [x] Single-instance detection works
-- [x] Audio session control works (per-app volume + mute, round-trip verified)
-- [x] Audio output devices listed and selectable
-- [x] Audio input (mic) devices listed and selectable
-- [x] Installed applications listed
-- [x] Active window detection works (X11 verified; GNOME Wayland verified 2026-07-03 via `dotx-active-window` extension)
-- [x] Serial port / Decker works end-to-end
-- [x] Auto-start on login works
-- [x] Deno runtime runs (plugin system partially working)
-- [~] Plugin system works — SDK build/packaging/install/spawn/Socket.IO registration and settings-page rendering all verified 2026-07-03; blocked on an `onLoad` UI-API-call timing race (see TODO) before a plugin can complete `onLoad` if it calls a blocking UI API
-- [~] Screen brightness control works — DDC/CI support wired in the Frogbyte `brightness` fork via `ddcutil`; app/UI-driven DDC/CI round-trip verified 2026-07-02 on `bazzite`; laptop sysfs regression test and real-hardware pass on `ananords-dev` still needed
-- [x] MIDI CC send/receive round-trip — full app/UI-driven round-trip verified 2026-07-03 on `bazzite` (see "Verified working on Linux")
-- [x] Active window on GNOME Wayland — fixed 2026-07-03 via the `dotx-active-window` GNOME Shell extension (see TODO, now Fixed)
-- [ ] App auto-updates on Linux
-- [x] CI builds and tests on Linux automatically — workflow validated locally via `act` 2026-07-03 (see TODO); real GitHub Actions run pending PR #187 merge (workflow isn't registered on a feature branch)
+- **Plugin `onLoad` UI API race** — a plugin that calls a blocking UI API (e.g. `ui.showToast`) from `onLoad` times out after 30s. The backend (`plugin_server.rs`) emits `plugin/api_request` and awaits a frontend reply, but the frontend only starts listening after `PluginAPI.initialize()` runs in `App.vue`'s `mounted()`. Auto-started plugins call `onLoad` before Vue mounts, so the event is dropped (Tauri `emit` doesn't queue for late subscribers). Reproducible 2/2. **Fix direction:** gate plugin auto-start (or blocking-UI-API calls) on a "frontend ready" signal, mirroring the existing "Socket.IO server ready before auto-start" fix but for the frontend side. Socket.IO registration and the Settings→Plugins page render fine; the install flow (`install_local_plugin` / `DotxInstallModal.vue`) still needs a fresh-`.dotxplugin` pass.
+
+- **Screen brightness — remaining checks** — DDC/CI path works via the Frogbyte `brightness` fork (`ddcutil`, VCP code `10`). Still need: a regression check on a real laptop with `/sys/class/backlight` (confirm the sysfs path still works), and a real-hardware pass on `ananords-dev`'s HP 24uh.
+
+- **App auto-updates** — bundles build with `createUpdaterArtifacts` but the update flow is unvalidated. Needs `TAURI_SIGNING_PRIVATE_KEY` (release secret) + an update endpoint, then a triggered update.
+
+- **CI — real GitHub Actions run** — `linux-ci.yml` only exists on this branch; GitHub won't register a `pull_request`/`workflow_dispatch` workflow until it's on the default branch, so it can't run on PR #187 until merge. Validated locally instead with `act push -W .github/workflows/linux-ci.yml -P ubuntu-24.04=catthehacker/ubuntu:act-24.04` (Podman socket via `DOCKER_HOST=unix:///run/user/1000/podman/podman.sock`) — every step passed; the full-bundle step correctly skips without the signing secret. Re-check on GitHub Actions once merged.
 
 ---
 
-## Backend bug fixes made on this branch
+## Gotchas (things that will waste your time)
 
-### `volume-control-rs` Linux audio backend
-1. **Teardown crash** — `AudioController` declared `mainloop` before `context`, so Rust dropped the mainloop before the context and libpulse aborted (`Assertion '!e->dead'`). Fixed by reordering fields and cleaning up in `Drop`.
-2. **Setters were no-ops on quick teardown** — `set_volume`/`set_mute` submitted ops with no callback and didn't wait, so ops never reached the server before drop. Now block until a completion callback fires.
-3. **Asymmetric volume** — setter used `VolumeLinear` (cubic curve) but getter read raw `cv.avg()/NORMAL`, so set `0.25` read back `~0.63`. Getter now applies the inverse `VolumeLinear` conversion; round-trip correct.
+- **Black webview from the raw debug binary** — `target/debug/dot_x`'s `devUrl` is `http://localhost:1420` (Vite). Launching the binary directly without a Vite dev server shows a black-but-otherwise-alive window (mapped, titled, no crash logged) and every MCP-bridge `webview_*` call times out. Use `yarn dev:linux` / `yarn tauri dev`, which run Vite. This is *not* the NVIDIA rendering bug and the WebKit env flags don't fix it.
 
-### `psp` Linux power monitor
-- Replaced all `.unwrap()` calls with proper error propagation so it cannot panic.
-- Logind session resolution (`/org/freedesktop/login1/session/auto`) now fails gracefully over SSH/containers — suspend/resume monitoring stays alive.
-- `PrepareForSleep` signal now emits `PowerState::Suspend` / `PowerState::Resume` (previously only `dbg!`'d).
-- **Dependency note:** published to `github.com/Frogbyte-io/psp` main (`f44a180`, 2026-07-03); `src-tauri/Cargo.toml` now uses `psp = { git = "https://github.com/Frogbyte-io/psp" }`.
+- **Simulated Decker PTY inside Distrobox** — `/dev/pts` is a per-namespace `devpts`; a `socat` PTY pair made on the host isn't visible inside the container (opening it fails with `No such file or directory`). Create the `socat` pair *inside* the same `distrobox enter` session the app runs in. (Real `/dev/ttyACM0` is shared fine.)
 
-### Linux Decker serial device listing
-- Default listing filters out noisy legacy `/dev/ttyS*` (type `Unknown`) while listing USB devices normally.
-- `DOTX_EXTRA_SERIAL_PORTS=/dev/pts/N` — append PTY endpoints for virtual firmware testing.
-- `DOTX_SHOW_ALL_SERIAL_PORTS=1` — expose all `serialport::available_ports()` entries for debugging.
-- Serial thread read-error handling exits cleanly instead of panicking.
-- **DTR-on-connect aborted virtual/PTY connections** — `initialize_decker` (`src-tauri/src/decker.rs`) called `port.write_data_terminal_ready(true)` right after opening the port and returned early (before spawning the reader thread) if it failed. PTYs don't support modem-control lines, so this failed with `ENOTTY` ("Not a typewriter") on every PTY-based connection, silently killing the connection before any data was ever read — found while doing a real virtual-firmware round-trip test for DDC/CI brightness via `DOTX_EXTRA_SERIAL_PORTS`. Fixed 2026-07-02: DTR failure is now a `warn!` instead of an aborting `error!`/`return Err`, so connections proceed on serial endpoints that don't support DTR.
+- **MCP bridge `ipc_execute_command` is bridge-only** — with the pinned `tauri-plugin-mcp-bridge = "0.11"`, it only dispatches the bridge's own `plugin:mcp-bridge|*` commands, not app `#[tauri::command]`s (those return `Unsupported Tauri command`). Drive app behavior through the real UI (`webview_interact` etc.) or by editing the app's persisted config/store files.
+
+- **GNOME extensions & lock screen** — a brand-new GNOME extension isn't discovered until a full logout/login (no in-session Shell restart on Wayland). GNOME also disables all user extensions while the screen is locked, so `dotx-active-window`'s D-Bus method vanishes then; the backend fallback handles this the same as "not installed".
+
+- **NVIDIA + Wayland** — the app auto-sets `__NV_DISABLE_EXPLICIT_SYNC=1` on Wayland via the `webkit2gtk-nvidia-quirk` crate (`apply_nvidia_wayland_webkit_workaround()` in `main.rs`), so no manual env var is needed. Distrobox does *not* sidestep this (same host GPU/compositor).
 
 ---
 
-## Linux Build Prerequisites
+## Key implementation notes
+
+- **Active window (GNOME Wayland)** — `active-win-pos-rs` uses `org.gnome.Shell.Eval` (disabled since GNOME 42); `org.gnome.Shell.Introspect` is portal-gated to Flatpak apps (`AccessDenied` otherwise). Fix: the `gnome-extension/dotx-active-window@dot-x.dev/` Shell extension exports read-only `org.dotx.ActiveWindow.GetFocusedWindow() -> (wm_class, title, pid)`. `src-tauri/src/gnome_active_window.rs` (Linux-only, `zbus`, 2s timeout on a spawned thread) calls it from `get_active_app_name()` only when `active-win-pos-rs` fails on a GNOME-Wayland session; otherwise falls back to "Unknown" unchanged. Not yet bundled into the installer — manual `gnome-extensions install` (see the extension's `README.md`). Privacy: the D-Bus method is unrestricted on the session bus (any local process can read the focused window title/PID) — read-only, but a conscious tradeoff.
+
+- **NVIDIA + Wayland crash** — WebKitGTK commits buffers without an acquire timeline point, which KWin rejects (`explicit sync is used, but no acquire point is set`). The `webkit2gtk-nvidia-quirk` crate detects NVIDIA + session type and sets `__NV_DISABLE_EXPLICIT_SYNC=1` (Wayland) / `WEBKIT_DISABLE_DMABUF_RENDERER=1` (X11), keeping the fast DMA-BUF path on Wayland. Skipped if the user already set either env var.
+
+- **Screen brightness** — Dot X points `brightness` at the Frogbyte fork, which keeps sysfs backlight support and adds DDC/CI via `ddcutil detect --terse` + VCP code `10`. Pipeline: `slider-change` → `SystemVolumeController` → `set_screen_brightness` → `brightness` → `ddcutil`. Runtime needs `ddcutil`, the `i2c-dev` module, and access to `/dev/i2c-*`.
+
+---
+
+## Backend bug fixes on this branch
+
+**`volume-control-rs` (Linux audio):** (1) teardown crash — `AudioController` dropped mainloop before context; fixed field order + `Drop`. (2) setters were no-ops on quick teardown — now block on a completion callback. (3) asymmetric volume — getter now applies the inverse `VolumeLinear` conversion so set/read round-trips.
+
+**`psp` (power monitor):** no more `.unwrap()` panics; logind session resolution degrades gracefully over SSH/containers; `PrepareForSleep` now emits `PowerState::Suspend`/`Resume`. Published to `github.com/Frogbyte-io/psp` (`f44a180`, 2026-07-03); `Cargo.toml` uses the git dep.
+
+**Linux Decker serial listing (`decker.rs`):** default listing hides legacy `/dev/ttyS*`; `DOTX_EXTRA_SERIAL_PORTS=/dev/pts/N` appends PTYs for virtual testing; `DOTX_SHOW_ALL_SERIAL_PORTS=1` shows everything; read-error handling exits cleanly instead of panicking. **DTR-on-connect fix:** `write_data_terminal_ready(true)` fails with `ENOTTY` on PTYs and used to abort the connection before the reader thread started; now a `warn!` instead of an aborting error, so PTY/virtual endpoints work.
+
+**Minor latent bug (not fixed):** `attachMidiDevice()` in `src/ts/decker.ts` waits for sliders with only 5×1s retries, then gives up permanently — auto-attach silently fails if no slider frame arrives within ~5s of connect. Fine for real hardware (streams continuously); a slow Decker could hit it, recoverable only by re-toggling MIDI in Settings.
+
+---
+
+## Build prerequisites
 
 ### Ubuntu / Debian
 
@@ -111,20 +94,11 @@ sudo apt-get install -y \
   libayatana-appindicator3-dev ddcutil
 ```
 
-Package notes:
-- `libwebkit2gtk-4.1-dev` / `librsvg2-dev` / `libgtk-3-dev` — Tauri 2 webview. `libgtk-3-dev` must be listed explicitly even though `libwebkit2gtk-4.1-dev` pulls in the runtime.
-- `libssl-dev` — OpenSSL link libraries used by Rust dependencies such as `reqwest` / updater support.
-- **Ubuntu 24.04 quirk:** `libsoup-3.0.pc` is installed as `libsoup-3.0` but `soup3-sys` looks for `soup-3.0`. Fix: `sudo ln -sf /usr/lib/x86_64-linux-gnu/pkgconfig/libsoup-3.0.pc /usr/lib/x86_64-linux-gnu/pkgconfig/soup-3.0.pc`
-- **Ubuntu 24.04 quirk:** if `libpsl-dev` / `libsysprof-capture-4-dev` show "no installation candidate", a foreign dpkg arch (e.g. arm64) is configured without a matching repo. Fix: `sudo dpkg --remove-architecture arm64 && sudo apt-get update`.
-- `libxcb-ewmh-dev` / `libxcb-randr0-dev` — `active-win-pos-rs` X11/XCB backend.
-- `libdbus-1-dev` — D-Bus for `psp` (logind power events).
-- `libpulse-dev` — `volume-control-rs` Linux audio backend. Runtime needs `libpulse0`; on PipeWire systems, `pipewire-pulse` provides the server.
-- `libudev-dev` — `libudev-sys` (used by `serialport` and `brightness`).
-- `libasound2-dev` — `alsa-sys` for `midir` ALSA backend.
-- `libayatana-appindicator3-dev` — system tray. Runtime needs `libayatana-appindicator3-1`.
-- `ddcutil` — external-monitor DDC/CI brightness backend used by the Frogbyte `brightness` fork.
+Notable dependencies: `libgtk-3-dev` must be listed explicitly (webview); `libssl-dev` (reqwest/updater); `libxcb-ewmh-dev`/`libxcb-randr0-dev` (active-win X11); `libdbus-1-dev` (psp logind); `libpulse-dev` (audio; runtime needs `libpulse0`, PipeWire systems need `pipewire-pulse`); `libudev-dev` (serialport/brightness); `libasound2-dev` (midir ALSA); `libayatana-appindicator3-dev` (tray); `ddcutil` (DDC/CI brightness).
 
-For DDC/CI brightness: `ddcutil` at runtime, `i2c-dev` kernel module loaded, and permission to access the relevant `/dev/i2c-*` device.
+Ubuntu 24.04 quirks:
+- `libsoup-3.0.pc` installed as `libsoup-3.0` but `soup3-sys` wants `soup-3.0`: `sudo ln -sf /usr/lib/x86_64-linux-gnu/pkgconfig/libsoup-3.0.pc /usr/lib/x86_64-linux-gnu/pkgconfig/soup-3.0.pc`
+- `libpsl-dev`/`libsysprof-capture-4-dev` "no installation candidate" → stray foreign dpkg arch: `sudo dpkg --remove-architecture arm64 && sudo apt-get update`
 
 ### Fedora / RHEL
 
@@ -137,72 +111,37 @@ sudo dnf install \
 sudo dnf groupinstall "Development Tools"
 ```
 
-### Bazzite / Fedora Atomic (immutable OS)
+### Bazzite / Fedora Atomic (immutable)
 
-Bazzite cannot install `-devel` packages natively with normal `dnf`. For development, run `yarn tauri dev` inside [Distrobox](https://distrobox.it/) (pre-installed on Bazzite) or layer the build dependencies with `rpm-ostree` and reboot. Distrobox is the preferred path because it keeps the immutable host clean while still sharing your home directory and desktop session.
-
-Do not use temporary linker symlinks as a development setup. A 2026-07-02 native-host test showed that `/lib64` has runtime libraries such as `libgtk-3.so.0`, `libwebkit2gtk-4.1.so.0`, `libdbus-1.so.3`, and `libudev.so.1`, but Rust/Tauri links against unversioned names such as `-lgtk-3`, `-lwebkit2gtk-4.1`, `-ldbus-1`, and `-ludev`. Symlinking those names in `/tmp` can make one build pass, but it bypasses pkg-config, misses headers/metadata, and will fail unpredictably as dependencies change.
-
-Create a mutable Fedora container:
+Can't install `-devel` packages natively. Use Distrobox (preferred — keeps the host clean) or layer with `rpm-ostree`. **Do not use temporary linker symlinks** — `/lib64` has runtime `.so`s but not the unversioned linker names / pkg-config metadata; symlinking in `/tmp` bypasses pkg-config and fails unpredictably.
 
 ```sh
-# One-time setup: create a Fedora development container
 distrobox create --name fedora-dev --image fedora:41
 distrobox enter fedora-dev
-
-# Inside the container, install build dependencies
 sudo dnf install \
   webkit2gtk4.1-devel openssl-devel curl wget file \
   libappindicator-gtk3-devel librsvg2-devel \
   libxcb-devel alsa-lib-devel pulseaudio-libs-devel \
   systemd-devel dbus-devel ddcutil nodejs npm
 sudo dnf groupinstall "Development Tools"
-
-# Install Rust (inside the container)
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-source ~/.cargo/env
-
-# Install yarn
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh && source ~/.cargo/env
 npm install -g yarn
 ```
 
-After the one-time setup, use the Linux dev wrapper:
+Then use `yarn dev:linux` (see `TEST-MACHINES.md`). It auto-enters the Distrobox on native Bazzite (`DOTX_DISTROBOX_NAME`, then `fedora-dev`, then `dotx-ubuntu-ci`, then first available), runs a dependency preflight, and applies the WebKit/X11 flags. `DOTX_SKIP_DISTROBOX=1` to test a layered native host. The container shares your home dir, so edits are live.
 
-```sh
-cd ~/Code/dot-x
-yarn dev:linux
-```
-
-On native Bazzite, `yarn dev:linux` runs `distrobox enter <container> -- ...` automatically. It prefers `DOTX_DISTROBOX_NAME`, then `fedora-dev`, then `dotx-ubuntu-ci`, then the first available Distrobox. Inside Distrobox, or on normal mutable Linux distros, it runs `yarn tauri dev` directly. Set `DOTX_SKIP_DISTROBOX=1` only when intentionally testing a layered native host.
-
-The container shares your home directory, so your code edits are immediately visible inside it.
-
-The `GDK_BACKEND=x11` and WebKit flags are currently recommended on Bazzite/NVIDIA even from Distrobox because the GUI still renders through the host Wayland/XWayland session. Without them, WebKitGTK may crash on KWin Wayland explicit sync or produce a mapped but black webview.
-
-**Serial port access (Decker):** Distrobox shares `/dev/` from the host, but group memberships may not transfer into a fresh container. If you get "permission denied" on `/dev/ttyACM0`, add yourself to `dialout` inside the container:
-
-```sh
-distrobox enter fedora-dev
-sudo usermod -a -G dialout $USER
-exit
-distrobox enter fedora-dev  # re-enter so the group takes effect
-```
-
-**Simulated Decker over a PTY (`DOTX_EXTRA_SERIAL_PORTS`) inside Distrobox:** unlike `/dev/ttyACM0`, PTYs are *not* shared — `/dev/pts` is backed by the `devpts` filesystem, and Distrobox's containers get their own fresh `devpts` instance rather than the host's. A `socat` PTY pair created on the Bazzite host (e.g. `/dev/pts/3`) will not exist inside the container, and `dot_x` running inside it will fail to open that path (`No such file or directory`) even though the number looks valid. Run `socat` *inside* the same `distrobox enter` session the app runs in so both share one `devpts` instance.
+Decker serial access in Distrobox: `/dev/` is shared but group membership may not transfer — if `/dev/ttyACM0` is permission-denied, `sudo usermod -a -G dialout $USER` inside the container, then re-enter.
 
 ---
 
 ## Building on Linux
 
 ```sh
-# from repo root
-yarn setup:linux              # Ubuntu/Debian only; installs build prerequisites
+yarn setup:linux    # Ubuntu/Debian only; installs the prerequisites above
 yarn install
-yarn tauri build            # produces .deb and .AppImage
+yarn tauri build    # produces .deb and .AppImage
 ```
 
-`yarn setup:linux` runs `scripts/install-linux-deps.sh`. `yarn dev:linux` does not run it automatically; it only reports missing commands/pkg-config packages and tells you which setup command to run. This keeps dev launch from unexpectedly invoking `sudo` or mutating the host/container. Use `yarn dev:linux --check-only` to run the dependency preflight without starting the app.
+`yarn dev:linux` never runs `setup:linux` itself (avoids surprise `sudo`); it only reports missing deps. `yarn dev:linux --check-only` runs just the preflight. Bundle targets (`deb`, `appimage`) and the `libpulse0` runtime dep come from `src-tauri/tauri.linux.conf.json` (auto-merged onto `tauri.conf.json`).
 
-Bundle targets are `["deb", "appimage"]` via `src-tauri/tauri.linux.conf.json` (Tauri auto-merges this on top of `tauri.conf.json`). That file also scopes Linux resource bundling to the Linux Deno archive and declares `libpulse0` as a `.deb` runtime dependency.
-
-> **AppImage note:** AppImage bundling downloads `linuxdeploy` tooling on first run and needs FUSE. On headless/CI use `appimagetool --appimage-extract-and-run` or run under `xvfb`.
+> **AppImage:** bundling downloads `linuxdeploy` on first run and needs FUSE. Headless/CI: `appimagetool --appimage-extract-and-run` or run under `xvfb`.
