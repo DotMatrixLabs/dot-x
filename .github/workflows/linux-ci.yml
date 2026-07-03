@@ -4,7 +4,9 @@ on:
   push:
     branches:
       - main
-      - linux-support
+      - v2
+      - '*linux*'
+      - '**/*linux*'
   pull_request:
   workflow_dispatch:
 
