@@ -52,6 +52,12 @@ fn consume_pending_dotx_install() -> Option<String> {
 #[derive(Debug)]
 enum Error {
     Io(std::io::Error),
+    SerialOpen {
+        port_name: String,
+        kind: String,
+        message: String,
+        os_code: Option<i32>,
+    },
     InstalledApps(String),
     SessionNotFound,
     Connection,
@@ -62,6 +68,21 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Error::Io(inner) => write!(f, "IO Error: {}", inner),
+            Error::SerialOpen {
+                port_name,
+                kind,
+                message,
+                os_code,
+            } => write!(
+                f,
+                "Serial open error on {} ({}{}): {}",
+                port_name,
+                kind,
+                os_code
+                    .map(|code| format!(", OS error {}", code))
+                    .unwrap_or_default(),
+                message
+            ),
             Error::InstalledApps(inner) => write!(f, "Installed apps error: {}", inner),
             Error::SessionNotFound => write!(f, "Session not found"),
             Error::Connection => write!(f, "Decker error"),
@@ -82,7 +103,22 @@ impl serde::Serialize for Error {
     where
         S: serde::ser::Serializer,
     {
-        serializer.serialize_str(self.to_string().as_ref())
+        match self {
+            Error::SerialOpen {
+                port_name,
+                kind,
+                message,
+                os_code,
+            } => serde::Serialize::serialize(&json!({
+                "type": "serial_open_error",
+                "portName": port_name,
+                "kind": kind,
+                "message": message,
+                "osCode": os_code,
+                "permissionDenied": kind == "PermissionDenied",
+            }), serializer),
+            _ => serializer.serialize_str(self.to_string().as_ref()),
+        }
     }
 }
 
@@ -474,7 +510,12 @@ fn connect_decker(window: WebviewWindow, port_name: &str, inverted: bool) -> Res
         "Connecting Decker at port: {}, inverted: {}",
         port_name, inverted
     );
-    decker::initialize_decker(window, port_name, inverted)?;
+    decker::initialize_decker(window, port_name, inverted).map_err(|error| Error::SerialOpen {
+        port_name: port_name.to_string(),
+        kind: format!("{:?}", error.kind()),
+        message: error.to_string(),
+        os_code: error.raw_os_error(),
+    })?;
     info!("Decker connected at {}", port_name);
     Ok(())
 }

@@ -1,7 +1,6 @@
-# Dot X — grant the logged-in seat user access to USB serial devices
+# Dot X — grant the logged-in seat user access to official Decker hardware
 # without requiring group membership (systemd uaccess via logind ACL).
 #
-# Covers USB CDC ACM (ttyACM*) and USB-to-serial adapters (ttyUSB*) so
-# both official Decker hardware and DIY devices work out of the box.
-SUBSYSTEM=="tty", KERNEL=="ttyACM[0-9]*", TAG+="uaccess"
-SUBSYSTEM=="tty", KERNEL=="ttyUSB[0-9]*", TAG+="uaccess"
+# DIY/Arduino-compatible devices can use many VID/PID pairs; Dot X surfaces
+# a copyable opt-in rule from the app when such a device needs serial access.
+SUBSYSTEM=="tty", ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="e626", MODE="0660", TAG+="uaccess"
