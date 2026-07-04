@@ -10,24 +10,34 @@
 			</div>
 		</div>
 
-		<div class="flex items-center justify-between gap-2">
-			<div class="relative flex-1">
-				<input
-					type="text"
-					class="input input-bordered input-sm pl-8 w-full"
-					placeholder="Search plugins"
-					v-model="searchQuery"
-				/>
-				<i class="fa-solid fa-magnifying-glass absolute left-2.5 top-1/2 -translate-y-1/2 opacity-50"></i>
+		<div class="flex flex-col gap-1.5">
+			<div class="flex items-center justify-between gap-2">
+				<div class="relative flex-1">
+					<input
+						type="text"
+						class="input input-bordered input-sm pl-8 w-full"
+						placeholder="Search plugins"
+						v-model="searchQuery"
+					/>
+					<i class="fa-solid fa-magnifying-glass absolute left-2.5 top-1/2 -translate-y-1/2 opacity-50"></i>
+				</div>
+				<select
+					class="select select-bordered select-sm"
+					v-model="sortOption"
+				>
+					<option value="newest">Newest</option>
+					<option value="downloads">Most Downloaded</option>
+					<option value="likes">Most Liked</option>
+				</select>
 			</div>
-			<select
-				class="select select-bordered select-sm"
-				v-model="sortOption"
-			>
-				<option value="newest">Newest</option>
-				<option value="downloads">Most Downloaded</option>
-				<option value="likes">Most Liked</option>
-			</select>
+			<label class="flex items-center justify-end gap-2 cursor-pointer">
+				<span class="label-text text-xs">Show incompatible</span>
+				<input
+					type="checkbox"
+					class="toggle toggle-sm toggle-primary"
+					v-model="showIncompatible"
+				/>
+			</label>
 		</div>
 
 		<div class="flex flex-col gap-2 overflow-y-auto pr-1">
@@ -38,15 +48,22 @@
 				<div
 					v-for="plugin in filteredPlugins"
 					:key="plugin.id"
-					class="card bg-base-200 hover:bg-base-300 cursor-pointer transition"
+					:class="[
+						'card bg-base-200 cursor-pointer transition',
+						isCompatible(plugin) ? 'hover:bg-base-300' : 'opacity-60',
+					]"
 					@click="selectedPlugin = plugin"
 				>
 					<div class="card-body p-3 gap-2">
 						<div class="flex items-start justify-between gap-2">
 							<div class="flex flex-col gap-0.5">
-								<div class="flex items-center gap-2">
+								<div class="flex items-center gap-2 flex-wrap">
 									<h3 class="card-title text-sm font-semibold leading-tight text-base-content">{{ plugin.name }}</h3>
 									<span v-if="isInstalled(plugin.id)" class="badge badge-primary badge-sm">Installed</span>
+									<span
+										v-if="!isCompatible(plugin) && incompatibleBadgeLabel"
+										class="badge badge-warning badge-sm"
+									>{{ incompatibleBadgeLabel }}</span>
 								</div>
 								<p class="text-xs text-base-content/80">{{ plugin.description }}</p>
 								<p class="text-xs text-base-content/60">by {{ plugin.author }}</p>
@@ -63,10 +80,11 @@
 							<button
 								:class="[
 									'btn btn-sm min-w-[100px]',
-									isInstalled(plugin.id) ? 'btn-ghost' : 'btn-primary'
+									isInstalled(plugin.id) ? 'btn-ghost' : 'btn-primary',
+									!isCompatible(plugin) && !isInstalled(plugin.id) ? 'btn-disabled' : '',
 								]"
 								@click.stop="isInstalled(plugin.id) ? handleUninstall(plugin) : handleInstall(plugin)"
-								:disabled="plugin.isDownloading"
+								:disabled="plugin.isDownloading || (!isCompatible(plugin) && !isInstalled(plugin.id))"
 							>
 								<span v-if="plugin.isDownloading" class="loading loading-spinner loading-xs"></span>
 								<span v-if="plugin.isDownloading && plugin.downloadProgress">{{ stageLabel(plugin.downloadProgress.stage) }}</span>
@@ -95,6 +113,8 @@
 				:plugin="selectedPlugin"
 				:is-open="true"
 				:is-installed="isInstalled(selectedPlugin.id)"
+				:is-compatible="isCompatible(selectedPlugin)"
+				:incompatible-badge-label="incompatibleBadgeLabel"
 				@close="selectedPlugin = null"
 				@download="handleDownload"
 				@uninstall="handleUninstall"
@@ -117,6 +137,11 @@ import MarketplaceStats, {
 	resolveMarketplaceDownloadCount,
 	resolveMarketplaceLikeState,
 } from '../../ts/marketplaceStats';
+import {
+	getCurrentMarketplacePlatform,
+	getIncompatibleBadgeLabel,
+	isPluginPlatformCompatible,
+} from '../../ts/platform';
 
 export default {
 	name: "PluginsMarketplace",
@@ -131,6 +156,8 @@ export default {
 		return {
 			searchQuery: "",
 			sortOption: "newest",
+			showIncompatible: false,
+			currentPlatform: null,
 			selectedPlugin: null,
 			allPlugins: [],
 			loading: false,
@@ -138,6 +165,9 @@ export default {
 		};
 	},
 	computed: {
+		incompatibleBadgeLabel() {
+			return getIncompatibleBadgeLabel(this.currentPlatform);
+		},
 		filteredPlugins() {
 			let list = [...this.allPlugins];
 			const query = this.searchQuery.trim().toLowerCase();
@@ -162,6 +192,10 @@ export default {
 					}
 					return (b.downloads || 0) - (a.downloads || 0);
 				});
+			}
+
+			if (!this.showIncompatible) {
+				list = list.filter((plugin) => this.isCompatible(plugin));
 			}
 
 			return list;
@@ -210,8 +244,11 @@ export default {
 		isInstalled(pluginId) {
 			return this.installedPluginIds.has(pluginId);
 		},
+		isCompatible(plugin) {
+			return isPluginPlatformCompatible(plugin?.platforms, this.currentPlatform);
+		},
 		async handleInstall(plugin) {
-			if (plugin.isDownloading) return;
+			if (plugin.isDownloading || !this.isCompatible(plugin)) return;
 			plugin.isDownloading = true;
 			try {
 				await usePluginStore().installMarketplacePlugin(plugin.id, MARKETPLACE_REGISTRY_URL);
@@ -293,7 +330,8 @@ export default {
 			this.unlistenProgress();
 		}
 	},
-	mounted() {
+	async mounted() {
+		this.currentPlatform = await getCurrentMarketplacePlatform();
 		this.fetchPlugins();
 		listen('plugin-install-progress', (event) => {
 			const { pluginId, stage, progress } = event.payload;
