@@ -118,6 +118,16 @@ function validateMarketplaceManifest(manifest, packageJson) {
   if (manifest.permissions.some((entry) => typeof entry !== 'string')) {
     throw new Error('manifest.json permissions must contain only strings');
   }
+  if (manifest.platforms !== undefined) {
+    const knownPlatforms = new Set(['windows', 'macos', 'linux']);
+    if (!Array.isArray(manifest.platforms) || manifest.platforms.some((entry) => typeof entry !== 'string')) {
+      throw new Error('manifest.json "platforms" must be an array of strings if present');
+    }
+    const unknown = manifest.platforms.find((p) => !knownPlatforms.has(p.trim().toLowerCase()));
+    if (unknown !== undefined) {
+      throw new Error(`manifest.json "platforms" contains unknown platform "${unknown}" (expected windows, macos, or linux)`);
+    }
+  }
 
 }
 
