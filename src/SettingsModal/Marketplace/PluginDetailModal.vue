@@ -13,6 +13,10 @@
 							<div class="flex items-center gap-2 flex-wrap">
 								<h3 class="font-semibold text-lg leading-tight truncate">{{ plugin?.name }}</h3>
 								<div v-if="manifest?.version" class="badge badge-outline badge-sm shrink-0">{{ manifest.version }}</div>
+								<div
+									v-if="!isCompatible && incompatibleBadgeLabel"
+									class="badge badge-warning badge-sm shrink-0"
+								>{{ incompatibleBadgeLabel }}</div>
 								<div class="badge badge-ghost badge-sm shrink-0">ID: {{ plugin?.id }}</div>
 							</div>
 							<div class="flex items-center gap-2 flex-wrap">
@@ -71,8 +75,10 @@
 								<button
 									:class="[
 										'btn btn-sm min-w-[100px] shrink-0',
-										isInstalled ? 'btn-ghost' : 'btn-primary'
+										isInstalled ? 'btn-ghost' : 'btn-primary',
+										!isCompatible && !isInstalled ? 'btn-disabled' : '',
 									]"
+									:disabled="!isCompatible && !isInstalled"
 									@click="handleInstallAction"
 								>
 									<span v-if="plugin?.isDownloading" class="loading loading-spinner loading-xs"></span>
@@ -177,6 +183,14 @@ export default {
 		isInstalled: {
 			type: Boolean,
 			default: false,
+		},
+		isCompatible: {
+			type: Boolean,
+			default: true,
+		},
+		incompatibleBadgeLabel: {
+			type: String,
+			default: null,
 		},
 	},
 	emits: ['close', 'download', 'uninstall', 'like', 'installed', 'uninstalled'],
@@ -339,7 +353,7 @@ export default {
 			}
 		},
 		async handleInstall() {
-			if (!this.plugin?.id || this.plugin.isDownloading) return;
+			if (!this.plugin?.id || this.plugin.isDownloading || !this.isCompatible) return;
 			this.plugin.isDownloading = true;
 			try {
 				await usePluginStore().installMarketplacePlugin(this.plugin.id, MARKETPLACE_REGISTRY_URL);
