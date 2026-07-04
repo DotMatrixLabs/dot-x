@@ -121,11 +121,14 @@ Things to know about the transition:
   Every update *after* the migration is fully elevation-free.
 - **The v1→v2 auto-update surfaces that UAC mid-update.** A v1.x client that
   auto-updates will show the UAC prompt during what otherwise looks like a
-  background update. If the user **declines** it (or is a standard user with
-  UAC locked down), the MSI is left in place and the per-user install may not
-  complete — leaving the app in a half-migrated state. For the smoothest
-  rollout, consider announcing v2 as a manual download for existing users
-  rather than relying solely on the silent auto-update for the jump.
+  background update. **Declining it is safe:** the MSI uninstall runs on the
+  installer's reinstall page, *before* any new files are written, so a declined
+  prompt makes the installer `Abort` cleanly — the old MSI stays fully intact,
+  nothing new is installed, and the app remains on v1. The updater just reports
+  the update as failed and retries on the next check. There is no half-migrated
+  or double-installed state from a declined prompt; the only cost is the update
+  is deferred until the user accepts. For the smoothest rollout you can still
+  announce v2 as a manual download for existing users.
 - **Do NOT set `bundle.publisher` in the config.** The match above works only
   because both v1 and v2 derive the manufacturer as `dot-x` from the
   `com.dot-x.dev` identifier (neither sets an explicit publisher). Adding a
