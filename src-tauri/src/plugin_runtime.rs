@@ -282,10 +282,27 @@ pub struct ValidatedManifest {
   pub main: PathBuf,
   pub permissions: Vec<String>,
   pub dotx_version: String,
+  pub platforms: Vec<String>,
 }
 
 /// Known permission strings accepted in manifest.json `permissions`.
 const KNOWN_PERMISSIONS: &[&str] = &["net", "network", "env", "run", "ffi", "sys", "read", "write", "hrtime", "all"];
+
+/// Known platform strings accepted in manifest.json `platforms`.
+pub const KNOWN_PLATFORMS: &[&str] = &["windows", "macos", "linux"];
+
+/// The current OS as it should appear in manifest.json `platforms` entries.
+pub fn current_os_name() -> &'static str {
+  if cfg!(target_os = "windows") {
+    "windows"
+  } else if cfg!(target_os = "macos") {
+    "macos"
+  } else if cfg!(target_os = "linux") {
+    "linux"
+  } else {
+    std::env::consts::OS
+  }
+}
 
 /// Validate all manifest fields, permission values, version format, and
 /// dotxVersion compatibility.  Returns the full parsed manifest or a list
@@ -336,6 +353,37 @@ pub fn validate_manifest(manifest_path: &Path) -> Result<ValidatedManifest, Vec<
     None => { errors.push("manifest.json is missing a \"permissions\" array".to_string()); Vec::new() }
   };
 
+  // --- platforms (optional; omit to support all platforms) ---
+  let platforms = match json.get("platforms") {
+    None => Vec::new(),
+    Some(Value::Array(arr)) => {
+      let mut plats: Vec<String> = Vec::new();
+      for (i, entry) in arr.iter().enumerate() {
+        match entry.as_str() {
+          Some(s) => {
+            let p = s.trim().to_lowercase();
+            if !KNOWN_PLATFORMS.contains(&p.as_str()) {
+              errors.push(format!("Unknown platform \"{}\" at platforms[{}]", p, i));
+            }
+            plats.push(p);
+          }
+          None => errors.push(format!("platforms[{}] must be a string", i)),
+        }
+      }
+      plats
+    }
+    Some(_) => {
+      errors.push("manifest.json \"platforms\" must be an array of strings".to_string());
+      Vec::new()
+    }
+  };
+  if !platforms.is_empty() && !platforms.iter().any(|p| p == current_os_name()) {
+    errors.push(format!(
+      "Plugin only supports platform(s) [{}] but the current platform is \"{}\"",
+      platforms.join(", "), current_os_name()
+    ));
+  }
+
   // --- version format (semver) ---
   if let Some(ref v) = version {
     if semver::Version::parse(v).is_err() {
@@ -361,6 +409,7 @@ pub fn validate_manifest(manifest_path: &Path) -> Result<ValidatedManifest, Vec<
     main,
     permissions,
     dotx_version: dotx_version.unwrap(),
+    platforms,
   })
 }
 

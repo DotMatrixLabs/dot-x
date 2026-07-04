@@ -22,20 +22,18 @@ Primary dev/test happens on `bazzite` (KDE Wayland, NVIDIA) via Distrobox and `a
 | Active window — X11 | ✅ done |
 | Active window — GNOME Wayland | ✅ done (via `dotx-active-window` extension) |
 | MIDI CC send/receive round-trip | ✅ done (app/UI-driven) |
-| Screen brightness (DDC/CI) | ✅ works; still needs a laptop sysfs regression check + real-hardware pass on `ananords-dev` |
+| Screen brightness (DDC/CI) | ✅ confirmed on real hardware (`ananords-dev`'s HP 24uh via `ddcutil`); sysfs `/sys/class/backlight` regression check still needs a machine with an internal panel — `ananords-dev` is a laptop but exposes zero backlight devices for its external monitor |
 | NVIDIA + Wayland launch crash | ✅ auto-mitigated |
 | Deno runtime | ✅ done |
 | Linux CI workflow | ✅ validated locally via `act`; real GitHub Actions run pending PR #187 merge |
-| Plugin system | ✅ auto-start, Socket.IO, `onLoad` blocking-UI calls, settings pages all working; install flow still needs a fresh-`.dotxplugin` pass |
+| Plugin system | ✅ auto-start, Socket.IO, `onLoad` blocking-UI calls, settings pages, and fresh-`.dotxplugin` install flow all verified end-to-end on `bazzite` |
 | App auto-updates | ❌ not validated |
 
 ---
 
 ## Open work
 
-- **Plugin install flow** — the runtime and auto-start paths are validated (see the `onLoad` fix below), but the install flow (`install_local_plugin` / `DotxInstallModal.vue`) still needs a fresh-`.dotxplugin` pass end-to-end.
-
-- **Screen brightness — remaining checks** — DDC/CI path works via the Frogbyte `brightness` fork (`ddcutil`, VCP code `10`). Still need: a regression check on a real laptop with `/sys/class/backlight` (confirm the sysfs path still works), and a real-hardware pass on `ananords-dev`'s HP 24uh.
+- **Screen brightness — sysfs regression check** — DDC/CI is confirmed on real hardware: `ddcutil setvcp 10 <n>` measurably changed `ananords-dev`'s HP 24uh brightness (49 → 75 → 49). Still need a `/sys/class/backlight` regression check on a machine with an actual internal laptop panel — `ananords-dev` has none (0 devices under `/sys/class/backlight/`), so this can't be checked there. The full slider → app → `set_screen_brightness` path is wired correctly in code (verified by reading `SliderOverview.vue`'s `sliders` watcher → `SystemVolumeController.setChannelVolume` → `set_screen_brightness`) but is still unconfirmed against a live app instance — a simulated-PTY test over SSH failed for harness reasons (see Gotchas), not because of a code defect.
 
 - **App auto-updates** — bundles build with `createUpdaterArtifacts` but the update flow is unvalidated. Needs `TAURI_SIGNING_PRIVATE_KEY` (release secret) + an update endpoint, then a triggered update.
 
@@ -54,6 +52,12 @@ Primary dev/test happens on `bazzite` (KDE Wayland, NVIDIA) via Distrobox and `a
 - **GNOME extensions & lock screen** — a brand-new GNOME extension isn't discovered until a full logout/login (no in-session Shell restart on Wayland). GNOME also disables all user extensions while the screen is locked, so `dotx-active-window`'s D-Bus method vanishes then; the backend fallback handles this the same as "not installed".
 
 - **NVIDIA + Wayland** — the app auto-sets `__NV_DISABLE_EXPLICIT_SYNC=1` on Wayland via the `webkit2gtk-nvidia-quirk` crate (`apply_nvidia_wayland_webkit_workaround()` in `main.rs`), so no manual env var is needed. Distrobox does *not* sidestep this (same host GPU/compositor).
+
+- **Launching the app over plain SSH gives a dead webview** — without `WAYLAND_DISPLAY`/`DISPLAY`/`DBUS_SESSION_BUS_ADDRESS` exported, the process starts (`XDG_SESSION_TYPE=tty`), the Rust backend runs fine, but the webview never attaches to the compositor — no frontend JS executes, so anything downstream of a Tauri event (e.g. `slider-change` → brightness) silently never fires even though the backend logs look healthy. Export the graphical session's env vars before launching over SSH.
+
+- **`socat` isn't installed on `ananords-dev`** — use a small Python `pty.openpty()` script instead to fake a Decker serial endpoint there.
+
+- **Simulated-PTY Decker over SSH is unreliable** — in one session the app connected to a Python-backed PTY, then silently lost the fd (no disconnect/error/panic logged, fd just gone from `/proc/<pid>/fd`) before any slider frames arrived, with both one-shot and continuously-streaming senders. Root cause undetermined — suspect something in how a non-controlling-terminal PTY behaves under a detached SSH/`setsid` session. Prefer testing brightness with a real Decker's slider, or reproduce in a real logged-in session (not bare SSH) before trusting a PTY simulation result on this machine.
 
 ---
 

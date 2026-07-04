@@ -376,6 +376,7 @@ interface PluginManifest {
   author?: string;      // Author name
   dotxVersion?: string; // Required DotX version (semver range)
   permissions?: string[]; // Requested plugin permissions
+  platforms?: string[]; // Restrict to "windows" | "macos" | "linux" (omit = all platforms)
   packaging?: {
     include?: string[]; // Extra files or folders to include in marketplace <plugin-name>.dotxplugin
   };
@@ -393,6 +394,10 @@ Dot X also grants baseline runtime capabilities required for the SDK/runtime its
 - Read/write access inside the plugin install directory.
 - Network access to the local Dot X plugin server on `localhost`/`127.0.0.1`.
 - Limited system account information used by runtime compatibility code.
+
+### Platform Restrictions
+
+If a plugin only supports specific operating systems, list them in `manifest.json` `platforms` (any of `"windows"`, `"macos"`, `"linux"`). Omitting `platforms` (or leaving it empty) means the plugin is offered on every platform. Dot X checks `platforms` against the current OS both when installing from the marketplace and when loading a locally installed plugin; a mismatch is reported the same way as any other manifest validation error.
 
 ## Marketplace Packaging
 
