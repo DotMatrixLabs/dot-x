@@ -8,6 +8,8 @@ use std::fs;
 use std::fs::File;
 use windows_volume_control::{AudioController, CoinitMode};
 use tauri_plugin_autostart::MacosLauncher;
+#[cfg(not(debug_assertions))]
+use tauri_plugin_autostart::ManagerExt as AutostartManagerExt;
 use midir::{MidiOutput};
 use std::collections::HashMap;
 use std::fmt;
@@ -731,6 +733,28 @@ async fn main() {
                 }
                 Err(e) => {
                     error!("Deno bootstrap failed: {}", e);
+                }
+            }
+
+            // Rewrite the autostart entry so it points at the current executable.
+            // `is_enabled` only checks that a Run entry with our name exists, it never
+            // compares paths, so an install that moved (v1.x per-machine MSI -> v2
+            // per-user NSIS) leaves the toggle reading "on" while pointing at a binary
+            // that is gone. `enable` is idempotent, so re-running it just refreshes the path.
+            //
+            // Release builds only: in dev this would repoint the user's autostart entry at
+            // target/debug on every `tauri dev` run, hijacking it from the installed app.
+            #[cfg(not(debug_assertions))]
+            {
+                let autostart = app.autolaunch();
+                match autostart.is_enabled() {
+                    Ok(true) => {
+                        if let Err(e) = autostart.enable() {
+                            error!("Failed to refresh autostart entry: {}", e);
+                        }
+                    }
+                    Ok(false) => {}
+                    Err(e) => error!("Failed to read autostart state: {}", e),
                 }
             }
 
