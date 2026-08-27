@@ -1,0 +1,10 @@
+{
+  "id": "component-showcase",
+  "name": "Component Showcase",
+  "version": "1.0.0",
+  "description": "Demonstrates every settings builder component available in the Dot X Plugin SDK.",
+  "author": "Dotmatrix Labs",
+  "dotxVersion": ">=1.1.4",
+  "permissions": [],
+  "main": "dist/main.js"
+}

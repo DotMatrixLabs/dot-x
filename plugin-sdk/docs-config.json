@@ -1,0 +1,15 @@
+{
+  "outlineEnabled": [
+    "RGB Control"
+  ],
+  "fileOrder": {
+    "RGB Control": 1,
+    "Action Mapper Modal": 2,
+    "SettingsBuilder Components": 3,
+    "Global UI": 4,
+    "Device Management": 5,
+    "Channel Targets": 6,
+    "Plugin Lifecycle": 7
+  }
+}
+

@@ -43,9 +43,7 @@ import LoadingSpinner from "../assets/loadingSpinner.vue";
 import ExtraApps from "../ts/extraApps.ts";
 import SystemVolumeController from "../ts/volumeControl.ts";
 import SelectedApps from "../ts/appsToControl.ts";
-import { useToast } from "vue-toastification";
-
-const toast = useToast();
+import { toast } from "vue-sonner";
 
 import { invoke } from "@tauri-apps/api/core";
 
