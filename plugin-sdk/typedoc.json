@@ -1,0 +1,38 @@
+{
+  "entryPointStrategy": "expand",
+  "entryPoints": ["src"],
+  "readme": "none",
+  "categorizeByGroup": false,
+  "categoryOrder": [
+    "Plugin Lifecycle",
+    "Settings Page",
+    "SettingsBuilder Components",
+    "Action Mapper Modal",
+    "Global UI",
+    "Device Management",
+    "Channel Targets",
+    "Storing Data",
+    "RGB Control",
+    "*"
+  ],
+  "exclude": [
+    "**/*.{test,spec}.ts",
+    "**/dist/**",
+    "**/node_modules/**"
+  ],
+  "excludeInternal": false,
+  "skipErrorChecking": true,
+  "disableSources": true,
+  "blockTags": [
+    "@displayName",
+    "@related",
+    "@category",
+    "@since",
+    "@order",
+    "@see",
+    "@param",
+    "@returns",
+    "@example"
+  ]
+}
+
