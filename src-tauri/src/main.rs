@@ -2,23 +2,23 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use log::{error, info, trace};
-use midir::MidiOutput;
 use serde_json::{json, Value};
+use tauri::{AppHandle, Emitter, Manager, WebviewWindow, Wry};
+use std::fs;
+use std::fs::File;
+use tauri_plugin_autostart::MacosLauncher;
+use midir::{MidiOutput};
 use std::collections::HashMap;
 use std::fmt;
-use tauri::AppHandle;
-use tauri::Manager;
-use tauri::WebviewWindow;
-use tauri::Wry;
-use tauri_plugin_autostart::MacosLauncher;
 use tauri_plugin_notification::NotificationExt;
 use tauri_plugin_store::StoreExt;
-use windows_volume_control::AudioController;
-use windows_volume_control::CoinitMode;
+mod audio;
 mod decker;
 mod midi;
 mod power_monitor;
-mod audio;
+mod plugin_marketplace;
+mod plugin_server;
+mod plugin_runtime;
 use once_cell::sync::OnceCell;
 use tauri::menu::{Menu, MenuBuilder, MenuItemBuilder, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent};
@@ -34,8 +34,17 @@ use std::thread;
 use std::time::Duration;
 use tauri_plugin_aptabase::EventTracker;
 use tauri_plugin_cli::CliExt;
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
 
 static APP: OnceCell<tauri::AppHandle> = OnceCell::new();
+
+static PENDING_DOTX_PATH: std::sync::Mutex<Option<String>> = std::sync::Mutex::new(None);
+
+#[tauri::command]
+fn consume_pending_dotx_install() -> Option<String> {
+    PENDING_DOTX_PATH.lock().ok()?.take()
+}
 
 // create the error type that represents all errors possible in our program
 #[derive(Debug, thiserror::Error)]
@@ -145,8 +154,6 @@ fn get_installed_apps() -> Result<CustomResponse, Error> {
     Ok(app_list_response)
 }
 
- 
-
 fn value_to_i32_vec(value: &Value) -> Option<Vec<i32>> {
     if let Value::Array(array) = value {
         let mut i32_vec = Vec::new();
@@ -182,7 +189,7 @@ fn value_to_object_vec(value: &Value) -> Option<Vec<(String, String)>> {
                         .get("channel")
                         .and_then(|v| v.as_str().map(|s| s.to_string()))
                         .unwrap_or_else(String::new); // If the value is null, return an empty string
-                                                      // Return the tuple
+                    // Return the tuple
                     Some((channel, cc_value))
                 } else {
                     Some((String::new(), String::new())) // Create an empty tuple for the indexes containing Null
@@ -246,12 +253,6 @@ fn get_active_app_name() -> String {
         }
     }
 }
-
- 
-
- 
-
- 
 
 #[tauri::command]
 async fn set_screen_brightness(brightness: f32, screens: Value) -> Result<(), Error> {
@@ -413,8 +414,72 @@ fn setup_panic_handler(client: Client) {
     }));
 }
 
+fn find_executable_recursive(base: &std::path::Path, name: &str) -> Option<std::path::PathBuf> {
+    if let Ok(mut entries) = fs::read_dir(base) {
+        while let Some(Ok(entry)) = entries.next() {
+            let p = entry.path();
+            if p.is_dir() {
+                if let Some(found) = find_executable_recursive(&p, name) { return Some(found); }
+            } else if let Some(fname) = p.file_name() {
+                if fname.eq_ignore_ascii_case(name) { return Some(p); }
+            }
+        }
+    }
+    None
+}
+
+fn ensure_deno_extracted(app: &tauri::AppHandle) -> Result<std::path::PathBuf, String> {
+    let path_resolver = app.path();
+    let data_dir = path_resolver.app_data_dir().map_err(|e| format!("App data dir not available: {}", e))?;
+    let deno_dir = data_dir.join("deno");
+    let exe_name = if cfg!(target_os = "windows") { "deno.exe" } else { "deno" };
+    let deno_exe_default = deno_dir.join(exe_name);
+    if deno_exe_default.exists() {
+        return Ok(deno_exe_default);
+    }
+
+    if let Some(found) = find_executable_recursive(&deno_dir, exe_name) { return Ok(found); }
+
+    fs::create_dir_all(&deno_dir).map_err(|e| format!("Failed to create deno dir: {}", e))?;
+
+    #[cfg(target_os = "windows")]
+    let archive_rel = "resources/deno/deno-x86_64-pc-windows-msvc.zip";
+    #[cfg(not(target_os = "windows"))]
+    let archive_rel = "resources/deno/unsupported-platform"; // placeholder
+
+    let archive_path = path_resolver.resolve(archive_rel, tauri::path::BaseDirectory::Resource)
+        .map_err(|e| format!("Bundled Deno archive not found at {}: {}", archive_rel, e))?;
+
+    if cfg!(target_os = "windows") {
+        let file = File::open(&archive_path).map_err(|e| format!("Failed to open Deno zip: {}", e))?;
+        let mut zip = zip::ZipArchive::new(file).map_err(|e| format!("Failed to read Deno zip: {}", e))?;
+        for i in 0..zip.len() {
+            let mut zipped_file = zip.by_index(i).map_err(|e| format!("Zip entry error: {}", e))?;
+            let entry_path = match zipped_file.enclosed_name() { Some(p) => p.to_owned(), None => continue };
+            let out_path = deno_dir.join(entry_path);
+            if zipped_file.is_dir() {
+                fs::create_dir_all(&out_path).map_err(|e| format!("Create dir failed: {}", e))?;
+            } else {
+                if let Some(parent) = out_path.parent() { fs::create_dir_all(parent).map_err(|e| format!("Create dir failed: {}", e))?; }
+                let mut outfile = File::create(&out_path).map_err(|e| format!("Create file failed: {}", e))?;
+                std::io::copy(&mut zipped_file, &mut outfile).map_err(|e| format!("Write file failed: {}", e))?;
+            }
+        }
+    } else {
+        return Err("Bundled Deno not available for this platform".to_string());
+    }
+
+    if deno_exe_default.exists() {
+        return Ok(deno_exe_default);
+    }
+    if let Some(found) = find_executable_recursive(&deno_dir, exe_name) { return Ok(found); }
+
+    Err("Deno executable not found after extraction".to_string())
+}
+
 #[tokio::main]
 async fn main() {
+
     let client = sentry::init((
         "https://4e7acf1ba609c747863f8e3117f062e2@sentry-ingest.frogbyte.io/3",
         sentry::ClientOptions {
@@ -431,13 +496,6 @@ async fn main() {
     setup_panic_handler(client.clone());
 
     tauri::Builder::default()
-        .plugin(tauri_plugin_updater::Builder::new().build())
-        .plugin(tauri_plugin_os::init())
-        .plugin(tauri_plugin_fs::init())
-        .plugin(tauri_plugin_process::init())
-        .plugin(tauri_plugin_log::Builder::new().build())
-        .plugin(tauri_plugin_cli::init())
-        .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![
             get_installed_apps,
             audio::get_all_session_names,
@@ -453,8 +511,38 @@ async fn main() {
             set_screen_brightness,
             audio::get_all_audio_devices,
             audio::get_output_devices,
-            audio::get_input_devices
+            audio::get_input_devices,
+            plugin_server::start_plugin_server,
+            plugin_server::stop_plugin_server,
+            plugin_server::send_to_plugin,
+            plugin_server::send_to_plugin_with_ack,
+            plugin_server::get_connected_plugins,
+            plugin_server::send_api_response,
+            plugin_server::broadcast_to_plugins,
+            plugin_server::get_plugin_server_port,
+            plugin_runtime::start_plugin,
+            plugin_runtime::stop_plugin,
+            plugin_runtime::restart_plugin,
+            plugin_runtime::start_enabled_plugins,
+            plugin_runtime::get_plugin_logs,
+            plugin_runtime::clear_plugin_logs,
+            plugin_marketplace::list_installed_plugins,
+            plugin_marketplace::get_plugins_folder,
+            plugin_marketplace::open_plugins_folder,
+            plugin_marketplace::check_marketplace_plugin_updates,
+            plugin_marketplace::install_marketplace_plugin,
+            plugin_marketplace::uninstall_marketplace_plugin,
+            plugin_marketplace::get_dotx_manifest,
+            plugin_marketplace::install_local_plugin,
+            consume_pending_dotx_install
         ])
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_os::init())
+        .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_log::Builder::new().build())
+        .plugin(tauri_plugin_cli::init())
+        .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_aptabase::Builder::new("A-EU-7429874879").build()) // 👈 this is where you enter your App Key
         .plugin(tauri_plugin_sentry::init(&client))
         .plugin(tauri_plugin_store::Builder::default().build())
@@ -462,16 +550,23 @@ async fn main() {
             MacosLauncher::LaunchAgent,
             Some(vec!["--hidden"]),
         ))
-        .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+        .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
+            // Check if a .dotxplugin file was passed (skip argv[0] which is the exe path).
+            let dotx_path = argv.iter().skip(1)
+                .find(|arg| arg.to_lowercase().ends_with(".dotxplugin"))
+                .cloned();
+
             if let Some(window) = app.get_webview_window("main") {
-                if matches!(window.is_visible(), Ok(false)) {
-                    let _ = window.show();
-                    show_notification(app, "Dot X", "Dot X is already running");
-                }
-                if matches!(window.is_minimized(), Ok(true)) {
-                    let _ = window.unminimize();
-                }
+                let _ = window.show();
+                let _ = window.unminimize();
                 let _ = window.set_focus();
+                if let Some(path) = dotx_path {
+                    let _ = app.emit("dotx-open-file", path);
+                } else {
+                    if matches!(window.is_visible(), Ok(false)) {
+                        show_notification(app, "Dot X", "Dot X is already running");
+                    }
+                }
             } else {
                 error!("Main window not found during single-instance handling");
             }
@@ -506,6 +601,7 @@ async fn main() {
             apply_vibrancy(&window, NSVisualEffectMaterial::HudWindow, None, None)
                 .expect("Unsupported platform! 'apply_vibrancy' is only supported on macOS");
 
+            // Apply Windows window effects
             #[cfg(target_os = "windows")]
             {
                 if let Err(err) = apply_mica(&window, None) {
@@ -515,6 +611,16 @@ async fn main() {
             }
 
             let (_menu, _tray) = build_tray(&app.handle())?;
+
+            // Check if a .dotxplugin file was passed at launch (skip argv[0] = exe path).
+            for arg in std::env::args().skip(1) {
+                if arg.to_lowercase().ends_with(".dotxplugin") && std::path::Path::new(&arg).exists() {
+                    if let Ok(mut guard) = PENDING_DOTX_PATH.lock() {
+                        *guard = Some(arg);
+                    }
+                    break;
+                }
+            }
 
             // This gets any command line arguments passed to the app
             let matches = app.cli().matches().unwrap_or_default();
@@ -528,7 +634,22 @@ async fn main() {
 
             info!("Starting Dot X with version {:?}", sentry::release_name!());
 
+            // Ensure bundled Deno is available and export its path
+            match ensure_deno_extracted(&app.handle()) {
+                Ok(p) => {
+                    unsafe {
+                        std::env::set_var("DOTX_DENO_PATH", p.to_string_lossy().to_string());
+                    }
+                    info!("Deno ready at {}", p.display());
+                }
+                Err(e) => {
+                    error!("Deno bootstrap failed: {}", e);
+                }
+            }
+
+            // Store global handle and auto-start enabled plugins
             APP.set(app.handle().clone()).expect("error setting up app");
+            plugin_runtime::auto_start_enabled_plugins(app.handle().clone());
             Ok(())
         })
         .run(tauri::generate_context!())
