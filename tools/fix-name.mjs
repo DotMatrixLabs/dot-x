@@ -52,10 +52,12 @@ function renameBuildFiles(rootDir) {
 	}
 
 	if (renamedCount === 0) {
-		console.warn(`No files matched base "${oldBase}" in ${nsisDir}`);
-	} else {
-		console.log(`Done. Renamed ${renamedCount} file(s).`);
+		const found = entries.filter((e) => e.isFile()).map((e) => e.name);
+		const listing = found.length ? found.map((n) => `  - ${n}`).join('\n') : '  (empty folder)';
+		throw new Error(`No files matched base "${oldBase}" in ${nsisDir}.\nFound instead:\n${listing}`);
 	}
+
+	console.log(`Done. Renamed ${renamedCount} file(s).`);
 
 	// Open the build folder in Windows Explorer (only on Windows)
 	if (process.platform === 'win32') {
