@@ -102,12 +102,11 @@ rights**.
   and rejected: Tauri implements it with `MULTIUSER_EXECUTIONLEVEL Highest`,
   which triggers a UAC prompt for admin users even for per-user installs and
   on every auto-update.
-- **Installer branding did not carry over.** NSIS takes its own art via
-  `nsis.headerImage` (150x57 BMP) and `nsis.sidebarImage` (164x314 BMP), neither
-  of which is set, so the installer currently shows default NSIS graphics. The
-  old `src-tauri/icons/WixInstaller.bmp` (493x312) and `WixInstallerBanner.bmp`
-  (493x58) are the wrong dimensions to reuse; they are kept only as source
-  material for whoever regenerates them.
+- **Installer branding** is set via `nsis.headerImage`
+  (`src-tauri/icons/NSISInstallerBanner.bmp`, 150x57) and `nsis.sidebarImage`
+  (`src-tauri/icons/NSISInstaller.bmp`, 164x314). Both are 24-bit BMPs at exact
+  pixel size — NSIS does not scale them, so any redraw must keep those
+  dimensions.
 
 #### Migration from the v1.x MSI install
 
