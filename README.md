@@ -102,6 +102,13 @@ rights**.
   and rejected: Tauri implements it with `MULTIUSER_EXECUTIONLEVEL Highest`,
   which triggers a UAC prompt for admin users even for per-user installs and
   on every auto-update.
+- **Installer branding did not carry over.** NSIS takes its own art via
+  `nsis.headerImage` (150x57 BMP) and `nsis.sidebarImage` (164x314 BMP), neither
+  of which is set, so the installer currently shows default NSIS graphics. The
+  old `src-tauri/icons/WixInstaller.bmp` (493x312) and `WixInstallerBanner.bmp`
+  (493x58) are the wrong dimensions to reuse; they are kept only as source
+  material for whoever regenerates them.
+
 #### Migration from the v1.x MSI install
 
 Existing users are on the per-machine MSI (in `Program Files`, registered under
@@ -118,17 +125,29 @@ Things to know about the transition:
 - **One unavoidable UAC prompt.** Removing a per-machine `Program Files`
   install requires admin, so the one-time MSI uninstall triggers a single UAC
   prompt. This is inherent to leaving admin-land, not something we can suppress.
-  Every update *after* the migration is fully elevation-free.
+  Every update *after* a completed migration is fully elevation-free.
 - **The v1→v2 auto-update surfaces that UAC mid-update.** A v1.x client that
   auto-updates will show the UAC prompt during what otherwise looks like a
-  background update. **Declining it is safe:** the MSI uninstall runs on the
-  installer's reinstall page, *before* any new files are written, so a declined
-  prompt makes the installer `Abort` cleanly — the old MSI stays fully intact,
-  nothing new is installed, and the app remains on v1. The updater just reports
-  the update as failed and retries on the next check. There is no half-migrated
-  or double-installed state from a declined prompt; the only cost is the update
-  is deferred until the user accepts. For the smoothest rollout you can still
-  announce v2 as a manual download for existing users.
+  background update. What happens if the user *declines* depends on how the
+  installer was launched, and the two paths differ:
+  - **Manual `-setup.exe`:** safe. `msiexec` returns 1602, and `Abort` in the
+    reinstall page's leave function keeps the wizard on that page, so nothing
+    has been written yet and the user can retry or cancel. v1 stays intact.
+  - **Auto-update:** *not* safe. The updater runs the installer passively
+    (`/P /R /UPDATE`), and in passive mode the installer calls the reinstall
+    page's leave function from inside the page's *creator* function. There,
+    NSIS treats `Abort` as "skip this page and carry on" rather than "stay
+    put", and the install section has no WiX guard of its own — so a declined
+    prompt is expected to install v2 per-user **while leaving the v1 MSI in
+    place**: two entries in Add/Remove Programs, an orphaned `Program Files`
+    copy, and a fresh UAC prompt on every later update until it is accepted.
+
+  Both of these are read off the generated `installer.nsi`; verify them on a VM
+  before rolling v2 out as an auto-update. Because the bad path is the one real
+  users hit, **prefer announcing v2 as a manual download for existing v1.x
+  users**, and only push it through the updater once the declined-prompt
+  behaviour has been confirmed acceptable. Users with no admin credentials at
+  all cannot accept the prompt, so they hit the bad path unavoidably.
 - **Do NOT set `bundle.publisher` in the config.** The match above works only
   because both v1 and v2 derive the manufacturer as `dot-x` from the
   `com.dot-x.dev` identifier (neither sets an explicit publisher). Adding a
@@ -136,10 +155,30 @@ Things to know about the transition:
   `HKLM` match stops firing, the old MSI is *not* removed, and the user ends up
   with two copies installed — exactly the failure mode this migration exists to
   prevent.
+- **Do NOT set `plugins.updater.windows.installMode` to `quiet`.** That runs the
+  NSIS installer with `/S`, and silent NSIS installs skip page callbacks
+  entirely — including the reinstall page that performs the MSI uninstall. The
+  migration would never fire, giving every v1.x user the double-installed state
+  above. The default (`passive`) is what this migration relies on.
+- **Autostart needs re-pointing after the move.** The plugin writes an
+  `HKCU\...\Run` entry holding the full path to the binary, and its
+  `is_enabled()` only checks that an entry with our name exists — it never
+  compares the path. Left alone, a migrated user keeps a Run entry aimed at the
+  deleted `Program Files` binary while the settings toggle still reads "on", so
+  the app silently stops launching at login. The app now refreshes that entry on
+  startup whenever autostart is already enabled (see `setup` in
+  `src-tauri/src/main.rs`). Release builds only — in dev this would repoint your
+  autostart entry at `target/debug` on every `tauri dev` run.
 - **Publishing:** for v1.x clients to auto-update into v2 at all, the
   `-setup.nsis.zip` updater artifact (produced via
   `createUpdaterArtifacts: v1Compatible`) plus its `.sig` must be published on
-  Anystack for the `windows-x86_64` slot.
+  Anystack for the `windows-x86_64` slot. Sign with the same key as v1 — the
+  updater `pubkey` is unchanged, so a different key makes every existing client
+  reject the update.
+- **Follow-up:** `createUpdaterArtifacts` is only set to `v1Compatible` for the
+  sake of v1.x clients. Once they have drained, set it back to `true` (v2
+  clients accept either form) so we stop shipping the legacy `.nsis.zip`
+  wrapper.
 
 ## Contributing
 
