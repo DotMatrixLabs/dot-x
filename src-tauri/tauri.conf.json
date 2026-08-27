@@ -58,7 +58,9 @@
       "timestampUrl": "http://time.certum.pl",
       "nsis": {
         "installerIcon": "./icons/icon.ico",
-        "installMode": "currentUser"
+        "installMode": "currentUser",
+        "headerImage": "./icons/NSISInstallerBanner.bmp",
+        "sidebarImage": "./icons/NSISInstaller.bmp"
       }
     },
     "createUpdaterArtifacts": "v1Compatible",
