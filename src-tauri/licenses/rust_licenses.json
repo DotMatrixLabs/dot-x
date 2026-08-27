@@ -4806,6 +4806,24 @@
     "description": "The implement macro for the windows crate"
   },
   {
+    "name": "windows-implement",
+    "version": "0.44.0",
+    "authors": "Microsoft",
+    "repository": "https://github.com/microsoft/windows-rs",
+    "license": "Apache-2.0 OR MIT",
+    "license_file": null,
+    "description": "The implement macro for the windows crate"
+  },
+  {
+    "name": "windows-interface",
+    "version": "0.44.0",
+    "authors": "Microsoft",
+    "repository": "https://github.com/microsoft/windows-rs",
+    "license": "Apache-2.0 OR MIT",
+    "license_file": null,
+    "description": "The interface macro for the windows crate"
+  },
+  {
     "name": "windows-link",
     "version": "0.2.1",
     "authors": null,
@@ -4906,12 +4924,12 @@
   },
   {
     "name": "windows-volume-control",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "authors": null,
-    "repository": null,
+    "repository": "https://github.com/Waayway/windows-volume-control",
     "license": "MIT",
     "license_file": null,
-    "description": "A simple rust library to control Windows volumes."
+    "description": "A simple library to control audio interfaces from within rust using the windows api"
   },
   {
     "name": "windows_aarch64_gnullvm",

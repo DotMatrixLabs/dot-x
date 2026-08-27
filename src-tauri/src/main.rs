@@ -35,7 +35,55 @@ use futures::{TryStreamExt};
 
 
 static APP: OnceCell<tauri::AppHandle> = OnceCell::new();
-static VOLUME_MONITOR: Lazy<Mutex<Option<VolumeMonitor>>> = Lazy::new(|| Mutex::new(None));
+
+#[derive(Default)]
+struct VolumeSyncState {
+  monitor: Option<VolumeMonitor>,
+  generation: u64,
+}
+
+impl VolumeSyncState {
+  fn enable(&mut self, monitor: VolumeMonitor) -> Option<u64> {
+    if self.monitor.is_some() {
+      return None;
+    }
+
+    self.generation = self.generation.wrapping_add(1);
+    self.monitor = Some(monitor);
+    Some(self.generation)
+  }
+
+  fn disable(&mut self) {
+    if let Some(monitor) = self.monitor.as_ref() {
+      monitor.stop_polling();
+    }
+    self.monitor = None;
+  }
+
+  fn is_current_generation(&self, generation: u64) -> bool {
+    self.monitor.is_some() && self.generation == generation
+  }
+}
+
+static VOLUME_SYNC_STATE: Lazy<Mutex<VolumeSyncState>> =
+  Lazy::new(|| Mutex::new(VolumeSyncState::default()));
+
+fn run_for_current_volume_sync_generation<F>(
+  state: &Mutex<VolumeSyncState>,
+  generation: u64,
+  action: F,
+) -> bool
+where
+  F: FnOnce(&VolumeMonitor),
+{
+  let state = state.lock().unwrap();
+  if !state.is_current_generation(generation) {
+    return false;
+  }
+
+  action(state.monitor.as_ref().unwrap());
+  true
+}
 
 // create the error type that represents all errors possible in our program
 #[derive(Debug, thiserror::Error)]
@@ -239,8 +287,8 @@ fn set_application_volume(name: &str, volume: f32) -> Result<(), Error> {
     unsafe {
         // Update expected volume BEFORE setting it to prevent feedback loop
         {
-            let monitor_slot = VOLUME_MONITOR.lock().unwrap();
-            if let Some(monitor) = monitor_slot.as_ref() {
+            let state = VOLUME_SYNC_STATE.lock().unwrap();
+            if let Some(monitor) = state.monitor.as_ref() {
                 monitor.mark_setting(name);
                 let _ = monitor.update_expected_volume(name, volume);
             }
@@ -265,16 +313,16 @@ fn set_application_volume(name: &str, volume: f32) -> Result<(), Error> {
           }
         } else {
           // Handle the case where the session was not found (e.g., return an error)
-          let monitor_slot = VOLUME_MONITOR.lock().unwrap();
-          if let Some(monitor) = monitor_slot.as_ref() {
+          let state = VOLUME_SYNC_STATE.lock().unwrap();
+          if let Some(monitor) = state.monitor.as_ref() {
               monitor.unmark_setting(name);
           }
           return Err(Error::SessionNotFound);
         }
 
         {
-            let monitor_slot = VOLUME_MONITOR.lock().unwrap();
-            if let Some(monitor) = monitor_slot.as_ref() {
+            let state = VOLUME_SYNC_STATE.lock().unwrap();
+            if let Some(monitor) = state.monitor.as_ref() {
                 monitor.unmark_setting(name);
             }
         }
@@ -285,35 +333,27 @@ fn set_application_volume(name: &str, volume: f32) -> Result<(), Error> {
 
 #[tauri::command]
 fn enable_volume_sync(window: Window) -> Result<(), Error> {
-    unsafe {
-        // Avoid spawning multiple polling threads / double-registering callbacks.
-        {
-            let monitor_slot = VOLUME_MONITOR.lock().unwrap();
-            if monitor_slot.is_some() {
-                info!("Volume sync already enabled");
-                return Ok(());
-            }
+    let generation = {
+        let mut state = VOLUME_SYNC_STATE.lock().unwrap();
+        if let Some(generation) = state.enable(VolumeMonitor::new()) {
+            generation
+        } else {
+            info!("Volume sync already enabled");
+            return Ok(());
         }
-        
-        // Create volume monitor
-        let mut monitor = VolumeMonitor::new();
-        
-        // Store monitor in global state
-        let mut monitor_slot = VOLUME_MONITOR.lock().unwrap();
-        *monitor_slot = Some(monitor);
-        
-        // Start polling thread for application sessions
-        start_volume_sync_polling();
-        
-        info!("Volume sync enabled");
-        //send to aptabase for analytics
-        APP.get().unwrap().track_event("volume_sync_enabled", None);
-    }
-    
+    };
+
+    // Start polling thread for application sessions
+    start_volume_sync_polling(generation);
+
+    info!("Volume sync enabled");
+    //send to aptabase for analytics
+    window.app_handle().track_event("volume_sync_enabled", None);
+
     Ok(())
 }
 
-fn start_volume_sync_polling() {
+fn start_volume_sync_polling(generation: u64) {
     thread::spawn(move || {
         let mut last_controller_refresh = std::time::Instant::now()
             .checked_sub(Duration::from_secs(10))
@@ -322,18 +362,19 @@ fn start_volume_sync_polling() {
 
         loop {
             thread::sleep(Duration::from_millis(250));
-            
+
             unsafe {
-                let monitor_slot = VOLUME_MONITOR.lock().unwrap();
-                if let Some(monitor) = monitor_slot.as_ref() {
+                let state = VOLUME_SYNC_STATE.lock().unwrap();
+                if state.is_current_generation(generation) {
+                    let monitor = state.monitor.as_ref().unwrap();
                     if !monitor.is_polling_active() {
                         break;
                     }
 
                     // Prefer polling only sessions that need it (application sessions).
                     let session_names = monitor.get_polling_session_names();
-                    drop(monitor_slot); // Release lock before getting controller
-                    
+                    drop(state); // Release lock before getting controller
+
                     // Refresh controller occasionally to pick up new/ended sessions.
                     if last_controller_refresh.elapsed() > Duration::from_secs(2) {
                         controller = get_initialized_audio_controller();
@@ -343,8 +384,11 @@ fn start_volume_sync_polling() {
                     // Check each session's volume and restore if needed
                     for session_name in session_names {
                         let expected_vol_opt = {
-                            let monitor_slot = VOLUME_MONITOR.lock().unwrap();
-                            monitor_slot.as_ref().and_then(|m| {
+                            let state = VOLUME_SYNC_STATE.lock().unwrap();
+                            if !state.is_current_generation(generation) {
+                                return;
+                            }
+                            state.monitor.as_ref().and_then(|m| {
                                 if m.should_ignore_restore(&session_name) {
                                     None
                                 } else {
@@ -352,29 +396,23 @@ fn start_volume_sync_polling() {
                                 }
                             })
                         };
-                        
+
                         if let Some(expected_vol) = expected_vol_opt {
                             let sessions = controller.get_sessions_by_name(session_name.clone());
                             if !sessions.is_empty() {
                                 let needs_restore = sessions.iter().any(|s| (s.getVolume() - expected_vol).abs() > 0.001);
                                 if needs_restore {
-                                    {
-                                        let monitor_slot = VOLUME_MONITOR.lock().unwrap();
-                                        if let Some(monitor) = monitor_slot.as_ref() {
-                                            monitor.mark_setting(&session_name);
+                                    run_for_current_volume_sync_generation(
+                                      &VOLUME_SYNC_STATE,
+                                      generation,
+                                      |monitor| {
+                                        monitor.mark_setting(&session_name);
+                                        for session in sessions {
+                                          session.setVolume(expected_vol);
                                         }
-                                    }
-
-                                    for session in sessions {
-                                        session.setVolume(expected_vol);
-                                    }
-
-                                    {
-                                        let monitor_slot = VOLUME_MONITOR.lock().unwrap();
-                                        if let Some(monitor) = monitor_slot.as_ref() {
-                                            monitor.unmark_setting(&session_name);
-                                        }
-                                    }
+                                        monitor.unmark_setting(&session_name);
+                                      },
+                                    );
                                 }
                             }
                         }
@@ -390,42 +428,38 @@ fn start_volume_sync_polling() {
 #[tauri::command]
 fn disable_volume_sync() -> Result<(), Error> {
     unsafe {
-        let mut monitor_slot = VOLUME_MONITOR.lock().unwrap();
-        if let Some(monitor) = monitor_slot.as_mut() {
+        let mut state = VOLUME_SYNC_STATE.lock().unwrap();
+        if let Some(monitor) = state.monitor.as_mut() {
             let mut controller = get_initialized_audio_controller();
             // Stop polling
             monitor.stop_polling();
             let _ = monitor.unregister_all_callbacks(&mut controller);
         }
-        
+
         // Clear the monitor
-        *monitor_slot = None;
-        
+        state.disable();
+
         info!("Volume sync disabled");
     }
-    
+
     Ok(())
 }
 
 #[tauri::command]
 fn update_volume_sync_target(session_name: &str, volume: f32) -> Result<(), Error> {
-    unsafe {
-        let monitor_slot = VOLUME_MONITOR.lock().unwrap();
-        if let Some(monitor) = monitor_slot.as_ref() {
-            let _ = monitor.update_expected_volume(session_name, volume);
-        }
+    let state = VOLUME_SYNC_STATE.lock().unwrap();
+    if let Some(monitor) = state.monitor.as_ref() {
+        let _ = monitor.update_expected_volume(session_name, volume);
     }
-    
+
     Ok(())
 }
 
 #[tauri::command]
 fn update_volume_sync_mappings(session_names: Vec<String>) -> Result<(), Error> {
-    unsafe {
-        let monitor_slot = VOLUME_MONITOR.lock().unwrap();
-        if let Some(monitor) = monitor_slot.as_ref() {
-            monitor.set_mapped_sessions(session_names);
-        }
+    let state = VOLUME_SYNC_STATE.lock().unwrap();
+    if let Some(monitor) = state.monitor.as_ref() {
+        monitor.set_mapped_sessions(session_names);
     }
 
     Ok(())
@@ -634,13 +668,13 @@ fn main() {
 
                 // Best-effort cleanup (stop polling and unregister callbacks) before exiting.
                 unsafe {
-                    let mut monitor_slot = VOLUME_MONITOR.lock().unwrap();
-                    if let Some(monitor) = monitor_slot.as_mut() {
+                    let mut state = VOLUME_SYNC_STATE.lock().unwrap();
+                    if let Some(monitor) = state.monitor.as_mut() {
                         monitor.stop_polling();
                         let mut controller = get_initialized_audio_controller();
                         let _ = monitor.unregister_all_callbacks(&mut controller);
                     }
-                    *monitor_slot = None;
+                    state.disable();
                 }
                 std::process::exit(0);
               }
@@ -718,23 +752,21 @@ fn main() {
         info!("Starting Dot X with version {:?}", sentry_tauri::sentry::release_name!());
 
         // Check if volume sync was enabled and restore it
-        unsafe {
-            let stores = app.state::<StoreCollection<Wry>>();
-            let path = PathBuf::from("config.json");
-            let mut volume_sync_enabled = false;
-            let _ = with_store(app.handle().clone(), stores, path, |store| {
-                if let Some(value) = store.get("volumeSyncEnabled") {
-                    volume_sync_enabled = value.as_bool().unwrap_or(false);
-                }
-                Ok(())
-            });
-            
-            if volume_sync_enabled {
-                // Enable volume sync on startup
-                let window = app.get_window("main").unwrap();
-                if let Err(e) = enable_volume_sync(window) {
-                    error!("Failed to enable volume sync on startup: {:?}", e);
-                }
+        let stores = app.state::<StoreCollection<Wry>>();
+        let path = PathBuf::from("config.json");
+        let mut volume_sync_enabled = false;
+        let _ = with_store(app.handle().clone(), stores, path, |store| {
+            if let Some(value) = store.get("volumeSyncEnabled") {
+                volume_sync_enabled = value.as_bool().unwrap_or(false);
+            }
+            Ok(())
+        });
+
+        if volume_sync_enabled {
+            // Enable volume sync on startup
+            let window = app.get_window("main").unwrap();
+            if let Err(e) = enable_volume_sync(window) {
+                error!("Failed to enable volume sync on startup: {:?}", e);
             }
         }
       
@@ -763,5 +795,67 @@ fn get_suspend_dim_enabled() -> bool {
   });
 
   result
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use std::sync::{Arc, Barrier, atomic::{AtomicBool, Ordering}};
+
+  #[test]
+  fn disabling_volume_sync_invalidates_the_previous_polling_generation() {
+    let mut state = VolumeSyncState::default();
+    let first_generation = state
+      .enable(VolumeMonitor::new())
+      .expect("first enable should start a polling generation");
+
+    state.disable();
+
+    let second_generation = state
+      .enable(VolumeMonitor::new())
+      .expect("re-enable should start a new polling generation");
+    assert!(!state.is_current_generation(first_generation));
+    assert!(state.is_current_generation(second_generation));
+  }
+
+  #[test]
+  fn stale_polling_generation_cannot_restore_after_reenable() {
+    let state = Arc::new(Mutex::new(VolumeSyncState::default()));
+    let first_generation = state
+      .lock()
+      .unwrap()
+      .enable(VolumeMonitor::new())
+      .expect("first enable should start a polling generation");
+    let restore_ready = Arc::new(Barrier::new(2));
+    let continue_restore = Arc::new(Barrier::new(2));
+    let restored = Arc::new(AtomicBool::new(false));
+
+    let worker_state = Arc::clone(&state);
+    let worker_ready = Arc::clone(&restore_ready);
+    let worker_continue = Arc::clone(&continue_restore);
+    let worker_restored = Arc::clone(&restored);
+    let worker = thread::spawn(move || {
+      worker_ready.wait();
+      worker_continue.wait();
+      run_for_current_volume_sync_generation(
+        &worker_state,
+        first_generation,
+        |_| worker_restored.store(true, Ordering::SeqCst),
+      )
+    });
+
+    restore_ready.wait();
+    {
+      let mut state = state.lock().unwrap();
+      state.disable();
+      state
+        .enable(VolumeMonitor::new())
+        .expect("re-enable should start a new polling generation");
+    }
+    continue_restore.wait();
+
+    assert!(!worker.join().unwrap());
+    assert!(!restored.load(Ordering::SeqCst));
+  }
 }
 

@@ -26,7 +26,7 @@ class SelectedApps {
             }
         }
         useDeckerStore().setAllMappedApps(allApps);
-        
+
         const volumeSyncEnabled = await ConfigStore.get("volumeSyncEnabled") || false;
         useDeckerStore().setVolumeSyncEnabled(volumeSyncEnabled);
     }

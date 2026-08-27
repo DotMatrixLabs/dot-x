@@ -42,11 +42,11 @@
                 <span class="my-auto">Force Volume Mixer Sync: <br></span>
                 <span class="text-xs opacity-50">Forces windows volume mixer to sync with Dot X</span>
             </div>
-            <input 
-                type="checkbox" 
-                class="toggle toggle-primary mr-2" 
-                :checked="volumeSyncEnabled" 
-                @change="toggleVolumeSync" 
+            <input
+                type="checkbox"
+                class="toggle toggle-primary mr-2"
+                :checked="volumeSyncEnabled"
+                @change="toggleVolumeSync"
             />
         </div>
         <div class="divider"><span class="opacity-50">Reset</span></div>
@@ -74,7 +74,7 @@
     import decker from "../ts/decker.ts";
     import SelectedApps from "../ts/appsToControl.ts";
     import { useDeckerStore } from "../store/deckerStore";
-    import { mapState } from "pinia"; 
+    import { mapState } from "pinia";
     import { resetAllSettings, resetChannelSettings } from "../ts/helpers.ts";
     import Confirmation from "../components/Confirmation.vue";
     import { invoke } from "@tauri-apps/api/tauri";
@@ -112,7 +112,7 @@ export default {
                 await this.$refs.confirmationModal.openConfirmation("Are you sure?", message, "Reset all")
                 await resetAllSettings();
             } catch (error) {
-                console.log(error); 
+                console.log(error);
             }
         },
 
@@ -150,7 +150,7 @@ export default {
         async getVolumeSyncStatus() {
             // This is now handled by the store
         },
-        
+
         async toggleVolumeSync() {
             const newState = !this.volumeSyncEnabled;
             await useDeckerStore().setVolumeSyncEnabled(newState);

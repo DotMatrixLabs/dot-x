@@ -91,7 +91,7 @@ class SystemVolumeController {
             this.lastSetVolumeExecutionTime = currentTime;
             this.lastSetVolumeApp = name;
             await invoke('set_application_volume', { name, volume });
-            
+
             // Notify volume sync system of the new target
             const volumeSyncEnabled = useDeckerStore().volumeSyncEnabled;
             if (volumeSyncEnabled) {
