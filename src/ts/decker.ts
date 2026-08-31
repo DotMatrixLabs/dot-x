@@ -142,12 +142,6 @@ class Decker {
             if(!midiOutputPortNumber) return;
             this.attachMidiDevice(midiOutputPortNumber);
         });
-
-
-        // setTimeout(() => {
-        //     emit('slider-change', { value: 10 });
-        //     console.log('emittd');
-        // }, 2500);
     }
 
     public async disconnect() {
