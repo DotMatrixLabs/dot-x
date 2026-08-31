@@ -10,12 +10,6 @@
                 <span class="">{{stat?.distance}}</span>
             </div>
         </div>
-        <!-- Share buttons -->
-        <!-- <div class="flex flex-row justify-center mt-8">
-            <button :href="socialButton.link" :key="socialButton" v-for="socialButton in socialButtons" class="social">
-                <i :class="socialButton.icon" class="fa-lg text-base-content"></i>
-            </button>
-        </div> -->
       </div>
     </div>
   </template>
@@ -53,11 +47,6 @@
     data() {
       return {
         stats: [],
-        socialButtons: [
-            {name: 'X', icon: 'fab fa-x-twitter', link: 'https://twitter.com/intent/tweet?text=I%20just%20found%20out%20that%20my%20Decker%20has%20traveled%20{{stat?.distance}}%20inches%20in%20its%20lifetime!%20Check%20out%20Decker%20at%20https://decker.app!'},
-            {name: 'LinkedIn', icon: 'fab fa-linkedin', link: 'https://www.linkedin.com/shareArticle?mini=true&url=https://decker.app&title=Decker%20-%20The%20Ultimate%20MIDI%20Controller&summary=I%20just%20found%20out%20that%20my%20Decker%20has%20traveled%20{{stat?.distance}}%20inches%20in%20its%20lifetime!%20Check%20out%20Decker%20at%20https://decker.app!&source='},
-            {name: 'Discord', icon: 'fab fa-discord', link: 'https://discord.com/channels/@me'},
-        ],
       };
     },
   
@@ -86,12 +75,6 @@
   
   };
   </script>
-  
+
 <style scoped>
-
-.social{
-    @apply btn btn-sm btn-circle btn-ghost;
-}
-
 </style>
-  

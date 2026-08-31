@@ -86,11 +86,6 @@ export default {
           return 'Windows 10';
       }
     },
-    // async getTheme() {
-    //   this.currentTheme = await ConfigStore.get("theme") || "dark";
-    //   document.documentElement.setAttribute("data-theme", this.currentTheme);
-    //   return this.currentTheme;
-    // },
 
     openDotxFile(filePath) {
       this.$refs.dotxInstallModal.open(filePath);
@@ -147,7 +142,6 @@ export default {
     
     await new Promise(resolve => setTimeout(resolve, 1000));
     this.disableContextMenu();
-    // this.getTheme();
     this.connectDecker();
     Decker.detectDeviceChanges();
     Decker.initMidi();

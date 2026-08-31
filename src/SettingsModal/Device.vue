@@ -13,9 +13,6 @@
                     Disconnect
                 </option>
             </select>
-            <!-- <button @click="detectBoard" title="Autodiscover" class="btn btn-circle btn-sm">
-                <i class="fa-solid fa-magnifying-glass"></i>
-            </button> -->
         </div>
 
         <div v-if="deviceType === 'Decker'" :class="connectionState ? '' : 'opacity-40 pointer-events-none'" class="w-full h-full rounded-lg px-2 ">

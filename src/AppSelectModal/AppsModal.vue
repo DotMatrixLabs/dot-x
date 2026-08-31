@@ -96,10 +96,6 @@ export default {
     if(this.currentTab.hide) this.selectTab(this.tabs[0]); // If the current tab is hidden, select the first tab (Programs, which can never be hidden, so it's safe to assume it's there)
   },
 
-  // created() {
-  //   const microphone = useMicrophoneStore();
-  //   microphone.getAudioDevices();
-  // },
   computed: {
     currentTab() {
       return this.tabs.find(tab => tab.isActive) || this.tabs[0];
