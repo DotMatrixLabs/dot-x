@@ -44,3 +44,9 @@ or update. In short:
 - Write terse, concrete prose. Lead with the problem, then the outcome. No filler,
   no file-by-file inventories, no decorative headings.
 - Verification states only checks actually run.
+
+## Writing
+
+The `unslop` skill (`.agents/skills/unslop/SKILL.md`) applies to all prose you
+write — PR descriptions, docs, comments. Skills live in `.agents/skills/`, are
+managed with `npx skills`, and are version-pinned in `skills-lock.json`.
