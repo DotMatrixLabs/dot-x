@@ -176,35 +176,6 @@ class SystemVolumeController {
             return this.lastActiveWindowExecutionResult;
         }
     }
-
-    /**
-     * Mutes the system audio.
-     */
-    // static async mute(): Promise<void> {
-    //     await invoke('mute');
-    // }
-
-    /**
-     * Unmutes the system audio.
-     */
-    // static async unmute(): Promise<void> {
-    //     await invoke('unmute');
-    // }
 }
 
 export default new SystemVolumeController();
-
-// Example usage:
-// (async () => {
-//     const currentVolume = await SystemVolumeController.getVolume();
-//     console.log('Current system volume:', currentVolume);
-
-//     await SystemVolumeController.setVolume('YourAppName', 50); // Set the volume to 50%
-//     console.log('Volume set for YourAppName to 50%');
-
-//     await SystemVolumeController.mute();
-//     console.log('System muted');
-
-//     await SystemVolumeController.unmute();
-//     console.log('System unmuted');
-// })();

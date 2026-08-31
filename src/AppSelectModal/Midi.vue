@@ -8,12 +8,9 @@
                     <span class="my-auto">MIDI Enabled</span> 
                 </div>
                 <div v-else>
-                    <span class="my-auto">MIDI Disabled</span> 
-                <!-- <i :class="device.icon"></i> -->
+                    <span class="my-auto">MIDI Disabled</span>
                 </div>
             </button>
-            <!-- <span class="text-base-content text-xs text-center capitalize my-1"> {{ device.title }}</span> -->
-            
         </div>
     </div>
     <div class="grid grid-cols-1 w-1/2 m-auto gap-1">
