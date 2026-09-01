@@ -27,8 +27,11 @@ Desktop interface for DotMatrixLabs Decker physical volume mixer built with Taur
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-repo/dot-x.git
+git clone https://github.com/Frogbyte-io/dot-x.git
 cd dot-x
+
+# Create your local env file (see .env.example for what each var does)
+cp .env.example .env
 
 # Install dependencies
 yarn install
@@ -38,6 +41,10 @@ cargo
 # Start development server
 yarn tauri dev
 ```
+
+Every var in `.env.example` is optional: empty or missing values disable the
+related feature (crash reporting, analytics, marketplace stats) without breaking
+the build.
 
 ## Usage
 

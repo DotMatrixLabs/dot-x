@@ -6,7 +6,7 @@ class Stats {
     private secretKey: string;
 
     constructor() {
-        this.secretKey = "madebyfrogs";
+        this.secretKey = import.meta.env.VITE_STATS_SECRET_KEY || "";
         setInterval(() => {
             this.save();
         }, 1000 * 60); //save every minute
