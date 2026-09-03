@@ -116,7 +116,7 @@ class Decker {
             deckerStore.setConnected(true);
             if(await ConfigStore.get("midiEnabled")) this.attachMidiDevice(await ConfigStore.get("midiOutputPortNumber"));
         }).catch((error) => {
-            console.log("Error connecting to Decker😭😭",error)
+            console.log("Error connecting to Decker",error)
             deckerStore.setConnected(false);
         });
         // await invoke('init_process');
