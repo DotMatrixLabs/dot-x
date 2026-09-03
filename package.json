@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm run licenses && vue-tsc --noEmit && vite build",
+    "build": "npm run check:capabilities && npm run licenses && vue-tsc --noEmit && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
     "licenses": "npm run rust-licenses && npm run js-licenses",
