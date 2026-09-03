@@ -394,7 +394,9 @@ fn start_aptabase_heartbeat(app: tauri::AppHandle) {
     thread::spawn(move || {
         loop {
             let _ = app.track_event("app_heartbeat💓", None);
-            thread::sleep(Duration::from_secs(1 * 60 * 59)); //heartbeat every hour (I'm concerned exactly 1 hour will make a new session, so I'm doing 59 minutes - you got a problem with that? That's what I thought.)
+            // Roughly hourly. 59 minutes rather than exactly 60 so the interval does not
+            // consistently line up with the analytics session boundary and start a new session.
+            thread::sleep(Duration::from_secs(1 * 60 * 59));
         }
     });
 }
@@ -543,7 +545,7 @@ async fn main() {
         .plugin(tauri_plugin_log::Builder::new().build())
         .plugin(tauri_plugin_cli::init())
         .plugin(tauri_plugin_shell::init())
-        .plugin(tauri_plugin_aptabase::Builder::new("A-EU-7429874879").build()) // 👈 this is where you enter your App Key
+        .plugin(tauri_plugin_aptabase::Builder::new("A-EU-7429874879").build())
         .plugin(tauri_plugin_sentry::init(&client))
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_autostart::init(
