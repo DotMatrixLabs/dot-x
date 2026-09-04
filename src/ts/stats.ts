@@ -22,6 +22,9 @@ class Stats {
                 await this.syncKey(store);
                 return store;
             })();
+            this.loading.catch(() => {
+                this.loading = undefined;
+            });
         }
         this.store = await this.loading;
         return this.store;
