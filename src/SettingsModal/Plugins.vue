@@ -582,9 +582,6 @@ export default {
 			this.$emit('openSettings', plugin);
 			// TODO: Open plugin settings
 		},
-        installNewPlugin() {
-			// TODO: Handle installation of new plugins
-		},
         async openPluginFolder() {
             try {
                 await invoke('open_plugins_folder');
