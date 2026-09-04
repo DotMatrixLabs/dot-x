@@ -22,13 +22,12 @@ We are a small team, but we will acknowledge your report and keep you informed w
 In scope:
 
 - The Dot X desktop app and its Rust backend in `src-tauri/`, including the plugin server and the filesystem, shell, MIDI, and process capabilities the app grants
-- How the app verifies and applies updates from Anystack
+- The updater, including how the app verifies and applies updates
 - The plugin SDK and the packaged `.dotxplugin` format
 - The marketplace install path, including integrity hash verification
 
 Out of scope:
 
-- Anystack's platform itself. Report problems there to Anystack.
 - The Decker hardware and its firmware
 - Third-party plugins and anything else already running on your machine
 - Denial of service against our endpoints, social engineering, or physical access attacks
