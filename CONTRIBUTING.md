@@ -4,7 +4,11 @@ Thanks for wanting to help. This page covers setting up a build, reporting probl
 
 ## Status
 
-Dot X is being prepared for its first public release (tracked in issue #191). There is no LICENSE file yet, so the code is still all rights reserved. Ask before redistributing any of it. This section changes once the license is decided.
+Dot X is being prepared for its first public release (tracked in issue #191).
+
+## License
+
+The app source is licensed GPL-3.0-or-later, see [LICENSE](LICENSE). The plugin SDK in `plugin-sdk/` is MIT, so plugins you build on it can carry any license. By contributing code you agree that your contributions ship under the license of the files you touch.
 
 ## Development build
 
