@@ -89,10 +89,10 @@ CI runs these on every pull request against `main` and `v2`; run them locally
 before pushing:
 
 ```bash
-yarn typecheck            # vue-tsc, no emit
-yarn build:web            # vite build, no license generation
+yarn typecheck                  # vue-tsc, no emit
+yarn build:web                  # vite build, no license generation
 (cd plugin-sdk && yarn build)   # SDK build + regenerated plugin types
-cd src-tauri && cargo test    # Rust unit tests (Windows only)
+(cd src-tauri && cargo test)    # Rust unit tests (Windows only)
 ```
 
 ### Build Notes
