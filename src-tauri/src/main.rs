@@ -1,7 +1,7 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use log::{error, info, trace};
+use log::{error, info, trace, warn};
 use serde_json::{json, Value};
 use tauri::{AppHandle, Emitter, Manager, WebviewWindow, Wry};
 use std::fs;
@@ -477,15 +477,16 @@ fn ensure_deno_extracted(app: &tauri::AppHandle) -> Result<std::path::PathBuf, S
     Err("Deno executable not found after extraction".to_string())
 }
 
+/// Sentry DSN baked in at build time by `build.rs`, `None` when it was unset.
+fn sentry_dsn() -> Option<&'static str> {
+    option_env!("DOTX_SENTRY_DSN").filter(|dsn| !dsn.trim().is_empty())
+}
+
 #[tokio::main]
 async fn main() {
 
-    let sentry_dsn = option_env!("DOTX_SENTRY_DSN").filter(|dsn| !dsn.trim().is_empty());
-    if sentry_dsn.is_none() {
-        log::warn!("DOTX_SENTRY_DSN is not set, crash reporting is disabled");
-    }
     let client = sentry::init((
-        sentry_dsn,
+        sentry_dsn(),
         sentry::ClientOptions {
             release: sentry::release_name!(),
             attach_stacktrace: true,
@@ -637,6 +638,11 @@ async fn main() {
             }
 
             info!("Starting Dot X with version {:?}", sentry::release_name!());
+            // Logged here rather than next to sentry::init: tauri_plugin_log only
+            // registers the global logger once the plugins are set up.
+            if sentry_dsn().is_none() {
+                warn!("DOTX_SENTRY_DSN was not set at build time, crash reporting is disabled");
+            }
 
             // Ensure bundled Deno is available and export its path
             match ensure_deno_extracted(&app.handle()) {
