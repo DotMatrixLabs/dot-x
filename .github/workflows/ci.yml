@@ -77,6 +77,10 @@ jobs:
       - name: Check generated types are up to date
         working-directory: .
         run: |
+          if ! git ls-files --error-unmatch -- plugin-sdk/src/generated/types.ts > /dev/null; then
+            echo "::error::plugin-sdk/src/generated/types.ts is not committed."
+            exit 1
+          fi
           if ! git diff --exit-code -- plugin-sdk/src/generated/types.ts; then
             echo "::error::plugin-sdk/src/generated/types.ts is stale. Run 'yarn generate-types' and commit the result."
             exit 1
