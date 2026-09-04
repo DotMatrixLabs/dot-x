@@ -91,7 +91,7 @@ before pushing:
 ```bash
 yarn typecheck            # vue-tsc, no emit
 yarn build:web            # vite build, no license generation
-cd plugin-sdk && yarn build   # SDK build + regenerated plugin types
+(cd plugin-sdk && yarn build)   # SDK build + regenerated plugin types
 cd src-tauri && cargo test    # Rust unit tests (Windows only)
 ```
 
