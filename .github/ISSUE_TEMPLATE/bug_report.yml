@@ -18,7 +18,7 @@ body:
     attributes:
       label: Where did this build come from?
       options:
-        - Downloaded installer (Anystack)
+        - Downloaded installer
         - Built from source
         - Other
     validations:
