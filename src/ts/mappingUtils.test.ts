@@ -12,6 +12,6 @@ describe("flattenMappedApps", () => {
     });
 
     it("keeps an app assigned to another channel out of the unmapped channel", () => {
-        expect(excludeMappedApps(["Discord", "Spotify"], ["Spotify"])).toEqual(["Discord"]);
+        expect(excludeMappedApps(["Discord", "spotify"], ["Spotify"])).toEqual(["Discord"]);
     });
 });
