@@ -120,7 +120,13 @@ class SystemVolumeController {
             const systemFeatures = ['master', 'output', 'input', 'mic'];
             // Read the persisted source of truth. The Pinia mirror can lag behind a toggle after
             // selectedApps.json has already been updated, briefly making a mapped app look free.
-            const mappedApps = await SelectedApps.getMappedApps();
+            let mappedApps: string[] | null;
+            try {
+                mappedApps = await SelectedApps.getMappedApps();
+            } catch (error) {
+                console.error("Skipping unmapped channel, mapped apps unavailable", error);
+                return;
+            }
             if(!mappedApps) return;
             //remove system features
             apps = apps.filter((app) => !systemFeatures.includes(app));

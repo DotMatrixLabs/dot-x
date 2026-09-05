@@ -3,5 +3,6 @@ export function flattenMappedApps(allApps: Record<string, string[]>): string[] {
 }
 
 export function excludeMappedApps(apps: string[], mappedApps: string[]): string[] {
-    return apps.filter((app) => !mappedApps.includes(app));
+    const normalizedMappings = new Set(mappedApps.map((app) => app.toLowerCase()));
+    return apps.filter((app) => !normalizedMappings.has(app.toLowerCase()));
 }
