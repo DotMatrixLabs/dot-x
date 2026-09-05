@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/tauri';
 import SelectedApps from './appsToControl';
 import { useDeckerStore } from '../store/deckerStore';
+import { excludeMappedApps } from './mappingUtils';
 
 /**
  * Class for controlling system volume and audio sessions.
@@ -117,24 +118,16 @@ class SystemVolumeController {
             //get all apps and remove the ones that are already mapped
             apps = await this.getAllSessionNames(false);
             const systemFeatures = ['master', 'output', 'input', 'mic'];
-            // A slider event can arrive before the mappings are mirrored into the store; without
-            // this every app would look unmapped and get grabbed by this channel.
-            try {
-                await SelectedApps.ready();
-            } catch (error) {
-                // Same reasoning: acting on unknown mappings would hand apps owned by other
-                // channels to this one, so leave the channel alone this time around.
-                console.error("Skipping unmapped channel, mapped apps unavailable", error);
-                return;
-            }
-            const mappedApps = useDeckerStore().getAllMappedApps;
+            // Read the persisted source of truth. The Pinia mirror can lag behind a toggle after
+            // selectedApps.json has already been updated, briefly making a mapped app look free.
+            const mappedApps = await SelectedApps.getMappedApps();
             if(!mappedApps) return;
             //remove system features
             apps = apps.filter((app) => !systemFeatures.includes(app));
             //remove input and output devices
             apps = apps.filter((app) => !app.toLowerCase().startsWith("input: ") && !app.toLowerCase().startsWith("output: "));
             //remove mapped apps
-            apps = apps.filter((app) => !mappedApps.includes(app));
+            apps = excludeMappedApps(apps, mappedApps);
             const channelApps: string[] | null = await SelectedApps.getApps(channel);
             //add back the apps that are mapped to same channel
             if(channelApps) apps = [...apps, ...channelApps];
