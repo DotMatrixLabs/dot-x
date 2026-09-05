@@ -32,6 +32,7 @@ use sentry_tauri::sentry::{self, ClientInitGuard};
 use chrono::Local;
 use brightness::Brightness;
 use futures::{TryStreamExt};
+use windows::Win32::System::Com::CoUninitialize;
 
 
 static APP: OnceCell<tauri::AppHandle> = OnceCell::new();
@@ -381,7 +382,11 @@ fn start_volume_sync_polling(generation: u64) {
 
                     // Refresh controller occasionally to pick up new/ended sessions.
                     if last_controller_refresh.elapsed() > Duration::from_secs(2) {
-                        controller = get_initialized_audio_controller();
+                        refresh_controller_balanced(
+                            &mut controller,
+                            || get_initialized_audio_controller(),
+                            || CoUninitialize(),
+                        );
                         last_controller_refresh = std::time::Instant::now();
                         // Newly visible sessions may be mapped without ever having been set.
                         seed_expected_volumes(&controller, generation);
@@ -429,6 +434,17 @@ fn start_volume_sync_polling(generation: u64) {
             }
         }
     });
+}
+
+fn refresh_controller_balanced<T, I, U>(controller: &mut T, initialize: I, uninitialize: U)
+where
+    I: FnOnce() -> T,
+    U: FnOnce(),
+{
+    *controller = initialize();
+    // The polling thread keeps its original COM initialization alive. Balance only the
+    // additional initialization performed while rebuilding the controller.
+    uninitialize();
 }
 
 #[tauri::command]
@@ -892,6 +908,25 @@ fn get_suspend_dim_enabled() -> bool {
 mod tests {
   use super::*;
   use std::sync::{Arc, Barrier, atomic::{AtomicBool, Ordering}};
+
+  #[test]
+  fn controller_refresh_balances_each_additional_com_initialization() {
+    let mut controller = 0;
+    let mut initializations = 1;
+    let mut uninitializations = 0;
+
+    refresh_controller_balanced(
+      &mut controller,
+      || {
+        initializations += 1;
+        1
+      },
+      || uninitializations += 1,
+    );
+
+    assert_eq!(controller, 1);
+    assert_eq!(initializations - uninitializations, 1);
+  }
 
   #[test]
   fn disabling_volume_sync_invalidates_the_previous_polling_generation() {

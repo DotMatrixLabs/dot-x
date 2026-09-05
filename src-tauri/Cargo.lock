@@ -1301,6 +1301,7 @@ dependencies = [
  "tracing-subscriber",
  "window-shadows",
  "window-vibrancy",
+ "windows 0.44.0",
  "windows-volume-control",
  "winreg 0.51.0",
 ]
