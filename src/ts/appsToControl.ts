@@ -8,6 +8,7 @@ import { useDeckerStore } from "../store/deckerStore";
  */
 class SelectedApps {
     private store: Store;
+    private initPromise: Promise<void> | null = null;
 
     /**
      * Creates an instance of SelectedApps.
@@ -16,7 +17,28 @@ class SelectedApps {
         this.store = new Store("selectedApps.json");
     }
 
-    async init() {
+    /**
+     * Mirrors the persisted mappings into the decker store. Safe to call more than once,
+     * every call returns the same in-flight promise.
+     */
+    async init(): Promise<void> {
+        if (!this.initPromise) {
+            this.initPromise = this.hydrate();
+        }
+        return this.initPromise;
+    }
+
+    /**
+     * Resolves once the persisted mappings are in the decker store. Anything that reads
+     * or writes the mirrored mappings has to await this first, otherwise it either works
+     * off an empty mapping or gets overwritten by the hydration snapshot.
+     * @returns {Promise<void>} A promise that resolves when the mappings are hydrated.
+     */
+    async ready(): Promise<void> {
+        return this.init();
+    }
+
+    private async hydrate(): Promise<void> {
         const keys = await this.store.keys();
         const allApps: Record<string, string[]> = {};
         for (const key of keys) {
@@ -25,10 +47,10 @@ class SelectedApps {
                 allApps[key] = apps;
             }
         }
-        useDeckerStore().setAllMappedApps(allApps);
+        await useDeckerStore().setAllMappedApps(allApps);
 
         const volumeSyncEnabled = await ConfigStore.get("volumeSyncEnabled") || false;
-        useDeckerStore().setVolumeSyncEnabled(volumeSyncEnabled);
+        await useDeckerStore().setVolumeSyncEnabled(volumeSyncEnabled);
     }
 
     /**
@@ -38,6 +60,9 @@ class SelectedApps {
      */
     async toggleApps(sliderID: string, appNames: string | string[]) {
         console.log("toggleApps", sliderID, appNames);
+
+        // Wait for the hydration snapshot, so this selection isn't overwritten by it.
+        await this.ready();
 
         const key: string = sliderID.toString();
         const currentApps: string[] = (await this.store.get<string[]>(key)) || [];
@@ -51,7 +76,7 @@ class SelectedApps {
         await this.store.set(key, updatedApps);
         await this.store.save();
 
-        useDeckerStore().setMappedApps(key, updatedApps);
+        await useDeckerStore().setMappedApps(key, updatedApps);
     }
 
     /**

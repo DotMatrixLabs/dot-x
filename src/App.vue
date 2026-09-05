@@ -136,6 +136,8 @@ export default {
   mounted() {
     this.disableContextMenu();
     // this.getTheme();
+    // Not awaited on purpose: everything that reads or writes the mirrored mappings
+    // awaits SelectedApps.ready(), so a selection made while this runs isn't lost.
     SelectedApps.init();
     ChannelSettings.init();
     this.connectDecker();

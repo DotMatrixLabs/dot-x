@@ -40,6 +40,9 @@ static APP: OnceCell<tauri::AppHandle> = OnceCell::new();
 struct VolumeSyncState {
   monitor: Option<VolumeMonitor>,
   generation: u64,
+  /// Session names the UI has mapped to a slider, kept here so the polling thread can
+  /// seed a target for sessions the user hasn't moved a slider for yet.
+  mapped_sessions: Vec<String>,
 }
 
 impl VolumeSyncState {
@@ -58,6 +61,7 @@ impl VolumeSyncState {
       monitor.stop_polling();
     }
     self.monitor = None;
+    self.mapped_sessions.clear();
   }
 
   fn is_current_generation(&self, generation: u64) -> bool {
@@ -379,6 +383,8 @@ fn start_volume_sync_polling(generation: u64) {
                     if last_controller_refresh.elapsed() > Duration::from_secs(2) {
                         controller = get_initialized_audio_controller();
                         last_controller_refresh = std::time::Instant::now();
+                        // Newly visible sessions may be mapped without ever having been set.
+                        seed_expected_volumes(&controller, generation);
                     }
 
                     // Check each session's volume and restore if needed
@@ -446,23 +452,80 @@ fn disable_volume_sync() -> Result<(), Error> {
 }
 
 #[tauri::command]
-fn update_volume_sync_target(session_name: &str, volume: f32) -> Result<(), Error> {
-    let state = VOLUME_SYNC_STATE.lock().unwrap();
+fn update_volume_sync_mappings(session_names: Vec<String>) -> Result<(), Error> {
+    let mut state = VOLUME_SYNC_STATE.lock().unwrap();
     if let Some(monitor) = state.monitor.as_ref() {
-        let _ = monitor.update_expected_volume(session_name, volume);
+        monitor.set_mapped_sessions(session_names.clone());
     }
+    // Remembered so the polling thread can seed targets for these sessions, both for the
+    // ones running right now and for the ones started later.
+    state.mapped_sessions = session_names;
 
     Ok(())
 }
 
-#[tauri::command]
-fn update_volume_sync_mappings(session_names: Vec<String>) -> Result<(), Error> {
-    let state = VOLUME_SYNC_STATE.lock().unwrap();
-    if let Some(monitor) = state.monitor.as_ref() {
-        monitor.set_mapped_sessions(session_names);
+/// Matches the names the UI mapped against the names the audio sessions actually report.
+/// The UI stores installed-app names, which differ in casing from the session names that
+/// the monitor keys its targets by.
+fn resolve_mapped_session_names(mapped: &[String], session_names: &[String]) -> Vec<String> {
+    let mapped_lowercase: std::collections::HashSet<String> =
+        mapped.iter().map(|name| name.to_lowercase()).collect();
+
+    session_names
+        .iter()
+        .filter(|name| mapped_lowercase.contains(&name.to_lowercase()))
+        .cloned()
+        .collect()
+}
+
+/// Gives the polling loop a target for every mapped session that doesn't have one yet, by
+/// taking the session's current volume as the target. Without this the target map only
+/// fills up when a slider moves, so sync enabled on startup - or an app mapped or launched
+/// while sync is running - restores nothing until the user touches the slider.
+unsafe fn seed_expected_volumes(controller: &AudioController, generation: u64) {
+    let mapped = {
+        let state = VOLUME_SYNC_STATE.lock().unwrap();
+        if !state.is_current_generation(generation) {
+            return;
+        }
+        state.mapped_sessions.clone()
+    };
+
+    if mapped.is_empty() {
+        return;
     }
 
-    Ok(())
+    let resolved = resolve_mapped_session_names(&mapped, &controller.get_all_session_names());
+    if resolved.is_empty() {
+        return;
+    }
+
+    let current_volumes: Vec<(String, f32)> = resolved
+        .iter()
+        .filter_map(|name| {
+            controller
+                .get_session_by_name(name.clone())
+                .map(|session| (name.clone(), session.getVolume()))
+        })
+        .collect();
+
+    let state = VOLUME_SYNC_STATE.lock().unwrap();
+    if !state.is_current_generation(generation) {
+        return;
+    }
+
+    let monitor = state.monitor.as_ref().unwrap();
+    // The resolved names are what the monitor keys targets by, so they have to count as
+    // mapped too, otherwise the targets seeded below are filtered out again.
+    let mut allowed = mapped;
+    allowed.extend(resolved);
+    monitor.set_mapped_sessions(allowed);
+
+    for (session_name, volume) in current_volumes {
+        if monitor.get_expected_volume(&session_name).is_none() {
+            let _ = monitor.update_expected_volume(&session_name, volume);
+        }
+    }
 }
 
 // Helper function to create and initialize an AudioController
@@ -625,7 +688,7 @@ fn main() {
     setup_panic_handler(client);
 
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![get_installed_apps, get_all_session_names, set_application_volume, connect_decker, decker::get_devices, decker::send_decker_command, get_available_midi_output_port_names, attach_midi_device, detach_midi_device, get_active_app_name, disconnect_decker, set_screen_brightness, get_all_audio_devices, get_output_devices, get_input_devices, enable_volume_sync, disable_volume_sync, update_volume_sync_target, update_volume_sync_mappings ])
+        .invoke_handler(tauri::generate_handler![get_installed_apps, get_all_session_names, set_application_volume, connect_decker, decker::get_devices, decker::send_decker_command, get_available_midi_output_port_names, attach_midi_device, detach_midi_device, get_active_app_name, disconnect_decker, set_screen_brightness, get_all_audio_devices, get_output_devices, get_input_devices, enable_volume_sync, disable_volume_sync, update_volume_sync_mappings ])
         .plugin(tauri_plugin_aptabase::Builder::new("A-EU-7429874879").build()) // 👈 this is where you enter your App Key
         .plugin(tauri_plugin_log::Builder::default().build())
         .plugin(sentry_tauri::plugin())
@@ -816,6 +879,33 @@ mod tests {
       .expect("re-enable should start a new polling generation");
     assert!(!state.is_current_generation(first_generation));
     assert!(state.is_current_generation(second_generation));
+  }
+
+  #[test]
+  fn mapped_names_resolve_to_the_session_names_targets_are_keyed_by() {
+    let mapped = vec!["Spotify".to_string(), "chrome(2)".to_string(), "unmapped".to_string()];
+    let sessions = vec![
+      "spotify".to_string(),
+      "chrome(2)".to_string(),
+      "Discord".to_string(),
+    ];
+
+    let resolved = resolve_mapped_session_names(&mapped, &sessions);
+
+    assert_eq!(resolved, vec!["spotify".to_string(), "chrome(2)".to_string()]);
+  }
+
+  #[test]
+  fn disabling_volume_sync_forgets_the_mapped_sessions() {
+    let mut state = VolumeSyncState::default();
+    state
+      .enable(VolumeMonitor::new())
+      .expect("enable should start a polling generation");
+    state.mapped_sessions = vec!["Spotify".to_string()];
+
+    state.disable();
+
+    assert!(state.mapped_sessions.is_empty());
   }
 
   #[test]

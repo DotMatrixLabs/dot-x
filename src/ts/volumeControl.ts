@@ -90,13 +90,10 @@ class SystemVolumeController {
             if (this.lastSetVolumeApp === name && (currentTime - this.lastSetVolumeExecutionTime < 50) && volume > 0.01) return;
             this.lastSetVolumeExecutionTime = currentTime;
             this.lastSetVolumeApp = name;
+            // set_application_volume records the sync target itself, before applying the
+            // volume. Doing it again from here would let an older overlapping slider update
+            // land after a newer one and pin the session to a stale target.
             await invoke('set_application_volume', { name, volume });
-
-            // Notify volume sync system of the new target
-            const volumeSyncEnabled = useDeckerStore().volumeSyncEnabled;
-            if (volumeSyncEnabled) {
-                await invoke('update_volume_sync_target', { sessionName: name, volume });
-            }
         } catch (error) {
             console.log(error);
         }
@@ -120,6 +117,9 @@ class SystemVolumeController {
             //get all apps and remove the ones that are already mapped
             apps = await this.getAllSessionNames(false);
             const systemFeatures = ['master', 'output', 'input', 'mic'];
+            // A slider event can arrive before the mappings are mirrored into the store; without
+            // this every app would look unmapped and get grabbed by this channel.
+            await SelectedApps.ready();
             const mappedApps = useDeckerStore().getAllMappedApps;
             if(!mappedApps) return;
             //remove system features
