@@ -2,6 +2,7 @@ import { Store } from "tauri-plugin-store-api";
 import * as _ from "lodash";
 import ConfigStore from "./config";
 import { useDeckerStore } from "../store/deckerStore";
+import { flattenMappedApps } from "./mappingUtils";
 
 /**
  * Class representing selected apps.
@@ -44,6 +45,14 @@ class SelectedApps {
     }
 
     private async hydrate(): Promise<void> {
+        const allApps = await this.getAllMappings();
+        await useDeckerStore().setAllMappedApps(allApps);
+
+        const volumeSyncEnabled = await ConfigStore.get("volumeSyncEnabled") || false;
+        await useDeckerStore().setVolumeSyncEnabled(volumeSyncEnabled);
+    }
+
+    private async getAllMappings(): Promise<Record<string, string[]>> {
         const keys = await this.store.keys();
         const allApps: Record<string, string[]> = {};
         for (const key of keys) {
@@ -52,10 +61,7 @@ class SelectedApps {
                 allApps[key] = apps;
             }
         }
-        await useDeckerStore().setAllMappedApps(allApps);
-
-        const volumeSyncEnabled = await ConfigStore.get("volumeSyncEnabled") || false;
-        await useDeckerStore().setVolumeSyncEnabled(volumeSyncEnabled);
+        return allApps;
     }
 
     /**
@@ -102,16 +108,7 @@ class SelectedApps {
      * @returns {Promise<string[] | null>} The apps for the slider, or null if not found.
      */
     async getMappedApps(): Promise<string[] | null> {
-        let mappedApps: string[] = [];
-        //get number of sliders by looking at number of keys in store
-        const keys = await this.store.keys();
-        const numSliders = keys.length;
-        for (let i = 0; i < numSliders; i++) {
-            const apps = await this.getApps(i);
-            if (!apps) continue;
-            mappedApps = [...mappedApps, ...apps];
-        }
-        return mappedApps;
+        return flattenMappedApps(await this.getAllMappings());
     }
 
     /**
