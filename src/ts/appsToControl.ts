@@ -23,7 +23,12 @@ class SelectedApps {
      */
     async init(): Promise<void> {
         if (!this.initPromise) {
-            this.initPromise = this.hydrate();
+            this.initPromise = this.hydrate().catch((error) => {
+                // Drop the cached promise, otherwise one failed startup read would reject
+                // every later mapping change that waits on it.
+                this.initPromise = null;
+                throw error;
+            });
         }
         return this.initPromise;
     }
@@ -61,8 +66,10 @@ class SelectedApps {
     async toggleApps(sliderID: string, appNames: string | string[]) {
         console.log("toggleApps", sliderID, appNames);
 
-        // Wait for the hydration snapshot, so this selection isn't overwritten by it.
-        await this.ready();
+        // Wait for the hydration snapshot, so this selection isn't overwritten by it. A failed
+        // hydration must not swallow the selection: the store below is the source of truth,
+        // and the next call retries hydration and picks this write up.
+        await this.ready().catch((error) => console.error("Failed to load mapped apps", error));
 
         const key: string = sliderID.toString();
         const currentApps: string[] = (await this.store.get<string[]>(key)) || [];

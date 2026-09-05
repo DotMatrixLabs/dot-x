@@ -119,7 +119,14 @@ class SystemVolumeController {
             const systemFeatures = ['master', 'output', 'input', 'mic'];
             // A slider event can arrive before the mappings are mirrored into the store; without
             // this every app would look unmapped and get grabbed by this channel.
-            await SelectedApps.ready();
+            try {
+                await SelectedApps.ready();
+            } catch (error) {
+                // Same reasoning: acting on unknown mappings would hand apps owned by other
+                // channels to this one, so leave the channel alone this time around.
+                console.error("Skipping unmapped channel, mapped apps unavailable", error);
+                return;
+            }
             const mappedApps = useDeckerStore().getAllMappedApps;
             if(!mappedApps) return;
             //remove system features
