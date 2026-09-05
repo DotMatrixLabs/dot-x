@@ -509,15 +509,41 @@ unsafe fn seed_expected_volumes(controller: &AudioController, generation: u64) {
         })
         .collect();
 
-    let state = VOLUME_SYNC_STATE.lock().unwrap();
+    apply_seeded_expected_volumes(
+        &VOLUME_SYNC_STATE,
+        generation,
+        &mapped,
+        resolved,
+        current_volumes,
+    );
+}
+
+/// Applies one seed pass, but only if the mappings it was built from are still the current
+/// ones. Querying the controller happens without the lock, so a mapping change in that
+/// window would otherwise be overwritten by this stale snapshot - and a change that cleared
+/// the mappings would never be corrected, because later passes return early on the now
+/// empty list and leave the removed sessions being polled and restored.
+/// Skipping is safe: the pass that runs on the next controller refresh sees the new mappings.
+fn apply_seeded_expected_volumes(
+  state: &Mutex<VolumeSyncState>,
+  generation: u64,
+  mapped: &[String],
+  resolved: Vec<String>,
+  current_volumes: Vec<(String, f32)>,
+) -> bool {
+    let state = state.lock().unwrap();
     if !state.is_current_generation(generation) {
-        return;
+        return false;
+    }
+
+    if state.mapped_sessions.as_slice() != mapped {
+        return false;
     }
 
     let monitor = state.monitor.as_ref().unwrap();
     // The resolved names are what the monitor keys targets by, so they have to count as
     // mapped too, otherwise the targets seeded below are filtered out again.
-    let mut allowed = mapped;
+    let mut allowed = mapped.to_vec();
     allowed.extend(resolved);
     monitor.set_mapped_sessions(allowed);
 
@@ -526,6 +552,8 @@ unsafe fn seed_expected_volumes(controller: &AudioController, generation: u64) {
             let _ = monitor.update_expected_volume(&session_name, volume);
         }
     }
+
+    true
 }
 
 // Helper function to create and initialize an AudioController
@@ -893,6 +921,55 @@ mod tests {
     let resolved = resolve_mapped_session_names(&mapped, &sessions);
 
     assert_eq!(resolved, vec!["spotify".to_string(), "chrome(2)".to_string()]);
+  }
+
+  #[test]
+  fn seeding_applies_when_the_mappings_it_was_built_from_are_unchanged() {
+    let state = Mutex::new(VolumeSyncState::default());
+    let generation = state
+      .lock()
+      .unwrap()
+      .enable(VolumeMonitor::new())
+      .expect("enable should start a polling generation");
+    state.lock().unwrap().mapped_sessions = vec!["Spotify".to_string()];
+
+    let applied = apply_seeded_expected_volumes(
+      &state,
+      generation,
+      &["Spotify".to_string()],
+      vec!["spotify".to_string()],
+      vec![("spotify".to_string(), 0.4)],
+    );
+
+    assert!(applied);
+    let state = state.lock().unwrap();
+    let monitor = state.monitor.as_ref().unwrap();
+    assert_eq!(monitor.get_expected_volume("spotify"), Some(0.4));
+  }
+
+  #[test]
+  fn seeding_is_skipped_when_the_mappings_changed_while_the_controller_was_queried() {
+    let state = Mutex::new(VolumeSyncState::default());
+    let generation = state
+      .lock()
+      .unwrap()
+      .enable(VolumeMonitor::new())
+      .expect("enable should start a polling generation");
+    // The user unmapped everything while this pass was reading the controller.
+    state.lock().unwrap().mapped_sessions = Vec::new();
+
+    let applied = apply_seeded_expected_volumes(
+      &state,
+      generation,
+      &["Spotify".to_string()],
+      vec!["spotify".to_string()],
+      vec![("spotify".to_string(), 0.4)],
+    );
+
+    assert!(!applied);
+    let state = state.lock().unwrap();
+    let monitor = state.monitor.as_ref().unwrap();
+    assert_eq!(monitor.get_expected_volume("spotify"), None);
   }
 
   #[test]
