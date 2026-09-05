@@ -1,0 +1,48 @@
+name: Bug report
+description: Something in Dot X is broken or behaves wrong
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Search existing issues before filing a new one. Redact API keys, tokens, and passwords from anything you paste here.
+  - type: input
+    id: version
+    attributes:
+      label: Dot X version
+      description: The version shown in the app, or the installer filename.
+    validations:
+      required: true
+  - type: dropdown
+    id: build-source
+    attributes:
+      label: Where did this build come from?
+      options:
+        - Downloaded installer
+        - Built from source
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what happened instead. Include log output from %LOCALAPPDATA%\com.dot-x.dev\logs if you have it.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1.
+        2.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Windows version, whether a Decker was attached, plugins installed.
+    validations:
+      required: true
