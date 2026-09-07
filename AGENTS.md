@@ -91,10 +91,11 @@ public class Win {
 }
 "@
 # Dev app and installed app are both named "Dot X" — see "The three ways to hurt yourself".
-# Match the exact target dir of the checkout you are working in; run this from the repo/worktree root.
-$devRoot = (Resolve-Path .).Path
+# Match this checkout's src-tauri\target dir exactly; run this from the repo/worktree root.
+$devTarget = Join-Path (Resolve-Path .).Path "src-tauri\target"
 $proc = Get-Process "Dot X" -ErrorAction SilentlyContinue |
-  Where-Object { $_.MainWindowHandle -ne 0 -and $_.Path -like "$devRoot*" } | Select-Object -First 1
+  Where-Object { $_.MainWindowHandle -ne 0 -and $_.Path -and $_.Path.StartsWith("$devTarget\", [System.StringComparison]::OrdinalIgnoreCase) } |
+  Select-Object -First 1
 if (-not $proc) { throw "No visible dev Dot X window. Run 'yarn tauri dev' and open the window from the tray icon first." }
 if (-not [Win]::SetForegroundWindow($proc.MainWindowHandle)) {
   throw "Could not bring the Dot X window to the foreground; capturing now would record whatever else is on screen."
@@ -123,14 +124,13 @@ Keep clips under 15 seconds and under 10 MB (GitHub's upload cap). Trim to the p
 **Upload to GitHub, in two ways:**
 
 - Preferred, `gh` 2.99.0 or newer: `gh pr create --attach "$env:TEMP\dotx-pr\before.png#Before" --attach "$env:TEMP\dotx-pr\after.png#After"`, or `gh pr comment 123 --attach "$env:TEMP\dotx-pr\demo.mp4#Slider lag"`. The repeatable `--attach` flag uploads the file and rewrites or appends references in the body. Works on `gh issue create/edit/comment` and `gh pr create/edit/comment`. Alt text follows the path after `#`.
-- On older `gh`, upload directly and embed the returned URL:
+- On older `gh`, upload directly and embed the returned URL. Do not put the token on a child process command line (it would be visible in process auditing); use an in-process header:
 
   ```powershell
-  $repoId = gh api repos/Frogbyte-io/dot-x --jq .id
-  curl.exe -s -X POST `
-    -H "Authorization: Bearer $(gh auth token)" -H "Accept: application/json" `
-    --data-binary "@$env:TEMP\dotx-pr\after.png" `
-    "https://uploads.github.com/user-attachments/assets?name=after.png&content_type=image/png&repository_id=$repoId"
+  $resp = Invoke-RestMethod -Method Post `
+    -Headers @{ Authorization = "Bearer $(gh auth token)"; Accept = "application/json" } `
+    -InFile "$env:TEMP\dotx-pr\after.png" -ContentType "image/png" `
+    "https://uploads.github.com/user-attachments/assets?name=after.png&content_type=image/png&repository_id=$((gh api repos/Frogbyte-io/dot-x --jq .id))"
   ```
 
   The response JSON contains the attachment URL; embed it in the PR body as `![after](<url>)`.
