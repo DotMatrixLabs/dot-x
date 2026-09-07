@@ -113,7 +113,7 @@ body:
     id: logs
     attributes:
       label: Logs or stack traces
-      description: Paste the most relevant output only. Logs live in %APPDATA%\com.dot-x.dev\logs. Redact API keys, tokens, and passwords before pasting.
+      description: The app does not write log files. If you built from source, run it from a terminal and paste the console output. For plugin issues, paste plugin.log from the plugin's folder under %APPDATA%\com.dot-x.dev\plugins\. Redact API keys, tokens, and passwords before pasting.
       render: shell
 
   - type: upload

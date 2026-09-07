@@ -61,7 +61,7 @@ The most common defect in this repo is a change that works on the path you teste
 - `yarn install` installs. Then `yarn tauri dev` builds and launches the app. The first build compiles all of Rust from scratch; minutes are normal, do not kill it.
 - The dev app window is titled "Dot X". Vite's port is picked by the Tauri CLI; do not pin ports.
 - Windows 10/11 only, Node 22+, Rust stable. Most features need a Decker physically attached. Without it you can still exercise UI, settings, and plugins — say exactly that in the PR, and say what you could not test.
-- Logs land in `%APPDATA%\com.dot-x.dev\logs`.
+- The app does not write its own log files: `tauri_plugin_log` targets stdout only (the dev console), and crashes go to Sentry. Plugin stdout/stderr is appended to `plugin.log` inside each installed plugin's folder under `%APPDATA%\com.dot-x.dev\plugins\`. If you need app logs, run the app from a terminal and copy the console output.
 
 ## Verifying
 
@@ -119,7 +119,7 @@ Keep clips under 15 seconds and under 10 MB (GitHub's upload cap). Trim to the p
 
 **Upload to GitHub, in two ways:**
 
-- Preferred, `gh` 2.99.0 or newer: `gh pr create --attach before.png#Before --attach after.png#After`, or `gh pr comment 123 --attach demo.mp4#Slider lag`. The repeatable `--attach` flag uploads the file and rewrites or appends references in the body. Works on `gh issue create/edit/comment` and `gh pr create/edit/comment`. Alt text follows the path after `#`.
+- Preferred, `gh` 2.99.0 or newer: `gh pr create --attach "$env:TEMP\dotx-pr\before.png#Before" --attach "$env:TEMP\dotx-pr\after.png#After"`, or `gh pr comment 123 --attach "$env:TEMP\dotx-pr\demo.mp4#Slider lag"`. The repeatable `--attach` flag uploads the file and rewrites or appends references in the body. Works on `gh issue create/edit/comment` and `gh pr create/edit/comment`. Alt text follows the path after `#`.
 - On older `gh`, upload directly and embed the returned URL:
 
   ```powershell

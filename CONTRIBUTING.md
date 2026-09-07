@@ -47,7 +47,9 @@ Most features need a Decker physically attached over serial. The app holds the d
 
 ## Reporting Bugs And Requesting Features
 
-Use the issue forms. The bug template asks for the Dot X version, where the build came from, steps to reproduce, and your environment. The app writes logs to `%APPDATA%\com.dot-x.dev\logs`.
+Use the issue forms. The bug template asks for the Dot X version, where the build came from, steps to reproduce, and your environment.
+
+The app does not write its own log files, so if you built from source, run it from a terminal and copy the console output. Plugin output is written to `plugin.log` inside each installed plugin's folder under `%APPDATA%\com.dot-x.dev\plugins\`; include it for plugin issues.
 
 Redact API keys, tokens, and passwords before pasting logs or screenshots. Plugin settings can hold credentials, and some of that can end up in log output.
 
