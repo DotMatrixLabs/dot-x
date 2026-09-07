@@ -225,8 +225,8 @@ The docs repo's `package.json` calls these scripts:
 ```json
 {
   "scripts": {
-    "sync-components": "node ../dot-x/plugin-sdk/scripts/sync-components.mjs",
-    "build-plugin-docs": "node ../dot-x/plugin-sdk/scripts/build-docs.mjs",
+    "sync-components": "node ../dot-x/plugin-sdk/scripts/sync-components.mjs --docs-root .",
+    "build-plugin-docs": "node ../dot-x/plugin-sdk/scripts/build-docs.mjs --docs-root .",
     "docs:dev": "npm run sync-components && vitepress dev docs",
     "docs:build": "npm run sync-components && vitepress build docs"
   }
