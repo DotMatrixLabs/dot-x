@@ -17,6 +17,71 @@ permissions:
   pull-requests: write
 
 jobs:
+  sync-label-definitions:
+    name: Sync vouch label definitions
+    if: github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Ensure vouch labels exist
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const managedLabels = [
+              {
+                name: "vouch:trusted",
+                color: "1f883d",
+                description: "PR author is trusted by repo permissions or the VOUCHED list.",
+              },
+              {
+                name: "vouch:unvouched",
+                color: "fbca04",
+                description: "PR author is not yet trusted in the VOUCHED list.",
+              },
+              {
+                name: "vouch:denounced",
+                color: "d1242f",
+                description: "PR author is explicitly blocked by the VOUCHED list.",
+              },
+            ];
+
+            for (const label of managedLabels) {
+              try {
+                const { data: existing } = await github.rest.issues.getLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name: label.name,
+                });
+
+                if (existing.color !== label.color || (existing.description ?? "") !== label.description) {
+                  await github.rest.issues.updateLabel({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    name: label.name,
+                    color: label.color,
+                    description: label.description,
+                  });
+                }
+              } catch (error) {
+                if (error.status !== 404) {
+                  throw error;
+                }
+
+                try {
+                  await github.rest.issues.createLabel({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    name: label.name,
+                    color: label.color,
+                    description: label.description,
+                  });
+                } catch (createError) {
+                  if (createError.status !== 422) {
+                    throw createError;
+                  }
+                }
+              }
+            }
+
   collect-targets:
     name: Collect PR targets
     runs-on: ubuntu-24.04
@@ -84,7 +149,7 @@ jobs:
     steps:
       - id: vouch
         name: Check PR author trust
-        uses: mitchellh/vouch/action/check-user@v1
+        uses: mitchellh/vouch/action/check-user@d66fa29a64600490892131ad87597c30c91fcac4 # v1
         with:
           user: ${{ matrix.target.user }}
           allow-fail: true
