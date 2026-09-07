@@ -1,0 +1,44 @@
+name: Feature request
+description: Suggest an improvement or new capability for Dot X.
+title: "[Feature]: "
+labels:
+  - enhancement
+  - needs-triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Feature requests and ideas live here, not in the bug tracker.
+        We are a small team. We read every request, but a request is not a promise:
+        most ideas wait, and many get declined to keep Dot X small and focused.
+        Search existing issues first, including closed ones, in case this came up before.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues, including closed ones, and did not find a duplicate.
+          required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What are you trying to do, and what gets in the way?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What you want Dot X to do. Keep it concrete.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other ways you found to work around this, if any.

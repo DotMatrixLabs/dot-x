@@ -1,0 +1,133 @@
+name: Bug report
+description: Report broken behavior, regressions, crashes, or reliability issues.
+title: "[Bug]: "
+labels:
+  - bug
+  - needs-triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for broken behavior, regressions, crashes, or reliability problems.
+        Feature requests and ideas belong in the [feature request form](https://github.com/Frogbyte-io/dot-x/issues/new?template=feature_request.yml).
+        Search existing issues first and keep the report focused on one problem.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and did not find a duplicate.
+          required: true
+        - label: I included enough detail to reproduce or investigate the problem.
+          required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of Dot X is affected?
+      options:
+        - Decker device connection (serial)
+        - Audio mapping and per-app volume
+        - MIDI
+        - Decker RGB lights
+        - Screen brightness
+        - System tray, autostart, or updates
+        - Plugins or plugin SDK
+        - App UI
+        - Build, CI, or release tooling
+        - Docs
+        - Not sure
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Dot X version
+      description: The version shown in the app, or the installer filename.
+      placeholder: 1.2.3-1
+
+  - type: dropdown
+    id: build-source
+    attributes:
+      label: Where did this build come from?
+      options:
+        - Downloaded installer
+        - Built from source
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Provide a minimal, deterministic repro.
+      placeholder: |
+        1. Attach the Decker and start Dot X
+        2. Map an app to slider 1
+        3. Move the slider
+        4. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      placeholder: The mapped app's volume follows the slider position.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      placeholder: The slider moves but the volume of the mapped app does not change.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: impact
+    attributes:
+      label: Impact
+      description: How bad is this in practice?
+      options:
+        - Blocks work completely
+        - Major degradation or frequent failure
+        - Minor bug or occasional failure
+        - Cosmetic issue
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Windows version, whether a Decker was attached, plugins installed.
+      placeholder: Windows 11 24H2, Decker attached over USB, no plugins installed.
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or stack traces
+      description: Paste the most relevant output only. Logs live in %APPDATA%\com.dot-x.dev\logs. Redact API keys, tokens, and passwords before pasting.
+      render: shell
+
+  - type: upload
+    id: attachments
+    attributes:
+      label: Screenshots, recordings, or supporting files
+      description: Upload screenshots, short recordings, repro archives, or log files. Redact secrets before uploading.
+    validations:
+      required: false
+      accept: ".png,.jpg,.jpeg,.gif,.webp,.svg,.mp4,.mov,.webm,.log,.txt,.json,.zip"
+
+  - type: textarea
+    id: workaround
+    attributes:
+      label: Workaround
+      description: If you found a temporary workaround, include it.
+      placeholder: Restarting Dot X re-syncs the volume mapping.
