@@ -1,4 +1,4 @@
-import { statSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 function readDocsRootArgument(args) {
@@ -32,6 +32,15 @@ export function resolveDocsRoot({ args = process.argv.slice(2), env = process.en
     }
   } catch {
     throw new Error(`The configured docs root does not exist or is not a directory: ${docsRoot}`);
+  }
+
+  try {
+    const manifest = JSON.parse(readFileSync(join(docsRoot, 'package.json'), 'utf8'));
+    if (manifest.name !== 'dotmatrixlabs-docs' || !statSync(join(docsRoot, 'docs')).isDirectory()) {
+      throw new Error('wrong repository');
+    }
+  } catch {
+    throw new Error(`The configured docs root is not a dotmatrixlabs-docs checkout: ${docsRoot}`);
   }
 
   return docsRoot;
