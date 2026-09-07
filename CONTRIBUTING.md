@@ -8,6 +8,10 @@ You can still report a bug or open a PR, but please do so knowing there is a hig
 
 That still does not mean we will want the change, but it keeps scope, quality, and direction under control for a project that drives physical hardware.
 
+PRs are automatically labeled with a `vouch:*` trust status and a `size:*` diff size based on changed lines.
+
+If you are an external contributor, expect `vouch:unvouched` until we explicitly add you to `.github/VOUCHED.td`. Comment `/recheck-vouch` on your PR if you believe the label is stale.
+
 ## What We Are Most Likely To Accept
 
 Small, focused bug fixes.
