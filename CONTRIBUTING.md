@@ -73,7 +73,7 @@ Explain exactly what changed.
 
 Explain exactly why the change should exist.
 
-Run `yarn build` before pushing. It generates license reports, typechecks, and builds the frontend. If your change touches Rust, also run `cargo check` in `src-tauri/`.
+Run `yarn build` before pushing. It generates license reports, typechecks, and builds the frontend. If your change touches Rust, also run `cargo test --locked` in `src-tauri/`. CI runs the same checks on every PR, plus a plugin SDK build and drift check.
 
 Do not mix unrelated fixes together.
 

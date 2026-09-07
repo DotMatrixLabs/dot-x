@@ -65,9 +65,9 @@ The most common defect in this repo is a change that works on the path you teste
 
 ## Verifying
 
-- There is no automated test suite. The proof is a running app plus focused checks:
+- CI (`.github/workflows/ci.yml`) typechecks and builds the frontend, checks the plugin SDK build and its generated types, and runs the Rust unit tests with `cargo test --locked`. Treat CI as a floor, not a test suite; the real proof is the same checks locally plus the running app:
   - `yarn build` — regenerates license reports, typechecks with vue-tsc, builds the frontend. Run this before pushing, always.
-  - `cargo check` in `src-tauri/` — run this if Rust changed.
+  - `cargo test --locked` in `src-tauri/` — run this if Rust changed.
 - Test meaningful behavior in the running app, not a plausible-looking diff.
 - Do not install tools (ffmpeg, gh upgrades) without asking.
 

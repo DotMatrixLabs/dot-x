@@ -39,6 +39,6 @@ we may close it without merging it, or never review it.
 
 - [ ] This PR is small and focused
 - [ ] I explained what changed and why
-- [ ] I ran `yarn build` (and `cargo check` in src-tauri if Rust changed)
+- [ ] I ran `yarn build` (and `cargo test --locked` in src-tauri if Rust changed)
 - [ ] I included before/after screenshots for any UI changes
 - [ ] I included a video for animation/interaction changes
