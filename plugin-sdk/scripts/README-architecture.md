@@ -21,7 +21,7 @@ node build-docs.mjs --docs-root /path/to/dotmatrixlabs-docs --skip-typedoc
 ### To Add New Examples
 
 1. Edit `dot-x/src/components/fields/metadata.ts`
-2. Run `node build-docs.mjs --docs-root /path/to/dotmatrixlabs-docs --skip-typedoc`
+2. From the `dot-x` repository root, run `node plugin-sdk/scripts/build-docs.mjs --docs-root /path/to/dotmatrixlabs-docs --skip-typedoc`
 3. View at `http://localhost:5173/plugin-sdk/reference/settingsbuilder-components`
 
 ## File Structure
@@ -218,10 +218,10 @@ import Input from '../fields/Input.vue';
 # 1. Edit ui.ts (add/modify TypeDoc comments)
 # 2. Regenerate docs
 cd dot-x/plugin-sdk/scripts
-node build-docs.mjs --docs-root "$DOTX_DOCS_ROOT"
+node build-docs.mjs --docs-root /path/to/dotmatrixlabs-docs
 
 # 3. View changes
-cd "$DOTX_DOCS_ROOT"
+cd /path/to/dotmatrixlabs-docs
 npm run docs:dev
 ```
 
@@ -231,10 +231,10 @@ npm run docs:dev
 # 1. Edit metadata.ts (add new example)
 # 2. Sync components only (faster)
 cd dot-x/plugin-sdk/scripts
-node build-docs.mjs --docs-root "$DOTX_DOCS_ROOT" --skip-typedoc
+node build-docs.mjs --docs-root /path/to/dotmatrixlabs-docs --skip-typedoc
 
 # 3. View changes
-cd "$DOTX_DOCS_ROOT"
+cd /path/to/dotmatrixlabs-docs
 npm run docs:dev
 ```
 
@@ -244,7 +244,7 @@ npm run docs:dev
 # 1. Edit Vue component file (e.g., Input.vue)
 # 2. Sync components only
 cd dot-x/plugin-sdk/scripts
-node sync-components.mjs --docs-root "$DOTX_DOCS_ROOT"
+node sync-components.mjs --docs-root /path/to/dotmatrixlabs-docs
 
 # 3. VitePress hot reload will show changes
 # (if docs:dev is already running)
@@ -292,9 +292,9 @@ Both `generate-docs.mjs` and `sync-components.mjs` use these keys to:
 ```bash
 # Clear caches and rebuild everything
 cd dot-x/plugin-sdk/scripts
-node build-docs.mjs --docs-root "$DOTX_DOCS_ROOT"
+node build-docs.mjs --docs-root /path/to/dotmatrixlabs-docs
 
-cd "$DOTX_DOCS_ROOT"
+cd /path/to/dotmatrixlabs-docs
 rm -rf docs/.vitepress/cache
 npm run docs:dev
 ```
