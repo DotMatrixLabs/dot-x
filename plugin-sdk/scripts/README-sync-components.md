@@ -188,17 +188,17 @@ This section is inserted **after the description** and **before the Methods** ta
 
 1. Check if sync-components ran:
 ```bash
-ls -la "$DOTX_DOCS_ROOT/docs/.vitepress/components/demos/"
+ls -la /path/to/dotmatrixlabs-docs/docs/.vitepress/components/demos/
 ```
 
 2. Regenerate everything:
 ```bash
-node build-docs.mjs --docs-root "$DOTX_DOCS_ROOT"
+node build-docs.mjs --docs-root /path/to/dotmatrixlabs-docs
 ```
 
 3. Clear VitePress cache:
 ```bash
-cd "$DOTX_DOCS_ROOT"
+cd /path/to/dotmatrixlabs-docs
 rm -rf docs/.vitepress/cache
 npm run docs:dev
 ```
