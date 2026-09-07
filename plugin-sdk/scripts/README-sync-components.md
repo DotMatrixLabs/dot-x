@@ -43,13 +43,13 @@ export const COMPONENT_METADATA = {
    - Reads `ui.ts` via TypeDoc
    - Loads `metadata.ts` for component examples
    - Generates markdown with Live Examples sections
-   - Output: `D:\dotmatrixlabs-docs\docs\plugin-sdk\reference\*.md`
+   - Output: `<docs-root>/docs/plugin-sdk/reference/*.md`
 
 2. **sync-components.mjs**
    - Reads `registry.ts` and `metadata.ts`
    - Copies Vue component files from `src/components/fields/` to docs
    - Generates demo wrapper components with proper props
-   - Output: `D:\dotmatrixlabs-docs\docs\.vitepress\components\{fields,demos}\`
+   - Output: `<docs-root>/docs/.vitepress/components/{fields,demos}/`
 
 3. **build-docs.mjs** (master script)
    - Runs both scripts in sequence
@@ -62,8 +62,10 @@ export const COMPONENT_METADATA = {
 From `dot-x/plugin-sdk/scripts/`:
 
 ```bash
-node build-docs.mjs
+node build-docs.mjs --docs-root /path/to/dotmatrixlabs-docs
 ```
+
+The docs repository is a separate checkout. Pass its root with `--docs-root` or set `DOTX_DOCS_ROOT`. The scripts exit without writing files when the setting is absent or does not name an existing directory.
 
 This will:
 1. Generate markdown from TypeDoc
@@ -75,7 +77,7 @@ This will:
 If you only changed component examples:
 
 ```bash
-node sync-components.mjs
+node sync-components.mjs --docs-root /path/to/dotmatrixlabs-docs
 ```
 
 Or from the docs repo:
@@ -90,7 +92,7 @@ npm run sync-components
 If you only need to sync components (TypeDoc output unchanged):
 
 ```bash
-node build-docs.mjs --skip-typedoc
+node build-docs.mjs --docs-root /path/to/dotmatrixlabs-docs --skip-typedoc
 ```
 
 ## Adding New Component Examples
@@ -115,13 +117,13 @@ select: {
 2. **Run** the build script:
 
 ```bash
-node build-docs.mjs
+node build-docs.mjs --docs-root /path/to/dotmatrixlabs-docs
 ```
 
 3. **View** in VitePress:
 
 ```bash
-cd ../../../dotmatrixlabs-docs
+cd /path/to/dotmatrixlabs-docs
 npm run docs:dev
 ```
 
@@ -186,26 +188,24 @@ This section is inserted **after the description** and **before the Methods** ta
 
 1. Check if sync-components ran:
 ```bash
-ls -la ../../../dotmatrixlabs-docs/docs/.vitepress/components/demos/
+ls -la "$DOTX_DOCS_ROOT/docs/.vitepress/components/demos/"
 ```
 
 2. Regenerate everything:
 ```bash
-node build-docs.mjs
+node build-docs.mjs --docs-root "$DOTX_DOCS_ROOT"
 ```
 
 3. Clear VitePress cache:
 ```bash
-cd ../../../dotmatrixlabs-docs
+cd "$DOTX_DOCS_ROOT"
 rm -rf docs/.vitepress/cache
 npm run docs:dev
 ```
 
 ### Components not found
 
-Ensure paths are correct in `sync-components.mjs`:
-- `DOT_X_FIELDS`: Points to `src/components/fields/`
-- `DOCS_ROOT`: Points to `dotmatrixlabs-docs/`
+Check that `--docs-root` or `DOTX_DOCS_ROOT` points to the root of the `dotmatrixlabs-docs` checkout.
 
 ### Wrong metadata key
 

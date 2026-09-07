@@ -7,18 +7,22 @@
  * 1. Generates markdown from TypeDoc (ui.ts -> settingsbuilder-components.md)
  * 2. Syncs Vue components and generates demo wrappers
  * 
- * Usage: node build-docs.mjs [--skip-typedoc]
+ * Usage: node build-docs.mjs --docs-root <path> [--skip-typedoc]
  */
 
-import { execSync } from 'child_process';
-import { resolve, dirname } from 'path';
+import { execFileSync } from 'child_process';
+import { dirname } from 'path';
 import { fileURLToPath } from 'url';
+
+import { getDocsPaths, resolveDocsRoot } from './docs-paths.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const args = process.argv.slice(2);
 const skipTypedoc = args.includes('--skip-typedoc');
+const docsRoot = resolveDocsRoot({ args });
+const docsPaths = getDocsPaths(docsRoot);
 
 console.log('📚 Building Plugin SDK Documentation\n');
 console.log('=' .repeat(50));
@@ -29,7 +33,7 @@ if (!skipTypedoc) {
   console.log('-'.repeat(50));
   
   try {
-    execSync('node generate-docs.mjs', {
+    execFileSync(process.execPath, ['generate-docs.mjs', '--docs-root', docsRoot], {
       cwd: __dirname,
       stdio: 'inherit'
     });
@@ -46,7 +50,7 @@ console.log('\n🔄 Step 2: Syncing Vue components and generating demos...');
 console.log('-'.repeat(50));
 
 try {
-  execSync('node sync-components.mjs', {
+  execFileSync(process.execPath, ['sync-components.mjs', '--docs-root', docsRoot], {
     cwd: __dirname,
     stdio: 'inherit'
   });
@@ -59,10 +63,10 @@ try {
 console.log('\n' + '='.repeat(50));
 console.log('✅ Documentation build complete!\n');
 console.log('📂 Output locations:');
-console.log('   Markdown: D:\\dotmatrixlabs-docs\\docs\\plugin-sdk\\reference\\');
-console.log('   Components: D:\\dotmatrixlabs-docs\\docs\\.vitepress\\components\\');
+console.log(`   Markdown: ${docsPaths.markdown}`);
+console.log(`   Components: ${docsPaths.components}`);
 console.log('\n💡 Next steps:');
-console.log('   cd ../../../dotmatrixlabs-docs');
+console.log(`   cd "${docsRoot}"`);
 console.log('   npm run docs:dev');
 console.log();
 
