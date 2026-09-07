@@ -91,11 +91,14 @@ public class Win {
 }
 "@
 # Dev app and installed app are both named "Dot X" — see "The three ways to hurt yourself".
-# This picks the dev build by path. Never match by process name alone.
+# Match the exact target dir of the checkout you are working in; run this from the repo/worktree root.
+$devRoot = (Resolve-Path .).Path
 $proc = Get-Process "Dot X" -ErrorAction SilentlyContinue |
-  Where-Object { $_.MainWindowHandle -ne 0 -and $_.Path -like "*target*" } | Select-Object -First 1
+  Where-Object { $_.MainWindowHandle -ne 0 -and $_.Path -like "$devRoot*" } | Select-Object -First 1
 if (-not $proc) { throw "No visible dev Dot X window. Run 'yarn tauri dev' and open the window from the tray icon first." }
-[Win]::SetForegroundWindow($proc.MainWindowHandle) | Out-Null
+if (-not [Win]::SetForegroundWindow($proc.MainWindowHandle)) {
+  throw "Could not bring the Dot X window to the foreground; capturing now would record whatever else is on screen."
+}
 Start-Sleep -Milliseconds 300
 $r = New-Object RECT
 [Win]::GetWindowRect($proc.MainWindowHandle, [ref]$r) | Out-Null
