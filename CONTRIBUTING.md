@@ -47,7 +47,7 @@ yarn tauri dev
 
 The first build compiles all of Rust from scratch, so it takes a while.
 
-Most features need a Decker physically attached over serial. The app holds the device's serial and MIDI ports, so close any installed Dot X instance before running the dev app, and restore it after.
+Most features need a device physically attached over serial. The app holds the device's serial and MIDI ports, so close any installed Dot X instance before running the dev app, and restore it after.
 
 ## Reporting Bugs And Requesting Features
 
@@ -65,8 +65,6 @@ Feature requests and ideas go through the feature request form, not the bug trac
 
 Keep it small.
 
-Base your branch on `v2` and open the PR against `v2`. That is the active development branch.
-
 Commit messages use conventional prefixes (`feat:`, `fix:`, `chore:`), lowercase imperative mood, one line, no body.
 
 Explain exactly what changed.
@@ -81,13 +79,15 @@ If the PR makes anything resembling a UI change, include clear before/after imag
 
 If the change depends on motion, timing, transitions, or interaction details, include a short video.
 
-Test hardware changes (sliders, MIDI, volume routing, RGB) with a Decker attached and say in the PR that you did. If you could not test something, say that instead of implying you did.
+Test hardware changes (sliders, MIDI, volume routing, RGB) with a device attached and say in the PR that you did. If you could not test something, say that instead of implying you did.
 
 If we have to guess what changed, we are much less likely to review it.
 
 ## Discuss Changes First
 
 If you are thinking about a non-trivial change, open a feature request describing the problem first, and wait for a maintainer response before building. Issues are where we work out whether something should exist.
+
+If the change could be a plugin, that is almost always the simplest path — see Plugins below.
 
 That still does not mean we will want the PR, but it gives you a chance to avoid wasting your time.
 
@@ -100,6 +100,8 @@ We may close it. We may ignore it. We may ask you to shrink it. We may reimpleme
 If you are fine with that, proceed.
 
 ## Plugins
+
+Extending Dot X is usually simplest as a plugin: most user-facing additions fit the plugin API, and you can ship and update them without touching the app. Browse [DotMatrixLabs/dot-x-plugins](https://github.com/DotMatrixLabs/dot-x-plugins) for working examples and a place to publish yours.
 
 If you want to build a plugin rather than change the app itself, start with the [plugin SDK README](plugin-sdk/README.md). The scaffolder gets you a working project:
 

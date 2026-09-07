@@ -7,9 +7,8 @@ You can still open a PR, but please do so knowing there is a high chance
 we may close it without merging it, or never review it.
 
 - Small, focused PRs are strongly preferred. Bug fixes are most likely to be merged.
-- New features will most likely just annoy us.
+- New features should stay small and focused.
 - 1,000+ line PRs with a bunch of new features will probably get closed quickly.
-- Base your branch on `v2` and open this PR against `v2`.
 - Commit messages use conventional prefixes: feat:, fix:, chore:.
 -->
 
@@ -23,8 +22,8 @@ we may close it without merging it, or never review it.
 
 ## Verification
 
-<!-- What you actually ran: yarn build, cargo check in src-tauri, and hardware
-     tests with a Decker attached. If you could not test something, say that
+<!-- What you actually ran: yarn build, cargo test --locked in src-tauri, and hardware
+     tests with a device attached. If you could not test something, say that
      instead of implying you did. -->
 
 ## UI Changes
