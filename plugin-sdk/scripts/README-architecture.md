@@ -7,19 +7,21 @@
 ```bash
 # From plugin-sdk root (recommended)
 cd dot-x/plugin-sdk
-npm run docs:build              # Full rebuild
-npm run docs:build:fast         # Fast (skip TypeDoc)
+npm run docs:build -- --docs-root /path/to/dotmatrixlabs-docs
+npm run docs:build:fast -- --docs-root /path/to/dotmatrixlabs-docs
 
 # Or from scripts directory
 cd dot-x/plugin-sdk/scripts
-node build-docs.mjs             # Full rebuild
-node build-docs.mjs --skip-typedoc  # Fast
+node build-docs.mjs --docs-root /path/to/dotmatrixlabs-docs
+node build-docs.mjs --docs-root /path/to/dotmatrixlabs-docs --skip-typedoc
 ```
+
+`dotmatrixlabs-docs` remains a separate repository. Pass its checkout root with `--docs-root` or set `DOTX_DOCS_ROOT`. The scripts exit before writing files when that configuration is absent or invalid.
 
 ### To Add New Examples
 
 1. Edit `dot-x/src/components/fields/metadata.ts`
-2. Run `node build-docs.mjs --skip-typedoc`
+2. Run `node build-docs.mjs --docs-root /path/to/dotmatrixlabs-docs --skip-typedoc`
 3. View at `http://localhost:5173/plugin-sdk/reference/settingsbuilder-components`
 
 ## File Structure
@@ -216,10 +218,10 @@ import Input from '../fields/Input.vue';
 # 1. Edit ui.ts (add/modify TypeDoc comments)
 # 2. Regenerate docs
 cd dot-x/plugin-sdk/scripts
-node build-docs.mjs
+node build-docs.mjs --docs-root "$DOTX_DOCS_ROOT"
 
 # 3. View changes
-cd ../../../dotmatrixlabs-docs
+cd "$DOTX_DOCS_ROOT"
 npm run docs:dev
 ```
 
@@ -229,10 +231,10 @@ npm run docs:dev
 # 1. Edit metadata.ts (add new example)
 # 2. Sync components only (faster)
 cd dot-x/plugin-sdk/scripts
-node build-docs.mjs --skip-typedoc
+node build-docs.mjs --docs-root "$DOTX_DOCS_ROOT" --skip-typedoc
 
 # 3. View changes
-cd ../../../dotmatrixlabs-docs
+cd "$DOTX_DOCS_ROOT"
 npm run docs:dev
 ```
 
@@ -242,7 +244,7 @@ npm run docs:dev
 # 1. Edit Vue component file (e.g., Input.vue)
 # 2. Sync components only
 cd dot-x/plugin-sdk/scripts
-node sync-components.mjs
+node sync-components.mjs --docs-root "$DOTX_DOCS_ROOT"
 
 # 3. VitePress hot reload will show changes
 # (if docs:dev is already running)
@@ -290,18 +292,16 @@ Both `generate-docs.mjs` and `sync-components.mjs` use these keys to:
 ```bash
 # Clear caches and rebuild everything
 cd dot-x/plugin-sdk/scripts
-node build-docs.mjs
+node build-docs.mjs --docs-root "$DOTX_DOCS_ROOT"
 
-cd ../../../dotmatrixlabs-docs
+cd "$DOTX_DOCS_ROOT"
 rm -rf docs/.vitepress/cache
 npm run docs:dev
 ```
 
-### Wrong output directory
+### Wrong docs root
 
-Check these paths in scripts:
-- `generate-docs.mjs`: Line 40 (`outputDir`)
-- `sync-components.mjs`: Lines 11-14 (`DOT_X_FIELDS`, `DOCS_ROOT`)
+Pass `--docs-root /path/to/dotmatrixlabs-docs` or set `DOTX_DOCS_ROOT`. The command-line option wins when both are present.
 
 ### Component not found
 
