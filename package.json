@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "vite",
     "build": "npm run licenses && vue-tsc --noEmit && vite build",
+    "typecheck": "vue-tsc --noEmit",
+    "build:web": "vite build",
     "preview": "vite preview",
     "tauri": "tauri",
     "licenses": "npm run rust-licenses && npm run js-licenses",
