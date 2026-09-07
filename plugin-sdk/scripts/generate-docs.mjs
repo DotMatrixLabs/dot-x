@@ -9,7 +9,7 @@
  * 3. Groups items by @category tags
  * 4. Generates markdown files with frontmatter and tables
  * 
- * Usage: node generate-docs.mjs [output-dir]
+ * Usage: node generate-docs.mjs --docs-root <path>
  * 
  * Supported TSDoc tags:
  * - @category: Groups items into documentation sections
@@ -33,11 +33,14 @@ import { resolve, dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
 
+import { getDocsPaths, resolveDocsRoot } from './docs-paths.mjs';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Configuration
-const outputDir = process.argv[2] || resolve(__dirname, '../../../dotmatrixlabs-docs/docs/plugin-sdk/reference');
+const docsRoot = resolveDocsRoot();
+const outputDir = getDocsPaths(docsRoot).markdown;
 const typedocConfigPath = resolve(__dirname, '../typedoc.json');
 const tempJsonPath = resolve(__dirname, '../temp-typedoc.json');
 const projectRoot = resolve(__dirname, '..');

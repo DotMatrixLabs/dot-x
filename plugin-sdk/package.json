@@ -55,6 +55,7 @@
     "docs:sync": "node ./scripts/sync-components.mjs",
     "docs:build": "node ./scripts/build-docs.mjs",
     "docs:build:fast": "node ./scripts/build-docs.mjs --skip-typedoc",
+    "test:docs": "node --test ./scripts/docs-paths.test.mjs",
     "test": "node ./scripts/test-cli.mjs",
     "prepack": "npm run build"
   },
