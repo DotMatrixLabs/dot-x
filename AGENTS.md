@@ -59,8 +59,8 @@ The most common defect in this repo is a change that works on the path you teste
 ## Dev environment
 
 - `yarn install` installs. Then `yarn tauri dev` builds and launches the app. The first build compiles all of Rust from scratch; minutes are normal, do not kill it.
-- The dev app window is titled "Dot X". Vite's port is picked by the Tauri CLI; do not pin ports.
-- Windows 10/11 only, Node 22+, Rust stable. Most features need a Decker physically attached. Without it you can still exercise UI, settings, and plugins — say exactly that in the PR, and say what you could not test.
+- The dev app window is titled "Dot X". Vite is pinned to port 1420 with `strictPort` and `tauri.conf.json` expects it; if the port is busy, free it — do not change the port.
+- Windows 10/11 only, Node 22+, Yarn, Rust stable, plus the `cargo-license` subcommand (`cargo install cargo-license`) which `yarn build` needs. Most features need a Decker physically attached. Without it you can still exercise UI, settings, and plugins — say exactly that in the PR, and say what you could not test.
 - The app does not write its own log files: `tauri_plugin_log` targets stdout only (the dev console), and crashes go to Sentry. Plugin stdout/stderr is appended to `plugin.log` inside each installed plugin's folder under `%APPDATA%\com.dot-x.dev\plugins\`. If you need app logs, run the app from a terminal and copy the console output.
 
 ## Verifying

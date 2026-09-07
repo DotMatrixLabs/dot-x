@@ -32,7 +32,7 @@ If you open a 1,000+ line PR full of new features, we will probably close it qui
 
 ## Developer Setup
 
-Dot X is a Tauri 2 app: Vue 3 + TypeScript in `src/`, Rust in `src-tauri/`. Prerequisites: Node.js 22+, Yarn, Rust stable, Windows 10 or 11.
+Dot X is a Tauri 2 app: Vue 3 + TypeScript in `src/`, Rust in `src-tauri/`. Prerequisites: Node.js 22+, Yarn, Rust stable, and the `cargo-license` subcommand (`cargo install cargo-license` — `yarn build` calls `cargo license`), on Windows 10 or 11.
 
 ```bash
 git clone https://github.com/Frogbyte-io/dot-x.git
