@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdirSync, rmSync } from 'node:fs';
+import { mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, test } from 'node:test';
@@ -16,7 +16,11 @@ afterEach(() => {
 
 function createDocsRoot(name) {
   const directory = join(tmpdir(), `dotx-docs-${process.pid}-${name}`);
-  mkdirSync(directory, { recursive: true });
+  mkdirSync(join(directory, 'docs'), { recursive: true });
+  writeFileSync(
+    join(directory, 'package.json'),
+    JSON.stringify({ name: 'dotmatrixlabs-docs' }),
+  );
   temporaryDirectories.push(directory);
   return directory;
 }
@@ -57,6 +61,18 @@ test('a configured path must point to an existing directory', () => {
     () => resolveDocsRoot({ args: ['--docs-root', missingRoot], env: {} }),
     /does not exist or is not a directory/,
   );
+});
+
+test('an existing directory must be a dotmatrixlabs-docs checkout', () => {
+  const wrongRoot = join(tmpdir(), `dotx-docs-${process.pid}-wrong-repository`);
+  mkdirSync(wrongRoot, { recursive: true });
+  temporaryDirectories.push(wrongRoot);
+
+  assert.throws(
+    () => resolveDocsRoot({ args: ['--docs-root', wrongRoot], env: {} }),
+    /is not a dotmatrixlabs-docs checkout/,
+  );
+  assert.deepEqual(readdirSync(wrongRoot), []);
 });
 
 test('generated files stay within the configured docs repository', () => {
