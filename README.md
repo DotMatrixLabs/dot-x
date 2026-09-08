@@ -1,6 +1,6 @@
 # Dot X
 
-[![Version](https://img.shields.io/badge/version-1.2.3--1-blue.svg)](https://github.com/your-repo/dot-x)
+[![Version](https://img.shields.io/badge/version-2.0.0--1-blue.svg)](src-tauri/tauri.conf.json)
 [![Platform](https://img.shields.io/badge/platform-Windows-lightgrey.svg)](https://github.com/your-repo/dot-x)
 [![License](https://img.shields.io/badge/license-Private-red.svg)](https://github.com/your-repo/dot-x)
 
@@ -22,6 +22,14 @@ Desktop interface for DotMatrixLabs Decker physical volume mixer built with Taur
 - [Node.js](https://nodejs.org/) 22+ and [Yarn](https://yarnpkg.com/)
 - [Rust](https://rustup.rs/) 1.90.0
 - Windows 10/11
+
+Install the license-report CLI before running `yarn build` or `yarn tauri build`:
+
+```bash
+cargo install cargo-license --version 0.7.0 --locked
+```
+
+`cargo-license` runs during license-report generation; it is not an app dependency.
 
 ### Setup
 
