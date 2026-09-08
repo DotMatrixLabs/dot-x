@@ -111,6 +111,10 @@ jobs:
     needs: collect-targets
     if: ${{ needs.collect-targets.outputs.targets != '[]' }}
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
     concurrency:
       group: pr-size-${{ matrix.target.number }}
       cancel-in-progress: true
