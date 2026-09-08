@@ -8,6 +8,9 @@ import {
 import { MARKETPLACE_REGISTRY_URL } from "../ts/marketplaceStats";
 import { invoke } from "@tauri-apps/api/core";
 import { toast } from "vue-sonner";
+import { createLogger } from "../ts/logger.ts";
+
+const log = createLogger("plugin-store");
 
 const UNEXPECTED_PLUGIN_DISCONNECT_GRACE_MS = 1500;
 const PLUGIN_STARTING_TIMEOUT_MS = 10000;
@@ -205,7 +208,7 @@ export const usePluginStore = defineStore("pluginStore", {
                         };
                         return buttons;
                     } catch (error) {
-                        console.error(`Failed to load system utility buttons for plugin ${pluginId}`, error);
+                        log.error(`Failed to load system utility buttons for plugin ${pluginId}`, error);
                         return this.pluginSystemUtilityButtonsByPlugin[pluginId] || [];
                     } finally {
                         pluginSystemUtilityButtonRefreshes.delete(pluginId);
@@ -227,7 +230,7 @@ export const usePluginStore = defineStore("pluginStore", {
                             plugins = backendPlugins;
                         }
                     } catch (error) {
-                        console.error("Failed to refresh connected plugins before loading system utility buttons:", error);
+                        log.error("Failed to refresh connected plugins before loading system utility buttons:", error);
                     }
                 }
 
@@ -328,7 +331,7 @@ export const usePluginStore = defineStore("pluginStore", {
 
                     return this.pluginUpdates;
                 } catch (error) {
-                    console.error("Failed to check for plugin updates", error);
+                    log.error("Failed to check for plugin updates", error);
                     if (!silent) {
                         toast.error("Failed to check for plugin updates");
                     }
@@ -536,7 +539,7 @@ export const usePluginStore = defineStore("pluginStore", {
             try {
                 await this.stopPluginIntentionally(pluginId);
             } catch (error) {
-                console.error(`Failed to stop plugin ${pluginId} before uninstall:`, error);
+                log.error(`Failed to stop plugin ${pluginId} before uninstall:`, error);
             }
 
             try {
@@ -551,7 +554,7 @@ export const usePluginStore = defineStore("pluginStore", {
                 const rawLogs = await invoke<string>("get_plugin_logs", { pluginId });
                 return extractPluginFailureReason(rawLogs);
             } catch (error) {
-                console.error(`Failed to read logs for plugin ${pluginId}:`, error);
+                log.error(`Failed to read logs for plugin ${pluginId}:`, error);
                 return null;
             }
         },
@@ -565,7 +568,7 @@ export const usePluginStore = defineStore("pluginStore", {
                 this.setConnectedPlugins(plugins);
                 return plugins;
             } catch (error) {
-                console.error("Failed to refresh connected plugins:", error);
+                log.error("Failed to refresh connected plugins:", error);
                 return [];
             }
         },
@@ -728,7 +731,7 @@ export const usePluginStore = defineStore("pluginStore", {
                 try {
                     await this.stopPluginIntentionally(pluginId);
                 } catch (error) {
-                    console.error(`Failed to stop plugin ${pluginId} before restart:`, error);
+                    log.error(`Failed to stop plugin ${pluginId} before restart:`, error);
                 }
 
                 try {
@@ -736,7 +739,7 @@ export const usePluginStore = defineStore("pluginStore", {
                 } catch (error) {
                     this.clearPluginStarting(pluginId);
                     await this.rollbackEnabledPlugin(pluginId);
-                    console.error(`Failed to start plugin ${pluginId}:`, error);
+                    log.error(`Failed to start plugin ${pluginId}:`, error);
                     if (!this.wasLifecycleFailureToastRecent(pluginId)) {
                         toast.error(`Failed to start plugin ${pluginId}: ${normalizeErrorMessage(error) || "Unknown error"}`);
                     }
@@ -750,7 +753,7 @@ export const usePluginStore = defineStore("pluginStore", {
                     try {
                         await invoke("stop_plugin", { pluginId });
                     } catch (error) {
-                        console.error(`Failed to clean up plugin ${pluginId} after startup timeout:`, error);
+                        log.error(`Failed to clean up plugin ${pluginId} after startup timeout:`, error);
                     }
                     const reason = await this.getLatestPluginFailureReason(pluginId);
                     if (!this.wasLifecycleFailureToastRecent(pluginId)) {
@@ -776,7 +779,7 @@ export const usePluginStore = defineStore("pluginStore", {
                 try {
                     await this.stopPluginIntentionally(pluginId);
                 } catch (error) {
-                    console.error(`Failed to stop plugin ${pluginId}:`, error);
+                    log.error(`Failed to stop plugin ${pluginId}:`, error);
                 }
             }
         },
