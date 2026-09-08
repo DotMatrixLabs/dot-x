@@ -738,15 +738,6 @@
     "description": "UTF-8 paths"
   },
   {
-    "name": "cargo-license",
-    "version": "0.7.0",
-    "authors": "Onur Aslan <onur@onur.im>",
-    "repository": "https://github.com/onur/cargo-license",
-    "license": "MIT",
-    "license_file": null,
-    "description": "Cargo subcommand to see license of dependencies"
-  },
-  {
     "name": "cargo-platform",
     "version": "0.1.9",
     "authors": null,
@@ -756,35 +747,8 @@
     "description": "Cargo's representation of a target platform."
   },
   {
-    "name": "cargo-platform",
-    "version": "0.2.0",
-    "authors": null,
-    "repository": "https://github.com/rust-lang/cargo",
-    "license": "Apache-2.0 OR MIT",
-    "license_file": null,
-    "description": "Cargo's representation of a target platform."
-  },
-  {
-    "name": "cargo-util-schemas",
-    "version": "0.8.2",
-    "authors": null,
-    "repository": "https://github.com/rust-lang/cargo",
-    "license": "Apache-2.0 OR MIT",
-    "license_file": null,
-    "description": "Deserialization schemas for Cargo"
-  },
-  {
     "name": "cargo_metadata",
     "version": "0.19.2",
-    "authors": "Oliver Schneider <git-spam-no-reply9815368754983@oli-obk.de>",
-    "repository": "https://github.com/oli-obk/cargo_metadata",
-    "license": "MIT",
-    "license_file": null,
-    "description": "structured access to the output of `cargo metadata`"
-  },
-  {
-    "name": "cargo_metadata",
-    "version": "0.21.0",
     "authors": "Oliver Schneider <git-spam-no-reply9815368754983@oli-obk.de>",
     "repository": "https://github.com/oli-obk/cargo_metadata",
     "license": "MIT",
@@ -853,15 +817,6 @@
     "license": "Apache-2.0 OR MIT",
     "license_file": null,
     "description": "A simple to use, efficient, and full-featured Command Line Argument Parser"
-  },
-  {
-    "name": "clap_derive",
-    "version": "4.5.49",
-    "authors": null,
-    "repository": "https://github.com/clap-rs/clap",
-    "license": "Apache-2.0 OR MIT",
-    "license_file": null,
-    "description": "Parse command line argument by defining a struct, derive crate."
   },
   {
     "name": "clap_lex",
@@ -1125,24 +1080,6 @@
     "description": "Procedural macros for cssparser"
   },
   {
-    "name": "csv",
-    "version": "1.4.0",
-    "authors": "Andrew Gallant <jamslam@gmail.com>",
-    "repository": "https://github.com/BurntSushi/rust-csv",
-    "license": "MIT OR Unlicense",
-    "license_file": null,
-    "description": "Fast CSV parsing with support for serde."
-  },
-  {
-    "name": "csv-core",
-    "version": "0.1.13",
-    "authors": "Andrew Gallant <jamslam@gmail.com>",
-    "repository": "https://github.com/BurntSushi/rust-csv",
-    "license": "MIT OR Unlicense",
-    "license_file": null,
-    "description": "Bare bones CSV parsing with no_std support."
-  },
-  {
     "name": "ctor",
     "version": "0.2.9",
     "authors": "Matt Mastracci <matthew@mastracci.com>",
@@ -1360,10 +1297,10 @@
   },
   {
     "name": "dot_x",
-    "version": "1.2.3",
-    "authors": "you",
-    "repository": "",
-    "license": "",
+    "version": "2.0.0-1",
+    "authors": "Frogbyte AS",
+    "repository": "https://github.com/Frogbyte-io/dot-x",
+    "license": "GPL-3.0-or-later",
     "license_file": null,
     "description": "Dot X"
   },
@@ -1915,15 +1852,6 @@
     "license": "Apache-2.0",
     "license_file": null,
     "description": "gethostname for all platforms"
-  },
-  {
-    "name": "getopts",
-    "version": "0.2.24",
-    "authors": "The Rust Project Developers",
-    "repository": "https://github.com/rust-lang/getopts",
-    "license": "Apache-2.0 OR MIT",
-    "license_file": null,
-    "description": "getopts-like option parsing"
   },
   {
     "name": "getrandom",
@@ -3447,15 +3375,6 @@
     "description": "Extends `Option` with additional operations"
   },
   {
-    "name": "ordered-float",
-    "version": "2.10.1",
-    "authors": "Jonathan Reem <jonathan.reem@gmail.com>|Matt Brubeck <mbrubeck@limpet.net>",
-    "repository": "https://github.com/reem/rust-ordered-float",
-    "license": "MIT",
-    "license_file": null,
-    "description": "Wrappers for total ordering on floats"
-  },
-  {
     "name": "ordered-stream",
     "version": "0.2.0",
     "authors": "Daniel De Graaf <code@danieldg.net>|Zeeshan Ali Khan <zeeshanak@gnome.org>",
@@ -4545,15 +4464,6 @@
     "description": "Serde `Visitor` implementation for deserializing untagged enums"
   },
   {
-    "name": "serde-value",
-    "version": "0.7.0",
-    "authors": "arcnmx",
-    "repository": "https://github.com/arcnmx/serde-value",
-    "license": "MIT",
-    "license_file": null,
-    "description": "Serialization value trees"
-  },
-  {
     "name": "serde_core",
     "version": "1.0.228",
     "authors": "Erick Tryzelaar <erick.tryzelaar@gmail.com>|David Tolnay <dtolnay@gmail.com>",
@@ -4606,15 +4516,6 @@
     "license": "Apache-2.0 OR MIT",
     "license_file": null,
     "description": "Derive Serialize and Deserialize that delegates to the underlying repr of a C-like enum."
-  },
-  {
-    "name": "serde_spanned",
-    "version": "0.6.9",
-    "authors": null,
-    "repository": "https://github.com/toml-rs/toml",
-    "license": "Apache-2.0 OR MIT",
-    "license_file": null,
-    "description": "Serde-compatible spanned Value"
   },
   {
     "name": "serde_spanned",
@@ -4894,15 +4795,6 @@
     "license": "MIT",
     "license_file": null,
     "description": "Sys functions for the Rust bindings of the javacriptcore library"
-  },
-  {
-    "name": "spdx",
-    "version": "0.10.9",
-    "authors": "Embark <opensource@embark-studios.com>|Jake Shadle <jake.shadle@embark-studios.com>",
-    "repository": "https://github.com/EmbarkStudios/spdx",
-    "license": "Apache-2.0 OR MIT",
-    "license_file": null,
-    "description": "Helper crate for SPDX expressions"
   },
   {
     "name": "stable_deref_trait",
@@ -5419,15 +5311,6 @@
   },
   {
     "name": "toml",
-    "version": "0.8.23",
-    "authors": null,
-    "repository": "https://github.com/toml-rs/toml",
-    "license": "Apache-2.0 OR MIT",
-    "license_file": null,
-    "description": "A native Rust encoder and decoder of TOML-formatted files and streams. Provides implementations of the standard Serialize/Deserialize traits for TOML data to facilitate deserializing and serializing Rust structures."
-  },
-  {
-    "name": "toml",
     "version": "0.9.8",
     "authors": null,
     "repository": "https://github.com/toml-rs/toml",
@@ -5473,15 +5356,6 @@
   },
   {
     "name": "toml_edit",
-    "version": "0.22.27",
-    "authors": null,
-    "repository": "https://github.com/toml-rs/toml",
-    "license": "Apache-2.0 OR MIT",
-    "license_file": null,
-    "description": "Yet another format-preserving TOML parser."
-  },
-  {
-    "name": "toml_edit",
     "version": "0.23.7",
     "authors": null,
     "repository": "https://github.com/toml-rs/toml",
@@ -5497,15 +5371,6 @@
     "license": "Apache-2.0 OR MIT",
     "license_file": null,
     "description": "Yet another format-preserving TOML parser."
-  },
-  {
-    "name": "toml_write",
-    "version": "0.1.2",
-    "authors": null,
-    "repository": "https://github.com/toml-rs/toml",
-    "license": "Apache-2.0 OR MIT",
-    "license_file": null,
-    "description": "A low-level interface for writing out TOML"
   },
   {
     "name": "toml_writer",
@@ -5740,15 +5605,6 @@
     "license": "Apache-2.0 OR MIT",
     "license_file": null,
     "description": "This crate provides Grapheme Cluster, Word and Sentence boundaries according to Unicode Standard Annex #29 rules."
-  },
-  {
-    "name": "unicode-width",
-    "version": "0.2.2",
-    "authors": "kwantam <kwantam@gmail.com>|Manish Goregaokar <manishsmail@gmail.com>",
-    "repository": "https://github.com/unicode-rs/unicode-width",
-    "license": "Apache-2.0 OR MIT",
-    "license_file": null,
-    "description": "Determine displayed width of `char` and `str` types according to Unicode Standard Annex #11 rules."
   },
   {
     "name": "unicode-xid",
