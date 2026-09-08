@@ -336,16 +336,19 @@ To debug connection issues, check the plugin output for detailed error messages:
 npm start
 ```
 
+The SDK prefixes its own output with `[dotx-sdk]` so you can tell it apart from
+what your plugin logs. It logs at `info` by default. Set
+`DOTX_PLUGIN_LOG_LEVEL` to `debug` for connection detail, or to `silent` to
+keep only your plugin's own output. The levels are `debug`, `info`, `warn`,
+`error`, and `silent`.
+
 The plugin will provide step-by-step troubleshooting guidance:
 
 ```
-Starting My Plugin v1.0.0...
-Attempting to connect to plugin server at http://localhost:3001...
-Connection failed (attempt 1/5). Retrying in 2000ms...
-Error details: connect ECONNREFUSED 127.0.0.1:3001
-
-Max retry attempts reached. Plugin connection failed.
-Error: Failed to connect to plugin server after 5 attempts.
+[dotx-sdk] Starting My Plugin v1.0.0...
+[dotx-sdk] Connection failed (attempt 1/5). Retrying in 2000ms...
+[dotx-sdk] Max retry attempts reached. Plugin connection failed.
+[dotx-sdk] Error: Failed to connect to plugin server after 5 attempts.
 
 Possible causes:
 1. The DotX application is not running

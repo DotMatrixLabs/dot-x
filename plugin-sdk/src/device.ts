@@ -5,6 +5,9 @@
  */
 
 import { RGBController, createRGBController } from './rgb';
+import { createLogger } from './logger';
+
+const log = createLogger('dotx-sdk');
 
 /**
  * Information about a connected device.
@@ -160,7 +163,7 @@ export class DeviceAPI {
       const result = await this.apiCallFn('device.getConnected', {});
       return result.devices || [];
     } catch (error) {
-      console.error('Failed to get connected devices:', error);
+      log.error('Failed to get connected devices:', error);
       return [];
     }
   }
@@ -309,7 +312,7 @@ export class DeviceAPI {
       try {
         await callback(device);
       } catch (error) {
-        console.error('Error in device connect callback:', error);
+        log.error('Error in device connect callback:', error);
       }
     }
   }
@@ -325,7 +328,7 @@ export class DeviceAPI {
       try {
         await callback(device);
       } catch (error) {
-        console.error('Error in device disconnect callback:', error);
+        log.error('Error in device disconnect callback:', error);
       }
     }
   }
@@ -341,7 +344,7 @@ export class DeviceAPI {
       try {
         await callback(data);
       } catch (error) {
-        console.error('Error in device update callback:', error);
+        log.error('Error in device update callback:', error);
       }
     }
   }

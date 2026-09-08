@@ -45,6 +45,9 @@ import SystemVolumeController from "../ts/volumeControl.ts";
 import Decker from "../ts/decker.ts";
 import config from "../ts/config";
 import { openLink } from "../ts/helpers.ts";
+import { createLogger } from "../ts/logger.ts";
+
+const log = createLogger("midi-mapping");
 
 const openLinkMethod = openLink;
 
@@ -110,7 +113,7 @@ export default {
             // MIDI CC value regex, must be a valid decimal number between 0 and 127
             const numberPattern = /^(?:\d{1,2}|1[0-1]\d|12[0-7])$/;
             if(!numberPattern.test(this.CCValueInput) && this.CCValueInput !== "") {
-                console.error("Invalid CC Value.Must be a valid number between 0 and 127.");
+                log.warn("Invalid CC value, must be between 0 and 127.");
                 this.CCValueInvalidInput = true;
                 this.getMIDISettings();
                 return;
@@ -127,7 +130,7 @@ export default {
             const numberPattern = /^(?:[1-9]|1[0-6])$/;
             
             if (!numberPattern.test(this.channelInput) && this.channelInput !== "") {
-                console.error("Invalid Channel Value. Must be a valid number between 1 and 16.");
+                log.warn("Invalid channel value, must be between 1 and 16.");
                 this.channelInvalidInput = true;
                 this.getMIDISettings();
                 return;

@@ -64,7 +64,6 @@
                 const distance = await Stats.getSliderDistance(index);
                 this.stats.push({index, distance});
             });
-            console.log(this.stats);
         }
 
     },

@@ -57,6 +57,9 @@ import { toast } from 'vue-sonner';
 import PluginLogsModal from '../components/PluginLogsModal.vue';
 import EventBus from '../js/eventBus';
 import { openLink } from '../ts/helpers';
+import { createLogger } from '../ts/logger.ts';
+
+const log = createLogger('plugin-header');
 
 export default {
   name: 'PluginHeader',
@@ -77,7 +80,6 @@ export default {
   computed: {
     ...mapState(usePluginStore, ['activePlugins']),
     manifest() {
-        console.log(this.plugin);
       return this.plugin?.manifest || this.plugin || {};
     },
     author() {
@@ -158,7 +160,7 @@ export default {
         // Reload settings after successful restart
         EventBus.emit('plugin:settingsUpdated', { pluginId: this.plugin.id });
       } catch (e) {
-        console.error('Failed to restart plugin', e);
+        log.error('Failed to restart plugin', e);
         toast.error(`Failed to restart ${this.plugin?.name || this.plugin?.id}`);
       }
     },
