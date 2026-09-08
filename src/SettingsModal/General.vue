@@ -1,19 +1,6 @@
 <template>
     <div class="flex flex-col justify-start items-center w-full h-full overflow-y-auto">
         <Confirmation ref="confirmationModal"/>
-        <!-- <div class="flex flex-row w-full justify-between px-2">
-            <span class="shrink-0 pt-1">Theme: </span>
-            <select @change="setTheme" v-model="currentTheme"
-                class="select select-bordered select-sm w-2/3 mx-2 capitalize truncate">
-                <option class="w-full" v-for="(theme, index) in themes" :value="theme" :key="index">
-                    {{ theme }}
-                </option>
-            </select>
-        </div> -->
-        <!-- <div class="flex flex-row w-full justify-between px-2 mt-4">
-            <span class="my-auto">Run in background: </span>
-            <input type="checkbox" class="toggle toggle-primary mr-2" checked />
-        </div> -->
         <div data-setting="Run on startup" class="flex flex-row w-full justify-between px-2">
             <span class="my-auto">Run on startup: </span>
             <input type="checkbox" class="toggle toggle-primary mr-2" :checked="autoStartStatus" @change="toggleAutostart" />
@@ -72,8 +59,6 @@ export default {
 
     data() {
         return {
-            themes: ["light", "dark"],
-            currentTheme: "",
             autoStartStatus: false,
             actOnDeckerDisconnect: false,
             sliderOptions: ["Do nothing", "Mute", "Maximize volume"],
@@ -109,15 +94,6 @@ export default {
             }
         },
 
-        // async getTheme() {
-        //     this.currentTheme = await ConfigStore.get("theme") || "dark";
-        //     document.documentElement.setAttribute("data-theme", this.currentTheme);
-        //     return this.currentTheme;
-        // },
-        // async setTheme(event) {
-        //     ConfigStore.setTheme("light");
-        //     // document.documentElement.setAttribute("data-theme", event.target.value);
-        // },
         async getAutostartStatus() {
             this.autoStartStatus = await SystemSettings.checkAutostartStatus();
         },
@@ -180,7 +156,6 @@ export default {
         }
     },
     mounted() {
-        // this.getTheme();
         this.getAutostartStatus();
         this.getActOnDeckerDisconnect();
         this.getDisconnectHandleSelectedValues();
