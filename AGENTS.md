@@ -141,8 +141,9 @@ Keep clips under 15 seconds and under 10 MB (GitHub's upload cap). Trim to the p
 ## Pull requests
 
 - Never make a PR unless the developer explicitly asks you to do so.
-- Conventional commit titles, plain language: `fix(audio): unmapped apps no longer drop volume sync`. Use scopes like `audio`, `device`, `midi`, `rgb`, `brightness`, `tray`, `plugins`, `build`, `docs`.
-- Body: the problem in a sentence or two, then how you fixed it. End with the model and harness that did the work.
+- Check whether the branch already has a PR before opening a new one. Open a real PR, not a draft, so review bots run.
+- Commit titles follow `.github/instructions/commit-format.instructions.md`: conventional prefix, one lowercase imperative line, no body. Use scopes like `audio`, `device`, `midi`, `rgb`, `brightness`, `tray`, `plugins`, `build`, `docs`.
+- Description follows `.claude/skills/file-pr/SKILL.md`: human area, divider, then AI-written Problem/Solution/Verification ending with the model and harness. Keep the human area empty and never put AI-written content above the divider.
 - UI changes need before/after images. Motion or timing needs a short video. Upload evidence to GitHub per "Screenshots and video" above; never commit PR-only screenshots or assets.
 - One concern per PR. If the description says "also", split it.
 - When babysitting a PR: poll checks and comments newer than the last push, verify each bot finding against the source, fix real ones, dismiss false positives with a written reason. Stay quiet when nothing is new. Stop when the bots are green on the latest commit.
@@ -163,6 +164,10 @@ Keep clips under 15 seconds and under 10 MB (GitHub's upload cap). Trim to the p
 - Inferred types over annotations. `any` is the enemy.
 - Comments describe how a thing is used, and move when the code moves.
 - If a rule here fights the task in front of you, say so loudly and get a human sign-off before breaking it.
+
+## Writing
+
+The `unslop` skill (`.agents/skills/unslop/SKILL.md`) applies to all prose you write — PR descriptions, docs, comments.
 
 ## Additional tips
 

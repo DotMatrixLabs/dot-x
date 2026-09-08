@@ -14,25 +14,9 @@
         <p v-if="isExternal" class="label-text text-xs mt-1">
           Connected externally. Host launch controls are unavailable.
         </p>
-        
-        <!-- <div class="mt-2 mb-2 grid grid-cols-1 md:grid-cols-2 gap-2">
-          <div class="form-control md:col-span-2" v-if="permissions && permissions.length">
-            <label class="label">
-              <span class="label-text text-xs">Permissions</span>
-            </label>
-            <div class="flex flex-wrap gap-2 w-full">
-              <div v-for="perm in permissions" :key="perm" class="badge badge-outline badge-sm opacity-70">{{ perm }}</div>
-            </div>
-          </div>
-        </div> -->
       </div>
 
       <div class="shrink-0 flex items-center gap-1">
-        <!-- <div class="tooltip tooltip-bottom" data-tip="Marketplace">
-          <a :href="marketplaceHref" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-xs btn-square">
-            <i class="fa-solid fa-store" />
-          </a>
-        </div> -->
         <div v-if="!isExternal" class="tooltip tooltip-bottom" data-tip="Logs">
           <button class="btn btn-ghost btn-xs btn-square" @click="openLogs">
             <i class="fa-solid fa-file-lines" />
