@@ -17,9 +17,13 @@ const RANK: Record<LogLevel, number> = {
     silent: 100,
 };
 
+function isLevel(value: string): value is LogLevel {
+    return Object.prototype.hasOwnProperty.call(RANK, value);
+}
+
 function configuredLevel(): LogLevel {
     const requested = (import.meta.env.VITE_LOG_LEVEL || "").trim().toLowerCase();
-    if (requested in RANK) return requested as LogLevel;
+    if (isLevel(requested)) return requested;
     return import.meta.env.DEV ? "debug" : "warn";
 }
 
