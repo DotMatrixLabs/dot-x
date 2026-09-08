@@ -12,6 +12,10 @@ PRs are automatically labeled with a `vouch:*` trust status and a `size:*` diff 
 
 If you are an external contributor, expect `vouch:unvouched` until we explicitly add you to `.github/VOUCHED.td`. Comment `/recheck-vouch` on your PR if you believe the label is stale.
 
+## License
+
+The app source is licensed GPL-3.0-or-later, see [LICENSE](LICENSE). The plugin SDK in `plugin-sdk/` is MIT, so plugins you build on it can carry any license. By contributing code you agree that your contributions ship under the license of the files you touch.
+
 ## What We Are Most Likely To Accept
 
 Small, focused bug fixes.
