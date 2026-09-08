@@ -41,6 +41,22 @@ Anything you believe is exploitable does not belong in a public issue. See [SECU
 - Run `yarn build` before pushing. It generates license reports, typechecks, and builds the frontend. If your change touches Rust, also run `cargo check` in `src-tauri/`.
 - Test hardware changes (sliders, MIDI, volume routing) with a Decker attached and say in the PR that you did. If you could not test something, say that instead of implying you did.
 
+## Logging
+
+Nothing calls `console.*` or `println!` directly. Every log line goes through
+one of three wrappers so release builds stay quiet:
+
+- Frontend (`src/`): `createLogger("scope")` from `src/ts/logger.ts`. Dev builds
+  print everything from `debug` up, release builds only `warn` and `error`. Set
+  `VITE_LOG_LEVEL` at build time to override.
+- Rust (`src-tauri/`): the `log` crate. `tauri-plugin-log` writes to stdout and
+  to the log directory above.
+- Plugin SDK (`plugin-sdk/src/`): `createLogger` from `plugin-sdk/src/logger.ts`,
+  at `info` by default. Plugin authors raise it with `DOTX_PLUGIN_LOG_LEVEL`.
+
+Keep anything the user typed out of `info` and above. Plugin settings can hold
+API keys and passwords.
+
 ## Pull requests
 
 Describe the problem you are fixing, the change, and how you verified it. Link the issue the PR closes. Reviews happen when maintainers have time; the team is small, so patience helps.
