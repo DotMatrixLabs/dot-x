@@ -6,13 +6,13 @@ use serde_json::{json, Value};
 use tauri::{AppHandle, Emitter, Manager, WebviewWindow, Wry};
 use std::fs;
 use std::fs::File;
-use windows_volume_control::{AudioController, CoinitMode};
 use tauri_plugin_autostart::MacosLauncher;
 use midir::{MidiOutput};
 use std::collections::HashMap;
 use std::fmt;
 use tauri_plugin_notification::NotificationExt;
 use tauri_plugin_store::StoreExt;
+mod audio;
 mod decker;
 mod midi;
 mod power_monitor;
@@ -48,7 +48,7 @@ fn consume_pending_dotx_install() -> Option<String> {
 
 // create the error type that represents all errors possible in our program
 #[derive(Debug, thiserror::Error)]
-enum Error {
+pub(crate) enum Error {
     #[error(transparent)]
     Io(#[from] std::io::Error),
     SessionNotFound,
@@ -154,22 +154,6 @@ fn get_installed_apps() -> Result<CustomResponse, Error> {
     Ok(app_list_response)
 }
 
-#[tauri::command]
-fn get_all_session_names() -> Result<Vec<String>, Error> {
-    unsafe {
-        let mut controller = AudioController::init(Some(CoinitMode::ApartmentThreaded));
-        controller.GetSessions();
-        controller.GetDefaultAudioEnpointVolumeControl();
-        controller.GetAllProcessSessions();
-        controller.GetAllAudioDevices();
-
-        // Collect all session names
-        let all_session_names = controller.get_all_session_names();
-
-        Ok(all_session_names)
-    }
-}
-
 fn value_to_i32_vec(value: &Value) -> Option<Vec<i32>> {
     if let Value::Array(array) = value {
         let mut i32_vec = Vec::new();
@@ -267,77 +251,6 @@ fn get_active_app_name() -> String {
             eprintln!("Failed to get active window: {:?}", err);
             "Unknown".to_string() // Return a default value if an error occurs
         }
-    }
-}
-
-#[tauri::command]
-fn set_application_volume(name: &str, volume: f32) -> Result<(), Error> {
-    unsafe {
-        let controller = get_initialized_audio_controller();
-
-        // println!("All session names: {:?}", controller.get_all_session_names());
-
-        // Get the current session by name
-        let current_sessions = controller.get_sessions_by_name(name.to_string());
-
-        //if multiple sessions are found, change the volume for all of them
-        if !current_sessions.is_empty() {
-            for session in current_sessions {
-                println!("Setting volume for session: {}", name);
-                println!("{}", session.getVolume().to_string());
-                if volume < 0.01 {
-                    session.setMute(true);
-                    // Also set application volume to 0. This is not actually needed, but it's visually pleasing since the slider is at 0 and makes it easier to see which applications are muted.
-                    session.setVolume(0.0);
-                } else {
-                    session.setMute(false);
-                    session.setVolume(volume);
-                }
-            }
-        } else {
-            // Handle the case where the session was not found (e.g., return an error)
-            return Err(Error::SessionNotFound);
-        }
-    }
-
-    Ok(())
-}
-
-// Helper function to create and initialize an AudioController
-unsafe fn get_initialized_audio_controller() -> AudioController {
-    let mut controller = unsafe { AudioController::init(Some(CoinitMode::ApartmentThreaded)) };
-    unsafe { controller.GetSessions(); }
-    unsafe { controller.GetDefaultAudioEnpointVolumeControl(); }
-    unsafe { controller.GetAllProcessSessions(); }
-    unsafe { controller.GetAllAudioDevices(); }
-    controller
-}
-
-#[tauri::command]
-fn get_all_audio_devices() -> Result<Vec<String>, Error> {
-    unsafe {
-        let controller = get_initialized_audio_controller();
-        let all_device_names = controller.get_all_device_names();
-        println!("All device names: {:?}", all_device_names);
-        Ok(all_device_names)
-    }
-}
-
-#[tauri::command]
-fn get_output_devices() -> Result<Vec<String>, Error> {
-    unsafe {
-        let controller = get_initialized_audio_controller();
-        let output_device_names = controller.get_output_device_names();
-        Ok(output_device_names)
-    }
-}
-
-#[tauri::command]
-fn get_input_devices() -> Result<Vec<String>, Error> {
-    unsafe {
-        let controller = get_initialized_audio_controller();
-        let input_device_names = controller.get_input_device_names();
-        Ok(input_device_names)
     }
 }
 
@@ -481,7 +394,9 @@ fn start_aptabase_heartbeat(app: tauri::AppHandle) {
     thread::spawn(move || {
         loop {
             let _ = app.track_event("app_heartbeat💓", None);
-            thread::sleep(Duration::from_secs(1 * 60 * 59)); //heartbeat every hour (I'm concerned exactly 1 hour will make a new session, so I'm doing 59 minutes - you got a problem with that? That's what I thought.)
+            // Roughly hourly. 59 minutes rather than exactly 60 so the interval does not
+            // consistently line up with the analytics session boundary and start a new session.
+            thread::sleep(Duration::from_secs(1 * 60 * 59));
         }
     });
 }
@@ -585,8 +500,8 @@ async fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             get_installed_apps,
-            get_all_session_names,
-            set_application_volume,
+            audio::get_all_session_names,
+            audio::set_application_volume,
             connect_decker,
             decker::get_devices,
             decker::send_decker_command,
@@ -596,9 +511,9 @@ async fn main() {
             get_active_app_name,
             disconnect_decker,
             set_screen_brightness,
-            get_all_audio_devices,
-            get_output_devices,
-            get_input_devices,
+            audio::get_all_audio_devices,
+            audio::get_output_devices,
+            audio::get_input_devices,
             plugin_server::start_plugin_server,
             plugin_server::stop_plugin_server,
             plugin_server::send_to_plugin,
@@ -630,7 +545,7 @@ async fn main() {
         .plugin(tauri_plugin_log::Builder::new().build())
         .plugin(tauri_plugin_cli::init())
         .plugin(tauri_plugin_shell::init())
-        .plugin(tauri_plugin_aptabase::Builder::new("A-EU-7429874879").build()) // 👈 this is where you enter your App Key
+        .plugin(tauri_plugin_aptabase::Builder::new("A-EU-7429874879").build())
         .plugin(tauri_plugin_sentry::init(&client))
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_autostart::init(
