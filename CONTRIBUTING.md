@@ -43,8 +43,9 @@ Anything you believe is exploitable does not belong in a public issue. See [SECU
 
 ## Logging
 
-Nothing calls `console.*` or `println!` directly. Every log line goes through
-one of three wrappers so release builds stay quiet:
+Nothing in `src/`, `src-tauri/`, or `plugin-sdk/src/` calls `console.*` or
+`println!` directly. Every log line goes through one of three wrappers so
+release builds stay quiet:
 
 - Frontend (`src/`): `createLogger("scope")` from `src/ts/logger.ts`. Dev builds
   print everything from `debug` up, release builds only `warn` and `error`. Set
@@ -53,6 +54,9 @@ one of three wrappers so release builds stay quiet:
   to the log directory above.
 - Plugin SDK (`plugin-sdk/src/`): `createLogger` from `plugin-sdk/src/logger.ts`,
   at `info` by default. Plugin authors raise it with `DOTX_PLUGIN_LOG_LEVEL`.
+
+The scripts in `tools/` are the exception. They run in a terminal and talk to
+whoever started them, so they print with `console.*`.
 
 Keep anything the user typed out of `info` and above. Plugin settings can hold
 API keys and passwords.

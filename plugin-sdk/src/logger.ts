@@ -22,6 +22,10 @@ const RANK: Record<LogLevel, number> = {
 
 const DEFAULT_LEVEL: LogLevel = "info";
 
+function isLevel(value: string): value is LogLevel {
+  return Object.prototype.hasOwnProperty.call(RANK, value);
+}
+
 /** Reads an environment variable in both Deno and Node.js. @internal */
 function readEnv(name: string): string | undefined {
   try {
@@ -47,7 +51,7 @@ function readEnv(name: string): string | undefined {
 
 function configuredLevel(): LogLevel {
   const requested = (readEnv("DOTX_PLUGIN_LOG_LEVEL") || "").trim().toLowerCase();
-  return requested in RANK ? (requested as LogLevel) : DEFAULT_LEVEL;
+  return isLevel(requested) ? requested : DEFAULT_LEVEL;
 }
 
 let threshold: number | null = null;
