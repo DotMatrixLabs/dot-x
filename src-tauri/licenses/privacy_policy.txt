@@ -10,6 +10,14 @@ This Privacy Policy describes how Frogbyte AS and DotMatrixLabs Dot X ("we," "us
 
     Technical Information: We may collect technical information about your device, such as its operating system, hardware model, and IP address.
 
+    What the Dot X desktop application actually sends: the desktop application reports to two services, both enabled by default. There is currently no setting to turn them off.
+
+        Crash reports are sent to a Sentry instance operated by Frogbyte AS at sentry-ingest.frogbyte.io. These are sent only when the application crashes or panics, and contain the error message, a stack trace, a memory minidump of the crashed process, and the application version.
+
+        Usage analytics are sent to Aptabase. The application reports when it starts, when it exits, an hourly signal that it is still running, when a Decker device is detected, and when MIDI output is enabled or a MIDI port is opened. Each of these carries the operating system name and version, the system locale, the webview engine and version, the application version, and a randomly generated session identifier that is created fresh on every launch and is not derived from your device or account.
+
+        Neither service receives your name, your email address, a persistent device identifier, file paths, the names of applications running on your machine, your channel or slider configuration, or any settings you have entered into plugins.
+
 2. How We Use Your Information
 
 We may use the information we collect for the following purposes:
