@@ -108,6 +108,46 @@ yarn build:web                  # vite build, no license generation
 - Initial build takes time (Rust compilation + package downloads)
 - Requires exact Rust version 1.75.0: `rustup install 1.75.0 && rustup override set 1.75.0`
 
+## Telemetry
+
+Dot X reports to two Frogbyte-operated services. Both are enabled by default and there
+is currently no in-app opt-out — see
+[#229](https://github.com/Frogbyte-io/dot-x/issues/229).
+
+**Crash reports, via [Sentry](https://sentry.io/)** self-hosted at
+`sentry-ingest.frogbyte.io`. Sent only when the app panics or crashes: the panic
+message, a Rust stack trace, a minidump, and the app version. Channel configuration,
+labels, and plugin settings are not attached.
+
+**Usage analytics, via [Aptabase](https://aptabase.com/)**. Six events, each carrying
+nothing beyond the properties listed:
+
+| Event | When | Properties |
+| --- | --- | --- |
+| `app_started` | app launch | `slider_amount` |
+| `app_heartbeat` | every 59 minutes while running | none |
+| `app_exited` | app shutdown | none |
+| `decker_connected` | a Decker is found on a serial port | none |
+| `midi_toggled` | MIDI is switched on or off in settings | `enabled` |
+| `midi_attached` | a MIDI output port is opened | none |
+
+`slider_amount` is currently the hardcoded string `"5"` rather than the real channel
+count, so treat it as meaningless.
+
+The Aptabase SDK attaches the same system properties to every event: OS name and
+version, system locale, webview engine and version, app version, a debug flag, and a
+session id. The session id is random and regenerated each run, so it is not derived
+from anything about the machine and cannot be used to link one session to another. No
+account details, file paths, running application names, or channel configuration are
+sent.
+
+The heartbeat fires at 59 minutes rather than 60 so it does not land on the analytics
+session boundary and inflate the session count.
+
+To build without either service, drop the `tauri_plugin_aptabase` and
+`tauri_plugin_sentry` registrations in `src-tauri/src/main.rs`. The formal policy is in
+[`src-tauri/licenses/privacy_policy.txt`](src-tauri/licenses/privacy_policy.txt).
+
 ## Contributing
 
 1. Create a feature branch

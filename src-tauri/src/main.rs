@@ -393,7 +393,7 @@ struct InstancePayload {
 fn start_aptabase_heartbeat(app: tauri::AppHandle) {
     thread::spawn(move || {
         loop {
-            let _ = app.track_event("app_heartbeat💓", None);
+            let _ = app.track_event("app_heartbeat", None);
             // Roughly hourly. 59 minutes rather than exactly 60 so the interval does not
             // consistently line up with the analytics session boundary and start a new session.
             thread::sleep(Duration::from_secs(1 * 60 * 59));
