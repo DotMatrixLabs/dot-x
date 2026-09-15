@@ -22,18 +22,32 @@
             <span class="my-auto">Act when Decker disconnects: <br></span>
             <input type="checkbox" class="toggle toggle-primary mr-2" :checked="actOnDeckerDisconnect" @change="toggleActOnDeckerDisconnect" />
         </div>
-        <div v-if="actOnDeckerDisconnect" v-for="slider in sliderAmount" :key="slider" class="flex flex-row w-full justify-between px-2 mt-2">
-            <span class="shrink-0 pt-1">Slider {{slider}}: </span>
-            <select @change="sliderDisconnectHandle" v-model="selectedValues[slider - 1]"
-                class="select select-bordered select-sm w-2/3 mx-2 truncate">
-                <option class="w-full" v-for="(option, index) in sliderOptions" :value="option" :key="index">
-                    {{ option }}
-                </option>
-            </select>
-        </div>
+        <template v-if="actOnDeckerDisconnect">
+            <div v-for="slider in sliderAmount" :key="slider" class="flex flex-row w-full justify-between px-2 mt-2">
+                <span class="shrink-0 pt-1">Slider {{slider}}: </span>
+                <select @change="sliderDisconnectHandle" v-model="selectedValues[slider - 1]"
+                    class="select select-bordered select-sm w-2/3 mx-2 truncate">
+                    <option class="w-full" v-for="(option, index) in sliderOptions" :value="option" :key="index">
+                        {{ option }}
+                    </option>
+                </select>
+            </div>
+        </template>
         <div class="flex flex-row w-full justify-between px-2 mt-4 mb-2">
             <span class="my-auto">Inverted sliders: <br></span>
             <input type="checkbox" class="toggle toggle-primary mr-2" :checked="invertedSliders" @change="toggleInvertedSliders" />
+        </div>
+        <div class="flex flex-row w-full justify-between px-2 mt-4">
+            <div>
+                <span class="my-auto">Force Volume Mixer Sync: <br></span>
+                <span class="text-xs opacity-50">Forces windows volume mixer to sync with Dot X</span>
+            </div>
+            <input
+                type="checkbox"
+                class="toggle toggle-primary mr-2"
+                :checked="volumeSyncEnabled"
+                @change="toggleVolumeSync"
+            />
         </div>
         <div class="divider"><span class="opacity-50">Reset</span></div>
         <div class="flex flex-row w-full justify-between px-2 mt-2">
@@ -55,13 +69,15 @@
 
 <script>
 
-import ConfigStore from "../ts/config.ts";
-import SystemSettings from "../ts/systemSettings.ts";
-import decker from "../ts/decker.ts";
-import { useDeckerStore } from "../store/deckerStore";
-import { mapState } from "pinia"; 
-import { resetAllSettings, resetChannelSettings } from "../ts/helpers.ts";
-import Confirmation from "../components/Confirmation.vue";
+    import ConfigStore from "../ts/config.ts";
+    import SystemSettings from "../ts/systemSettings.ts";
+    import decker from "../ts/decker.ts";
+    import SelectedApps from "../ts/appsToControl.ts";
+    import { useDeckerStore } from "../store/deckerStore";
+    import { mapState } from "pinia";
+    import { resetAllSettings, resetChannelSettings } from "../ts/helpers.ts";
+    import Confirmation from "../components/Confirmation.vue";
+    import { invoke } from "@tauri-apps/api/tauri";
 
 export default {
     name: "General",
@@ -79,12 +95,13 @@ export default {
             sliderOptions: ["Do nothing", "Mute", "Maximize volume"],
             sliderAmount: 3,
             selectedValues: [], // Array to store selected values for each slider,
-            invertedSliders: false
+            invertedSliders: false,
         }
     },
     computed: {
     ...mapState(useDeckerStore, {
       sliders: 'getSliders',
+      volumeSyncEnabled: 'getVolumeSyncEnabled',
     }),
   },
     methods: {
@@ -95,7 +112,7 @@ export default {
                 await this.$refs.confirmationModal.openConfirmation("Are you sure?", message, "Reset all")
                 await resetAllSettings();
             } catch (error) {
-                console.log(error); 
+                console.log(error);
             }
         },
 
@@ -128,6 +145,17 @@ export default {
 
         async getInvertedSlidersStatus() {
             this.invertedSliders = await ConfigStore.get("invertedSliders");
+        },
+
+        async getVolumeSyncStatus() {
+            // This is now handled by the store
+        },
+
+        async toggleVolumeSync() {
+            const newState = !this.volumeSyncEnabled;
+            await useDeckerStore().setVolumeSyncEnabled(newState);
+            await ConfigStore.set("volumeSyncEnabled", newState);
+            await ConfigStore.save();
         },
 
         async toggleAutostart() {
@@ -185,6 +213,7 @@ export default {
         this.getActOnDeckerDisconnect();
         this.getDisconnectHandleSelectedValues();
         this.getInvertedSlidersStatus();
+        this.getVolumeSyncStatus();
 
         this.sliderAmount = this.sliders.length; // Set the amount of sliders to the amount of sliders in the store
         if(this.sliderAmount === 0) this.sliderAmount = 5;
