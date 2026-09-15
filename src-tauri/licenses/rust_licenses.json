@@ -117,26 +117,17 @@
     "description": "Minimal Android system properties wrapper"
   },
   {
-    "name": "ansi_term",
-    "version": "0.12.1",
-    "authors": "ogham@bsago.me|Ryan Scheel (Havvy) <ryan.havvy@gmail.com>|Josh Triplett <josh@joshtriplett.org>",
-    "repository": "https://github.com/ogham/rust-ansi-term",
-    "license": "MIT",
-    "license_file": null,
-    "description": "Library for ANSI terminal colours and styles (bold, underline)"
-  },
-  {
     "name": "anstream",
-    "version": "0.6.4",
+    "version": "0.6.21",
     "authors": null,
     "repository": "https://github.com/rust-cli/anstyle.git",
     "license": "Apache-2.0 OR MIT",
     "license_file": null,
-    "description": "A simple cross platform library for writing colored text to a terminal."
+    "description": "IO stream adapters for writing colored text that will gracefully degrade according to your terminal's capabilities."
   },
   {
     "name": "anstyle",
-    "version": "1.0.4",
+    "version": "1.0.13",
     "authors": null,
     "repository": "https://github.com/rust-cli/anstyle.git",
     "license": "Apache-2.0 OR MIT",
@@ -145,7 +136,7 @@
   },
   {
     "name": "anstyle-parse",
-    "version": "0.2.3",
+    "version": "0.2.7",
     "authors": null,
     "repository": "https://github.com/rust-cli/anstyle.git",
     "license": "Apache-2.0 OR MIT",
@@ -154,16 +145,16 @@
   },
   {
     "name": "anstyle-query",
-    "version": "1.0.1",
+    "version": "1.1.5",
     "authors": null,
-    "repository": "https://github.com/rust-cli/anstyle",
+    "repository": "https://github.com/rust-cli/anstyle.git",
     "license": "Apache-2.0 OR MIT",
     "license_file": null,
     "description": "Look up colored console capabilities"
   },
   {
     "name": "anstyle-wincon",
-    "version": "3.0.2",
+    "version": "3.0.11",
     "authors": null,
     "repository": "https://github.com/rust-cli/anstyle.git",
     "license": "Apache-2.0 OR MIT",
@@ -585,42 +576,6 @@
     "description": "FFI bindings to libcairo"
   },
   {
-    "name": "camino",
-    "version": "1.1.7",
-    "authors": "Without Boats <saoirse@without.boats>|Ashley Williams <ashley666ashley@gmail.com>|Steve Klabnik <steve@steveklabnik.com>|Rain <rain@sunshowers.io>",
-    "repository": "https://github.com/camino-rs/camino",
-    "license": "Apache-2.0 OR MIT",
-    "license_file": null,
-    "description": "UTF-8 paths"
-  },
-  {
-    "name": "cargo-license",
-    "version": "0.6.1",
-    "authors": "Onur Aslan <onur@onur.im>",
-    "repository": "https://github.com/onur/cargo-license",
-    "license": "MIT",
-    "license_file": null,
-    "description": "Cargo subcommand to see license of dependencies"
-  },
-  {
-    "name": "cargo-platform",
-    "version": "0.1.8",
-    "authors": null,
-    "repository": "https://github.com/rust-lang/cargo",
-    "license": "Apache-2.0 OR MIT",
-    "license_file": null,
-    "description": "Cargo's representation of a target platform."
-  },
-  {
-    "name": "cargo_metadata",
-    "version": "0.18.1",
-    "authors": "Oliver Schneider <git-spam-no-reply9815368754983@oli-obk.de>",
-    "repository": "https://github.com/oli-obk/cargo_metadata",
-    "license": "MIT",
-    "license_file": null,
-    "description": "structured access to the output of `cargo metadata`"
-  },
-  {
     "name": "cesu8",
     "version": "1.1.0",
     "authors": "Eric Kidd <git@randomhacks.net>",
@@ -667,7 +622,7 @@
   },
   {
     "name": "clap",
-    "version": "4.4.11",
+    "version": "4.5.54",
     "authors": null,
     "repository": "https://github.com/clap-rs/clap",
     "license": "Apache-2.0 OR MIT",
@@ -676,21 +631,12 @@
   },
   {
     "name": "clap_builder",
-    "version": "4.4.11",
+    "version": "4.5.54",
     "authors": null,
     "repository": "https://github.com/clap-rs/clap",
     "license": "Apache-2.0 OR MIT",
     "license_file": null,
     "description": "A simple to use, efficient, and full-featured Command Line Argument Parser"
-  },
-  {
-    "name": "clap_derive",
-    "version": "4.4.7",
-    "authors": null,
-    "repository": "https://github.com/clap-rs/clap/tree/master/clap_derive",
-    "license": "Apache-2.0 OR MIT",
-    "license_file": null,
-    "description": "Parse command line argument by defining a struct, derive crate."
   },
   {
     "name": "clap_lex",
@@ -703,9 +649,9 @@
   },
   {
     "name": "clap_lex",
-    "version": "0.6.0",
+    "version": "0.7.7",
     "authors": null,
-    "repository": "https://github.com/clap-rs/clap/tree/master/clap_lex",
+    "repository": "https://github.com/clap-rs/clap",
     "license": "Apache-2.0 OR MIT",
     "license_file": null,
     "description": "Minimal, flexible command line parser"
@@ -748,9 +694,9 @@
   },
   {
     "name": "colorchoice",
-    "version": "1.0.0",
+    "version": "1.0.4",
     "authors": null,
-    "repository": "https://github.com/rust-cli/anstyle",
+    "repository": "https://github.com/rust-cli/anstyle.git",
     "license": "Apache-2.0 OR MIT",
     "license_file": null,
     "description": "Global override of color control"
@@ -945,24 +891,6 @@
     "description": "Procedural macros for cssparser"
   },
   {
-    "name": "csv",
-    "version": "1.3.0",
-    "authors": "Andrew Gallant <jamslam@gmail.com>",
-    "repository": "https://github.com/BurntSushi/rust-csv",
-    "license": "MIT OR Unlicense",
-    "license_file": null,
-    "description": "Fast CSV parsing with support for serde."
-  },
-  {
-    "name": "csv-core",
-    "version": "0.1.11",
-    "authors": "Andrew Gallant <jamslam@gmail.com>",
-    "repository": "https://github.com/BurntSushi/rust-csv",
-    "license": "MIT OR Unlicense",
-    "license_file": null,
-    "description": "Bare bones CSV parsing with no_std support."
-  },
-  {
     "name": "ctor",
     "version": "0.2.5",
     "authors": "Matt Mastracci <matthew@mastracci.com>",
@@ -1090,7 +1018,7 @@
   },
   {
     "name": "dot_x",
-    "version": "1.3.0-1",
+    "version": "1.4.0-2",
     "authors": "you",
     "repository": "",
     "license": "",
@@ -1564,15 +1492,6 @@
     "license": "MIT",
     "license_file": null,
     "description": "Generic types implementing functionality of arrays"
-  },
-  {
-    "name": "getopts",
-    "version": "0.2.21",
-    "authors": "The Rust Project Developers",
-    "repository": "https://github.com/rust-lang/getopts",
-    "license": "Apache-2.0 OR MIT",
-    "license_file": null,
-    "description": "getopts-like option parsing."
   },
   {
     "name": "getrandom",
@@ -2052,17 +1971,17 @@
     "description": "Provides types and useful methods for working with IPv4 and IPv6 network addresses, commonly called IP prefixes. The new `IpNet`, `Ipv4Net`, and `Ipv6Net` types build on the existing `IpAddr`, `Ipv4Addr`, and `Ipv6Addr` types already provided in Rust's standard library and align to their design to stay consistent. The module also provides useful traits that extend `Ipv4Addr` and `Ipv6Addr` with methods for `Add`, `Sub`, `BitAnd`, and `BitOr` operations. The module only uses stable feature so it is guaranteed to compile using the stable toolchain."
   },
   {
-    "name": "itertools",
-    "version": "0.10.5",
-    "authors": "bluss",
-    "repository": "https://github.com/rust-itertools/itertools",
+    "name": "is_terminal_polyfill",
+    "version": "1.70.2",
+    "authors": null,
+    "repository": "https://github.com/polyfill-rs/is_terminal_polyfill",
     "license": "Apache-2.0 OR MIT",
     "license_file": null,
-    "description": "Extra iterator adaptors, iterator methods, free functions, and macros."
+    "description": "Polyfill for `is_terminal` stdlib feature for use with older MSRVs"
   },
   {
     "name": "itertools",
-    "version": "0.12.1",
+    "version": "0.10.5",
     "authors": "bluss",
     "repository": "https://github.com/rust-itertools/itertools",
     "license": "Apache-2.0 OR MIT",
@@ -2691,6 +2610,15 @@
     "description": "Single assignment cells and lazy values."
   },
   {
+    "name": "once_cell_polyfill",
+    "version": "1.70.2",
+    "authors": null,
+    "repository": "https://github.com/polyfill-rs/once_cell_polyfill",
+    "license": "Apache-2.0 OR MIT",
+    "license_file": null,
+    "description": "Polyfill for `OnceCell` stdlib feature for use with older MSRVs"
+  },
+  {
     "name": "open",
     "version": "3.2.0",
     "authors": "Sebastian Thiel <byronimo@gmail.com>",
@@ -3115,7 +3043,7 @@
   },
   {
     "name": "psp",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "authors": null,
     "repository": null,
     "license": null,
@@ -3664,7 +3592,7 @@
   },
   {
     "name": "serde",
-    "version": "1.0.202",
+    "version": "1.0.228",
     "authors": "Erick Tryzelaar <erick.tryzelaar@gmail.com>|David Tolnay <dtolnay@gmail.com>",
     "repository": "https://github.com/serde-rs/serde",
     "license": "Apache-2.0 OR MIT",
@@ -3672,8 +3600,17 @@
     "description": "A generic serialization/deserialization framework"
   },
   {
+    "name": "serde_core",
+    "version": "1.0.228",
+    "authors": "Erick Tryzelaar <erick.tryzelaar@gmail.com>|David Tolnay <dtolnay@gmail.com>",
+    "repository": "https://github.com/serde-rs/serde",
+    "license": "Apache-2.0 OR MIT",
+    "license_file": null,
+    "description": "Serde traits only, with no support for derive -- use the `serde` crate instead"
+  },
+  {
     "name": "serde_derive",
-    "version": "1.0.202",
+    "version": "1.0.228",
     "authors": "Erick Tryzelaar <erick.tryzelaar@gmail.com>|David Tolnay <dtolnay@gmail.com>",
     "repository": "https://github.com/serde-rs/serde",
     "license": "Apache-2.0 OR MIT",
@@ -3844,7 +3781,7 @@
   },
   {
     "name": "smallvec",
-    "version": "1.13.2",
+    "version": "1.15.1",
     "authors": "The Servo Project Developers",
     "repository": "https://github.com/servo/rust-smallvec",
     "license": "Apache-2.0 OR MIT",
@@ -3897,15 +3834,6 @@
     "description": "Soup FFI crate for Rust"
   },
   {
-    "name": "spdx",
-    "version": "0.10.4",
-    "authors": "Embark <opensource@embark-studios.com>|Jake Shadle <jake.shadle@embark-studios.com>",
-    "repository": "https://github.com/EmbarkStudios/spdx",
-    "license": "Apache-2.0 OR MIT",
-    "license_file": null,
-    "description": "Helper crate for SPDX expressions"
-  },
-  {
     "name": "stable_deref_trait",
     "version": "1.2.0",
     "authors": "Robert Grosse <n210241048576@gmail.com>",
@@ -3946,6 +3874,15 @@
     "version": "0.10.0",
     "authors": "Danny Guo <danny@dannyguo.com>",
     "repository": "https://github.com/dguo/strsim-rs",
+    "license": "MIT",
+    "license_file": null,
+    "description": "Implementations of string similarity metrics. Includes Hamming, Levenshtein, OSA, Damerau-Levenshtein, Jaro, Jaro-Winkler, and Sørensen-Dice."
+  },
+  {
+    "name": "strsim",
+    "version": "0.11.1",
+    "authors": "Danny Guo <danny@dannyguo.com>|maxbachmann <oss@maxbachmann.de>",
+    "repository": "https://github.com/rapidfuzz/strsim-rs",
     "license": "MIT",
     "license_file": null,
     "description": "Implementations of string similarity metrics. Includes Hamming, Levenshtein, OSA, Damerau-Levenshtein, Jaro, Jaro-Winkler, and Sørensen-Dice."
@@ -4311,15 +4248,6 @@
     "description": "Additional utilities for working with Tokio."
   },
   {
-    "name": "toml",
-    "version": "0.8.8",
-    "authors": "Alex Crichton <alex@alexcrichton.com>",
-    "repository": "https://github.com/toml-rs/toml",
-    "license": "Apache-2.0 OR MIT",
-    "license_file": null,
-    "description": "A native Rust encoder and decoder of TOML-formatted files and streams. Provides implementations of the standard Serialize/Deserialize traits for TOML data to facilitate deserializing and serializing Rust structures."
-  },
-  {
     "name": "toml_datetime",
     "version": "0.6.5",
     "authors": "Alex Crichton <alex@alexcrichton.com>",
@@ -4500,15 +4428,6 @@
     "description": "This crate provides Grapheme Cluster, Word and Sentence boundaries according to Unicode Standard Annex #29 rules."
   },
   {
-    "name": "unicode-width",
-    "version": "0.1.12",
-    "authors": "kwantam <kwantam@gmail.com>|Manish Goregaokar <manishsmail@gmail.com>",
-    "repository": "https://github.com/unicode-rs/unicode-width",
-    "license": "Apache-2.0 OR MIT",
-    "license_file": null,
-    "description": "Determine displayed width of `char` and `str` types according to Unicode Standard Annex #11 rules."
-  },
-  {
     "name": "ureq",
     "version": "2.9.1",
     "authors": "Martin Algesten <martin@algesten.se>|Jacob Hoffman-Andrews <ureq@hoffman-andrews.com>",
@@ -4546,7 +4465,7 @@
   },
   {
     "name": "utf8parse",
-    "version": "0.2.1",
+    "version": "0.2.2",
     "authors": "Joe Wilm <joe@jwilm.com>|Christian Duerr <contact@christianduerr.com>",
     "repository": "https://github.com/alacritty/vte",
     "license": "Apache-2.0 OR MIT",
@@ -4905,6 +4824,15 @@
     "description": "The interface macro for the windows crate"
   },
   {
+    "name": "windows-link",
+    "version": "0.2.1",
+    "authors": null,
+    "repository": "https://github.com/microsoft/windows-rs",
+    "license": "Apache-2.0 OR MIT",
+    "license_file": null,
+    "description": "Linking for Windows"
+  },
+  {
     "name": "windows-sys",
     "version": "0.42.0",
     "authors": "Microsoft",
@@ -4935,6 +4863,15 @@
     "name": "windows-sys",
     "version": "0.59.0",
     "authors": "Microsoft",
+    "repository": "https://github.com/microsoft/windows-rs",
+    "license": "Apache-2.0 OR MIT",
+    "license_file": null,
+    "description": "Rust for Windows"
+  },
+  {
+    "name": "windows-sys",
+    "version": "0.61.2",
+    "authors": null,
     "repository": "https://github.com/microsoft/windows-rs",
     "license": "Apache-2.0 OR MIT",
     "license_file": null,

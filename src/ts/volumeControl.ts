@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/tauri';
 import SelectedApps from './appsToControl';
 import { useDeckerStore } from '../store/deckerStore';
+import { excludeMappedApps } from './mappingUtils';
 
 /**
  * Class for controlling system volume and audio sessions.
@@ -90,6 +91,9 @@ class SystemVolumeController {
             if (this.lastSetVolumeApp === name && (currentTime - this.lastSetVolumeExecutionTime < 50) && volume > 0.01) return;
             this.lastSetVolumeExecutionTime = currentTime;
             this.lastSetVolumeApp = name;
+            // set_application_volume records the sync target itself, before applying the
+            // volume. Doing it again from here would let an older overlapping slider update
+            // land after a newer one and pin the session to a stale target.
             await invoke('set_application_volume', { name, volume });
         } catch (error) {
             console.log(error);
@@ -114,14 +118,22 @@ class SystemVolumeController {
             //get all apps and remove the ones that are already mapped
             apps = await this.getAllSessionNames(false);
             const systemFeatures = ['master', 'output', 'input', 'mic'];
-            const mappedApps = await SelectedApps.getMappedApps();
+            // Read the persisted source of truth. The Pinia mirror can lag behind a toggle after
+            // selectedApps.json has already been updated, briefly making a mapped app look free.
+            let mappedApps: string[] | null;
+            try {
+                mappedApps = await SelectedApps.getMappedApps();
+            } catch (error) {
+                console.error("Skipping unmapped channel, mapped apps unavailable", error);
+                return;
+            }
             if(!mappedApps) return;
             //remove system features
             apps = apps.filter((app) => !systemFeatures.includes(app));
             //remove input and output devices
             apps = apps.filter((app) => !app.toLowerCase().startsWith("input: ") && !app.toLowerCase().startsWith("output: "));
             //remove mapped apps
-            apps = apps.filter((app) => !mappedApps.includes(app));
+            apps = excludeMappedApps(apps, mappedApps);
             const channelApps: string[] | null = await SelectedApps.getApps(channel);
             //add back the apps that are mapped to same channel
             if(channelApps) apps = [...apps, ...channelApps];
