@@ -110,37 +110,31 @@ yarn build:web                  # vite build, no license generation
 
 ## Telemetry
 
-Dot X reports to two Frogbyte-operated services. Both are enabled by default and there
-is currently no in-app opt-out — see
-[#229](https://github.com/Frogbyte-io/dot-x/issues/229).
+Dot X reports to two services that Frogbyte runs. Both are on by default. Neither has an
+in-app off switch yet, which [#229](https://github.com/Frogbyte-io/dot-x/issues/229)
+tracks.
 
-**Crash reports, via [Sentry](https://sentry.io/)** self-hosted at
-`sentry-ingest.frogbyte.io`. Sent only when the app panics or crashes: the panic
-message, a Rust stack trace, the app version, and a minidump.
+Crash reports go to a self-hosted [Sentry](https://sentry.io/) at
+`sentry-ingest.frogbyte.io`. Dot X sends one only when it panics or crashes, and each
+report holds the panic message, a Rust stack trace, and the app version.
 
-The minidump is the one item here that is not a fixed, enumerable set of fields, and it
-deserves to be described honestly. It is a snapshot of the crashed process's memory. By
-format it always contains the filesystem paths of every loaded module — on a per-user
-install those sit under `C:\Users\<account>\`, so they carry the OS account name — and
-`MiniDumpNormal` captures the stack memory of every thread. That stack memory can
-incidentally hold whatever strings the process had in flight: audio session names,
-running application names, channel labels, or plugin payloads in transit through
-`plugin_server.rs`, which can include credentials a user typed into a plugin's settings.
-None of it is deliberately collected and it is used only to diagnose the crash, but the
-payload is unscrubbed and cannot be listed exhaustively in advance.
+Crash reports carry no minidump. A minidump is a copy of the memory of the crashed
+process, and `tauri-plugin-sentry` attaches one by default. This repo turns that default
+off with `default-features = false` in `src-tauri/Cargo.toml`. A minidump always lists
+the file path of every loaded module, which on a per-user install holds the Windows
+account name, and it copies the stack of every thread. A thread stack can hold any
+string the process had open at that moment, such as an audio session name, an
+application name, a channel label, or a plugin payload moving through
+`plugin_server::send_to_plugin`. That last one can hold a credential a user typed into a
+plugin's settings. Nobody can list those contents ahead of time, so Dot X does not send
+them. The panic message and the stack trace explain most Rust panics without a minidump.
+The cost is that a native crash inside a C or C++ dependency now produces no Sentry
+event.
 
-To keep crash reporting without the minidump, disable the plugin's default features in
-`src-tauri/Cargo.toml`:
-
-```toml
-tauri-plugin-sentry = { version = "0.5", default-features = false }
-```
-
-The panic message and stack trace still arrive; only the memory snapshot goes away.
-
-**Usage analytics, via [Aptabase](https://aptabase.com/)**. The app key is an `A-EU-`
-key, so events are ingested at `eu.aptabase.com` and stay in the EU data region. Six
-events, each carrying nothing beyond the properties listed:
+Usage analytics go to [Aptabase](https://aptabase.com/). The app key starts with
+`A-EU-`, and `config.rs` maps that prefix to `eu.aptabase.com`, so the events stay in
+the EU data region. Dot X sends six events, and each one carries only the properties in
+this table.
 
 | Event | When | Properties |
 | --- | --- | --- |
@@ -151,20 +145,20 @@ events, each carrying nothing beyond the properties listed:
 | `midi_toggled` | MIDI is switched on or off in settings | `enabled` |
 | `midi_attached` | a MIDI output port is opened | none |
 
-`slider_amount` is currently the hardcoded string `"5"` rather than the real channel
-count, so treat it as meaningless.
+Read `slider_amount` as meaningless. It is the hardcoded string `"5"` rather than the
+real channel count.
 
-The Aptabase SDK attaches the same system properties to every event: OS name and
-version, system locale, webview engine and version, app version, a debug flag, and a
-session id. The session id is random, held in memory, regenerated on every launch and
-never written to disk, so it is not derived from anything about the machine and cannot
-recognise a returning user. Aptabase receives no account details, no persistent device
-identifier, no file paths, no running application names, and no channel configuration.
+The Aptabase SDK adds the same system properties to every event. Those are the OS name
+and version, the system locale, the webview engine and version, the app version, a debug
+flag, and a session id. Dot X generates the session id at random in memory on each
+launch and never writes it to disk, so it cannot recognise a returning user. Aptabase
+receives no account details, no lasting device identifier, no file path, no application
+name, and no channel configuration.
 
-The heartbeat fires at 59 minutes rather than 60 so it does not land on the analytics
-session boundary and inflate the session count.
+The heartbeat fires at 59 minutes rather than 60 so that it does not coincide with the
+analytics session boundary and inflate the session count.
 
-To build without either service, drop the `tauri_plugin_aptabase` and
+To build Dot X with no telemetry, delete the `tauri_plugin_aptabase` and
 `tauri_plugin_sentry` registrations in `src-tauri/src/main.rs`. The formal policy is in
 [`src-tauri/licenses/privacy_policy.txt`](src-tauri/licenses/privacy_policy.txt).
 
