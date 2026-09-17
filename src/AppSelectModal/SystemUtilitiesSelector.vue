@@ -74,6 +74,9 @@ import SystemVolumeController from "../ts/volumeControl.ts";
 import pluginAPI from "../plugin-api/pluginAPI";
 import PluginSettingsRenderer from "../components/PluginSettingsRenderer.vue";
 import { usePluginStore } from "../store/pluginStore";
+import { createLogger } from "../ts/logger.ts";
+
+const log = createLogger("system-utilities");
 
 export default {
     components: { PluginSettingsRenderer },
@@ -187,7 +190,7 @@ export default {
                         { selected: nextSelected, channel: this.currentSliderID }
                     );
                 } catch (e) {
-                    console.error('Failed to emit plugin action for slider button', e);
+                    log.error('Failed to emit plugin action for slider button', e);
                 }
                 return;
             }
@@ -286,7 +289,7 @@ export default {
                 
                 this.deviceSelectors.output.devices = mergedDevices;
             } catch (error) {
-                console.error("Failed to load output devices:", error);
+                log.error("Failed to load output devices:", error);
             } finally {
                 this.deviceSelectors.output.loading = false;
             }
@@ -327,7 +330,7 @@ export default {
                 
                 this.deviceSelectors.input.devices = mergedDevices;
             } catch (error) {
-                console.error("Failed to load input devices:", error);
+                log.error("Failed to load input devices:", error);
             } finally {
                 this.deviceSelectors.input.loading = false;
             }

@@ -4,13 +4,16 @@ import type {
 } from './schema';
 import EventBus from '../js/eventBus';
 import { usePluginStore } from '../store/pluginStore';
+import { createLogger } from '../ts/logger.ts';
+
+const log = createLogger('plugin-ui');
 
 export class UIManager {
   /**
    * Handle showToast API request
    */
   async showToast(request: ApiRequest): Promise<ApiResponse> {
-    console.log('Showing toast:', request.params);
+    log.debug('Showing toast:', request.params);
     
     try {
       EventBus.emit('plugin:showToast', { 

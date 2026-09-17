@@ -55,9 +55,9 @@ Most features need a device physically attached over serial. The app holds the d
 
 ## Reporting Bugs And Requesting Features
 
-Use the issue forms. The bug template asks for the Dot X version, where the build came from, steps to reproduce, and your environment.
+Use the issue forms. The bug form is deliberately short: what happened, steps to reproduce, your environment, and logs if you have them.
 
-The app does not write its own log files, so if you built from source, run it from a terminal and copy the console output. Plugin output is written to `plugin.log` inside each installed plugin's folder under `%APPDATA%\com.dot-x.dev\plugins\`; include it for plugin issues.
+The app writes its own log to `%LOCALAPPDATA%\com.dot-x.dev\logs\Dot X.log`, and plugin output goes to `plugin.log` inside each installed plugin's folder under `%APPDATA%\com.dot-x.dev\plugins\`. Include the relevant lines for the problem you are reporting.
 
 Redact API keys, tokens, and passwords before pasting logs or screenshots. Plugin settings can hold credentials, and some of that can end up in log output.
 
