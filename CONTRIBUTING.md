@@ -51,7 +51,10 @@ release builds stay quiet:
   print everything from `debug` up, release builds only `warn` and `error`. Set
   `VITE_LOG_LEVEL` at build time to override.
 - Rust (`src-tauri/`): the `log` crate. `tauri-plugin-log` writes to stdout and
-  to the log directory above.
+  to the log directory above. The `log` features in `src-tauri/Cargo.toml` set
+  the ceiling at compile time — dev builds keep every level, release builds keep
+  only `warn` and `error`. Calls below the ceiling are not in the shipped binary
+  at all, so a `debug!` holding a payload cannot reach a user's disk.
 - Plugin SDK (`plugin-sdk/src/`): `createLogger` from `plugin-sdk/src/logger.ts`,
   at `info` by default. Plugin authors raise it with `DOTX_PLUGIN_LOG_LEVEL`.
 
