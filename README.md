@@ -110,26 +110,26 @@ yarn build:web                  # vite build, no license generation
 
 ## Telemetry
 
-Dot X reports to two services that Frogbyte runs. Both are on by default. Neither has an
-in-app off switch yet, which [#229](https://github.com/Frogbyte-io/dot-x/issues/229)
-tracks.
+Dot X reports to two services that Frogbyte runs. Both are on by default, and neither
+can be turned off from inside the app.
+[#229](https://github.com/Frogbyte-io/dot-x/issues/229) tracks that.
 
 Crash reports go to a self-hosted [Sentry](https://sentry.io/) at
-`sentry-ingest.frogbyte.io`. Dot X sends one only when it panics or crashes, and each
-report holds the panic message, a Rust stack trace, and the app version.
+`sentry-ingest.frogbyte.io`. Dot X sends one only when it panics or crashes. Each report
+contains the panic message, a Rust stack trace, and the app version. A panic message can
+carry runtime values, because `setup_panic_handler` passes `panic_info` through unchanged
+and `decker.rs` formats a serial error into its panic, so a panic message can name a
+device or a file.
 
-Crash reports carry no minidump. A minidump is a copy of the memory of the crashed
-process, and `tauri-plugin-sentry` attaches one by default. This repo turns that default
-off with `default-features = false` in `src-tauri/Cargo.toml`. A minidump always lists
-the file path of every loaded module, which on a per-user install holds the Windows
-account name, and it copies the stack of every thread. A thread stack can hold any
-string the process had open at that moment, such as an audio session name, an
+Crash reports contain no minidump. A minidump is a copy of the memory of the crashed
+process, and `tauri-plugin-sentry` attaches one by default, so `src-tauri/Cargo.toml`
+sets `default-features = false` to turn it off. A minidump lists the file path of every
+loaded module, and on a per-user install those paths contain the Windows account name. It
+also copies the stack of every thread, which can hold an audio session name, an
 application name, a channel label, or a plugin payload moving through
-`plugin_server::send_to_plugin`. That last one can hold a credential a user typed into a
-plugin's settings. Nobody can list those contents ahead of time, so Dot X does not send
-them. The panic message and the stack trace explain most Rust panics without a minidump.
-The cost is that a native crash inside a C or C++ dependency now produces no Sentry
-event.
+`plugin_server::send_to_plugin`, including a credential someone typed into a plugin's
+settings. The tradeoff is that a native crash inside a C or C++ dependency produces no
+Sentry event, while Rust panics still arrive.
 
 Usage analytics go to [Aptabase](https://aptabase.com/). The app key starts with
 `A-EU-`, and `config.rs` maps that prefix to `eu.aptabase.com`, so the events stay in

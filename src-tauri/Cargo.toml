@@ -36,10 +36,7 @@ window-vibrancy = "0.5.2"
 window-shadows = "0.2.2"
 once_cell = "1.18.0"
 sentry = "0.42"
-# default-features = false disables the `minidump` feature, the crate's only default.
-# A minidump is a copy of process memory, so its contents cannot be listed ahead of
-# time. See the Telemetry section in README.md.
-tauri-plugin-sentry = { version = "0.5", default-features = false }
+tauri-plugin-sentry = { version = "0.5", default-features = false } # drops the default `minidump` feature; see Telemetry in README.md
 log = { version = "^0.4", features = ["max_level_debug", "release_max_level_warn"] }
 socketioxide = "0.16.3"
 axum = "0.7"
