@@ -491,10 +491,6 @@ async fn main() {
         },
     ));
 
-    // Initialize minidump first
-    let _guard = tauri_plugin_sentry::minidump::init(&client);
-
-    // Then set up panic handler
     setup_panic_handler(client.clone());
 
     tauri::Builder::default()

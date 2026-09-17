@@ -66,6 +66,23 @@ API keys and passwords.
 
 ## Pull requests
 
+The `Secret scanning / Gitleaks` check scans the full history reachable from the
+checked-out commit on pull requests and pushes to `main` and `v2`. Findings fail
+the check, and secret values are redacted from its output. It uses the standalone
+[Gitleaks CLI](https://github.com/gitleaks/gitleaks) with no license key required.
+
+To run the same check locally, install Gitleaks 8.30.1 and run from the repository
+root:
+
+```bash
+gitleaks git --redact --no-banner --log-opts=HEAD .
+```
+
+If the check finds a credential, revoke or rotate it and remove it from the
+affected commits. Deleting it in a later commit leaves it in the scanned history.
+Report exposed credentials through [SECURITY.md](SECURITY.md). This check runs
+after a push and does not enable GitHub's separate push-protection setting.
+
 Describe the problem you are fixing, the change, and how you verified it. Link the issue the PR closes. Reviews happen when maintainers have time; the team is small, so patience helps.
 
 ## Plugins
