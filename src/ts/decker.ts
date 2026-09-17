@@ -206,7 +206,7 @@ class Decker {
         let midiConfiguration = await ConfigStore.get("midiConfiguration");
         if(midiConfiguration?.length === 0) midiConfiguration = [];
         log.debug("Attaching MIDI with configuration", midiConfiguration);
-        trackEvent("midi_attached🔊") // An event with no properties
+        trackEvent("midi_attached🔊");
         return await invoke('attach_midi_device', { outputName, outputPort, midiSliders, midiConfiguration });
     }
 
