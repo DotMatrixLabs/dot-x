@@ -183,6 +183,9 @@ import MarketplaceStats, {
 	resolveMarketplaceDownloadCount,
 	resolveMarketplaceLikeState,
 } from '../ts/marketplaceStats';
+import { createLogger } from '../ts/logger.ts';
+
+const log = createLogger('plugins');
 
 export default {
 	name: "Plugins",
@@ -333,7 +336,7 @@ export default {
 				await usePluginStore().refreshPluginUpdates();
 				toast.success(`Successfully deleted ${pluginLabel}`);
 			} catch (error) {
-				console.error('Failed to delete plugin', error);
+				log.error('Failed to delete plugin', error);
 				toast.error(error || `Failed to delete ${pluginLabel}`);
 			} finally {
 				this.clearPluginActionState(plugin.id);
@@ -390,7 +393,7 @@ export default {
 						: `Updated ${plugin.name || plugin.id}`,
 				);
 			} catch (error) {
-				console.error('Failed to update plugin', error);
+				log.error('Failed to update plugin', error);
 				toast.error(error || `Failed to update ${plugin.name || plugin.id}`);
 			} finally {
 				this.clearPluginActionState(plugin.id);
@@ -542,7 +545,7 @@ export default {
 					),
 				};
 			} catch (error) {
-				console.error('Failed to enrich plugin detail with marketplace stats', error);
+				log.error('Failed to enrich plugin detail with marketplace stats', error);
 				return detailPlugin;
 			}
 		},
@@ -586,7 +589,7 @@ export default {
             try {
                 await invoke('open_plugins_folder');
             } catch (e) {
-                console.error('Failed to open plugins folder', e);
+                log.error('Failed to open plugins folder', e);
             }
         },
         async fetchPlugins() {
@@ -597,7 +600,7 @@ export default {
 					this.$emit('installed-plugins-changed', installed);
                 }
 			} catch (e) {
-                console.error('Failed to list installed plugins', e);
+                log.error('Failed to list installed plugins', e);
 			}
 		},
 		async loadEnabledState() {

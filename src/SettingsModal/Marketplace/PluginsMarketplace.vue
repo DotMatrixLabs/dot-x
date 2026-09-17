@@ -117,6 +117,9 @@ import MarketplaceStats, {
 	resolveMarketplaceDownloadCount,
 	resolveMarketplaceLikeState,
 } from '../../ts/marketplaceStats';
+import { createLogger } from '../../ts/logger.ts';
+
+const log = createLogger('marketplace');
 
 export default {
 	name: "PluginsMarketplace",
@@ -201,7 +204,7 @@ export default {
 					};
 				});
 			} catch (error) {
-				console.error('Failed to fetch plugin registry:', error);
+				log.error('Failed to fetch plugin registry:', error);
 				this.allPlugins = [];
 			} finally {
 				this.loading = false;
@@ -219,7 +222,7 @@ export default {
 				toast.success(`Successfully installed ${plugin.name}`);
 				this.$emit('installed', plugin);
 			} catch (error) {
-				console.error('Failed to install plugin:', error);
+				log.error('Failed to install plugin:', error);
 				toast.error(formatMarketplaceErrorMessage(error, `Failed to install ${plugin.name}`));
 			} finally {
 				plugin.isDownloading = false;
@@ -233,7 +236,7 @@ export default {
 				toast.success(`Successfully uninstalled ${plugin.name}`);
 				this.$emit('uninstalled', plugin);
 			} catch (error) {
-				console.error('Failed to uninstall plugin:', error);
+				log.error('Failed to uninstall plugin:', error);
 				toast.error(error || `Failed to uninstall ${plugin.name}`);
 			} finally {
 				plugin.isDownloading = false;
@@ -266,7 +269,7 @@ export default {
 				);
 				plugin.downloads = response.downloads;
 			} catch (error) {
-				console.error('Failed to record marketplace download:', error);
+				log.error('Failed to record marketplace download:', error);
 			}
 		},
 		handlePluginInstalled(plugin) {
