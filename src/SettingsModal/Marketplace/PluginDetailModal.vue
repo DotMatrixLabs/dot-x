@@ -152,6 +152,9 @@ import EventBus from '../../js/eventBus';
 import MarkdownIt from 'markdown-it';
 import { formatRelativeTime, openLink } from '../../ts/helpers';
 import MarketplaceStats, { MARKETPLACE_REGISTRY_URL, formatMarketplaceErrorMessage } from '../../ts/marketplaceStats';
+import { createLogger } from '../../ts/logger.ts';
+
+const log = createLogger('marketplace');
 
 const md = new MarkdownIt({
 	html: true,
@@ -261,7 +264,7 @@ export default {
 			try {
 				return md.render(content);
 			} catch (e) {
-				console.error('Failed to render markdown:', e);
+				log.error('Failed to render markdown:', e);
 				return null;
 			}
 		},
@@ -347,7 +350,7 @@ export default {
 				toast.success(`Successfully installed ${this.plugin.name || this.plugin.id}`);
 				this.$emit('installed', this.plugin);
 			} catch (error) {
-				console.error('Failed to install plugin:', error);
+				log.error('Failed to install plugin:', error);
 				toast.error(
 					formatMarketplaceErrorMessage(error, `Failed to install ${this.plugin.name || this.plugin.id}`),
 				);
@@ -363,7 +366,7 @@ export default {
 				toast.success(`Successfully uninstalled ${this.plugin.name || this.plugin.id}`);
 				this.$emit('uninstalled', this.plugin);
 			} catch (error) {
-				console.error('Failed to uninstall plugin:', error);
+				log.error('Failed to uninstall plugin:', error);
 				toast.error(error || `Failed to uninstall ${this.plugin.name || this.plugin.id}`);
 			} finally {
 				this.plugin.isDownloading = false;
@@ -393,7 +396,7 @@ export default {
 					await MarketplaceStats.setLocalLikeState(this.plugin.id, response.liked, resolvedLikes);
 				}
 			} catch (error) {
-				console.error('Failed to update marketplace like:', error);
+				log.error('Failed to update marketplace like:', error);
 				toast.error(formatMarketplaceErrorMessage(error, 'Saved locally, but failed to sync like'));
 			} finally {
 				this.likeLoading = false;
@@ -410,7 +413,7 @@ export default {
 				this.localDownloadCount = response.downloads;
 				this.plugin.downloads = response.downloads;
 			} catch (error) {
-				console.error('Failed to record marketplace download:', error);
+				log.error('Failed to record marketplace download:', error);
 			}
 		},
 		async restartPlugin() {
@@ -420,7 +423,7 @@ export default {
 				toast.success(`${this.plugin?.name || this.plugin?.id} restarted`);
 				EventBus.emit('plugin:settingsUpdated', { pluginId: this.plugin.id });
 			} catch (e) {
-				console.error('Failed to restart plugin', e);
+				log.error('Failed to restart plugin', e);
 				toast.error(`Failed to restart ${this.plugin?.name || this.plugin?.id}`);
 			}
 		},
@@ -451,7 +454,7 @@ export default {
 					}
 				}
 			} catch (e) {
-				console.error('Failed to parse repo URL:', e);
+				log.error('Failed to parse repo URL:', e);
 			}
 			return null;
 		},
@@ -505,7 +508,7 @@ export default {
 					throw new Error('Unexpected response format from GitHub API');
 				}
 			} catch (error) {
-				console.error('Failed to fetch README:', error);
+				log.error('Failed to fetch README:', error);
 				this.readmeContent = null;
 			} finally {
 				this.loadingReadme = false;
