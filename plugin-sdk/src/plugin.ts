@@ -8,6 +8,9 @@ import type { ChannelTargetsAPI } from './channel-targets';
 import * as fs from 'fs';
 import * as path from 'path';
 import Conf from 'conf';
+import { createLogger } from './logger';
+
+const log = createLogger('dotx-sdk');
 
 /**
  * Base class for creating Dot X plugins.
@@ -566,7 +569,7 @@ class Plugin {
    * ```
    */
   async onLoad() {
-    console.log("Plugin loaded");
+    log.info("Plugin loaded");
   }
 
   /**
@@ -595,7 +598,7 @@ class Plugin {
    * ```
    */
   async onUnload() {
-    console.log("Plugin unloaded");
+    log.info("Plugin unloaded");
     this.client.disconnect();
   }
 }
@@ -614,7 +617,7 @@ function readManifest() {
       return JSON.parse(manifestContent);
     }
   } catch (error) {
-    console.warn('Failed to read manifest.json:', error);
+    log.warn('Failed to read manifest.json:', error);
   }
   return null;
 }
@@ -674,12 +677,12 @@ export async function runPlugin(PluginClass: typeof Plugin, config?: ConnectionC
   const version = manifest?.version || '1.0.0';
   const pluginId = manifest?.id || pluginName.toLowerCase().replace(/\s+/g, '-');
   
-  console.log(`Starting ${pluginName} v${version}...`);
+  log.info(`Starting ${pluginName} v${version}...`);
   if (manifest?.description) {
-    console.log(`Description: ${manifest.description}`);
+    log.debug(`Description: ${manifest.description}`);
   }
   if (manifest?.author) {
-    console.log(`Author: ${manifest.author}`);
+    log.debug(`Author: ${manifest.author}`);
   }
   
   // Create plugin info for registration
@@ -700,15 +703,15 @@ export async function runPlugin(PluginClass: typeof Plugin, config?: ConnectionC
     plugin = new PluginClass(pluginInfo, config);
     
     // Wait for connection to be established
-    console.log('Waiting for connection to be established...');
+    log.debug('Waiting for connection to be established...');
     await plugin.waitForConnection();
     
-    console.log('Connection established, calling onLoad...');
+    log.debug('Connection established, calling onLoad...');
     await plugin.onLoad();
-    console.log(`${pluginName} loaded successfully!`);
+    log.info(`${pluginName} loaded successfully!`);
     
   } catch (error) {
-    console.error(`Failed to start ${pluginName}:`, (error as Error).message);
+    log.error(`Failed to start ${pluginName}:`, (error as Error).message);
     process.exit(1);
   }
   
@@ -717,12 +720,12 @@ export async function runPlugin(PluginClass: typeof Plugin, config?: ConnectionC
     if (isShuttingDown) return;
     isShuttingDown = true;
     
-    console.log(`\nShutting down ${pluginName}...`);
+    log.info(`\nShutting down ${pluginName}...`);
     try {
       await plugin.onUnload();
-      console.log("Plugin unloaded successfully.");
+      log.info("Plugin unloaded successfully.");
     } catch (error) {
-      console.error("Error during plugin unload:", error);
+      log.error("Error during plugin unload:", error);
     }
     process.exit(0);
   };

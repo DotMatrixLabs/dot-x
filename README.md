@@ -31,6 +31,11 @@ cargo install cargo-license --version 0.7.0 --locked
 
 `cargo-license` runs during license-report generation; it is not an app dependency.
 
+Dot X runs plugins on a bundled Deno runtime. The 44 MB archive is not committed;
+`yarn tauri dev` and `yarn tauri build` download it into `src-tauri/resources/deno/`
+before building. Run `yarn fetch-deno` yourself before any bare `cargo` command,
+which does not go through those hooks.
+
 ### Setup
 
 ```bash
@@ -100,6 +105,7 @@ before pushing:
 yarn typecheck                  # vue-tsc, no emit
 yarn build:web                  # vite build, no license generation
 (cd plugin-sdk && yarn build)   # SDK build + regenerated plugin types
+yarn fetch-deno                 # bundled Deno runtime, needed by the Rust build
 (cd src-tauri && cargo test)    # Rust unit tests (Windows only)
 ```
 
