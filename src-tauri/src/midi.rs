@@ -62,7 +62,7 @@ pub mod midi {
             error!("No available MIDI output ports.");
         }
         if output_ports.len() - 1 < midi_output_port as usize {
-            eprintln!("The selected MIDI port doesn't exist.");
+            error!("The selected MIDI port doesn't exist.");
             Err("The selected MIDI port doesn't exist.")?;
         }
         let selected_output_port: &MidiOutputPort = &output_ports[midi_output_port as usize]; // Should be selectable by user
@@ -88,7 +88,6 @@ pub mod midi {
                                 conn_out.close();
                                 break;
                             }
-                            // println!("Current slider values: {:?}", decker::decker::slider_values);
                             for i in 1..=5 {
                                 let current_slider = match i {
                                     1 => decker::decker::slider_values.slider1,
@@ -156,7 +155,7 @@ pub mod midi {
                                             CCValueParsed = 7;
                                             channel = i as u8;
                                         }
-                                        println!(
+                                        trace!(
                                             "Sending MIDI message: {:?} {:?} {:?}",
                                             CCValueParsed,
                                             channel,
@@ -178,7 +177,7 @@ pub mod midi {
                 });
             }
             Err(e) => {
-                println!("Connection to {} failed: {:?}", Midi.name, e);
+                error!("Connection to {} failed: {:?}", Midi.name, e);
                 conn_out_result = Err(e);
             }
         }

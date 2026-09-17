@@ -88,6 +88,9 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from '@tauri-apps/api/event';
 import { toast } from 'vue-sonner';
+import { createLogger } from '../ts/logger.ts';
+
+const log = createLogger('plugin-logs');
 
 export default {
   name: 'PluginLogsModal',
@@ -291,7 +294,7 @@ export default {
           this.logs = '';
         }
       } catch (e) {
-        console.error('Failed to fetch logs:', e);
+        log.error('Failed to fetch logs:', e);
         this.logs = '';
       } finally {
         this.isLoading = false;
@@ -306,7 +309,7 @@ export default {
         this.logs = '';
         toast.success('Logs cleared');
       } catch (e) {
-        console.error('Failed to clear logs:', e);
+        log.error('Failed to clear logs:', e);
         toast.error('Failed to clear logs');
       }
     },
@@ -323,7 +326,7 @@ export default {
       navigator.clipboard.writeText(displayed).then(() => {
         toast.success('Logs copied to clipboard');
       }).catch((e) => {
-        console.error('Failed to copy logs:', e);
+        log.error('Failed to copy logs:', e);
         toast.error('Failed to copy logs');
       });
     },

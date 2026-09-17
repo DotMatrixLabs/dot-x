@@ -98,6 +98,10 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
 
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
@@ -107,6 +111,10 @@ jobs:
         with:
           name: dist
           path: dist
+
+      # `resources/deno/*` is a bundled Tauri resource and is no longer committed.
+      - name: Fetch Deno runtime
+        run: node tools/fetch-deno.mjs
 
       - name: Test
         working-directory: src-tauri

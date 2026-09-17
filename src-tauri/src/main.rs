@@ -1,7 +1,7 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use log::{error, info, trace};
+use log::{error, info, trace, warn};
 use serde_json::{json, Value};
 use tauri::{AppHandle, Emitter, Manager, WebviewWindow, Wry};
 use std::fs;
@@ -244,11 +244,11 @@ fn detach_midi_device() -> Result<(), Error> {
 fn get_active_app_name() -> String {
     match get_active_window() {
         Ok(active_window) => {
-            println!("Active window: {:?}", active_window);
+            trace!("Active window: {:?}", active_window);
             active_window.app_name.to_string()
         }
         Err(err) => {
-            eprintln!("Failed to get active window: {:?}", err);
+            warn!("Failed to get active window: {:?}", err);
             "Unknown".to_string() // Return a default value if an error occurs
         }
     }
@@ -270,11 +270,11 @@ async fn set_screen_brightness(brightness: f32, screens: Value) -> Result<(), Er
 }
 
 async fn set_brightness(percentage: u32) {
-    println!("Setting brightness to {}%", percentage);
+    info!("Setting brightness to {}%", percentage);
     if let Err(e) = brightness::brightness_devices()
         .try_for_each(|mut dev| async move {
             if let Err(err) = dev.set(percentage).await {
-                eprintln!(
+                error!(
                     "Failed to set brightness for device {}: {:?}",
                     dev.device_name()
                         .await
@@ -286,12 +286,12 @@ async fn set_brightness(percentage: u32) {
         })
         .await
     {
-        eprintln!("Error iterating over brightness devices: {:?}", e);
+        error!("Error iterating over brightness devices: {:?}", e);
     }
 }
 
 async fn show_brightness(dev: &BrightnessDevice) -> Result<(), brightness::Error> {
-    println!(
+    info!(
         "Brightness of device {} is {}%",
         dev.device_name().await?,
         dev.get().await?
@@ -301,7 +301,7 @@ async fn show_brightness(dev: &BrightnessDevice) -> Result<(), brightness::Error
 
 #[tauri::command]
 fn connect_decker(window: WebviewWindow, port_name: &str, inverted: bool) -> Result<(), Error> {
-    println!(
+    info!(
         "Connecting Decker at port: {}, inverted: {}",
         port_name, inverted
     );
@@ -491,10 +491,6 @@ async fn main() {
         },
     ));
 
-    // Initialize minidump first
-    let _guard = tauri_plugin_sentry::minidump::init(&client);
-
-    // Then set up panic handler
     setup_panic_handler(client.clone());
 
     tauri::Builder::default()
@@ -542,7 +538,17 @@ async fn main() {
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_process::init())
-        .plugin(tauri_plugin_log::Builder::new().build())
+        // Our own modules log everything; dependencies stop at `info`. The
+        // websocket stack under the plugin server emits tens of thousands of
+        // trace lines a minute, which would bury the lines we write and roll the
+        // size-capped log file. Release builds never reach this filter: the
+        // `log` features in Cargo.toml compile out everything below `warn`.
+        .plugin(
+            tauri_plugin_log::Builder::new()
+                .level(log::LevelFilter::Info)
+                .level_for("dot_x", log::LevelFilter::Trace)
+                .build(),
+        )
         .plugin(tauri_plugin_cli::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_aptabase::Builder::new("A-EU-7429874879").build())

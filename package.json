@@ -9,6 +9,7 @@
     "typecheck": "vue-tsc --noEmit",
     "preview": "vite preview",
     "tauri": "tauri",
+    "fetch-deno": "node tools/fetch-deno.mjs",
     "licenses": "npm run rust-licenses && npm run js-licenses",
     "rust-licenses": "cd src-tauri && cargo license --avoid-dev-deps --avoid-build-deps --json > licenses/rust_licenses.json",
     "js-licenses": "npx npm-license-crawler --json src-tauri/licenses/js_licenses.json",

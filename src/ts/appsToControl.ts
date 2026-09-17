@@ -26,7 +26,6 @@ class SelectedApps {
      */
     async toggleApps(sliderID: string, appNames: string | string[]) {
         await this.ensureLoaded();
-        console.log("toggleApps", sliderID, appNames);
 
         const key: string = sliderID.toString();
         const currentApps: string[] = (await this.store.get(key)) || [];

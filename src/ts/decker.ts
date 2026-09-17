@@ -6,6 +6,10 @@ import ConfigStore from './config.ts';
 import appsToControl from './appsToControl.ts';
 import { trackEvent } from "@aptabase/tauri";
 import EventBus from '../js/eventBus.js';
+import { createLogger } from './logger.ts';
+
+const log = createLogger('decker');
+
 class Decker {
     private comPort: string = "";
     private initiated: boolean;
@@ -51,7 +55,7 @@ class Decker {
             if(sliderOption === "do nothing") return;
 
             if(sliderOption === "mute"){
-                console.log("Muting slider", index);
+                log.debug("Muting slider", index);
                 SystemVolumeController.setChannelVolume(index, 0.001); // Set the volume to 0.001 to mute it, since WSAPI is a piece of work.
             }
 
@@ -65,11 +69,10 @@ class Decker {
     // Update sliders after reconnecting the Decker.
     private async updateSliders(){
         const actOnDeckerDisconnect = await ConfigStore.get("actOnDeckerDisconnect"); // Get the value of actOnDeckerDisconnect from config
-        console.log({actOnDeckerDisconnect});
         const sliders = useDeckerStore().sliders;
         if(actOnDeckerDisconnect === true){
             sliders.forEach((_sliderVol, index) => {
-                console.log("Setting slider", index, "to 0.001");
+                log.debug("Setting slider", index, "to 0.001");
                 SystemVolumeController.setChannelVolume(index, 0.001);
             });
         }
@@ -108,15 +111,14 @@ class Decker {
         const deckerStore = useDeckerStore();
         this.comPort = comPort;
 
-        console.log("Connecting to Decker...", comPort)
+        log.info("Connecting to Decker...", comPort)
         const inverted = await ConfigStore.get("invertedSliders");
-        console.log({inverted});
         await invoke('connect_decker', { portName: comPort, inverted: inverted ?? false }).then(async () => {
-            console.log("Decker Connected!")
+            log.info("Decker connected")
             deckerStore.setConnected(true);
             if(await ConfigStore.get("midiEnabled")) this.attachMidiDevice(await ConfigStore.get("midiOutputPortNumber"));
         }).catch((error) => {
-            console.log("Error connecting to Decker",error)
+            log.error("Error connecting to Decker", error)
             deckerStore.setConnected(false);
         });
         // await invoke('init_process');
@@ -131,11 +133,10 @@ class Decker {
             const sliderArray: Array<number> = Object.values(jsonObject);
             this.sliders = sliderArray;
             deckerStore.setSliders(this.sliders);
-            console.log(this.sliders);
         });
 
         this.MIDIListenerDetatcher = await listen('midi_detached', async () => {
-            console.log("[Midi.rs backend]: Midi was detached");
+            log.debug("MIDI was detached");
             const midiEnabled = await ConfigStore.get("midiEnabled");
             const midiOutputPortNumber = await ConfigStore.get("midiOutputPortNumber");
             if(!midiEnabled) return;
@@ -145,7 +146,7 @@ class Decker {
     }
 
     public async disconnect() {
-        console.log("Disconnecting from Decker...");
+        log.info("Disconnecting from Decker...");
         await invoke('disconnect_decker');
         this.sliderListenerDetatcher();
         this.MIDIListenerDetatcher();
@@ -179,10 +180,10 @@ class Decker {
 
         // Wait for deckerStore.getSliders to not return an empty array. This takes some time when the app is first started.
         while (deckerStore.getSliders.length === 0) {
-            console.log('[decker]: Waiting for deckerStore.getSliders to not return an empty array.');
+            log.debug('Waiting for deckerStore.getSliders to not return an empty array.');
             retries++;
             if (retries > MAX_RETRIES) {
-                console.error("[decker]: Failed to get sliders from deckerStore, no sliders are MIDI enabled.");
+                log.error("Failed to get sliders from deckerStore, no sliders are MIDI enabled.");
                 return;
             }
             await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for 1 second before checking again
@@ -204,9 +205,8 @@ class Decker {
 
         let midiConfiguration = await ConfigStore.get("midiConfiguration");
         if(midiConfiguration?.length === 0) midiConfiguration = [];
-        console.log("Attaching MIDI with MIDI Configuration:");
-        console.log(midiConfiguration);
-        trackEvent("midi_attached🔊") // An event with no properties
+        log.debug("Attaching MIDI with configuration", midiConfiguration);
+        trackEvent("midi_attached🔊");
         return await invoke('attach_midi_device', { outputName, outputPort, midiSliders, midiConfiguration });
     }
 
@@ -236,13 +236,13 @@ class Decker {
 
     public async initMidi() {
         const midiEnabled = await ConfigStore.get("midiEnabled");
-        console.log("MIDI Enabled?", midiEnabled);
+        log.debug("MIDI enabled?", midiEnabled);
         if(!midiEnabled) return;
         const midiOutputPort = await ConfigStore.get("midiOutputPort");
-        console.log("MIDI Output port?", midiOutputPort);
+        log.debug("MIDI output port?", midiOutputPort);
         if(!midiOutputPort) return;
         const midiOutputPortNumber = await ConfigStore.get("midiOutputPortNumber");
-        console.log("Connecting to MIDI Device...", midiOutputPort, "on port number", midiOutputPortNumber);
+        log.info("Connecting to MIDI device...", midiOutputPort, "on port number", midiOutputPortNumber);
         this.attachMidiDevice(midiOutputPortNumber);
     }
 
