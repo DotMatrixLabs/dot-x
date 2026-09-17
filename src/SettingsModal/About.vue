@@ -31,6 +31,9 @@
 import tauriConf from "../../src-tauri/tauri.conf.json";
 import { check } from '@tauri-apps/plugin-updater';
 import { openLink } from "../ts/helpers.ts";
+import { createLogger } from "../ts/logger.ts";
+
+const log = createLogger("updater");
 
 const openLinkMethod = openLink;
 
@@ -49,7 +52,7 @@ export default {
             this.checkingForUpdates = true;
             const update = await check();
             if (update) {
-                console.log(
+                log.info(
                     `found update ${update.version} from ${update.date} with notes ${update.body}`
                 );
                 let downloaded = 0;
@@ -59,16 +62,16 @@ export default {
                     switch (event.event) {
                         case 'Started':
                             contentLength = event.data.contentLength;
-                            console.log(`started downloading ${event.data.contentLength} bytes`);
+                            log.debug(`started downloading ${event.data.contentLength} bytes`);
                             this.updaterStatus = 'Downloading update...';
                             break;
                         case 'Progress':
                             downloaded += event.data.chunkLength;
-                            console.log(`downloaded ${downloaded} from ${contentLength}`);
+                            log.debug(`downloaded ${downloaded} from ${contentLength}`);
                             this.updaterStatus = `Downloading update... ${Math.round((downloaded / contentLength) * 100)}%`;
                             break;
                         case 'Finished':
-                            console.log('download finished');
+                            log.info('download finished');
                             this.updaterStatus = 'Update downloaded';
                             break;
                     }

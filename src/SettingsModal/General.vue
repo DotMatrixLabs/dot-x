@@ -49,6 +49,9 @@ import { useDeckerStore } from "../store/deckerStore";
 import { mapState } from "pinia"; 
 import { resetAllSettings, resetChannelSettings } from "../ts/helpers.ts";
 import Confirmation from "../components/Confirmation.vue";
+import { createLogger } from "../ts/logger.ts";
+
+const log = createLogger("general-settings");
 
 export default {
     name: "General",
@@ -80,7 +83,7 @@ export default {
                 await this.$refs.confirmationModal.openConfirmation("Are you sure?", message, "Reset all")
                 await resetAllSettings();
             } catch (error) {
-                console.log(error); 
+                log.debug("Reset of all settings was cancelled or failed", error);
             }
         },
 
@@ -90,7 +93,7 @@ export default {
                 await this.$refs.confirmationModal.openConfirmation("Are you sure?", message, "Reset channels");
                 await resetChannelSettings();
             } catch (error) {
-                console.log(error);
+                log.debug("Reset of channel settings was cancelled or failed", error);
             }
         },
 
@@ -145,7 +148,6 @@ export default {
 
         // Update the selected option for each slider, i.e do nothing, mute, maximize volume
         async sliderDisconnectHandle() {
-            console.log(this.selectedValues);
             await ConfigStore.set("sliderDisconnectHandleOptions", this.selectedValues);
             ConfigStore.save();
         },
