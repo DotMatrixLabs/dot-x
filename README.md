@@ -139,14 +139,17 @@ this table.
 | Event | When | Properties |
 | --- | --- | --- |
 | `app_started` | app launch | `slider_amount` |
-| `app_heartbeat` | every 59 minutes while running | none |
+| `app_heartbeat💓` | every 59 minutes while running | none |
 | `app_exited` | app shutdown | none |
 | `decker_connected` | a Decker is found on a serial port | none |
 | `midi_toggled` | MIDI is switched on or off in settings | `enabled` |
-| `midi_attached` | a MIDI output port is opened | none |
+| `midi_attached🔊` | a MIDI output port is opened | none |
 
 Read `slider_amount` as meaningless. It is the hardcoded string `"5"` rather than the
 real channel count.
+
+Two event names contain an emoji. Renaming them would break continuity with the Aptabase
+data already recorded under those names, so they stay as they are.
 
 The Aptabase SDK adds the same system properties to every event. Those are the OS name
 and version, the system locale, the webview engine and version, the app version, a debug
