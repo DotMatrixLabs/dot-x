@@ -4,9 +4,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm run check:capabilities && npm run licenses && vue-tsc --noEmit && vite build",
+    "build": "npm run check:capabilities && npm run licenses && npm run typecheck && npm run build:web",
+    "build:web": "vite build",
+    "typecheck": "vue-tsc --noEmit",
     "preview": "vite preview",
     "tauri": "tauri",
+    "fetch-deno": "node tools/fetch-deno.mjs",
     "licenses": "npm run rust-licenses && npm run js-licenses",
     "rust-licenses": "cd src-tauri && cargo license --avoid-dev-deps --avoid-build-deps --json > licenses/rust_licenses.json",
     "js-licenses": "npx npm-license-crawler --json src-tauri/licenses/js_licenses.json",

@@ -19,7 +19,7 @@
       "identifier": "fs:scope",
       "allow": [
         "$APPDATA/**",
-        "$LOCALAPPDATA/**",
+        "$APPLOCALDATA/**",
         "$RESOURCE/**",
         "$CONFIG/**",
         "$CACHE/**",

@@ -116,7 +116,7 @@ class Decker {
             deckerStore.setConnected(true);
             if(await ConfigStore.get("midiEnabled")) this.attachMidiDevice(await ConfigStore.get("midiOutputPortNumber"));
         }).catch((error) => {
-            console.log("Error connecting to Decker😭😭",error)
+            console.log("Error connecting to Decker",error)
             deckerStore.setConnected(false);
         });
         // await invoke('init_process');
@@ -142,12 +142,6 @@ class Decker {
             if(!midiOutputPortNumber) return;
             this.attachMidiDevice(midiOutputPortNumber);
         });
-
-
-        // setTimeout(() => {
-        //     emit('slider-change', { value: 10 });
-        //     console.log('emittd');
-        // }, 2500);
     }
 
     public async disconnect() {
@@ -212,7 +206,7 @@ class Decker {
         if(midiConfiguration?.length === 0) midiConfiguration = [];
         console.log("Attaching MIDI with MIDI Configuration:");
         console.log(midiConfiguration);
-        trackEvent("midi_attached🔊") // An event with no properties
+        trackEvent("midi_attached🔊");
         return await invoke('attach_midi_device', { outputName, outputPort, midiSliders, midiConfiguration });
     }
 
