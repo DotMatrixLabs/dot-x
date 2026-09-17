@@ -542,7 +542,17 @@ async fn main() {
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_process::init())
-        .plugin(tauri_plugin_log::Builder::new().build())
+        // Our own modules log everything; dependencies stop at `info`. The
+        // websocket stack under the plugin server emits tens of thousands of
+        // trace lines a minute, which would bury the lines we write and roll the
+        // size-capped log file. Release builds never reach this filter: the
+        // `log` features in Cargo.toml compile out everything below `warn`.
+        .plugin(
+            tauri_plugin_log::Builder::new()
+                .level(log::LevelFilter::Info)
+                .level_for("dot_x", log::LevelFilter::Trace)
+                .build(),
+        )
         .plugin(tauri_plugin_cli::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_aptabase::Builder::new("A-EU-7429874879").build())
