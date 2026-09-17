@@ -98,7 +98,7 @@ export class PluginAPI {
       try {
        await invoke('broadcast_to_plugins', { event: 'plugin.device_update', data });
       } catch (err) {
-        log.error('Failed to emit action', err);
+        log.error('Failed to broadcast device update', err);
       }
       // Handle the slider change event as needed
     });
