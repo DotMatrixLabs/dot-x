@@ -1,18 +1,46 @@
-# Contributing to Dot X
+# Contributing
 
-Thanks for wanting to help. This page covers setting up a build, reporting problems, and getting changes merged.
+## Read This First
 
-## Status
+We accept contributions, but they should be small and focused.
 
-Dot X is being prepared for its first public release (tracked in issue #191).
+You can still report a bug or open a PR, but please do so knowing there is a high chance we close it, defer it forever, or never look at it.
+
+That still does not mean we will want the change, but it keeps scope, quality, and direction under control for a project that drives physical hardware.
+
+PRs are automatically labeled with a `vouch:*` trust status and a `size:*` diff size based on changed lines.
+
+If you are an external contributor, expect `vouch:unvouched` until we explicitly add you to `.github/VOUCHED.td`. Comment `/recheck-vouch` on your PR if you believe the label is stale.
 
 ## License
 
 The app source is licensed GPL-3.0-or-later, see [LICENSE](LICENSE). The plugin SDK in `plugin-sdk/` is MIT, so plugins you build on it can carry any license. By contributing code you agree that your contributions ship under the license of the files you touch.
 
-## Development build
+## What We Are Most Likely To Accept
 
-Prerequisites: Node.js 22+, Yarn, Rust (stable), and Windows 10 or 11. The app talks to the Decker mixer over serial and MIDI, so most features need the hardware attached to test properly.
+Small, focused bug fixes.
+
+Small reliability fixes.
+
+Small performance improvements.
+
+Tightly scoped maintenance work that clearly improves the project without changing its direction.
+
+## What We Are Least Likely To Accept
+
+Large PRs.
+
+Drive-by feature work.
+
+Opinionated rewrites.
+
+Anything that expands product scope without us asking for it first.
+
+If you open a 1,000+ line PR full of new features, we will probably close it quickly and remember that you ignored the clearly written instructions.
+
+## Developer Setup
+
+Dot X is a Tauri 2 app: Vue 3 + TypeScript in `src/`, Rust in `src-tauri/`. Prerequisites: Node.js 22+, Yarn, Rust stable, and the `cargo-license` subcommand (`cargo install cargo-license` — `yarn build` calls `cargo license`), on Windows 10 or 11.
 
 ```bash
 git clone https://github.com/Frogbyte-io/dot-x.git
@@ -21,71 +49,63 @@ yarn install
 yarn tauri dev
 ```
 
-The first build takes a while because Rust compiles everything from scratch.
+The first build compiles all of Rust from scratch, so it takes a while.
 
-## Reporting bugs and requesting features
+Most features need a device physically attached over serial. The app holds the device's serial and MIDI ports, so close any installed Dot X instance before running the dev app, and restore it after.
 
-Search existing issues first. If yours is new, use the bug or feature template and fill in what it asks for.
+## Reporting Bugs And Requesting Features
 
-For bugs, the useful details are the Dot X version and where the build came from, your Windows version, steps to reproduce, and log output if you have it. The app writes logs to `%APPDATA%\com.dot-x.dev\logs`.
+Use the issue forms. The bug form is deliberately short: what happened, steps to reproduce, your environment, and logs if you have them.
+
+The app writes its own log to `%LOCALAPPDATA%\com.dot-x.dev\logs\Dot X.log`, and plugin output goes to `plugin.log` inside each installed plugin's folder under `%APPDATA%\com.dot-x.dev\plugins\`. Include the relevant lines for the problem you are reporting.
 
 Redact API keys, tokens, and passwords before pasting logs or screenshots. Plugin settings can hold credentials, and some of that can end up in log output.
 
 Anything you believe is exploitable does not belong in a public issue. See [SECURITY.md](SECURITY.md) for how to report it privately.
 
-## Making changes
+Feature requests and ideas go through the feature request form, not the bug tracker. We read every request; a request is not a promise.
 
-- Base your branch on `v2` and open pull requests against `v2`. That is the active development branch.
-- Keep PRs small and focused on one thing.
-- Commit messages use conventional prefixes (`feat:`, `fix:`, `chore:`), lowercase imperative mood, one line, no body. Details in [.github/instructions/commit-format.instructions.md](.github/instructions/commit-format.instructions.md).
-- Run `yarn build` before pushing. It generates license reports, typechecks, and builds the frontend. If your change touches Rust, also run `cargo check` in `src-tauri/`.
-- Test hardware changes (sliders, MIDI, volume routing) with a Decker attached and say in the PR that you did. If you could not test something, say that instead of implying you did.
+## If You Still Want To Open A PR
 
-## Logging
+Keep it small.
 
-Nothing in `src/`, `src-tauri/`, or `plugin-sdk/src/` calls `console.*` or
-`println!` directly. Every log line goes through one of three wrappers so
-release builds stay quiet:
+Commit messages use conventional prefixes (`feat:`, `fix:`, `chore:`), lowercase imperative mood, one line, no body.
 
-- Frontend (`src/`): `createLogger("scope")` from `src/ts/logger.ts`. Dev builds
-  print everything from `debug` up, release builds only `warn` and `error`. Set
-  `VITE_LOG_LEVEL` at build time to override.
-- Rust (`src-tauri/`): the `log` crate. `tauri-plugin-log` writes to stdout and
-  to the log directory above. The `log` features in `src-tauri/Cargo.toml` set
-  the ceiling at compile time — dev builds keep every level, release builds keep
-  only `warn` and `error`. Calls below the ceiling are not in the shipped binary
-  at all, so a `debug!` holding a payload cannot reach a user's disk.
-- Plugin SDK (`plugin-sdk/src/`): `createLogger` from `plugin-sdk/src/logger.ts`,
-  at `info` by default. Plugin authors raise it with `DOTX_PLUGIN_LOG_LEVEL`.
+Explain exactly what changed.
 
-The scripts in `tools/` are the exception. They run in a terminal and talk to
-whoever started them, so they print with `console.*`.
+Explain exactly why the change should exist.
 
-Keep anything the user typed out of `info` and above. Plugin settings can hold
-API keys and passwords.
+Run `yarn build` before pushing. It generates license reports, typechecks, and builds the frontend. If your change touches Rust, also run `cargo test --locked` in `src-tauri/`. CI runs the same checks on every PR, plus a plugin SDK build and drift check.
 
-## Pull requests
+Do not mix unrelated fixes together.
 
-The `Secret scanning / Gitleaks` check scans the full history reachable from the
-checked-out commit on pull requests and pushes to `main` and `v2`. Findings fail
-the check, and secret values are redacted from its output. It uses the standalone
-[Gitleaks CLI](https://github.com/gitleaks/gitleaks) with no license key required.
+If the PR makes anything resembling a UI change, include clear before/after images.
 
-To run the same check locally, install Gitleaks 8.30.1 and run from the repository
-root:
+If the change depends on motion, timing, transitions, or interaction details, include a short video.
 
-```bash
-gitleaks git --redact --no-banner --log-opts=HEAD .
-```
+Test hardware changes (sliders, MIDI, volume routing, RGB) with a device attached and say in the PR that you did. If you could not test something, say that instead of implying you did.
 
-If the check finds a credential, revoke or rotate it and remove it from the
-affected commits. Deleting it in a later commit leaves it in the scanned history.
-Report exposed credentials through [SECURITY.md](SECURITY.md). This check runs
-after a push and does not enable GitHub's separate push-protection setting.
+If we have to guess what changed, we are much less likely to review it.
 
-Describe the problem you are fixing, the change, and how you verified it. Link the issue the PR closes. Reviews happen when maintainers have time; the team is small, so patience helps.
+## Discuss Changes First
+
+If you are thinking about a non-trivial change, open a feature request describing the problem first, and wait for a maintainer response before building. Issues are where we work out whether something should exist.
+
+If the change could be a plugin, that is almost always the simplest path — see Plugins below.
+
+That still does not mean we will want the PR, but it gives you a chance to avoid wasting your time.
+
+## Be Realistic
+
+Opening a PR does not create an obligation on our side.
+
+We may close it. We may ignore it. We may ask you to shrink it. We may reimplement the idea ourselves later.
+
+If you are fine with that, proceed.
 
 ## Plugins
+
+Extending Dot X is usually simplest as a plugin: most user-facing additions fit the plugin API, and you can ship and update them without touching the app. Browse [DotMatrixLabs/dot-x-plugins](https://github.com/DotMatrixLabs/dot-x-plugins) for working examples and a place to publish yours.
 
 If you want to build a plugin rather than change the app itself, start with the [plugin SDK README](plugin-sdk/README.md). The scaffolder gets you a working project:
 
