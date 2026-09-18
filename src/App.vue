@@ -86,11 +86,6 @@ export default {
           return 'Windows 10';
       }
     },
-    // async getTheme() {
-    //   this.currentTheme = await ConfigStore.get("theme") || "dark";
-    //   document.documentElement.setAttribute("data-theme", this.currentTheme);
-    //   return this.currentTheme;
-    // },
 
     openDotxFile(filePath) {
       this.$refs.dotxInstallModal.open(filePath);
@@ -143,11 +138,8 @@ export default {
     await pluginStore.loadPersistedPluginState();
     pluginStore.markEnabledPluginsStarting();
     void pluginStore.refreshPluginUpdates();
-    console.log("Plugin server started");
-    
     await new Promise(resolve => setTimeout(resolve, 1000));
     this.disableContextMenu();
-    // this.getTheme();
     this.connectDecker();
     Decker.detectDeviceChanges();
     Decker.initMidi();
@@ -159,10 +151,8 @@ export default {
     this.setThemeFromOS();
 
     document.documentElement.setAttribute("data-theme", this.colorScheme);
-    console.log(this.colorScheme);
 
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
-      console.log(event.matches ? "dark" : "light");
       this.colorScheme = event.matches ? "dark" : "light";
       document.documentElement.setAttribute("data-theme", this.colorScheme);
     });

@@ -121,6 +121,9 @@ import { mapState } from "pinia";
 import { usePluginStore } from "../store/pluginStore";
 import { invoke } from "@tauri-apps/api/core";
 import pluginAPI from "../plugin-api/pluginAPI";
+import { createLogger } from '../ts/logger.ts';
+
+const log = createLogger('settings');
 
 const BASE_SETTINGS_INDEX = [
   { label: "Device", tab: "Device" },
@@ -255,7 +258,7 @@ export default {
           await this.indexPluginSettings();
         }
       } catch (e) {
-        console.error('Failed to list installed plugins', e);
+        log.error('Failed to list installed plugins', e);
       }
     },
     handleInstalledPluginsChanged(installedPlugins) {

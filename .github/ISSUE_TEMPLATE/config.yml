@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Plugin SDK documentation
+    url: https://github.com/Frogbyte-io/dot-x/blob/v2/plugin-sdk/README.md
+    about: Building a plugin? Start here before filing an issue.
+  - name: Security vulnerabilities
+    url: https://github.com/Frogbyte-io/dot-x/blob/v2/SECURITY.md
+    about: Report anything you believe is exploitable privately, not as a public issue.
