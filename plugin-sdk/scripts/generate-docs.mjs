@@ -33,13 +33,13 @@ import { resolve, dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
 
-import { getDocsPaths, resolveDocsRoot } from './docs-paths.mjs';
+import { getDocsPaths, resolveDocsRootOrExit } from './docs-paths.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Configuration
-const docsRoot = resolveDocsRoot();
+const docsRoot = resolveDocsRootOrExit();
 const outputDir = getDocsPaths(docsRoot).markdown;
 const typedocConfigPath = resolve(__dirname, '../typedoc.json');
 const tempJsonPath = resolve(__dirname, '../temp-typedoc.json');

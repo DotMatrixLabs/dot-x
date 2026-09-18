@@ -48,10 +48,10 @@ vim ../src/components/fields/metadata.ts
 # }
 
 # 2. Build docs (skip TypeDoc for speed)
-node build-docs.mjs --docs-root "$DOTX_DOCS_ROOT" --skip-typedoc
+node build-docs.mjs --docs-root /path/to/dotmatrixlabs-docs --skip-typedoc
 
 # 3. View changes
-cd "$DOTX_DOCS_ROOT"
+cd /path/to/dotmatrixlabs-docs
 npm run docs:dev
 # Visit: http://localhost:5173/plugin-sdk/reference/settingsbuilder-components
 ```
@@ -63,10 +63,10 @@ npm run docs:dev
 vim ../src/ui.ts
 
 # 2. Regenerate all docs
-node build-docs.mjs --docs-root "$DOTX_DOCS_ROOT"
+node build-docs.mjs --docs-root /path/to/dotmatrixlabs-docs
 
 # 3. View changes
-cd "$DOTX_DOCS_ROOT"
+cd /path/to/dotmatrixlabs-docs
 npm run docs:dev
 ```
 
@@ -77,7 +77,7 @@ npm run docs:dev
 vim ../../src/components/fields/Input.vue
 
 # 2. Sync components only
-node sync-components.mjs --docs-root "$DOTX_DOCS_ROOT"
+node sync-components.mjs --docs-root /path/to/dotmatrixlabs-docs
 
 # 3. Changes will hot-reload if docs:dev is running
 ```
@@ -198,8 +198,8 @@ npm run docs:sync -- --docs-root /path/to/dotmatrixlabs-docs
 ### Components not showing
 ```bash
 # Rebuild everything
-node build-docs.mjs --docs-root "$DOTX_DOCS_ROOT"
-cd "$DOTX_DOCS_ROOT"
+node build-docs.mjs --docs-root /path/to/dotmatrixlabs-docs
+cd /path/to/dotmatrixlabs-docs
 rm -rf docs/.vitepress/cache
 npm run docs:dev
 ```

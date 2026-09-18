@@ -4,14 +4,14 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-import { getDocsPaths, resolveDocsRoot } from './docs-paths.mjs';
+import { getDocsPaths, resolveDocsRootOrExit } from './docs-paths.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Paths
 const DOT_X_FIELDS = path.resolve(__dirname, '../../src/components/fields');
-const DOCS_ROOT = resolveDocsRoot();
+const DOCS_ROOT = resolveDocsRootOrExit();
 const DOCS_VITEPRESS = path.join(DOCS_ROOT, 'docs/.vitepress');
 const DOCS_COMPONENTS = getDocsPaths(DOCS_ROOT).components;
 const DOCS_COMPONENTS_FIELDS = path.join(DOCS_COMPONENTS, 'fields');
