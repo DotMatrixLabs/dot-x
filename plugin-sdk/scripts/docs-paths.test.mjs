@@ -1,11 +1,14 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { afterEach, test } from 'node:test';
+import { fileURLToPath } from 'node:url';
 
 import { getDocsPaths, resolveDocsRoot } from './docs-paths.mjs';
 
+const scriptsDirectory = dirname(fileURLToPath(import.meta.url));
 const temporaryDirectories = [];
 
 afterEach(() => {
@@ -83,3 +86,17 @@ test('generated files stay within the configured docs repository', () => {
     components: join(docsRoot, 'docs', '.vitepress', 'components'),
   });
 });
+
+for (const script of ['build-docs.mjs', 'generate-docs.mjs', 'sync-components.mjs']) {
+  test(`${script} reports missing configuration without a stack trace`, () => {
+    const { DOTX_DOCS_ROOT, ...env } = process.env;
+    const result = spawnSync(process.execPath, [join(scriptsDirectory, script)], {
+      env,
+      encoding: 'utf8',
+    });
+
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /Pass --docs-root <path> or set DOTX_DOCS_ROOT/);
+    assert.doesNotMatch(result.stderr, /^\s+at /m);
+  });
+}

@@ -46,6 +46,15 @@ export function resolveDocsRoot({ args = process.argv.slice(2), env = process.en
   return docsRoot;
 }
 
+export function resolveDocsRootOrExit(options) {
+  try {
+    return resolveDocsRoot(options);
+  } catch (error) {
+    console.error(`❌ ${error.message}`);
+    process.exit(1);
+  }
+}
+
 export function getDocsPaths(docsRoot) {
   return {
     markdown: join(docsRoot, 'docs', 'plugin-sdk', 'reference'),
