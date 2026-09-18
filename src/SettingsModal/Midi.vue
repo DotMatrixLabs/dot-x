@@ -78,7 +78,6 @@ export default {
         async getConnectedDevice() {
             const storedPort = await ConfigStore.get("midiOutputPort");
             this.selectedPort = storedPort;
-            console.log({selectedPortThis: this.selectedPort});
             this.getMidiDevices();
 
         },

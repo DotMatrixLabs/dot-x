@@ -13,9 +13,6 @@
                     Disconnect
                 </option>
             </select>
-            <!-- <button @click="detectBoard" title="Autodiscover" class="btn btn-circle btn-sm">
-                <i class="fa-solid fa-magnifying-glass"></i>
-            </button> -->
         </div>
 
         <div v-if="deviceType === 'Decker'" :class="connectionState ? '' : 'opacity-40 pointer-events-none'" class="w-full h-full rounded-lg px-2 ">
@@ -84,6 +81,9 @@ import RGBController from "../ts/RGBController";
 import { mapState } from "pinia";
 import { useDeckerStore } from "../store/deckerStore.ts";
 import EventBus from "../js/eventBus";
+import { createLogger } from "../ts/logger.ts";
+
+const log = createLogger("device-settings");
 
 export default {
     name: "Devices",
@@ -306,7 +306,7 @@ export default {
             try {
                 this.deviceData = await Decker.getDeviceInfo();
             } catch (error) {
-                console.error("Failed to get device info:", error);
+                log.error("Failed to get device info:", error);
                 // Optionally display a user-friendly message or handle the error accordingly
             }
         },
