@@ -2,6 +2,9 @@ import { mkdir, copyFile, BaseDirectory, readFile, remove, exists, readDir } fro
 import {imageDimensionsFromData} from 'image-dimensions';
 import { relaunch } from '@tauri-apps/plugin-process';
 import { open } from '@tauri-apps/plugin-shell';
+import { createLogger } from './logger.ts';
+
+const log = createLogger('helpers');
 
 export async function copyFileToAppdata(filePath: string, folderName: string, fileName?: string) {
     if(!fileName) fileName = filePath.split("/").pop();
@@ -24,7 +27,7 @@ export async function removeFileFromAppdata(filePaths: string | string[] ) {
             if(!existsFile) continue;
             await remove(path, { baseDir: BaseDirectory.AppData });
         } catch(error) {
-            console.error(`Error removing file ${path}:`, error);
+            log.error(`Error removing file ${path}:`, error);
         }
 
     }
@@ -71,11 +74,11 @@ async function removeChannelIcons() {
             try {
                 await remove(`channelIcons/${file.name}`, { baseDir: BaseDirectory.AppData });
             } catch (error) {
-                console.error(`Error removing file ${file.name}:`, error);
+                log.error(`Error removing file ${file.name}:`, error);
             }
         }
     } catch (error) {
-        console.error('Error reading channelIcons directory:', error);
+        log.error('Error reading channelIcons directory:', error);
     }
 }
 
@@ -99,7 +102,7 @@ export async function resetAllSettings() {
         await removeChannelIcons();
         await relaunch();
     } catch (error) {
-        console.error('Error resetting all settings:', error);
+        log.error('Error resetting all settings:', error);
     }
 }
 
@@ -123,7 +126,7 @@ export async function resetChannelSettings() {
         await removeChannelIcons();
         await relaunch();
     } catch (error) {
-        console.error('Error resetting channel settings:', error);
+        log.error('Error resetting channel settings:', error);
     }
 }
 
@@ -133,7 +136,7 @@ export async function openLink(url: string): Promise<boolean> {
         await open(url);
         return true;
     } catch (error) {
-        console.error('Error opening link:', error);
+        log.error('Error opening link:', error);
         return false;
     }
 }
