@@ -14,14 +14,14 @@ import { execFileSync } from 'child_process';
 import { dirname } from 'path';
 import { fileURLToPath } from 'url';
 
-import { getDocsPaths, resolveDocsRoot } from './docs-paths.mjs';
+import { getDocsPaths, resolveDocsRootOrExit } from './docs-paths.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const args = process.argv.slice(2);
 const skipTypedoc = args.includes('--skip-typedoc');
-const docsRoot = resolveDocsRoot({ args });
+const docsRoot = resolveDocsRootOrExit({ args });
 const docsPaths = getDocsPaths(docsRoot);
 
 console.log('📚 Building Plugin SDK Documentation\n');
