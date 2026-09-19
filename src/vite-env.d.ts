@@ -4,6 +4,8 @@ interface ImportMetaEnv {
   readonly VITE_LOG_LEVEL?: string;
   readonly VITE_SUPABASE_URL?: string;
   readonly VITE_SUPABASE_ANON_KEY?: string;
+  readonly VITE_MARKETPLACE_REGISTRY_URL?: string;
+  readonly VITE_STATS_SECRET_KEY?: string;
 }
 
 interface ImportMeta {

@@ -40,8 +40,11 @@ which does not go through those hooks.
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-repo/dot-x.git
+git clone https://github.com/Frogbyte-io/dot-x.git
 cd dot-x
+
+# Create your local env file
+cp .env.example .env
 
 # Install dependencies
 yarn install
