@@ -30,16 +30,11 @@ class Stats {
         return this.store;
     }
 
-    // Values are encrypted with VITE_STATS_SECRET_KEY, so a key change leaves
-    // every stored entry unreadable. Decrypting them with the new key either
-    // throws or yields NaN, so reset the counter instead.
     private async syncKey(store: Store) {
         const fingerprint = CryptoJS.SHA256(this.secretKey).toString(CryptoJS.enc.Hex).slice(0, 16);
         const stored = await store.get<string>(FINGERPRINT_KEY);
         if (stored === fingerprint) return;
 
-        // No fingerprint means the store predates this check. Keep the entries if
-        // the current key still reads them, so an unchanged key keeps its stats.
         if (stored === undefined && await this.entriesReadable(store)) {
             await store.set(FINGERPRINT_KEY, fingerprint);
             await store.save();
@@ -57,7 +52,7 @@ class Stats {
         for (const [key, value] of await store.entries<string>()) {
             if (key === FINGERPRINT_KEY) continue;
             const decrypted = this.decrypt(typeof value === "string" ? value : "");
-            if (decrypted === 'cheater') continue; //tamper marker, not encrypted
+            if (decrypted === 'cheater') continue;
             if (!this.isNumericString(decrypted)) return false;
         }
         return true;
@@ -73,7 +68,7 @@ class Stats {
             return;
         }
         const decryptedOldValue = this.decrypt(oldValue);
-        if(decryptedOldValue === 'cheater') return; //keep the marker instead of overwriting it
+        if(decryptedOldValue === 'cheater') return;
         const previous = parseInt(decryptedOldValue, 10);
         const newValue = isNaN(previous) ? value : previous + value;
         const cryptedValue = this.encrypt(newValue);
@@ -129,7 +124,7 @@ class Stats {
             const bytes = CryptoJS.AES.decrypt(encryptedValue, this.secretKey);
             return bytes.toString(CryptoJS.enc.Utf8);
         } catch {
-            return ""; //wrong key or corrupt entry
+            return "";
         }
     }
 
