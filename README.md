@@ -43,7 +43,7 @@ which does not go through those hooks.
 git clone https://github.com/Frogbyte-io/dot-x.git
 cd dot-x
 
-# Create your local env file (see .env.example for what each var does)
+# Create your local env file
 cp .env.example .env
 
 # Install dependencies
@@ -54,10 +54,6 @@ cargo
 # Start development server
 yarn tauri dev
 ```
-
-Every var in `.env.example` is optional: empty or missing values disable the
-related feature (crash reporting, analytics, marketplace stats) without breaking
-the build.
 
 ## Usage
 
