@@ -479,11 +479,15 @@ fn ensure_deno_extracted(app: &tauri::AppHandle) -> Result<std::path::PathBuf, S
     Err("Deno executable not found after extraction".to_string())
 }
 
+fn sentry_dsn() -> Option<&'static str> {
+    option_env!("DOTX_SENTRY_DSN").filter(|dsn| !dsn.trim().is_empty())
+}
+
 #[tokio::main]
 async fn main() {
 
     let client = sentry::init((
-        "https://4e7acf1ba609c747863f8e3117f062e2@sentry-ingest.frogbyte.io/3",
+        sentry_dsn(),
         sentry::ClientOptions {
             release: sentry::release_name!(),
             attach_stacktrace: true,
@@ -551,7 +555,12 @@ async fn main() {
         )
         .plugin(tauri_plugin_cli::init())
         .plugin(tauri_plugin_shell::init())
-        .plugin(tauri_plugin_aptabase::Builder::new("A-EU-7429874879").build())
+        .plugin(
+            tauri_plugin_aptabase::Builder::new(
+                option_env!("DOTX_APTABASE_KEY").unwrap_or("").trim(),
+            )
+            .build(),
+        )
         .plugin(tauri_plugin_sentry::init(&client))
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_autostart::init(
@@ -641,6 +650,9 @@ async fn main() {
             }
 
             info!("Starting Dot X with version {:?}", sentry::release_name!());
+            if sentry_dsn().is_none() {
+                warn!("DOTX_SENTRY_DSN was not set at build time, crash reporting is disabled");
+            }
 
             // Ensure bundled Deno is available and export its path
             match ensure_deno_extracted(&app.handle()) {
