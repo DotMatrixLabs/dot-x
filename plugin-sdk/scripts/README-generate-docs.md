@@ -16,27 +16,29 @@ This script:
 ### Basic Command
 
 ```bash
-node generate-docs.mjs [output-dir]
+node generate-docs.mjs --docs-root /path/to/dotmatrixlabs-docs
 ```
 
-### Default Output
+### Output
 
-If no output directory is specified, documentation is generated to:
+Documentation is generated beneath the configured docs repository:
 ```
-../../dotmatrixlabs-docs/docs/plugin-sdk/reference
+<docs-root>/docs/plugin-sdk/reference
 ```
+
+Set `DOTX_DOCS_ROOT` instead of passing `--docs-root` on every command. If neither setting is present, or the directory does not exist, the script exits before generating TypeDoc output.
 
 ### Examples
 
 ```bash
-# Generate to default location
-node generate-docs.mjs
+# Generate using an explicit docs checkout
+node generate-docs.mjs --docs-root /path/to/dotmatrixlabs-docs
 
-# Generate to custom location
-node generate-docs.mjs ./docs/api-reference
+# Generate using the environment
+DOTX_DOCS_ROOT=/path/to/dotmatrixlabs-docs node generate-docs.mjs
 
 # Use with npm/yarn scripts
-yarn docs:generate
+yarn docs:generate --docs-root /path/to/dotmatrixlabs-docs
 ```
 
 ## How It Works
