@@ -2,13 +2,12 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use log::{error, info, trace, warn};
-use serde_json::{json, Value};
+use serde_json::Value;
 use tauri::{AppHandle, Emitter, Manager, WebviewWindow, Wry};
 use std::fs;
 use std::fs::File;
 use tauri_plugin_autostart::MacosLauncher;
 use midir::{MidiOutput};
-use std::collections::HashMap;
 use std::fmt;
 use tauri_plugin_notification::NotificationExt;
 use tauri_plugin_store::StoreExt;
@@ -393,7 +392,7 @@ struct InstancePayload {
 fn start_aptabase_heartbeat(app: tauri::AppHandle) {
     thread::spawn(move || {
         loop {
-            let _ = app.track_event("app_heartbeat💓", None);
+            let _ = app.track_event("app_heartbeat", None);
             // Roughly hourly. 59 minutes rather than exactly 60 so the interval does not
             // consistently line up with the analytics session boundary and start a new session.
             thread::sleep(Duration::from_secs(1 * 60 * 59));
@@ -599,15 +598,10 @@ async fn main() {
                 power_monitor::setup_power_monitoring();
             }
             start_aptabase_heartbeat(app.handle().clone());
-            let mut props_map = HashMap::new();
-            props_map.insert("slider_amount".to_string(), Value::String("5".to_string()));
-
-            // Convert the HashMap to a serde_json::Value and send event on async runtime
-            let props_value = json!(props_map);
             {
                 let app_handle = app.handle().clone();
                 tauri::async_runtime::spawn(async move {
-                    let _ = app_handle.track_event("app_started", Some(props_value));
+                    let _ = app_handle.track_event("app_started", None);
                 });
             }
             let Some(window) = app.get_webview_window("main") else {
