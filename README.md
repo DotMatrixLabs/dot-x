@@ -1,7 +1,7 @@
 # Dot X
 
 [![Version](https://img.shields.io/badge/version-2.0.0--1-blue.svg)](src-tauri/tauri.conf.json)
-[![Platform](https://img.shields.io/badge/platform-Windows-lightgrey.svg)](#platforms)
+[![Platform](https://img.shields.io/badge/platform-Windows-lightgrey.svg)](#installation)
 [![License](https://img.shields.io/badge/license-GPL--3.0--or--later-blue.svg)](LICENSE)
 
 Desktop interface for DotMatrixLabs Decker physical volume mixer built with Tauri (Rust + Vue.js).
