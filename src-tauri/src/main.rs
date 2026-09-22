@@ -541,6 +541,7 @@ async fn main() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_process::init())
         // Our own modules log everything; dependencies stop at `info`. The
         // websocket stack under the plugin server emits tens of thousands of
