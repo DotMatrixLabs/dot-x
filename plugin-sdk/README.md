@@ -392,10 +392,17 @@ interface PluginManifest {
 
 Dot X also grants baseline runtime capabilities required for the SDK/runtime itself. These are not represented in `manifest.permissions` and are not part of the user-approved permission hash:
 
-- `--allow-env` for SDK and Node compatibility.
+- A scoped `--allow-env` covering the variables the runtime injects (`DOTX_PLUGIN_ID`, `DOTX_PLUGIN_DIR`, `DOTX_PLUGIN_PLATFORM`, `DOTX_PLUGIN_PORT`, `DOTX_PLUGIN_LOG_LEVEL`) plus the ones npm packages commonly read on import (`NODE_ENV`, `DEBUG`, `NO_COLOR`, `TERM`, `TMPDIR`, `TZ` and similar).
 - Read/write access inside the plugin install directory.
 - Network access to the local Dot X plugin server on `localhost`/`127.0.0.1`.
 - Limited system account information used by runtime compatibility code.
+
+The environment baseline is deliberately an allowlist rather than the whole
+environment, so an installed plugin cannot read credentials a user keeps there.
+Deno raises `PermissionDenied` instead of returning `undefined` for a variable
+outside the allowlist, so a plugin that needs to read its own configuration from
+the environment must add `env` to `manifest.permissions`, which asks the user for
+approval at install time.
 
 ## Marketplace Packaging
 
