@@ -25,17 +25,17 @@
         <div class="divider"><span class="opacity-50">Telemetry</span></div>
         <div data-setting="Crash reports" class="flex flex-row w-full justify-between px-2 mt-2">
             <div class="pr-4">
-                <label class="my-auto">Crash reports</label>
+                <label class="my-auto" for="crash-reporting-enabled">Crash reports</label>
                 <p class="text-xs opacity-60">Send crash details to Frogbyte's Sentry service.</p>
             </div>
-            <input type="checkbox" class="toggle toggle-primary mr-2" :checked="crashReportingEnabled" @change="toggleCrashReporting" />
+            <input id="crash-reporting-enabled" type="checkbox" class="toggle toggle-primary mr-2" :checked="crashReportingEnabled" @change="toggleCrashReporting" />
         </div>
         <div data-setting="Usage analytics" class="flex flex-row w-full justify-between px-2 mt-4">
             <div class="pr-4">
-                <label class="my-auto">Usage analytics</label>
+                <label class="my-auto" for="analytics-enabled">Usage analytics</label>
                 <p class="text-xs opacity-60">Send app usage events to Aptabase in the EU region.</p>
             </div>
-            <input type="checkbox" class="toggle toggle-primary mr-2" :checked="analyticsEnabled" @change="toggleAnalytics" />
+            <input id="analytics-enabled" type="checkbox" class="toggle toggle-primary mr-2" :checked="analyticsEnabled" @change="toggleAnalytics" />
         </div>
         <div class="divider"><span class="opacity-50">Reset</span></div>
         <div data-setting="Reset Channel Settings" class="flex flex-row w-full justify-between px-2 mt-2">
