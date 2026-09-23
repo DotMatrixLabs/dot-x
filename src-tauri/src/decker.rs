@@ -252,8 +252,10 @@ pub fn initialize_decker(
             }
 
             let (tx, rx): (mpsc::Sender<String>, mpsc::Receiver<String>) = mpsc::channel(); // Spawn a thread to handle incoming data
+            let connected_port_name = port_name.to_owned();
             thread::spawn(move || {
                 let mut serial_buf: Vec<u8> = vec![0; 100];
+                let mut logged_device_info = false;
                 if let Err(err) = window.emit(
                     "connection-change",
                     Payload {
@@ -333,6 +335,16 @@ pub fn initialize_decker(
                                             }
                                         }
                                         DataType::Device(device_data) => {
+                                            if !logged_device_info {
+                                                warn!(
+                                                    "Device connected on {}: model {}, firmware {}, serial {}",
+                                                    connected_port_name,
+                                                    device_data.device_model,
+                                                    device_data.firmware_version,
+                                                    device_data.serial_number
+                                                );
+                                                logged_device_info = true;
+                                            }
                                             let json_data =
                                                 match serde_json::to_string(&device_data) {
                                                     Ok(json) => json,
@@ -381,6 +393,7 @@ pub fn initialize_decker(
             });
 
             *SENDER.lock().unwrap() = Some(tx);
+            send_decker_command("get-device-info", None);
 
             Ok(())
         }
