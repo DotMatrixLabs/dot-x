@@ -26,14 +26,14 @@
         <div data-setting="Crash reports" class="flex flex-row w-full justify-between px-2 mt-2">
             <div class="pr-4">
                 <label class="my-auto" for="crash-reporting-enabled">Crash reports</label>
-                <p class="text-xs opacity-60">Send crash details to Frogbyte's Sentry service.</p>
+                <p class="text-xs opacity-60">Send crash details to help diagnose errors.</p>
             </div>
             <input id="crash-reporting-enabled" type="checkbox" class="toggle toggle-primary mr-2" :checked="crashReportingEnabled" @change="toggleCrashReporting" />
         </div>
         <div data-setting="Usage analytics" class="flex flex-row w-full justify-between px-2 mt-4">
             <div class="pr-4">
                 <label class="my-auto" for="analytics-enabled">Usage analytics</label>
-                <p class="text-xs opacity-60">Send app usage events to Aptabase in the EU region.</p>
+                <p class="text-xs opacity-60">Send basic app usage data to help guide improvements.</p>
             </div>
             <input id="analytics-enabled" type="checkbox" class="toggle toggle-primary mr-2" :checked="analyticsEnabled" @change="toggleAnalytics" />
         </div>
