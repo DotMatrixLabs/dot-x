@@ -554,6 +554,16 @@ fn read_permissions_from_manifest(dir: &Path) -> (Vec<String>, Vec<String>) {
   (normalized.into_iter().collect(), warnings)
 }
 
+/// Whether the plugin's approved manifest permissions grant full environment
+/// access. `--allow-env` on the Deno process only gates `Deno.env`; it does not
+/// touch the OS-level environment block, which any child process the plugin
+/// spawns (via the `run` permission) inherits in full regardless. Callers that
+/// build the child process's actual OS environment must check this separately
+/// from the Deno CLI flags in `build_deno_permission_args`.
+fn manifest_grants_env(permissions: &[String]) -> bool {
+  permissions.iter().any(|p| p == "env" || p == "all")
+}
+
 fn build_deno_permission_args(plugin_dir: &Path, permissions: &[String], port: u16) -> Vec<String> {
   let mut flags: Vec<String> = Vec::new();
   let mut seen: HashSet<String> = HashSet::new();
@@ -831,6 +841,20 @@ async fn spawn_deno_process(app_handle: &AppHandle, dir: &Path, plugin_id: &str)
     cmd.arg(flag);
   }
 
+  // Deno's --allow-env only gates Deno.env; it does not touch the OS-level
+  // environment block, which a child process spawned via the `run` permission
+  // inherits in full regardless of that flag. Without a manifest-approved `env`
+  // permission, clear the OS environment down to the same allowlist so a
+  // plugin cannot bypass the restriction by shelling out.
+  if !manifest_grants_env(&manifest_permissions) {
+    cmd.env_clear();
+    for var in BASELINE_ENV_VARS {
+      if let Ok(value) = std::env::var(var) {
+        cmd.env(var, value);
+      }
+    }
+  }
+
   cmd.arg(&manifest.main)
     .current_dir(dir)
     .env("DOTX_PLUGIN_ID", plugin_id)
@@ -1022,12 +1046,32 @@ pub async fn clear_plugin_logs(plugin_id: String) -> Result<String, String> {
 
 #[cfg(test)]
 mod tests {
-  use super::build_deno_permission_args;
+  use super::{build_deno_permission_args, manifest_grants_env};
   use std::path::Path;
 
   fn flags_for(permissions: &[&str]) -> Vec<String> {
     let owned: Vec<String> = permissions.iter().map(|p| p.to_string()).collect();
     build_deno_permission_args(Path::new("C:\\plugins\\example"), &owned, 9001)
+  }
+
+  fn owned(permissions: &[&str]) -> Vec<String> {
+    permissions.iter().map(|p| p.to_string()).collect()
+  }
+
+  #[test]
+  fn manifest_without_env_or_all_does_not_grant_env() {
+    assert!(!manifest_grants_env(&owned(&[])));
+    assert!(!manifest_grants_env(&owned(&["run", "net"])));
+  }
+
+  #[test]
+  fn manifest_env_permission_grants_env() {
+    assert!(manifest_grants_env(&owned(&["env"])));
+  }
+
+  #[test]
+  fn manifest_all_permission_grants_env() {
+    assert!(manifest_grants_env(&owned(&["all"])));
   }
 
   #[test]
