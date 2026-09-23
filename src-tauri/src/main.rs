@@ -88,13 +88,10 @@ fn set_telemetry_preference(
 #[tauri::command]
 fn track_telemetry_event(
     app: AppHandle,
-    settings: tauri::State<'_, TelemetrySettings>,
     event: String,
     properties: Option<Value>,
 ) {
-    if settings.analytics_enabled() {
-        let _ = app.track_event(&event, properties);
-    }
+    track_analytics_event(&app, &event, properties);
 }
 
 fn load_telemetry_settings(app: &AppHandle, settings: &TelemetrySettings) {
