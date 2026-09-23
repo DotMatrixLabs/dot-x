@@ -12,6 +12,7 @@ use std::collections::HashMap;
 use std::fmt;
 use tauri_plugin_notification::NotificationExt;
 use tauri_plugin_store::StoreExt;
+use telemetry::TelemetrySettings;
 mod audio;
 mod decker;
 mod midi;
@@ -19,6 +20,7 @@ mod power_monitor;
 mod plugin_marketplace;
 mod plugin_server;
 mod plugin_runtime;
+mod telemetry;
 use once_cell::sync::OnceCell;
 use tauri::menu::{Menu, MenuBuilder, MenuItemBuilder, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent};
@@ -44,6 +46,78 @@ static PENDING_DOTX_PATH: std::sync::Mutex<Option<String>> = std::sync::Mutex::n
 #[tauri::command]
 fn consume_pending_dotx_install() -> Option<String> {
     PENDING_DOTX_PATH.lock().ok()?.take()
+}
+
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+enum TelemetryPreference {
+    CrashReportingEnabled,
+    AnalyticsEnabled,
+}
+
+impl TelemetryPreference {
+    fn key(&self) -> &'static str {
+        match self {
+            Self::CrashReportingEnabled => "crashReportingEnabled",
+            Self::AnalyticsEnabled => "analyticsEnabled",
+        }
+    }
+}
+
+#[tauri::command]
+fn set_telemetry_preference(
+    app: AppHandle,
+    settings: tauri::State<'_, TelemetrySettings>,
+    preference: TelemetryPreference,
+    enabled: bool,
+) -> Result<(), String> {
+    let store = app.store("config.json").map_err(|err| err.to_string())?;
+    store.set(preference.key(), json!(enabled));
+    store.save().map_err(|err| err.to_string())?;
+
+    match preference {
+        TelemetryPreference::CrashReportingEnabled => {
+            settings.set_crash_reporting_enabled(enabled);
+        }
+        TelemetryPreference::AnalyticsEnabled => settings.set_analytics_enabled(enabled),
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+fn track_telemetry_event(
+    app: AppHandle,
+    settings: tauri::State<'_, TelemetrySettings>,
+    event: String,
+    properties: Option<Value>,
+) {
+    if settings.analytics_enabled() {
+        let _ = app.track_event(&event, properties);
+    }
+}
+
+fn load_telemetry_settings(app: &AppHandle, settings: &TelemetrySettings) {
+    match app.store("config.json") {
+        Ok(store) => {
+            let crash_reporting_enabled = store
+                .get("crashReportingEnabled")
+                .and_then(|value| value.as_bool())
+                .unwrap_or(true);
+            let analytics_enabled = store
+                .get("analyticsEnabled")
+                .and_then(|value| value.as_bool())
+                .unwrap_or(true);
+
+            settings.set_crash_reporting_enabled(crash_reporting_enabled);
+            settings.set_analytics_enabled(analytics_enabled);
+        }
+        Err(err) => {
+            warn!("Failed to read telemetry preferences; disabling telemetry: {err}");
+            settings.set_crash_reporting_enabled(false);
+            settings.set_analytics_enabled(false);
+        }
+    }
 }
 
 // create the error type that represents all errors possible in our program
@@ -333,7 +407,7 @@ fn build_tray(app: &tauri::AppHandle<Wry>) -> tauri::Result<(Menu<Wry>, TrayIcon
                 info!("Quitting Dot X");
                 let app_handle = app.clone();
                 tauri::async_runtime::spawn(async move {
-                    let _ = app_handle.track_event("app_exited", None);
+                    track_analytics_event(&app_handle, "app_exited", None);
                 });
                 std::process::exit(0);
             }
@@ -393,12 +467,18 @@ struct InstancePayload {
 fn start_aptabase_heartbeat(app: tauri::AppHandle) {
     thread::spawn(move || {
         loop {
-            let _ = app.track_event("app_heartbeat💓", None);
+            track_analytics_event(&app, "app_heartbeat💓", None);
             // Roughly hourly. 59 minutes rather than exactly 60 so the interval does not
             // consistently line up with the analytics session boundary and start a new session.
             thread::sleep(Duration::from_secs(1 * 60 * 59));
         }
     });
+}
+
+fn track_analytics_event(app: &AppHandle, event: &str, properties: Option<Value>) {
+    if app.state::<TelemetrySettings>().analytics_enabled() {
+        let _ = app.track_event(event, properties);
+    }
 }
 
 fn setup_panic_handler(client: Client) {
@@ -485,12 +565,20 @@ fn sentry_dsn() -> Option<&'static str> {
 
 #[tokio::main]
 async fn main() {
-
+    let telemetry_settings = TelemetrySettings::new(false, false);
+    let sentry_settings = telemetry_settings.clone();
     let client = sentry::init((
         sentry_dsn(),
         sentry::ClientOptions {
             release: sentry::release_name!(),
             attach_stacktrace: true,
+            before_send: Some(std::sync::Arc::new(move |event| {
+                if sentry_settings.crash_reporting_enabled() {
+                    Some(event)
+                } else {
+                    None
+                }
+            })),
             ..Default::default()
         },
     ));
@@ -536,7 +624,9 @@ async fn main() {
             plugin_marketplace::uninstall_marketplace_plugin,
             plugin_marketplace::get_dotx_manifest,
             plugin_marketplace::install_local_plugin,
-            consume_pending_dotx_install
+            consume_pending_dotx_install,
+            set_telemetry_preference,
+            track_telemetry_event
         ])
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_os::init())
@@ -595,7 +685,9 @@ async fn main() {
                 api.prevent_close();
             }
         })
-        .setup(|app| {
+        .setup(move |app| {
+            load_telemetry_settings(app.handle(), &telemetry_settings);
+            app.manage(telemetry_settings.clone());
             {
                 power_monitor::setup_power_monitoring();
             }
@@ -608,7 +700,7 @@ async fn main() {
             {
                 let app_handle = app.handle().clone();
                 tauri::async_runtime::spawn(async move {
-                    let _ = app_handle.track_event("app_started", Some(props_value));
+                    track_analytics_event(&app_handle, "app_started", Some(props_value));
                 });
             }
             let Some(window) = app.get_webview_window("main") else {
