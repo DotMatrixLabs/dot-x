@@ -398,10 +398,15 @@ fn require_string(json: &Value, field: &str, errors: &mut Vec<String>) -> Option
   }
 }
 
-fn check_dotx_version_compat(constraint_str: &str, errors: &mut Vec<String>) {
-  let app_version_str = env!("CARGO_PKG_VERSION");
+pub fn check_dotx_version_compat(constraint_str: &str, errors: &mut Vec<String>) {
+  check_dotx_version_against(constraint_str, env!("CARGO_PKG_VERSION"), errors);
+}
+
+fn check_dotx_version_against(constraint_str: &str, app_version_str: &str, errors: &mut Vec<String>) {
+  // semver ranges never match a pre-release (">=1.0.0" rejects "2.0.0-1"), so compare
+  // against the release the app is building toward.
   let app_version = match semver::Version::parse(app_version_str) {
-    Ok(v) => v,
+    Ok(v) => semver::Version::new(v.major, v.minor, v.patch),
     Err(_) => {
       // If our own version isn't parseable, skip the check.
       warn!("Could not parse app version \"{}\" as semver; skipping dotxVersion check", app_version_str);
@@ -1046,7 +1051,7 @@ pub async fn clear_plugin_logs(plugin_id: String) -> Result<String, String> {
 
 #[cfg(test)]
 mod tests {
-  use super::{build_deno_permission_args, manifest_grants_env};
+  use super::{build_deno_permission_args, check_dotx_version_against, manifest_grants_env};
   use std::path::Path;
 
   fn flags_for(permissions: &[&str]) -> Vec<String> {
@@ -1120,5 +1125,33 @@ mod tests {
     let flags = flags_for(&["all"]);
 
     assert!(flags.iter().any(|f| f == "--allow-all"), "{:?}", flags);
+  }
+
+  fn errors_for(constraint: &str, app_version: &str) -> Vec<String> {
+    let mut errors = Vec::new();
+    check_dotx_version_against(constraint, app_version, &mut errors);
+    errors
+  }
+
+  #[test]
+  fn prerelease_app_satisfies_lower_bound() {
+    assert!(errors_for(">=1.0.0", "2.0.0-1").is_empty());
+  }
+
+  #[test]
+  fn prerelease_app_is_treated_as_its_release() {
+    assert!(errors_for(">=2.0.0", "2.0.0-1").is_empty());
+    assert!(errors_for("^2.0.0", "2.0.0-1").is_empty());
+  }
+
+  #[test]
+  fn rejects_app_older_than_requirement() {
+    assert_eq!(errors_for(">=3.0.0", "2.0.0-1").len(), 1);
+    assert_eq!(errors_for(">=2.1.0", "2.0.0").len(), 1);
+  }
+
+  #[test]
+  fn rejects_invalid_requirement() {
+    assert_eq!(errors_for("not-a-range", "2.0.0").len(), 1);
   }
 }
