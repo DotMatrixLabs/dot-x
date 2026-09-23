@@ -22,6 +22,21 @@
             <span class="my-auto">Inverted sliders: <br></span>
             <input type="checkbox" class="toggle toggle-primary mr-2" :checked="invertedSliders" @change="toggleInvertedSliders" />
         </div>
+        <div class="divider"><span class="opacity-50">Telemetry</span></div>
+        <div data-setting="Crash reports" class="flex flex-row w-full justify-between px-2 mt-2">
+            <div class="pr-4">
+                <label class="my-auto" for="crash-reporting-enabled">Crash reports</label>
+                <p class="text-xs opacity-60">Send crash details to help diagnose errors.</p>
+            </div>
+            <input id="crash-reporting-enabled" type="checkbox" class="toggle toggle-primary mr-2" :checked="crashReportingEnabled" @change="toggleCrashReporting" />
+        </div>
+        <div data-setting="Usage analytics" class="flex flex-row w-full justify-between px-2 mt-4">
+            <div class="pr-4">
+                <label class="my-auto" for="analytics-enabled">Usage analytics</label>
+                <p class="text-xs opacity-60">Send basic app usage data to help guide improvements.</p>
+            </div>
+            <input id="analytics-enabled" type="checkbox" class="toggle toggle-primary mr-2" :checked="analyticsEnabled" @change="toggleAnalytics" />
+        </div>
         <div class="divider"><span class="opacity-50">Reset</span></div>
         <div data-setting="Reset Channel Settings" class="flex flex-row w-full justify-between px-2 mt-2">
             <div>
@@ -50,6 +65,7 @@ import { mapState } from "pinia";
 import { resetAllSettings, resetChannelSettings } from "../ts/helpers.ts";
 import Confirmation from "../components/Confirmation.vue";
 import { createLogger } from "../ts/logger.ts";
+import { setTelemetryPreference } from "../ts/telemetry.ts";
 
 const log = createLogger("general-settings");
 
@@ -67,7 +83,9 @@ export default {
             sliderOptions: ["Do nothing", "Mute", "Maximize volume"],
             sliderAmount: 3,
             selectedValues: [], // Array to store selected values for each slider,
-            invertedSliders: false
+            invertedSliders: false,
+            crashReportingEnabled: true,
+            analyticsEnabled: true
         }
     },
     computed: {
@@ -107,6 +125,37 @@ export default {
 
         async getInvertedSlidersStatus() {
             this.invertedSliders = await ConfigStore.get("invertedSliders");
+        },
+
+        async getTelemetryPreferences() {
+            try {
+                const crashReportingEnabled = await ConfigStore.get("crashReportingEnabled");
+                const analyticsEnabled = await ConfigStore.get("analyticsEnabled");
+                this.crashReportingEnabled = typeof crashReportingEnabled === "boolean" ? crashReportingEnabled : true;
+                this.analyticsEnabled = typeof analyticsEnabled === "boolean" ? analyticsEnabled : true;
+            } catch (error) {
+                log.error("Failed to load telemetry preferences", error);
+            }
+        },
+
+        async saveTelemetryPreference(preference, enabled) {
+            const setting = preference === "crashReportingEnabled" ? "crashReportingEnabled" : "analyticsEnabled";
+            const previous = this[setting];
+            this[setting] = enabled;
+            try {
+                await setTelemetryPreference(preference, enabled);
+            } catch (error) {
+                this[setting] = previous;
+                log.error("Failed to save telemetry preference", error);
+            }
+        },
+
+        async toggleCrashReporting(event) {
+            await this.saveTelemetryPreference("crashReportingEnabled", event.target.checked);
+        },
+
+        async toggleAnalytics(event) {
+            await this.saveTelemetryPreference("analyticsEnabled", event.target.checked);
         },
 
         async toggleAutostart() {
@@ -162,6 +211,7 @@ export default {
         this.getActOnDeckerDisconnect();
         this.getDisconnectHandleSelectedValues();
         this.getInvertedSlidersStatus();
+        this.getTelemetryPreferences();
 
         this.sliderAmount = this.sliders.length; // Set the amount of sliders to the amount of sliders in the store
         if(this.sliderAmount === 0) this.sliderAmount = 5;
