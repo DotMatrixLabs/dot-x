@@ -230,9 +230,14 @@ pub fn initialize_decker(
     let baud_rate: u32 = 115_200;
 
     // Check if the connection is already open and close it if it is.
+    let mut is_decker = false;
     if let Ok(ports) = available_ports() {
         for port_info in ports {
             if port_info.port_name == port_name {
+                is_decker = matches!(
+                    port_info.port_type,
+                    SerialPortType::UsbPort(ref info) if info.vid == 1240 && info.pid == 58918
+                );
                 warn!("Port \"{}\" is already open. Closing it...", port_name);
                 kill_decker_thread();
             }
@@ -335,7 +340,7 @@ pub fn initialize_decker(
                                             }
                                         }
                                         DataType::Device(device_data) => {
-                                            if !logged_device_info {
+                                            if is_decker && !logged_device_info {
                                                 warn!(
                                                     "Device connected on {}: model {}, firmware {}, serial {}",
                                                     connected_port_name,
@@ -393,7 +398,9 @@ pub fn initialize_decker(
             });
 
             *SENDER.lock().unwrap() = Some(tx);
-            send_decker_command("get-device-info", None);
+            if is_decker {
+                send_decker_command("get-device-info", None);
+            }
 
             Ok(())
         }
