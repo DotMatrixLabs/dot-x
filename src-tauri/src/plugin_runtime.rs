@@ -275,6 +275,41 @@ pub struct ValidatedManifest {
 /// Known permission strings accepted in manifest.json `permissions`.
 const KNOWN_PERMISSIONS: &[&str] = &["net", "network", "env", "run", "ffi", "sys", "read", "write", "hrtime", "all"];
 
+/// Environment variables every plugin may read without asking for the `env`
+/// permission. Deno raises `PermissionDenied` rather than returning undefined for
+/// anything outside an `--allow-env` allowlist, so this covers the variables the
+/// runtime injects plus the ones ordinary npm dependencies read on import. None of
+/// them hold user secrets; anything else requires `env` in manifest.json.
+const BASELINE_ENV_VARS: &[&str] = &[
+  // Injected by spawn_deno_process; the SDK needs these to reach the plugin server.
+  "DOTX_PLUGIN_ID",
+  "DOTX_PLUGIN_DIR",
+  "DOTX_PLUGIN_PLATFORM",
+  "DOTX_PLUGIN_PORT",
+  // Read by the SDK logger.
+  "DOTX_PLUGIN_LOG_LEVEL",
+  // Node compatibility. Widely read at import time by npm packages.
+  "NODE_ENV",
+  "NODE_DEBUG",
+  "NODE_OPTIONS",
+  "NODE_PATH",
+  "DEBUG",
+  // Colour and TTY detection (chalk, supports-color and friends).
+  "NO_COLOR",
+  "FORCE_COLOR",
+  "COLORTERM",
+  "TERM",
+  "TERM_PROGRAM",
+  "ANSICON",
+  "CI",
+  // os.tmpdir() and date handling. These leak no more than the plugin's own
+  // directory, which the plugin can already read.
+  "TMPDIR",
+  "TEMP",
+  "TMP",
+  "TZ",
+];
+
 /// Validate all manifest fields, permission values, version format, and
 /// dotxVersion compatibility.  Returns the full parsed manifest or a list
 /// of every problem found (so callers can surface them all at once).
@@ -524,10 +559,18 @@ fn build_deno_permission_args(plugin_dir: &Path, permissions: &[String], port: u
   let mut seen: HashSet<String> = HashSet::new();
   let mut net_scopes: HashSet<String> = HashSet::new();
   let mut allow_all_net = false;
-  // Baseline runtime capability, not a manifest permission:
-  // the SDK and Node compatibility layer expect unrestricted environment access.
-  // User-approved plugin permissions are read from manifest.json and applied below.
-  let mut allow_env_all = true;
+  // Baseline runtime capability, not a manifest permission. The SDK and the Node
+  // compatibility layer need *some* environment access, but granting the whole
+  // environment let any installed plugin read credentials the user keeps there
+  // (API tokens, cloud keys). The baseline is therefore the allowlist below, and a
+  // plugin that genuinely needs more asks for "env" in its manifest, which goes
+  // through the user-facing permission dialog. User-approved plugin permissions are
+  // read from manifest.json and applied further down.
+  let mut allow_env_all = false;
+  let mut env_scopes: HashSet<String> = HashSet::new();
+  for var in BASELINE_ENV_VARS {
+    env_scopes.insert((*var).to_string());
+  }
   let mut allow_sys_all = false;
   let mut sys_scopes: HashSet<String> = HashSet::new();
   sys_scopes.insert("homedir".to_string());
@@ -613,6 +656,13 @@ fn build_deno_permission_args(plugin_dir: &Path, permissions: &[String], port: u
   if allow_env_all {
     if seen.insert("--allow-env".to_string()) {
       flags.push("--allow-env".to_string());
+    }
+  } else if !env_scopes.is_empty() {
+    let mut names: Vec<String> = env_scopes.into_iter().collect();
+    names.sort();
+    let scoped = format!("--allow-env={}", names.join(","));
+    if seen.insert(scoped.clone()) {
+      flags.push(scoped);
     }
   }
 
@@ -967,5 +1017,64 @@ pub async fn clear_plugin_logs(plugin_id: String) -> Result<String, String> {
     Ok(format!("Logs cleared for plugin {}", plugin_id))
   } else {
     Ok(format!("No logs to clear for plugin {}", plugin_id))
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::build_deno_permission_args;
+  use std::path::Path;
+
+  fn flags_for(permissions: &[&str]) -> Vec<String> {
+    let owned: Vec<String> = permissions.iter().map(|p| p.to_string()).collect();
+    build_deno_permission_args(Path::new("C:\\plugins\\example"), &owned, 9001)
+  }
+
+  #[test]
+  fn baseline_scopes_env_to_the_runtime_allowlist() {
+    let flags = flags_for(&[]);
+
+    let scoped = flags
+      .iter()
+      .find(|f| f.starts_with("--allow-env="))
+      .expect("baseline should emit a scoped --allow-env");
+
+    assert!(
+      !flags.iter().any(|f| f == "--allow-env"),
+      "baseline must not grant the full environment: {:?}",
+      flags
+    );
+    for var in [
+      "DOTX_PLUGIN_ID",
+      "DOTX_PLUGIN_DIR",
+      "DOTX_PLUGIN_PLATFORM",
+      "DOTX_PLUGIN_PORT",
+      "DOTX_PLUGIN_LOG_LEVEL",
+    ] {
+      assert!(scoped.contains(var), "{} missing from {}", var, scoped);
+    }
+  }
+
+  #[test]
+  fn env_permission_grants_the_full_environment() {
+    let flags = flags_for(&["env"]);
+
+    assert!(
+      flags.iter().any(|f| f == "--allow-env"),
+      "the env manifest permission should still escalate: {:?}",
+      flags
+    );
+    assert!(
+      !flags.iter().any(|f| f.starts_with("--allow-env=")),
+      "scoped and unscoped --allow-env must not both be passed: {:?}",
+      flags
+    );
+  }
+
+  #[test]
+  fn all_permission_still_grants_allow_all() {
+    let flags = flags_for(&["all"]);
+
+    assert!(flags.iter().any(|f| f == "--allow-all"), "{:?}", flags);
   }
 }
