@@ -22,7 +22,7 @@ export class PluginAPI {
   
   // --- ACTION helpers ---
   async emitAction(plugin_id: string, action: string, params: any = {}) {
-    log.debug('Emitting action', action, params);
+    log.debug('Emitting action', action);
     try {
       await invoke('send_to_plugin', { pluginId: plugin_id, event: 'plugin.action', data: { action, params } });
     } catch (err) {
@@ -108,10 +108,10 @@ export class PluginAPI {
       try {
         const deviceInfo = await this.getDeviceInfo();
         if (data.connected) {
-          log.debug('Broadcasting device connected event to plugins', deviceInfo);
+          log.debug('Broadcasting device connected event to plugins');
           await invoke('broadcast_to_plugins', { event: 'plugin.device_connected', data: deviceInfo });
         } else {
-          log.debug('Broadcasting device disconnected event to plugins', deviceInfo);
+          log.debug('Broadcasting device disconnected event to plugins');
           await invoke('broadcast_to_plugins', { event: 'plugin.device_disconnected', data: deviceInfo });
         }
       } catch (err) {
@@ -138,22 +138,22 @@ export class PluginAPI {
   // Events from plugins
   setupTauriEventListeners() {
     listen('plugin/api_request', (event) => {
-      log.debug('Received API request:', event.payload);
+      log.debug('Received API request');
       this.handleApiRequest(event.payload as ApiRequest & { plugin_id?: string });
     });
-    listen('plugin/api_response', (event) => {
-      log.debug('Received API response:', event.payload);
+    listen('plugin/api_response', () => {
+      log.debug('Received API response');
     });
-    listen('plugin/api_error', (event) => {
-      log.debug('Received API error:', event.payload);
+    listen('plugin/api_error', () => {
+      log.debug('Received API error');
     });
-    listen('plugin/api_event', (event) => {
-      log.debug('Received API event:', event.payload);
+    listen('plugin/api_event', () => {
+      log.debug('Received API event');
     });
     listen('plugin/lifecycle', (event) => {
       const lifecycleEvent = event.payload as PluginLifecycleEvent;
       usePluginStore().handlePluginLifecycle(lifecycleEvent);
-      log.debug('Received lifecycle event:', event.payload);
+      log.debug('Received lifecycle event');
     });
     listen('plugin/connected', (event) => {
       const plugin = event.payload as {
@@ -166,12 +166,12 @@ export class PluginAPI {
         capabilities?: string[];
       };
       usePluginStore().upsertConnectedPlugin(plugin);
-      log.debug('Received connected event:', event.payload);
+      log.debug('Received connected event');
     });
     listen('plugin/disconnected', (event) => {
       const plugin = event.payload as { id: string; name?: string; error?: string | null };
       usePluginStore().handlePluginDisconnected(plugin);
-      log.debug('Received disconnected event:', event.payload);
+      log.debug('Received disconnected event');
     });
   }
 
@@ -361,13 +361,13 @@ export class PluginAPI {
 
   public async getPluginSettings(pluginId: string) {
     const settings = await this.pluginRequest(pluginId, 'get_plugin_settings');
-    log.debug('Plugin settings received:', settings);
+    log.debug('Plugin settings received from', pluginId);
     return settings.data;
   }
 
   public async getPluginActions(pluginId: string) {
     const actions = await this.pluginRequest(pluginId, 'get_actions');
-    log.debug('Actions received:', actions);
+    log.debug('Actions received from', pluginId);
     return actions.data;
   }
 
