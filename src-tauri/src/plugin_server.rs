@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, AtomicU16, Ordering};
+use std::sync::atomic::{AtomicU16, Ordering};
 use tokio::sync::{mpsc, RwLock};
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter};
@@ -16,11 +16,6 @@ const PORT_RANGE_END: u16 = 3099;
 
 // Global atomic to store the actual port being used
 static ACTIVE_PORT: AtomicU16 = AtomicU16::new(0);
-static PLUGIN_CONNECTED: AtomicBool = AtomicBool::new(false);
-
-pub fn has_connected_plugin() -> bool {
-    PLUGIN_CONNECTED.load(Ordering::Relaxed)
-}
 
 /// Get the currently active plugin server port
 pub fn get_active_port() -> u16 {
@@ -185,19 +180,8 @@ impl PluginServer {
                                 socket_id: socket_id.clone(),
                             };
 
-                            {
-                                let mut connected = connections.write().await;
-                                connected.insert(plugin_info.id.clone(), connection);
-                                PLUGIN_CONNECTED.store(true, Ordering::Relaxed);
-                            }
-                            crate::track_analytics_event(
-                                &app_handle,
-                                "plugin_used",
-                                Some(serde_json::json!({
-                                    "plugin_id": &plugin_info.id,
-                                    "plugin_name": &plugin_info.name,
-                                })),
-                            );
+                            connections.write().await.insert(plugin_info.id.clone(), connection);
+                            crate::track_plugin_usage_event(&app_handle, &plugin_info.id, &plugin_info.name);
 
                             // Emit to frontend
                             let _ = app_handle.emit("plugin/lifecycle", serde_json::json!({
@@ -350,7 +334,6 @@ impl PluginServer {
 
                             if let Some(plugin_id) = plugin_id {
                                 connections_lock.remove(&plugin_id);
-                                PLUGIN_CONNECTED.store(!connections_lock.is_empty(), Ordering::Relaxed);
                                 info!("Plugin disconnected: {}", plugin_id);
 
                                 // Emit to frontend with consistent payload shape
@@ -395,7 +378,6 @@ impl PluginServer {
         // Clear connections
         let mut connections = self.connections.write().await;
         connections.clear();
-        PLUGIN_CONNECTED.store(false, Ordering::Relaxed);
 
         // Clear pending requests
         let mut pending_requests = self.pending_requests.write().await;
