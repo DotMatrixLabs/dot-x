@@ -464,7 +464,11 @@ struct InstancePayload {
 fn start_aptabase_heartbeat(app: tauri::AppHandle) {
     thread::spawn(move || {
         loop {
-            track_analytics_event(&app, "app_heartbeat💓", None);
+            track_analytics_event(
+                &app,
+                "app_heartbeat💓",
+                Some(json!({ "plugin_active": plugin_server::has_connected_plugin() })),
+            );
             // Roughly hourly. 59 minutes rather than exactly 60 so the interval does not
             // consistently line up with the analytics session boundary and start a new session.
             thread::sleep(Duration::from_secs(1 * 60 * 59));
@@ -472,7 +476,7 @@ fn start_aptabase_heartbeat(app: tauri::AppHandle) {
     });
 }
 
-fn track_analytics_event(app: &AppHandle, event: &str, properties: Option<Value>) {
+pub(crate) fn track_analytics_event(app: &AppHandle, event: &str, properties: Option<Value>) {
     if app.state::<TelemetrySettings>().analytics_enabled() {
         let _ = app.track_event(event, properties);
     }
