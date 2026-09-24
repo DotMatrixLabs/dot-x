@@ -50,7 +50,7 @@ export default {
 
   methods: {
     close() {
-      appWindow.hide()
+      appWindow.close()
     },
     minimize() {
       appWindow.minimize()
