@@ -447,13 +447,17 @@ fn build_tray(app: &tauri::AppHandle<Wry>) -> tauri::Result<(Menu<Wry>, TrayIcon
     Ok((menu, tray))
 }
 
-fn show_notification(app: &tauri::AppHandle, title: &str, body: &str) {
+fn show_notification(app: &tauri::AppHandle, title: &str, body: &str) -> bool {
     info!(
         "Showing notification || Title: {} | Message: {}",
         title, body
     );
-    if let Err(err) = app.notification().builder().title(title).body(body).show() {
-        error!("Failed to show notification: {err}");
+    match app.notification().builder().title(title).body(body).show() {
+        Ok(()) => true,
+        Err(err) => {
+            error!("Failed to show notification: {err}");
+            false
+        }
     }
 }
 
@@ -477,6 +481,15 @@ fn show_close_to_tray_notice(app: &AppHandle, state: &TrayNoticeState) {
         return;
     }
 
+    if !show_notification(
+        app,
+        "Dot X is still running",
+        "You can reopen Dot X from the system tray.",
+    ) {
+        state.release_failed_notice();
+        return;
+    }
+
     match app.store("config.json") {
         Ok(store) => {
             store.set("closeToTrayNoticeShown", json!(true));
@@ -486,12 +499,6 @@ fn show_close_to_tray_notice(app: &AppHandle, state: &TrayNoticeState) {
         }
         Err(err) => warn!("Failed to store close-to-tray notice preference: {err}"),
     }
-
-    show_notification(
-        app,
-        "Dot X is still running",
-        "You can reopen Dot X from the system tray.",
-    );
 }
 
 #[derive(Clone, serde::Serialize)]
