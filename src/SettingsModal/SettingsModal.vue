@@ -135,6 +135,7 @@ const BASE_SETTINGS_INDEX = [
   { label: "Turn off LEDs on Sleep", tab: "Device" },
   { label: "Device Info", tab: "Device" },
   { label: "Run on startup", tab: "General" },
+  { label: "Allow window resizing", tab: "General" },
   { label: "Act when Decker disconnects", tab: "General" },
   { label: "Inverted sliders", tab: "General" },
   { label: "Reset Channel Settings", tab: "General" },

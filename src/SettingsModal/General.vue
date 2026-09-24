@@ -5,6 +5,10 @@
             <span class="my-auto">Run on startup: </span>
             <input type="checkbox" class="toggle toggle-primary mr-2" :checked="autoStartStatus" @change="toggleAutostart" />
         </div>
+        <div data-setting="Allow window resizing" class="flex flex-row w-full justify-between px-2 mt-4">
+            <label class="my-auto" for="allow-window-resizing">Allow window resizing</label>
+            <input id="allow-window-resizing" type="checkbox" class="toggle toggle-primary mr-2" :checked="allowWindowResizing" @change="toggleWindowResizing" />
+        </div>
         <div data-setting="Act when Decker disconnects" class="flex flex-row w-full justify-between px-2 mt-4">
             <span class="my-auto">Act when Decker disconnects: <br></span>
             <input type="checkbox" class="toggle toggle-primary mr-2" :checked="actOnDeckerDisconnect" @change="toggleActOnDeckerDisconnect" />
@@ -66,6 +70,7 @@ import { resetAllSettings, resetChannelSettings } from "../ts/helpers.ts";
 import Confirmation from "../components/Confirmation.vue";
 import { createLogger } from "../ts/logger.ts";
 import { setTelemetryPreference } from "../ts/telemetry.ts";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 
 const log = createLogger("general-settings");
 
@@ -79,6 +84,7 @@ export default {
     data() {
         return {
             autoStartStatus: false,
+            allowWindowResizing: false,
             actOnDeckerDisconnect: false,
             sliderOptions: ["Do nothing", "Mute", "Maximize volume"],
             sliderAmount: 3,
@@ -117,6 +123,31 @@ export default {
 
         async getAutostartStatus() {
             this.autoStartStatus = await SystemSettings.checkAutostartStatus();
+        },
+
+        async getWindowResizingPreference() {
+            try {
+                this.allowWindowResizing = await ConfigStore.get("allowWindowResizing") === true;
+            } catch (error) {
+                log.error("Failed to load window resizing preference", error);
+            }
+        },
+
+        async toggleWindowResizing(event) {
+            const enabled = event.target.checked;
+            try {
+                await getCurrentWindow().setResizable(enabled);
+                await ConfigStore.set("allowWindowResizing", enabled);
+                this.allowWindowResizing = enabled;
+            } catch (error) {
+                event.target.checked = this.allowWindowResizing;
+                try {
+                    await getCurrentWindow().setResizable(this.allowWindowResizing);
+                } catch (restoreError) {
+                    log.error("Failed to restore window resizing", restoreError);
+                }
+                log.error("Failed to change window resizing", error);
+            }
         },
         
         async getActOnDeckerDisconnect() {
@@ -208,6 +239,7 @@ export default {
     },
     mounted() {
         this.getAutostartStatus();
+        this.getWindowResizingPreference();
         this.getActOnDeckerDisconnect();
         this.getDisconnectHandleSelectedValues();
         this.getInvertedSlidersStatus();
