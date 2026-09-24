@@ -32,6 +32,10 @@ import { mapState } from "pinia";
 import { version } from '@tauri-apps/plugin-os';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
+import { getCurrentWindow } from '@tauri-apps/api/window';
+import { createLogger } from './ts/logger.ts';
+
+const log = createLogger('app');
 
 export default {
   components: { TopBar, SettingsModal, SliderOverview, AppsModal, Plugin, Toaster, DotxInstallModal },
@@ -122,6 +126,14 @@ export default {
   },
 
   async mounted() {
+    try {
+      if (await ConfigStore.get('allowWindowResizing') === true) {
+        await getCurrentWindow().setResizable(true);
+      }
+    } catch (error) {
+      log.error('Failed to restore window resizing preference', error);
+    }
+
     await PluginAPI.initialize();
 
     // Listen for .dotx files opened while the app is already running.
