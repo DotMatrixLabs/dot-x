@@ -10,6 +10,10 @@ impl TrayNoticeState {
     pub fn claim_first_notice(&self) -> bool {
         !self.0.swap(true, Ordering::Relaxed)
     }
+
+    pub fn release_failed_notice(&self) {
+        self.0.store(false, Ordering::Relaxed);
+    }
 }
 
 #[cfg(test)]
@@ -29,5 +33,14 @@ mod tests {
         let state = TrayNoticeState::new(true);
 
         assert!(!state.claim_first_notice());
+    }
+
+    #[test]
+    fn failed_notification_can_be_retried() {
+        let state = TrayNoticeState::new(false);
+
+        assert!(state.claim_first_notice());
+        state.release_failed_notice();
+        assert!(state.claim_first_notice());
     }
 }
