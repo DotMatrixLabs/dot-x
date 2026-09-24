@@ -190,7 +190,14 @@ impl PluginServer {
                                 connected.insert(plugin_info.id.clone(), connection);
                                 PLUGIN_CONNECTED.store(true, Ordering::Relaxed);
                             }
-                            crate::track_analytics_event(&app_handle, "plugin_used", None);
+                            crate::track_analytics_event(
+                                &app_handle,
+                                "plugin_used",
+                                Some(serde_json::json!({
+                                    "plugin_id": &plugin_info.id,
+                                    "plugin_name": &plugin_info.name,
+                                })),
+                            );
 
                             // Emit to frontend
                             let _ = app_handle.emit("plugin/lifecycle", serde_json::json!({
