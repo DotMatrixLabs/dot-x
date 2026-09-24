@@ -464,11 +464,15 @@ struct InstancePayload {
 fn start_aptabase_heartbeat(app: tauri::AppHandle) {
     thread::spawn(move || {
         loop {
-            track_analytics_event(
-                &app,
-                "app_heartbeat💓",
-                Some(json!({ "plugin_active": plugin_server::has_connected_plugin() })),
-            );
+            track_analytics_event(&app, "app_heartbeat💓", None);
+            let app_handle = app.clone();
+            tauri::async_runtime::spawn(async move {
+                if let Ok(plugins) = plugin_server::get_connected_plugins().await {
+                    for plugin in plugins {
+                        track_plugin_usage_event(&app_handle, &plugin.id, &plugin.name);
+                    }
+                }
+            });
             // Roughly hourly. 59 minutes rather than exactly 60 so the interval does not
             // consistently line up with the analytics session boundary and start a new session.
             thread::sleep(Duration::from_secs(1 * 60 * 59));
@@ -480,6 +484,14 @@ pub(crate) fn track_analytics_event(app: &AppHandle, event: &str, properties: Op
     if app.state::<TelemetrySettings>().analytics_enabled() {
         let _ = app.track_event(event, properties);
     }
+}
+
+pub(crate) fn track_plugin_usage_event(app: &AppHandle, plugin_id: &str, plugin_name: &str) {
+    track_analytics_event(
+        app,
+        "plugin_used",
+        Some(json!({ "plugin_id": plugin_id, "plugin_name": plugin_name })),
+    );
 }
 
 fn setup_panic_handler(client: Client) {
