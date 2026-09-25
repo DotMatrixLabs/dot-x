@@ -19,4 +19,4 @@ Windows Authenticode signing is deferred to #244. The draft workflow currently p
 4. Publish the draft after release review. Publishing makes `latest.json` available to the updater.
 5. Exercise an update from an older installed version. Check the resulting app version and that settings and mappings remain intact. Update the website download link and changelog content from `.github/RELEASE_TEMPLATE.md` only after that check passes.
 
-Tags with a prerelease suffix create GitHub prereleases. The stable updater endpoint uses GitHub's latest published release. User selection of Beta/Nightly updates remains in #117.
+Tags with a prerelease suffix create GitHub prereleases. Stable is the default update track and uses GitHub's latest published stable release. Users can opt into Beta/Nightly in Settings > About. That track checks published releases for the highest semantic version with a `latest.json` asset, including stable releases and GitHub prereleases. Drafts are never offered. Publish prereleases only after reviewing their updater assets and version order.

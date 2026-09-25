@@ -21,6 +21,7 @@ mod plugin_marketplace;
 mod plugin_server;
 mod plugin_runtime;
 mod telemetry;
+mod update_tracks;
 use once_cell::sync::OnceCell;
 use tauri::menu::{Menu, MenuBuilder, MenuItemBuilder, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent};
@@ -697,7 +698,8 @@ async fn main() {
             plugin_marketplace::install_local_plugin,
             consume_pending_dotx_install,
             set_telemetry_preference,
-            track_telemetry_event
+            track_telemetry_event,
+            update_tracks::install_beta_update
         ])
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_os::init())
