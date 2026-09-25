@@ -16,7 +16,7 @@
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDU2QzVDQUYzNDVERjJDNzEKUldSeExOOUY4OHJGVm5PNnZHQlZPRWE4WERodmxBYkpYbzluS2V0czlhZjRqWm5QWkRqNUt5b0cK",
       "endpoints": [
-        "https://dist.anystack.sh/v1/tauri/9ab29103-730b-453d-b1c2-e7b57d099d07/{{current_version}}"
+        "https://github.com/Frogbyte-io/dot-x/releases/latest/download/latest.json"
       ]
     },
     "cli": {
@@ -53,9 +53,6 @@
       "resources/deno/*"
     ],
     "windows": {
-      "certificateThumbprint": "ca2e93b1a72064b5c3ecdef2481044859fbe241b",
-      "digestAlgorithm": "sha256",
-      "timestampUrl": "http://time.certum.pl",
       "nsis": {
         "installerIcon": "./icons/icon.ico"
       },
