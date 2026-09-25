@@ -5,10 +5,8 @@
         <div class="flex flex-col justify-center">
           <Slider :midiEnabledGlobal="midiEnabledGlobal" :midiEnabled="midiEnabled[index]" :class="sliders.length === 0 || connectionState === false ? 'opacity-50' : 'opacity-100'" :slider-val="slider" class="h-full w-full" />
           <button @click="$emit('app-click', index)"
-            class="m-auto rounded-full w-24 h-12 mt-12 mx-1">
-            <div class="">
-              <ChannelLabel :key="index" :apps="sliderApps[index]?.apps" :channel="index" />
-            </div>
+            class="mx-auto mt-12 h-12 w-24 shrink-0 rounded-full p-0">
+            <ChannelLabel :apps="sliderApps[index]?.apps" :channel="index" />
           </button>
         </div>
       </template>
