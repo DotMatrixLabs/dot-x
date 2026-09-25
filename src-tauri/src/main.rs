@@ -41,6 +41,27 @@ use std::os::unix::fs::PermissionsExt;
 
 static APP: OnceCell<tauri::AppHandle> = OnceCell::new();
 
+const PLUGIN_USAGE_RECONNECT_INTERVAL: Duration = Duration::from_secs(60 * 60);
+static PLUGIN_USAGE_LIMITER: OnceCell<std::sync::Mutex<PluginUsageLimiter>> = OnceCell::new();
+
+#[derive(Default)]
+struct PluginUsageLimiter {
+    last_reported: HashMap<String, std::time::Instant>,
+}
+
+impl PluginUsageLimiter {
+    fn should_report(&mut self, plugin_id: &str, now: std::time::Instant, heartbeat: bool) -> bool {
+        self.last_reported.retain(|_, last| {
+            now.saturating_duration_since(*last) < PLUGIN_USAGE_RECONNECT_INTERVAL
+        });
+        if !heartbeat && self.last_reported.contains_key(plugin_id) {
+            return false;
+        }
+        self.last_reported.insert(plugin_id.to_string(), now);
+        true
+    }
+}
+
 static PENDING_DOTX_PATH: std::sync::Mutex<Option<String>> = std::sync::Mutex::new(None);
 
 #[tauri::command]
@@ -465,6 +486,14 @@ fn start_aptabase_heartbeat(app: tauri::AppHandle) {
     thread::spawn(move || {
         loop {
             track_analytics_event(&app, "app_heartbeat💓", None);
+            let app_handle = app.clone();
+            tauri::async_runtime::spawn(async move {
+                if let Ok(plugins) = plugin_server::get_connected_plugins().await {
+                    for plugin in plugins {
+                        track_plugin_usage_event(&app_handle, &plugin.id, &plugin.name, true);
+                    }
+                }
+            });
             // Roughly hourly. 59 minutes rather than exactly 60 so the interval does not
             // consistently line up with the analytics session boundary and start a new session.
             thread::sleep(Duration::from_secs(1 * 60 * 59));
@@ -472,9 +501,54 @@ fn start_aptabase_heartbeat(app: tauri::AppHandle) {
     });
 }
 
-fn track_analytics_event(app: &AppHandle, event: &str, properties: Option<Value>) {
+pub(crate) fn track_analytics_event(app: &AppHandle, event: &str, properties: Option<Value>) {
     if app.state::<TelemetrySettings>().analytics_enabled() {
         let _ = app.track_event(event, properties);
+    }
+}
+
+pub(crate) fn track_plugin_usage_event(
+    app: &AppHandle,
+    plugin_id: &str,
+    plugin_name: &str,
+    heartbeat: bool,
+) {
+    if !app.state::<TelemetrySettings>().analytics_enabled() {
+        return;
+    }
+    let limiter = PLUGIN_USAGE_LIMITER.get_or_init(Default::default);
+    let should_report = limiter
+        .lock()
+        .unwrap_or_else(|err| err.into_inner())
+        .should_report(plugin_id, std::time::Instant::now(), heartbeat);
+    if !should_report {
+        return;
+    }
+    track_analytics_event(
+        app,
+        "plugin_used",
+        Some(json!({ "plugin_id": plugin_id, "plugin_name": plugin_name })),
+    );
+}
+
+#[cfg(test)]
+mod plugin_usage_tests {
+    use super::PluginUsageLimiter;
+    use std::time::{Duration, Instant};
+
+    #[test]
+    fn repeated_connections_do_not_flood_usage_events() {
+        let mut limiter = PluginUsageLimiter::default();
+        let start = Instant::now();
+
+        assert!(limiter.should_report("streamdeck", start, false));
+        for second in 1..=60 {
+            assert!(!limiter.should_report("streamdeck", start + Duration::from_secs(second), false));
+        }
+        assert!(limiter.should_report("showcase", start, false));
+        assert!(limiter.should_report("streamdeck", start + Duration::from_secs(59 * 60), true));
+        assert!(!limiter.should_report("streamdeck", start + Duration::from_secs(59 * 60 + 1), false));
+        assert!(limiter.should_report("streamdeck", start + Duration::from_secs(119 * 60), false));
     }
 }
 
