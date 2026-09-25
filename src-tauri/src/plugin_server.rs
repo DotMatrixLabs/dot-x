@@ -181,7 +181,7 @@ impl PluginServer {
                             };
 
                             connections.write().await.insert(plugin_info.id.clone(), connection);
-                            crate::track_plugin_usage_event(&app_handle, &plugin_info.id, &plugin_info.name);
+                            crate::track_plugin_usage_event(&app_handle, &plugin_info.id, &plugin_info.name, false);
 
                             // Emit to frontend
                             let _ = app_handle.emit("plugin/lifecycle", serde_json::json!({
