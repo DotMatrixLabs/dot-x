@@ -14,7 +14,7 @@
                 <option value="beta">Beta/Nightly</option>
             </select>
         </div>
-        <p class="w-full px-2 text-xs opacity-60">Beta/Nightly includes stable releases and may contain unfinished changes.</p>
+        <p class="w-full px-2 mt-3 text-xs opacity-60">Beta/Nightly includes stable releases and may contain unfinished changes.</p>
         <div class="flex flex-row w-full justify-between px-2 mt-4">
             <span class="my-auto">Read the docs</span>
             <button @click="openLink('https://dml.gg/docs')" class="btn btn-sm">Docs<i class="fa-solid fa-book fa-lg"></i></button>
