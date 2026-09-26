@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm run licenses && npm run typecheck && npm run build:web",
+    "build": "npm run check:capabilities && npm run licenses && npm run typecheck && npm run build:web",
     "build:web": "vite build",
     "typecheck": "vue-tsc --noEmit",
     "preview": "vite preview",
@@ -14,6 +14,7 @@
     "rust-licenses": "cd src-tauri && cargo license --avoid-dev-deps --avoid-build-deps --json > licenses/rust_licenses.json",
     "js-licenses": "npx npm-license-crawler --json src-tauri/licenses/js_licenses.json",
     "generate-types": "tsx tools/generate-plugin-types.ts",
+    "check:capabilities": "node tools/check-desktop-capabilities.mjs",
     "bump": "node tools/bump-version.mjs",
     "folder": "node tools/folder.mjs",
     "fix-name": "node tools/fix-name.mjs"
