@@ -5,12 +5,6 @@
         "licenseUrl": "https://github.com/sindresorhus/quick-lru/raw/master/license",
         "parents": "dot-x"
     },
-    "@aptabase/tauri@0.4.1": {
-        "licenses": "UNKNOWN",
-        "repository": "https://github.com/aptabase/tauri-plugin-aptabase",
-        "licenseUrl": "https://github.com/aptabase/tauri-plugin-aptabase/raw/master/LICENSE",
-        "parents": "dot-x"
-    },
     "@babel/parser@7.23.0": {
         "licenses": "MIT",
         "repository": "https://github.com/babel/babel",
@@ -344,12 +338,6 @@
         "repository": "https://github.com/szmarczak/http-timer",
         "licenseUrl": "https://github.com/szmarczak/http-timer/raw/master/LICENSE",
         "parents": "dot-x"
-    },
-    "@tauri-apps/api@1.6.0": {
-        "licenses": "Apache-2.0 OR MIT",
-        "repository": "https://github.com/tauri-apps/tauri",
-        "licenseUrl": "https://github.com/tauri-apps/tauri/raw/master/LICENSE_APACHE-2.0",
-        "parents": "@aptabase/tauri:dot-x"
     },
     "@tauri-apps/api@2.9.0": {
         "licenses": "Apache-2.0 OR MIT",

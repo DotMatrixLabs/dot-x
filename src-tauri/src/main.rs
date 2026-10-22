@@ -1,12 +1,11 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use log::{error, info, trace};
+use log::{error, info, trace, warn};
 use serde_json::{json, Value};
 use tauri::{AppHandle, Emitter, Manager, WebviewWindow, Wry};
 use std::fs;
 use std::fs::File;
-use windows_volume_control::{AudioController, CoinitMode};
 use tauri_plugin_autostart::MacosLauncher;
 #[cfg(not(debug_assertions))]
 use tauri_plugin_autostart::ManagerExt as AutostartManagerExt;
@@ -15,12 +14,15 @@ use std::collections::HashMap;
 use std::fmt;
 use tauri_plugin_notification::NotificationExt;
 use tauri_plugin_store::StoreExt;
+use telemetry::TelemetrySettings;
+mod audio;
 mod decker;
 mod midi;
 mod power_monitor;
 mod plugin_marketplace;
 mod plugin_server;
 mod plugin_runtime;
+mod telemetry;
 use once_cell::sync::OnceCell;
 use tauri::menu::{Menu, MenuBuilder, MenuItemBuilder, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent};
@@ -41,6 +43,27 @@ use std::os::unix::fs::PermissionsExt;
 
 static APP: OnceCell<tauri::AppHandle> = OnceCell::new();
 
+const PLUGIN_USAGE_RECONNECT_INTERVAL: Duration = Duration::from_secs(60 * 60);
+static PLUGIN_USAGE_LIMITER: OnceCell<std::sync::Mutex<PluginUsageLimiter>> = OnceCell::new();
+
+#[derive(Default)]
+struct PluginUsageLimiter {
+    last_reported: HashMap<String, std::time::Instant>,
+}
+
+impl PluginUsageLimiter {
+    fn should_report(&mut self, plugin_id: &str, now: std::time::Instant, heartbeat: bool) -> bool {
+        self.last_reported.retain(|_, last| {
+            now.saturating_duration_since(*last) < PLUGIN_USAGE_RECONNECT_INTERVAL
+        });
+        if !heartbeat && self.last_reported.contains_key(plugin_id) {
+            return false;
+        }
+        self.last_reported.insert(plugin_id.to_string(), now);
+        true
+    }
+}
+
 static PENDING_DOTX_PATH: std::sync::Mutex<Option<String>> = std::sync::Mutex::new(None);
 
 #[tauri::command]
@@ -48,9 +71,78 @@ fn consume_pending_dotx_install() -> Option<String> {
     PENDING_DOTX_PATH.lock().ok()?.take()
 }
 
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+enum TelemetryPreference {
+    CrashReportingEnabled,
+    AnalyticsEnabled,
+}
+
+impl TelemetryPreference {
+    fn key(&self) -> &'static str {
+        match self {
+            Self::CrashReportingEnabled => "crashReportingEnabled",
+            Self::AnalyticsEnabled => "analyticsEnabled",
+        }
+    }
+}
+
+#[tauri::command]
+fn set_telemetry_preference(
+    app: AppHandle,
+    settings: tauri::State<'_, TelemetrySettings>,
+    preference: TelemetryPreference,
+    enabled: bool,
+) -> Result<(), String> {
+    let store = app.store("config.json").map_err(|err| err.to_string())?;
+    store.set(preference.key(), json!(enabled));
+    store.save().map_err(|err| err.to_string())?;
+
+    match preference {
+        TelemetryPreference::CrashReportingEnabled => {
+            settings.set_crash_reporting_enabled(enabled);
+        }
+        TelemetryPreference::AnalyticsEnabled => settings.set_analytics_enabled(enabled),
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+fn track_telemetry_event(
+    app: AppHandle,
+    event: String,
+    properties: Option<Value>,
+) {
+    track_analytics_event(&app, &event, properties);
+}
+
+fn load_telemetry_settings(app: &AppHandle, settings: &TelemetrySettings) {
+    match app.store("config.json") {
+        Ok(store) => {
+            let crash_reporting_enabled = store
+                .get("crashReportingEnabled")
+                .and_then(|value| value.as_bool())
+                .unwrap_or(true);
+            let analytics_enabled = store
+                .get("analyticsEnabled")
+                .and_then(|value| value.as_bool())
+                .unwrap_or(true);
+
+            settings.set_crash_reporting_enabled(crash_reporting_enabled);
+            settings.set_analytics_enabled(analytics_enabled);
+        }
+        Err(err) => {
+            warn!("Failed to read telemetry preferences; disabling telemetry: {err}");
+            settings.set_crash_reporting_enabled(false);
+            settings.set_analytics_enabled(false);
+        }
+    }
+}
+
 // create the error type that represents all errors possible in our program
 #[derive(Debug, thiserror::Error)]
-enum Error {
+pub(crate) enum Error {
     #[error(transparent)]
     Io(#[from] std::io::Error),
     SessionNotFound,
@@ -156,22 +248,6 @@ fn get_installed_apps() -> Result<CustomResponse, Error> {
     Ok(app_list_response)
 }
 
-#[tauri::command]
-fn get_all_session_names() -> Result<Vec<String>, Error> {
-    unsafe {
-        let mut controller = AudioController::init(Some(CoinitMode::ApartmentThreaded));
-        controller.GetSessions();
-        controller.GetDefaultAudioEnpointVolumeControl();
-        controller.GetAllProcessSessions();
-        controller.GetAllAudioDevices();
-
-        // Collect all session names
-        let all_session_names = controller.get_all_session_names();
-
-        Ok(all_session_names)
-    }
-}
-
 fn value_to_i32_vec(value: &Value) -> Option<Vec<i32>> {
     if let Value::Array(array) = value {
         let mut i32_vec = Vec::new();
@@ -262,84 +338,13 @@ fn detach_midi_device() -> Result<(), Error> {
 fn get_active_app_name() -> String {
     match get_active_window() {
         Ok(active_window) => {
-            println!("Active window: {:?}", active_window);
+            trace!("Active window: {:?}", active_window);
             active_window.app_name.to_string()
         }
         Err(err) => {
-            eprintln!("Failed to get active window: {:?}", err);
+            warn!("Failed to get active window: {:?}", err);
             "Unknown".to_string() // Return a default value if an error occurs
         }
-    }
-}
-
-#[tauri::command]
-fn set_application_volume(name: &str, volume: f32) -> Result<(), Error> {
-    unsafe {
-        let controller = get_initialized_audio_controller();
-
-        // println!("All session names: {:?}", controller.get_all_session_names());
-
-        // Get the current session by name
-        let current_sessions = controller.get_sessions_by_name(name.to_string());
-
-        //if multiple sessions are found, change the volume for all of them
-        if !current_sessions.is_empty() {
-            for session in current_sessions {
-                println!("Setting volume for session: {}", name);
-                println!("{}", session.getVolume().to_string());
-                if volume < 0.01 {
-                    session.setMute(true);
-                    // Also set application volume to 0. This is not actually needed, but it's visually pleasing since the slider is at 0 and makes it easier to see which applications are muted.
-                    session.setVolume(0.0);
-                } else {
-                    session.setMute(false);
-                    session.setVolume(volume);
-                }
-            }
-        } else {
-            // Handle the case where the session was not found (e.g., return an error)
-            return Err(Error::SessionNotFound);
-        }
-    }
-
-    Ok(())
-}
-
-// Helper function to create and initialize an AudioController
-unsafe fn get_initialized_audio_controller() -> AudioController {
-    let mut controller = unsafe { AudioController::init(Some(CoinitMode::ApartmentThreaded)) };
-    unsafe { controller.GetSessions(); }
-    unsafe { controller.GetDefaultAudioEnpointVolumeControl(); }
-    unsafe { controller.GetAllProcessSessions(); }
-    unsafe { controller.GetAllAudioDevices(); }
-    controller
-}
-
-#[tauri::command]
-fn get_all_audio_devices() -> Result<Vec<String>, Error> {
-    unsafe {
-        let controller = get_initialized_audio_controller();
-        let all_device_names = controller.get_all_device_names();
-        println!("All device names: {:?}", all_device_names);
-        Ok(all_device_names)
-    }
-}
-
-#[tauri::command]
-fn get_output_devices() -> Result<Vec<String>, Error> {
-    unsafe {
-        let controller = get_initialized_audio_controller();
-        let output_device_names = controller.get_output_device_names();
-        Ok(output_device_names)
-    }
-}
-
-#[tauri::command]
-fn get_input_devices() -> Result<Vec<String>, Error> {
-    unsafe {
-        let controller = get_initialized_audio_controller();
-        let input_device_names = controller.get_input_device_names();
-        Ok(input_device_names)
     }
 }
 
@@ -359,11 +364,11 @@ async fn set_screen_brightness(brightness: f32, screens: Value) -> Result<(), Er
 }
 
 async fn set_brightness(percentage: u32) {
-    println!("Setting brightness to {}%", percentage);
+    info!("Setting brightness to {}%", percentage);
     if let Err(e) = brightness::brightness_devices()
         .try_for_each(|mut dev| async move {
             if let Err(err) = dev.set(percentage).await {
-                eprintln!(
+                error!(
                     "Failed to set brightness for device {}: {:?}",
                     dev.device_name()
                         .await
@@ -375,12 +380,12 @@ async fn set_brightness(percentage: u32) {
         })
         .await
     {
-        eprintln!("Error iterating over brightness devices: {:?}", e);
+        error!("Error iterating over brightness devices: {:?}", e);
     }
 }
 
 async fn show_brightness(dev: &BrightnessDevice) -> Result<(), brightness::Error> {
-    println!(
+    info!(
         "Brightness of device {} is {}%",
         dev.device_name().await?,
         dev.get().await?
@@ -390,7 +395,7 @@ async fn show_brightness(dev: &BrightnessDevice) -> Result<(), brightness::Error
 
 #[tauri::command]
 fn connect_decker(window: WebviewWindow, port_name: &str, inverted: bool) -> Result<(), Error> {
-    println!(
+    info!(
         "Connecting Decker at port: {}, inverted: {}",
         port_name, inverted
     );
@@ -422,8 +427,9 @@ fn build_tray(app: &tauri::AppHandle<Wry>) -> tauri::Result<(Menu<Wry>, TrayIcon
                 info!("Quitting Dot X");
                 let app_handle = app.clone();
                 tauri::async_runtime::spawn(async move {
-                    let _ = app_handle.track_event("app_exited", None);
+                    track_analytics_event(&app_handle, "app_exited", None);
                 });
+                audio::stop_volume_sync();
                 std::process::exit(0);
             }
             "hide" => {
@@ -482,10 +488,71 @@ struct InstancePayload {
 fn start_aptabase_heartbeat(app: tauri::AppHandle) {
     thread::spawn(move || {
         loop {
-            let _ = app.track_event("app_heartbeat💓", None);
-            thread::sleep(Duration::from_secs(1 * 60 * 59)); //heartbeat every hour (I'm concerned exactly 1 hour will make a new session, so I'm doing 59 minutes - you got a problem with that? That's what I thought.)
+            track_analytics_event(&app, "app_heartbeat💓", None);
+            let app_handle = app.clone();
+            tauri::async_runtime::spawn(async move {
+                if let Ok(plugins) = plugin_server::get_connected_plugins().await {
+                    for plugin in plugins {
+                        track_plugin_usage_event(&app_handle, &plugin.id, &plugin.name, true);
+                    }
+                }
+            });
+            // Roughly hourly. 59 minutes rather than exactly 60 so the interval does not
+            // consistently line up with the analytics session boundary and start a new session.
+            thread::sleep(Duration::from_secs(1 * 60 * 59));
         }
     });
+}
+
+pub(crate) fn track_analytics_event(app: &AppHandle, event: &str, properties: Option<Value>) {
+    if app.state::<TelemetrySettings>().analytics_enabled() {
+        let _ = app.track_event(event, properties);
+    }
+}
+
+pub(crate) fn track_plugin_usage_event(
+    app: &AppHandle,
+    plugin_id: &str,
+    plugin_name: &str,
+    heartbeat: bool,
+) {
+    if !app.state::<TelemetrySettings>().analytics_enabled() {
+        return;
+    }
+    let limiter = PLUGIN_USAGE_LIMITER.get_or_init(Default::default);
+    let should_report = limiter
+        .lock()
+        .unwrap_or_else(|err| err.into_inner())
+        .should_report(plugin_id, std::time::Instant::now(), heartbeat);
+    if !should_report {
+        return;
+    }
+    track_analytics_event(
+        app,
+        "plugin_used",
+        Some(json!({ "plugin_id": plugin_id, "plugin_name": plugin_name })),
+    );
+}
+
+#[cfg(test)]
+mod plugin_usage_tests {
+    use super::PluginUsageLimiter;
+    use std::time::{Duration, Instant};
+
+    #[test]
+    fn repeated_connections_do_not_flood_usage_events() {
+        let mut limiter = PluginUsageLimiter::default();
+        let start = Instant::now();
+
+        assert!(limiter.should_report("streamdeck", start, false));
+        for second in 1..=60 {
+            assert!(!limiter.should_report("streamdeck", start + Duration::from_secs(second), false));
+        }
+        assert!(limiter.should_report("showcase", start, false));
+        assert!(limiter.should_report("streamdeck", start + Duration::from_secs(59 * 60), true));
+        assert!(!limiter.should_report("streamdeck", start + Duration::from_secs(59 * 60 + 1), false));
+        assert!(limiter.should_report("streamdeck", start + Duration::from_secs(119 * 60), false));
+    }
 }
 
 fn setup_panic_handler(client: Client) {
@@ -566,29 +633,37 @@ fn ensure_deno_extracted(app: &tauri::AppHandle) -> Result<std::path::PathBuf, S
     Err("Deno executable not found after extraction".to_string())
 }
 
+fn sentry_dsn() -> Option<&'static str> {
+    option_env!("DOTX_SENTRY_DSN").filter(|dsn| !dsn.trim().is_empty())
+}
+
 #[tokio::main]
 async fn main() {
-
+    let telemetry_settings = TelemetrySettings::new(false, false);
+    let sentry_settings = telemetry_settings.clone();
     let client = sentry::init((
-        "https://4e7acf1ba609c747863f8e3117f062e2@sentry-ingest.frogbyte.io/3",
+        sentry_dsn(),
         sentry::ClientOptions {
             release: sentry::release_name!(),
             attach_stacktrace: true,
+            before_send: Some(std::sync::Arc::new(move |event| {
+                if sentry_settings.crash_reporting_enabled() {
+                    Some(event)
+                } else {
+                    None
+                }
+            })),
             ..Default::default()
         },
     ));
 
-    // Initialize minidump first
-    let _guard = tauri_plugin_sentry::minidump::init(&client);
-
-    // Then set up panic handler
     setup_panic_handler(client.clone());
 
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             get_installed_apps,
-            get_all_session_names,
-            set_application_volume,
+            audio::get_all_session_names,
+            audio::set_application_volume,
             connect_decker,
             decker::get_devices,
             decker::send_decker_command,
@@ -598,9 +673,12 @@ async fn main() {
             get_active_app_name,
             disconnect_decker,
             set_screen_brightness,
-            get_all_audio_devices,
-            get_output_devices,
-            get_input_devices,
+            audio::get_all_audio_devices,
+            audio::get_output_devices,
+            audio::get_input_devices,
+            audio::enable_volume_sync,
+            audio::disable_volume_sync,
+            audio::update_volume_sync_mappings,
             plugin_server::start_plugin_server,
             plugin_server::stop_plugin_server,
             plugin_server::send_to_plugin,
@@ -623,16 +701,34 @@ async fn main() {
             plugin_marketplace::uninstall_marketplace_plugin,
             plugin_marketplace::get_dotx_manifest,
             plugin_marketplace::install_local_plugin,
-            consume_pending_dotx_install
+            consume_pending_dotx_install,
+            set_telemetry_preference,
+            track_telemetry_event
         ])
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_process::init())
-        .plugin(tauri_plugin_log::Builder::new().build())
+        // Our own modules log everything; dependencies stop at `info`. The
+        // websocket stack under the plugin server emits tens of thousands of
+        // trace lines a minute, which would bury the lines we write and roll the
+        // size-capped log file. Release builds never reach this filter: the
+        // `log` features in Cargo.toml compile out everything below `warn`.
+        .plugin(
+            tauri_plugin_log::Builder::new()
+                .level(log::LevelFilter::Info)
+                .level_for("dot_x", log::LevelFilter::Trace)
+                .build(),
+        )
         .plugin(tauri_plugin_cli::init())
         .plugin(tauri_plugin_shell::init())
-        .plugin(tauri_plugin_aptabase::Builder::new("A-EU-7429874879").build()) // 👈 this is where you enter your App Key
+        .plugin(
+            tauri_plugin_aptabase::Builder::new(
+                option_env!("DOTX_APTABASE_KEY").unwrap_or("").trim(),
+            )
+            .build(),
+        )
         .plugin(tauri_plugin_sentry::init(&client))
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_autostart::init(
@@ -666,7 +762,9 @@ async fn main() {
                 api.prevent_close();
             }
         })
-        .setup(|app| {
+        .setup(move |app| {
+            load_telemetry_settings(app.handle(), &telemetry_settings);
+            app.manage(telemetry_settings.clone());
             {
                 power_monitor::setup_power_monitoring();
             }
@@ -679,7 +777,7 @@ async fn main() {
             {
                 let app_handle = app.handle().clone();
                 tauri::async_runtime::spawn(async move {
-                    let _ = app_handle.track_event("app_started", Some(props_value));
+                    track_analytics_event(&app_handle, "app_started", Some(props_value));
                 });
             }
             let Some(window) = app.get_webview_window("main") else {
@@ -722,6 +820,9 @@ async fn main() {
             }
 
             info!("Starting Dot X with version {:?}", sentry::release_name!());
+            if sentry_dsn().is_none() {
+                warn!("DOTX_SENTRY_DSN was not set at build time, crash reporting is disabled");
+            }
 
             // Ensure bundled Deno is available and export its path
             match ensure_deno_extracted(&app.handle()) {
@@ -757,6 +858,8 @@ async fn main() {
                     Err(e) => error!("Failed to read autostart state: {}", e),
                 }
             }
+
+            audio::restore_volume_sync(app.handle());
 
             // Store global handle and auto-start enabled plugins
             APP.set(app.handle().clone()).expect("error setting up app");
