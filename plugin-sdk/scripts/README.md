@@ -4,20 +4,22 @@ This directory contains all scripts for generating Plugin SDK documentation with
 
 ## Quick Start
 
+Clone `dotmatrixlabs-docs` separately. Pass its checkout root with `--docs-root` or set `DOTX_DOCS_ROOT`. The scripts stop before writing files if the configured directory does not exist.
+
 ```bash
 # From plugin-sdk root
 cd dot-x/plugin-sdk
 
 # Full documentation build (recommended)
-npm run docs:build
+npm run docs:build -- --docs-root /path/to/dotmatrixlabs-docs
 
 # Fast build (skip TypeDoc, only sync components)
-npm run docs:build:fast
+npm run docs:build:fast -- --docs-root /path/to/dotmatrixlabs-docs
 
 # Or run scripts directly
 cd scripts
-node build-docs.mjs
-node build-docs.mjs --skip-typedoc
+node build-docs.mjs --docs-root /path/to/dotmatrixlabs-docs
+node build-docs.mjs --docs-root /path/to/dotmatrixlabs-docs --skip-typedoc
 ```
 
 ## Scripts Overview
@@ -46,10 +48,10 @@ vim ../src/components/fields/metadata.ts
 # }
 
 # 2. Build docs (skip TypeDoc for speed)
-node build-docs.mjs --skip-typedoc
+node build-docs.mjs --docs-root /path/to/dotmatrixlabs-docs --skip-typedoc
 
 # 3. View changes
-cd ../../../dotmatrixlabs-docs
+cd /path/to/dotmatrixlabs-docs
 npm run docs:dev
 # Visit: http://localhost:5173/plugin-sdk/reference/settingsbuilder-components
 ```
@@ -61,10 +63,10 @@ npm run docs:dev
 vim ../src/ui.ts
 
 # 2. Regenerate all docs
-node build-docs.mjs
+node build-docs.mjs --docs-root /path/to/dotmatrixlabs-docs
 
 # 3. View changes
-cd ../../../dotmatrixlabs-docs
+cd /path/to/dotmatrixlabs-docs
 npm run docs:dev
 ```
 
@@ -75,7 +77,7 @@ npm run docs:dev
 vim ../../src/components/fields/Input.vue
 
 # 2. Sync components only
-node sync-components.mjs
+node sync-components.mjs --docs-root /path/to/dotmatrixlabs-docs
 
 # 3. Changes will hot-reload if docs:dev is running
 ```
@@ -181,14 +183,14 @@ Usage:
 cd dot-x/plugin-sdk
 
 # Full build
-npm run docs:build
+npm run docs:build -- --docs-root /path/to/dotmatrixlabs-docs
 
 # Fast build (skip TypeDoc)
-npm run docs:build:fast
+npm run docs:build:fast -- --docs-root /path/to/dotmatrixlabs-docs
 
 # Individual steps
-npm run docs:generate  # TypeDoc only
-npm run docs:sync      # Components only
+npm run docs:generate -- --docs-root /path/to/dotmatrixlabs-docs
+npm run docs:sync -- --docs-root /path/to/dotmatrixlabs-docs
 ```
 
 ## Troubleshooting
@@ -196,16 +198,15 @@ npm run docs:sync      # Components only
 ### Components not showing
 ```bash
 # Rebuild everything
-node build-docs.mjs
-cd ../../../dotmatrixlabs-docs
+node build-docs.mjs --docs-root /path/to/dotmatrixlabs-docs
+cd /path/to/dotmatrixlabs-docs
 rm -rf docs/.vitepress/cache
 npm run docs:dev
 ```
 
-### Wrong paths
-Check script paths match your directory structure:
-- `generate-docs.mjs` line 40: Output directory
-- `sync-components.mjs` lines 11-14: Source and destination paths
+### Wrong docs root
+
+Pass `--docs-root /path/to/dotmatrixlabs-docs` or set `DOTX_DOCS_ROOT`. The value must name an existing directory. Command-line configuration takes precedence over the environment variable.
 
 ### Examples not updating
 Make sure you're editing **`metadata.ts`**, not the generated markdown file!
