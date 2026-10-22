@@ -29,7 +29,7 @@ import { toast } from "vue-sonner";
 import Decker from "../ts/decker.ts";
 import ConfigStore from "../ts/config.ts";
 import decker from "../ts/decker.ts";
-import { trackEvent } from "@aptabase/tauri";
+import { trackTelemetryEvent } from "../ts/telemetry";
 import { openLink } from "../ts/helpers.ts";
 
 const openLinkMethod = openLink;
@@ -78,7 +78,6 @@ export default {
         async getConnectedDevice() {
             const storedPort = await ConfigStore.get("midiOutputPort");
             this.selectedPort = storedPort;
-            console.log({selectedPortThis: this.selectedPort});
             this.getMidiDevices();
 
         },
@@ -90,14 +89,14 @@ export default {
         async toggleMidi() {
             if(this.midiEnabled){
                 await ConfigStore.set("midiEnabled", false);
-                trackEvent("midi_toggled", { enabled: "false" });
+                trackTelemetryEvent("midi_toggled", { enabled: "false" });
                 this.update();
                 ConfigStore.save();
                 decker.detachMidiDevice();
                 return;
             }
             await ConfigStore.set("midiEnabled", true);
-            trackEvent("midi_toggled", { enabled: "true" });
+            trackTelemetryEvent("midi_toggled", { enabled: "true" });
             ConfigStore.save();
             this.update();
             this.connectMidiDevice();

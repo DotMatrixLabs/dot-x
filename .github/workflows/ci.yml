@@ -1,0 +1,124 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main, v2]
+  push:
+    branches: [main, v2]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  frontend:
+    name: Frontend typecheck and build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: yarn
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Check desktop capabilities
+        run: yarn check:capabilities
+
+      - name: Typecheck
+        run: yarn typecheck
+
+      - name: Build
+        run: yarn build:web
+
+      # The Rust job needs a populated ../dist for `tauri::generate_context!`.
+      - name: Upload dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
+          retention-days: 1
+
+  plugin-sdk:
+    name: Plugin SDK build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: plugin-sdk
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: yarn
+          cache-dependency-path: |
+            yarn.lock
+            plugin-sdk/yarn.lock
+
+      # `plugin-sdk` generates its types from the root project's schema.ts.
+      - name: Install root dependencies
+        working-directory: .
+        run: yarn install --frozen-lockfile
+
+      - name: Install SDK dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build
+        run: yarn build
+
+      - name: Check generated types are up to date
+        working-directory: .
+        run: |
+          if ! git ls-files --error-unmatch -- plugin-sdk/src/generated/types.ts > /dev/null; then
+            echo "::error::plugin-sdk/src/generated/types.ts is not committed."
+            exit 1
+          fi
+          if ! git diff --exit-code -- plugin-sdk/src/generated/types.ts; then
+            echo "::error::plugin-sdk/src/generated/types.ts is stale. Run 'yarn generate-types' and commit the result."
+            exit 1
+          fi
+
+      - name: Verify package contents
+        run: npm pack --dry-run
+
+  rust:
+    name: Rust tests
+    runs-on: windows-latest
+    needs: frontend
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Download dist
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      # `resources/deno/*` is a bundled Tauri resource and is no longer committed.
+      - name: Fetch Deno runtime
+        run: node tools/fetch-deno.mjs
+
+      - name: Test
+        working-directory: src-tauri
+        run: cargo test --locked
