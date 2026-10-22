@@ -681,9 +681,6 @@ export const usePluginStore = defineStore("pluginStore", {
             next.delete(plugin);
             this.activePlugins = next;
         },
-        getActivePlugins() {
-            return Array.from(this.activePlugins);
-        },
         upsertConnectedPlugin(plugin: PluginConnectionInfo) {
             if (!plugin?.id) return;
             this.cancelPendingUnexpectedDisconnect(plugin.id);
