@@ -145,8 +145,10 @@ Decker serial access in Distrobox: `/dev/` is shared but group membership may no
 ```sh
 yarn setup:linux    # Ubuntu/Debian only; installs the prerequisites above
 yarn install
-yarn tauri build    # produces .deb and .AppImage
+yarn build:linux    # produces .deb and .AppImage
 ```
+
+`yarn build:linux` wraps `yarn tauri build` the way `yarn dev:linux` wraps `tauri dev`: it enters the Distrobox on Bazzite, runs the dependency preflight, sets `NO_STRIP=1` because `linuxdeploy`'s bundled `strip` can't parse the `.relr.dyn` sections in Fedora 41+ libraries (AppImage bundling fails in the Fedora Distrobox otherwise), and, when `TAURI_SIGNING_PRIVATE_KEY` is unset, turns off `createUpdaterArtifacts` so a local build doesn't fail on updater signing. Release builds with the key set are unchanged.
 
 `yarn dev:linux` never runs `setup:linux` itself (avoids surprise `sudo`); it only reports missing deps. `yarn dev:linux --check-only` runs just the preflight. Bundle targets (`deb`, `appimage`) and the `libpulse0` runtime dep come from `src-tauri/tauri.linux.conf.json` (auto-merged onto `tauri.conf.json`).
 
