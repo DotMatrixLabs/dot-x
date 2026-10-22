@@ -85,7 +85,7 @@
         "label": "main",
         "fullscreen": false,
         "height": 600,
-        "resizable": true,
+        "resizable": false,
         "title": "Dot X",
         "width": 800,
         "minWidth": 750,
