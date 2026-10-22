@@ -20,9 +20,6 @@
                     Disconnect
                 </option>
             </select>
-            <!-- <button @click="detectBoard" title="Autodiscover" class="btn btn-circle btn-sm">
-                <i class="fa-solid fa-magnifying-glass"></i>
-            </button> -->
         </div>
 
         <div v-if="deviceType === 'Decker'" :class="connectionState ? '' : 'opacity-40 pointer-events-none'" class="w-full h-full rounded-lg px-2 ">
@@ -92,6 +89,9 @@ import RGBController from "../ts/RGBController";
 import { mapState } from "pinia";
 import { useDeckerStore } from "../store/deckerStore.ts";
 import EventBus from "../js/eventBus";
+import { createLogger } from "../ts/logger.ts";
+
+const log = createLogger("device-settings");
 
 export default {
     name: "Devices",
@@ -130,7 +130,6 @@ export default {
             speed: 10,
             breathingEnabled: false,
             selectedColor: "#f0f0f0",
-            brightness: 100,
             suspendDimEnabled: false,
             deviceNames: {
                 'VM-5SW': "Decker",
@@ -143,6 +142,17 @@ export default {
         ...mapState(useDeckerStore, {
             connectionState: 'getConnectionState',
         }),
+        deckerStore() {
+            return useDeckerStore();
+        },
+        brightness: {
+            get() {
+                return this.deckerStore.rgbBrightness;
+            },
+            set(value) {
+                this.deckerStore.rgbBrightness = value;
+            }
+        },
     },
 
 
@@ -185,9 +195,8 @@ export default {
             RGBController.setEffect(this.currentRGBEffect.toLowerCase(), parseInt(100 - this.speed), brightness, this.selectedColor);
         },
 
-        brightnessChanged(event) {
-            ConfigStore.set("RGBBrightness", this.brightness);
-            ConfigStore.save();
+        async brightnessChanged(event) {
+            await this.deckerStore.setBrightness(this.brightness);
             this.sendCurrentRGBEffect();
         },
 
@@ -331,8 +340,10 @@ export default {
             }
             if(this.currentDevice.pid === 58918 && this.currentDevice.vid === 1240){
                 this.deviceType = "Decker";
+                this.deckerStore.setDeviceType("Decker");
             } else {
                 this.deviceType = "Unknown";
+                this.deckerStore.setDeviceType("Unknown");
             }
             ConfigStore.set("comPort", this.currentDevice.port_name);
             ConfigStore.save();
@@ -364,8 +375,10 @@ export default {
             if(!device) return;
             if(device.pid === 58918 && device.vid === 1240){
                 this.deviceType = "Decker";
+                this.deckerStore.setDeviceType("Decker");
             } else {
                 this.deviceType = "Unknown";
+                this.deckerStore.setDeviceType("Unknown");
             }
             this.currentDevice = device;
         },
@@ -375,7 +388,7 @@ export default {
             try {
                 this.deviceData = await Decker.getDeviceInfo();
             } catch (error) {
-                console.error("Failed to get device info:", error);
+                log.error("Failed to get device info:", error);
                 // Optionally display a user-friendly message or handle the error accordingly
             }
         },
@@ -389,7 +402,7 @@ export default {
         this.speed = await ConfigStore.get("RGBSpeed") ?? 10;
         this.currentRGBEffect = await ConfigStore.get("RGBEffect") ?? "Static";
         this.breathingEnabled = await ConfigStore.get("RGBBreathing") ?? false;
-        this.brightness = await ConfigStore.get("RGBBrightness") ?? 100;
+        await this.deckerStore.loadBrightness();
         this.suspendDimEnabled = await ConfigStore.get("suspendDimEnabled") ?? false;
 
         this.comPortInterval = setInterval(() => {
