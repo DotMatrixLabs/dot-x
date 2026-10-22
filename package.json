@@ -8,6 +8,7 @@
     "build:web": "vite build",
     "typecheck": "vue-tsc --noEmit",
     "preview": "vite preview",
+    "test": "vitest run --dir src",
     "tauri": "tauri",
     "fetch-deno": "node tools/fetch-deno.mjs",
     "licenses": "npm run rust-licenses && npm run js-licenses",
@@ -27,6 +28,7 @@
     "@tauri-apps/plugin-autostart": "2.5.1",
     "@tauri-apps/plugin-dialog": "2.4.2",
     "@tauri-apps/plugin-fs": "2.4.4",
+    "@tauri-apps/plugin-notification": "2.3.3",
     "@tauri-apps/plugin-os": "2.3.2",
     "@tauri-apps/plugin-process": "2.3.1",
     "@tauri-apps/plugin-shell": "2.3.3",
@@ -68,6 +70,7 @@
     "tsx": "^4.20.3",
     "typescript": "^5.0.2",
     "vite": "^6",
+    "vitest": "^3.2.4",
     "vue-tsc": "^1.8.5"
   },
   "resolutions": {
