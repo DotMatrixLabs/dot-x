@@ -3,8 +3,7 @@
     <div class="flex flex-col justify-between items-center w-full">
         <div class="flex flex-row w-full justify-between px-2">
             <span class="my-auto">Running version {{ appVersion }}</span>
-            <button @click="checkForUpdates" class="btn btn-xs">{{ checkingForUpdates ? "Checking for updates..." :
-                (updaterStatus ?? "Check for updates") }}</button>
+            <button @click="checkForUpdates" class="btn btn-xs">{{ buttonLabel }}</button>
         </div>
         <div class="flex flex-row w-full justify-between px-2 mt-4">
             <span class="my-auto">Read the docs</span>
@@ -28,12 +27,9 @@
 
 <script>
 
-import tauriConf from "../../src-tauri/tauri.conf.json";
-import { check } from '@tauri-apps/plugin-updater';
 import { openLink } from "../ts/helpers.ts";
-import { createLogger } from "../ts/logger.ts";
-
-const log = createLogger("updater");
+import { useUpdateStore } from '../store/updateStore';
+import { userCheckForUpdates } from '../ts/updater';
 
 const openLinkMethod = openLink;
 
@@ -41,47 +37,41 @@ export default {
     name: "About",
     data() {
         return {
-            appVersion: tauriConf.version,
-            updaterStatus: null,
+            store: useUpdateStore(),
             checkingForUpdates: false,
+            labelOverride: null,
+            labelResetTimer: null,
+        }
+    },
+    computed: {
+        appVersion() { return this.store.currentVersion; },
+        buttonLabel() {
+            if (this.checkingForUpdates) return 'Checking for updates...';
+            if (this.labelOverride) return this.labelOverride;
+            return 'Check for updates';
         }
     },
     methods: {
         openLink: openLinkMethod,
         async checkForUpdates() {
             this.checkingForUpdates = true;
-            const update = await check();
-            if (update) {
-                log.info(
-                    `found update ${update.version} from ${update.date} with notes ${update.body}`
-                );
-                let downloaded = 0;
-                let contentLength = 0;
-                // alternatively we could also call update.download() and update.install() separately
-                await update.downloadAndInstall((event) => {
-                    switch (event.event) {
-                        case 'Started':
-                            contentLength = event.data.contentLength;
-                            log.debug(`started downloading ${event.data.contentLength} bytes`);
-                            this.updaterStatus = 'Downloading update...';
-                            break;
-                        case 'Progress':
-                            downloaded += event.data.chunkLength;
-                            log.debug(`downloaded ${downloaded} from ${contentLength}`);
-                            this.updaterStatus = `Downloading update... ${Math.round((downloaded / contentLength) * 100)}%`;
-                            break;
-                        case 'Finished':
-                            log.info('download finished');
-                            this.updaterStatus = 'Update downloaded';
-                            break;
-                    }
-                });
-            }
+            const result = await userCheckForUpdates();
             this.checkingForUpdates = false;
+            if (result === 'none') {
+                this.labelOverride = 'No updates available';
+                if (this.labelResetTimer) clearTimeout(this.labelResetTimer);
+                this.labelResetTimer = setTimeout(() => {
+                    this.labelOverride = null;
+                    this.labelResetTimer = null;
+                }, 3000);
+            }
         }
     },
-    mounted() {
-
+    beforeUnmount() {
+        if (this.labelResetTimer) {
+            clearTimeout(this.labelResetTimer);
+            this.labelResetTimer = null;
+        }
     },
 }
 </script>
