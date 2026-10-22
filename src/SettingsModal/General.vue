@@ -5,22 +5,50 @@
             <span class="my-auto">Run on startup: </span>
             <input type="checkbox" class="toggle toggle-primary mr-2" :checked="autoStartStatus" @change="toggleAutostart" />
         </div>
+        <div data-setting="Allow window resizing" class="flex flex-row w-full justify-between px-2 mt-4">
+            <label class="my-auto" for="allow-window-resizing">Allow window resizing</label>
+            <input id="allow-window-resizing" type="checkbox" class="toggle toggle-primary mr-2" :checked="allowWindowResizing" @change="toggleWindowResizing" />
+        </div>
         <div data-setting="Act when Decker disconnects" class="flex flex-row w-full justify-between px-2 mt-4">
             <span class="my-auto">Act when Decker disconnects: <br></span>
             <input type="checkbox" class="toggle toggle-primary mr-2" :checked="actOnDeckerDisconnect" @change="toggleActOnDeckerDisconnect" />
         </div>
-        <div v-if="actOnDeckerDisconnect" v-for="slider in sliderAmount" :key="slider" class="flex flex-row w-full justify-between px-2 mt-2">
-            <span class="shrink-0 pt-1">Slider {{slider}}: </span>
-            <select @change="sliderDisconnectHandle" v-model="selectedValues[slider - 1]"
-                class="select select-bordered select-sm w-2/3 mx-2 truncate">
-                <option class="w-full" v-for="(option, index) in sliderOptions" :value="option" :key="index">
-                    {{ option }}
-                </option>
-            </select>
-        </div>
-        <div data-setting="Inverted sliders" class="flex flex-row w-full justify-between px-2 mt-4 mb-2">
+        <template v-if="actOnDeckerDisconnect">
+            <div v-for="slider in sliderAmount" :key="slider" class="flex flex-row w-full justify-between px-2 mt-2">
+                <span class="shrink-0 pt-1">Slider {{slider}}: </span>
+                <select @change="sliderDisconnectHandle" v-model="selectedValues[slider - 1]"
+                    class="select select-bordered select-sm w-2/3 mx-2 truncate">
+                    <option class="w-full" v-for="(option, index) in sliderOptions" :value="option" :key="index">
+                        {{ option }}
+                    </option>
+                </select>
+            </div>
+        </template>
+        <div data-setting="Inverted sliders" class="flex flex-row w-full justify-between px-2 mt-4">
             <span class="my-auto">Inverted sliders: <br></span>
             <input type="checkbox" class="toggle toggle-primary mr-2" :checked="invertedSliders" @change="toggleInvertedSliders" />
+        </div>
+        <div data-setting="Force Volume Mixer Sync" class="flex flex-row w-full justify-between px-2 mt-4 mb-2">
+            <div class="pr-4">
+                <label class="my-auto" for="volume-sync-enabled">Force Volume Mixer Sync</label>
+                <p class="text-xs opacity-60">Forces Windows volume mixer to sync with Dot X</p>
+            </div>
+            <input id="volume-sync-enabled" type="checkbox" class="toggle toggle-primary mr-2" :checked="volumeSyncEnabled" @change="toggleVolumeSync" />
+        </div>
+        <div class="divider"><span class="opacity-50">Telemetry</span></div>
+        <div data-setting="Crash reports" class="flex flex-row w-full justify-between px-2 mt-2">
+            <div class="pr-4">
+                <label class="my-auto" for="crash-reporting-enabled">Crash reports</label>
+                <p class="text-xs opacity-60">Send crash details to help diagnose errors.</p>
+            </div>
+            <input id="crash-reporting-enabled" type="checkbox" class="toggle toggle-primary mr-2" :checked="crashReportingEnabled" @change="toggleCrashReporting" />
+        </div>
+        <div data-setting="Usage analytics" class="flex flex-row w-full justify-between px-2 mt-4">
+            <div class="pr-4">
+                <label class="my-auto" for="analytics-enabled">Usage analytics</label>
+                <p class="text-xs opacity-60">Send basic app usage data to help guide improvements.</p>
+            </div>
+            <input id="analytics-enabled" type="checkbox" class="toggle toggle-primary mr-2" :checked="analyticsEnabled" @change="toggleAnalytics" />
         </div>
         <div class="divider"><span class="opacity-50">Reset</span></div>
         <div data-setting="Reset Channel Settings" class="flex flex-row w-full justify-between px-2 mt-2">
@@ -50,6 +78,8 @@ import { mapState } from "pinia";
 import { resetAllSettings, resetChannelSettings } from "../ts/helpers.ts";
 import Confirmation from "../components/Confirmation.vue";
 import { createLogger } from "../ts/logger.ts";
+import { setTelemetryPreference } from "../ts/telemetry.ts";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 
 const log = createLogger("general-settings");
 
@@ -63,16 +93,20 @@ export default {
     data() {
         return {
             autoStartStatus: false,
+            allowWindowResizing: false,
             actOnDeckerDisconnect: false,
             sliderOptions: ["Do nothing", "Mute", "Maximize volume"],
             sliderAmount: 3,
             selectedValues: [], // Array to store selected values for each slider,
-            invertedSliders: false
+            invertedSliders: false,
+            crashReportingEnabled: true,
+            analyticsEnabled: true
         }
     },
     computed: {
     ...mapState(useDeckerStore, {
       sliders: 'getSliders',
+      volumeSyncEnabled: 'getVolumeSyncEnabled',
     }),
   },
     methods: {
@@ -100,6 +134,31 @@ export default {
         async getAutostartStatus() {
             this.autoStartStatus = await SystemSettings.checkAutostartStatus();
         },
+
+        async getWindowResizingPreference() {
+            try {
+                this.allowWindowResizing = await ConfigStore.get("allowWindowResizing") === true;
+            } catch (error) {
+                log.error("Failed to load window resizing preference", error);
+            }
+        },
+
+        async toggleWindowResizing(event) {
+            const enabled = event.target.checked;
+            try {
+                await getCurrentWindow().setResizable(enabled);
+                await ConfigStore.set("allowWindowResizing", enabled);
+                this.allowWindowResizing = enabled;
+            } catch (error) {
+                event.target.checked = this.allowWindowResizing;
+                try {
+                    await getCurrentWindow().setResizable(this.allowWindowResizing);
+                } catch (restoreError) {
+                    log.error("Failed to restore window resizing", restoreError);
+                }
+                log.error("Failed to change window resizing", error);
+            }
+        },
         
         async getActOnDeckerDisconnect() {
             this.actOnDeckerDisconnect = await ConfigStore.get("actOnDeckerDisconnect");
@@ -107,6 +166,47 @@ export default {
 
         async getInvertedSlidersStatus() {
             this.invertedSliders = await ConfigStore.get("invertedSliders");
+        },
+
+        async getTelemetryPreferences() {
+            try {
+                const crashReportingEnabled = await ConfigStore.get("crashReportingEnabled");
+                const analyticsEnabled = await ConfigStore.get("analyticsEnabled");
+                this.crashReportingEnabled = typeof crashReportingEnabled === "boolean" ? crashReportingEnabled : true;
+                this.analyticsEnabled = typeof analyticsEnabled === "boolean" ? analyticsEnabled : true;
+            } catch (error) {
+                log.error("Failed to load telemetry preferences", error);
+            }
+        },
+
+        async saveTelemetryPreference(preference, enabled) {
+            const setting = preference === "crashReportingEnabled" ? "crashReportingEnabled" : "analyticsEnabled";
+            const previous = this[setting];
+            this[setting] = enabled;
+            try {
+                await setTelemetryPreference(preference, enabled);
+            } catch (error) {
+                this[setting] = previous;
+                log.error("Failed to save telemetry preference", error);
+            }
+        },
+
+        async toggleCrashReporting(event) {
+            await this.saveTelemetryPreference("crashReportingEnabled", event.target.checked);
+        },
+
+        async toggleAnalytics(event) {
+            await this.saveTelemetryPreference("analyticsEnabled", event.target.checked);
+        },
+
+        async toggleVolumeSync(event) {
+            const enabled = event.target.checked;
+            try {
+                await useDeckerStore().setVolumeSyncEnabled(enabled);
+                await ConfigStore.set("volumeSyncEnabled", enabled);
+            } catch (error) {
+                log.error("Failed to change volume sync", error);
+            }
         },
 
         async toggleAutostart() {
@@ -159,9 +259,11 @@ export default {
     },
     mounted() {
         this.getAutostartStatus();
+        this.getWindowResizingPreference();
         this.getActOnDeckerDisconnect();
         this.getDisconnectHandleSelectedValues();
         this.getInvertedSlidersStatus();
+        this.getTelemetryPreferences();
 
         this.sliderAmount = this.sliders.length; // Set the amount of sliders to the amount of sliders in the store
         if(this.sliderAmount === 0) this.sliderAmount = 5;
