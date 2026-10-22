@@ -138,6 +138,7 @@ const BASE_SETTINGS_INDEX = [
   { label: "Allow window resizing", tab: "General" },
   { label: "Act when Decker disconnects", tab: "General" },
   { label: "Inverted sliders", tab: "General" },
+  { label: "Force Volume Mixer Sync", tab: "General" },
   { label: "Reset Channel Settings", tab: "General" },
   { label: "Reset All Settings", tab: "General" },
   { label: "Enable MIDI Output", tab: "Midi" },

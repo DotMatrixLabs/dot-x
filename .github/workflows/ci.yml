@@ -32,6 +32,9 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
+      - name: Check desktop capabilities
+        run: yarn check:capabilities
+
       - name: Typecheck
         run: yarn typecheck
 
