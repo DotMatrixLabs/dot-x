@@ -4,8 +4,8 @@
   "version": "2.0.0-1",
   "identifier": "com.dot-x.dev",
   "build": {
-    "beforeBuildCommand": "yarn build",
-    "beforeDevCommand": "yarn dev",
+    "beforeBuildCommand": "yarn fetch-deno && yarn build",
+    "beforeDevCommand": "yarn fetch-deno && yarn dev",
     "frontendDist": "../dist",
     "devUrl": "http://localhost:1420"
   },
@@ -84,7 +84,7 @@
         "label": "main",
         "fullscreen": false,
         "height": 600,
-        "resizable": true,
+        "resizable": false,
         "title": "Dot X",
         "width": 800,
         "minWidth": 750,

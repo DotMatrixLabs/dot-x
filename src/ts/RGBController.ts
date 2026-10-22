@@ -1,4 +1,7 @@
 import Decker from './decker';
+import { createLogger } from './logger.ts';
+
+const log = createLogger('rgb');
 
 class RGBController {
     effects: string[];
@@ -7,7 +10,6 @@ class RGBController {
     private latestRGBValues: { effectName: string; speed: number; brightness: number; color: string } | null = null;
 
     constructor() {
-        console.log('RGBController initialized');
         this.effects = [
             'rainbow',
             'static',
@@ -21,7 +23,7 @@ class RGBController {
 
     public setEffect(effectName: string, speed: number, brightness: number, color: string) {
         if (!this.effects.includes(effectName)) {
-            console.error('Unknown effect: ' + effectName);
+            log.error('Unknown effect: ' + effectName);
             return;
         }
 
@@ -59,7 +61,7 @@ class RGBController {
     private sendRGBCommand(effectName: string, speed: number, brightness: number, color: string) {
         const options = { effect: effectName, speed: speed, brightness: brightness, color: color };
         Decker.sendCommand('rgb-control', options);
-        console.log('RGB command sent:', options);
+        log.debug('RGB command sent:', options);
     }
     
 
