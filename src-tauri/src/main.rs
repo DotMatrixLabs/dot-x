@@ -13,6 +13,10 @@ use std::fmt;
 use tauri_plugin_notification::NotificationExt;
 use tauri_plugin_store::StoreExt;
 use telemetry::TelemetrySettings;
+#[cfg(windows)]
+mod audio;
+#[cfg(target_os = "linux")]
+#[path = "audio_linux.rs"]
 mod audio;
 mod decker;
 mod midi;
@@ -151,6 +155,8 @@ pub(crate) enum Error {
         os_code: Option<i32>,
     },
     InstalledApps(String),
+    #[cfg(target_os = "linux")]
+    Unsupported(&'static str),
     SessionNotFound,
     Connection,
     InitError,
@@ -176,6 +182,8 @@ impl fmt::Display for Error {
                 message
             ),
             Error::InstalledApps(inner) => write!(f, "Installed apps error: {}", inner),
+            #[cfg(target_os = "linux")]
+            Error::Unsupported(message) => write!(f, "{}", message),
             Error::SessionNotFound => write!(f, "Session not found"),
             Error::Connection => write!(f, "Decker error"),
             Error::InitError => write!(f, "Initialization error"),
@@ -956,16 +964,17 @@ async fn main() {
         .setup(move |app| {
             load_telemetry_settings(app.handle(), &telemetry_settings);
             app.manage(telemetry_settings.clone());
-            {
-                // Run power-monitor setup off the critical path. psp's logind
-                // D-Bus calls can block for ~25s (until timeout) on sessions
-                // where the logind session object isn't resolvable (SSH,
-                // containers, some headless setups); don't let that delay the
-                // rest of setup (Deno bootstrap, tray, plugin auto-start).
-                std::thread::spawn(|| {
-                    power_monitor::setup_power_monitoring();
-                });
-            }
+            // On Linux, run power-monitor setup off the critical path. psp's logind
+            // D-Bus calls can block for ~25s (until timeout) on sessions where the
+            // logind session object isn't resolvable (SSH, containers, some headless
+            // setups). On Windows psp creates its message window on the calling
+            // thread, so setup has to stay on the main thread.
+            #[cfg(target_os = "linux")]
+            std::thread::spawn(|| {
+                power_monitor::setup_power_monitoring();
+            });
+            #[cfg(not(target_os = "linux"))]
+            power_monitor::setup_power_monitoring();
             start_aptabase_heartbeat(app.handle().clone());
             let mut props_map = HashMap::new();
             props_map.insert("slider_amount".to_string(), Value::String("5".to_string()));
