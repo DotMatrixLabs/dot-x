@@ -3,13 +3,12 @@
     <div class="flex flex-col justify-between items-center w-full">
         <div class="flex flex-row w-full justify-between px-2">
             <span class="my-auto">Running version {{ appVersion }}</span>
-            <button @click="checkForUpdates" :disabled="checkingForUpdates || loadingTrack" class="btn btn-xs">{{ checkingForUpdates ? "Checking for updates..." :
-                (updaterStatus ?? "Check for updates") }}</button>
+            <button @click="checkForUpdates" :disabled="updateBusy" class="btn btn-xs">{{ buttonLabel }}</button>
         </div>
         <div data-setting="Update track" class="flex flex-row w-full justify-between px-2 mt-4">
             <label class="my-auto" for="update-track">Update track</label>
             <select id="update-track" class="select select-bordered select-sm" :value="updateTrack"
-                :disabled="checkingForUpdates || loadingTrack" @change="setUpdateTrack">
+                :disabled="updateBusy" @change="changeUpdateTrack">
                 <option value="stable">Stable</option>
                 <option value="beta">Beta/Nightly</option>
             </select>
@@ -37,15 +36,12 @@
 
 <script>
 
-import tauriConf from "../../src-tauri/tauri.conf.json";
-import { check } from '@tauri-apps/plugin-updater';
-import { invoke } from '@tauri-apps/api/core';
-import { listen } from '@tauri-apps/api/event';
 import { openLink } from "../ts/helpers.ts";
-import { createLogger } from "../ts/logger.ts";
-import ConfigStore from "../ts/config.ts";
+import { useUpdateStore } from '../store/updateStore';
+import { getUpdateTrack, setUpdateTrack, userCheckForUpdates } from '../ts/updater';
+import { createLogger } from '../ts/logger.ts';
 
-const log = createLogger("updater");
+const log = createLogger('updater');
 
 const openLinkMethod = openLink;
 
@@ -53,31 +49,40 @@ export default {
     name: "About",
     data() {
         return {
-            appVersion: tauriConf.version,
-            updaterStatus: null,
+            store: useUpdateStore(),
             checkingForUpdates: false,
             loadingTrack: true,
             updateTrack: 'stable',
+            labelOverride: null,
+            labelResetTimer: null,
+        }
+    },
+    computed: {
+        appVersion() { return this.store.currentVersion; },
+        updateBusy() { return this.checkingForUpdates || this.loadingTrack || this.store.downloading; },
+        buttonLabel() {
+            if (this.checkingForUpdates) return 'Checking for updates...';
+            if (this.labelOverride) return this.labelOverride;
+            return 'Check for updates';
         }
     },
     methods: {
         openLink: openLinkMethod,
         async loadUpdateTrack() {
             try {
-                this.updateTrack = await ConfigStore.get('updateTrack') === 'beta' ? 'beta' : 'stable';
+                this.updateTrack = await getUpdateTrack();
             } catch (error) {
                 log.error('Failed to load update track', error);
             } finally {
                 this.loadingTrack = false;
             }
         },
-        async setUpdateTrack(event) {
+        async changeUpdateTrack(event) {
             const track = event.target.value;
             if (track !== 'stable' && track !== 'beta') return;
             try {
-                await ConfigStore.set('updateTrack', track);
+                await setUpdateTrack(track);
                 this.updateTrack = track;
-                this.updaterStatus = null;
             } catch (error) {
                 event.target.value = this.updateTrack;
                 log.error('Failed to save update track', error);
@@ -85,75 +90,26 @@ export default {
         },
         async checkForUpdates() {
             this.checkingForUpdates = true;
-            this.updaterStatus = null;
-            try {
-                if (this.updateTrack === 'beta') {
-                    await this.installBetaUpdate();
-                } else {
-                    await this.installStableUpdate();
-                }
-            } catch (error) {
-                this.updaterStatus = 'Update check failed';
-                log.error('Failed to check for updates', error);
-            } finally {
-                this.checkingForUpdates = false;
+            const result = await userCheckForUpdates();
+            this.checkingForUpdates = false;
+            if (result === 'none') {
+                this.labelOverride = 'No updates available';
+                if (this.labelResetTimer) clearTimeout(this.labelResetTimer);
+                this.labelResetTimer = setTimeout(() => {
+                    this.labelOverride = null;
+                    this.labelResetTimer = null;
+                }, 3000);
             }
-        },
-        async installBetaUpdate() {
-            const unlistenProgress = await listen('app-update-progress', ({ payload }) => {
-                this.setDownloadProgress(payload.downloaded, payload.total);
-            });
-            try {
-                const unlistenFinished = await listen('app-update-downloaded', () => {
-                    this.updaterStatus = 'Update downloaded';
-                });
-                try {
-                    const version = await invoke('install_beta_update');
-                    if (!version) this.updaterStatus = 'No updates available';
-                } finally {
-                    unlistenFinished();
-                }
-            } finally {
-                unlistenProgress();
-            }
-        },
-        async installStableUpdate() {
-            const update = await check();
-            if (!update) {
-                this.updaterStatus = 'No updates available';
-                return;
-            }
-            log.info(`found update ${update.version} from ${update.date} with notes ${update.body}`);
-            let downloaded = 0;
-            let contentLength = 0;
-            try {
-                await update.downloadAndInstall((event) => {
-                    switch (event.event) {
-                        case 'Started':
-                            contentLength = event.data.contentLength;
-                            this.updaterStatus = 'Downloading update...';
-                            break;
-                        case 'Progress':
-                            downloaded += event.data.chunkLength;
-                            this.setDownloadProgress(downloaded, contentLength);
-                            break;
-                        case 'Finished':
-                            this.updaterStatus = 'Update downloaded';
-                            break;
-                    }
-                });
-            } finally {
-                await update.close();
-            }
-        },
-        setDownloadProgress(downloaded, total) {
-            this.updaterStatus = total
-                ? `Downloading update... ${Math.round((downloaded / total) * 100)}%`
-                : 'Downloading update...';
         }
     },
     mounted() {
         this.loadUpdateTrack();
+    },
+    beforeUnmount() {
+        if (this.labelResetTimer) {
+            clearTimeout(this.labelResetTimer);
+            this.labelResetTimer = null;
+        }
     },
 }
 </script>

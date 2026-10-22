@@ -1,6 +1,7 @@
 import { mkdir, copyFile, BaseDirectory, readFile, remove, exists, readDir } from '@tauri-apps/plugin-fs';
 import {imageDimensionsFromData} from 'image-dimensions';
 import { relaunch } from '@tauri-apps/plugin-process';
+import { useDeckerStore } from '../store/deckerStore';
 import { open } from '@tauri-apps/plugin-shell';
 import { createLogger } from './logger.ts';
 
@@ -123,6 +124,7 @@ export async function resetChannelSettings() {
             'channelSettings.json', 
             'selectedApps.json'
         ]);
+        await useDeckerStore().setAllMappedApps({});
         await removeChannelIcons();
         await relaunch();
     } catch (error) {

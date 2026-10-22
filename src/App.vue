@@ -2,6 +2,8 @@
   <div class="h-screen w-screen flex flex-col pt-12 bg-transparent rounded-xl">
     <SettingsModal :modal-open="settingsModalOpen" @close="settingsToggled" />
     <AppsModal :currentSliderID="currentSliderID" :modal-open="appsModalOpen" @close="appsToggled(null)" />
+    <UpdatePrompt />
+    <WhatsNewModal />
     <TopBar :colorScheme="colorScheme" :class="backgroundColorTopBar" @settings-toggled="settingsToggled" :connection-status="connectionState" />
     <SliderOverview :class="backgroundColor" ref="sliderOverview" :pot-values="potValues" @app-click="appsToggled" />
 
@@ -16,6 +18,8 @@
 
 <script>
 import TopBar from "./components/TopBar.vue";
+import UpdatePrompt from "./components/UpdatePrompt.vue";
+import WhatsNewModal from "./components/WhatsNewModal.vue";
 import SettingsModal from "./SettingsModal/SettingsModal.vue";
 import AppsModal from "./AppSelectModal/AppsModal.vue";
 import SliderOverview from "./SliderOverview.vue";
@@ -34,11 +38,16 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { createLogger } from './ts/logger.ts';
+import { initUpdater } from './ts/updater';
+import { useUpdateStore } from './store/updateStore';
 
 const log = createLogger('app');
 
+import SelectedApps from "./ts/appsToControl.ts";
+import ChannelSettings from "./ts/channelSettings.ts";
+
 export default {
-  components: { TopBar, SettingsModal, SliderOverview, AppsModal, Plugin, Toaster, DotxInstallModal },
+  components: { TopBar, SettingsModal, SliderOverview, AppsModal, UpdatePrompt, WhatsNewModal, Plugin, Toaster, DotxInstallModal },
   name: "App",
 
   data() {
@@ -102,7 +111,6 @@ export default {
     appsToggled(id) {
       this.currentSliderID = id;
       this.appsModalOpen = !this.appsModalOpen;
-      this.$refs.sliderOverview.getSelectedApps();
     },
 
     async connectDecker() {
@@ -126,6 +134,11 @@ export default {
   },
 
   async mounted() {
+    // Not awaited on purpose: everything that reads or writes the mirrored mappings
+    // awaits SelectedApps.ready(), so a selection made while this runs isn't lost.
+    SelectedApps.init().catch((error) => log.error('Failed to load mapped apps', error));
+    ChannelSettings.init().catch((error) => log.error('Failed to load channel settings', error));
+
     try {
       if (await ConfigStore.get('allowWindowResizing') === true) {
         await getCurrentWindow().setResizable(true);
@@ -161,6 +174,15 @@ export default {
       : "light";
 
     this.setThemeFromOS();
+    // updater bootstrap
+    initUpdater();
+    const updateStore = useUpdateStore();
+    const post = updateStore.shouldShowWhatsNewOnLaunch();
+    if (post.show) {
+      updateStore.changelogHtml = post.html;
+      updateStore.whatsNewOpen = true;
+      updateStore.markWhatsNewShownFor(post.version);
+    }
 
     document.documentElement.setAttribute("data-theme", this.colorScheme);
 
