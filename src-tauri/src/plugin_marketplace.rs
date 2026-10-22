@@ -10,6 +10,7 @@ use tauri::{AppHandle, Emitter, Manager};
 
 use crate::plugin_runtime;
 use crate::plugin_runtime::{
+    check_dotx_version_compat,
     ensure_plugins_dir,
     find_plugin_dir_by_id,
     normalize_manifest_main_path,
@@ -213,20 +214,10 @@ fn validate_marketplace_manifest(manifest_json: &Value, plugin_id: &str) -> Resu
     }
 
     if let Some(constraint_str) = manifest_json.get("dotxVersion").and_then(|v| v.as_str()) {
-        let app_version_str = env!("CARGO_PKG_VERSION");
-        if let Ok(app_version) = semver::Version::parse(app_version_str) {
-            if let Ok(req) = semver::VersionReq::parse(constraint_str) {
-                if !req.matches(&app_version) {
-                    return Err(format!(
-                        "Plugin requires dotxVersion {} but the current app version is {}",
-                        constraint_str, app_version_str
-                    ));
-                }
-            } else {
-                return Err(format!(
-                    "\"dotxVersion\" value \"{}\" is not a valid semver requirement", constraint_str
-                ));
-            }
+        let mut errors = Vec::new();
+        check_dotx_version_compat(constraint_str, &mut errors);
+        if let Some(error) = errors.into_iter().next() {
+            return Err(error);
         }
     }
 
