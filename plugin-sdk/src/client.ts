@@ -3,6 +3,9 @@ import type { SettingsSections, ToastParams, ActionMappings, SystemUtilButton } 
 import { DeviceAPI, createDeviceAPI, type DeviceInfo } from './device';
 import { ChannelTargetsAPI, createChannelTargetsAPI } from './channel-targets';
 import sdkPackage from '../package.json';
+import { createLogger } from './logger';
+
+const log = createLogger('dotx-sdk');
 
 // Default port for backwards compatibility
 const DEFAULT_PORT = 3001;
@@ -262,7 +265,7 @@ export class APIClient {
       registrationTimeout: config.registrationTimeout || 15000,
       apiTimeout: config.apiTimeout || 30000
     };
-    console.log(`Plugin connecting to server at ${this.config.serverUrl}`);
+    log.debug(`Plugin connecting to server at ${this.config.serverUrl}`);
     this.deviceAPI = createDeviceAPI((method, params) => this.call(method, params), this);
     this.channelTargetsAPI = createChannelTargetsAPI((method, params) => this.call(method, params));
     this.connectionPromise = this.initializeConnection();
@@ -310,7 +313,7 @@ export class APIClient {
             try {
               cb(data.params);
             } catch (err) {
-              console.error('Error executing action callback:', err);
+              log.error('Error executing action callback:', err);
             }
           }
         });
@@ -367,8 +370,8 @@ export class APIClient {
           
           if (this.retryCount < this.config.maxRetries) {
             this.retryCount++;
-            console.log(`Connection failed (attempt ${this.retryCount}/${this.config.maxRetries}). Retrying in ${this.config.retryDelay}ms...`);
-            console.log(`Error details: ${error.message || error}`);
+            log.warn(`Connection failed (attempt ${this.retryCount}/${this.config.maxRetries}). Retrying in ${this.config.retryDelay}ms...`);
+            log.debug(`Error details: ${error.message || error}`);
             
             setTimeout(() => {
               if (!this.isDestroyed) {
@@ -379,14 +382,14 @@ export class APIClient {
           } else {
             clearTimeout(registrationTimeoutId);
             const errorMessage = this.createDetailedErrorMessage(error);
-            console.error('Max retry attempts reached. Plugin connection failed.');
-            console.error('Error:', errorMessage);
+            log.error('Max retry attempts reached. Plugin connection failed.');
+            log.error('Error:', errorMessage);
             reject(new Error(errorMessage));
           }
         };
         
         this.socket.on('connect', () => {
-          console.log('Connected to plugin server');
+          log.info('Connected to plugin server');
           this.retryCount = 0; // Reset retry count on successful connection
           
           this.socket.emit('register', this.pluginInfo, (ack: any) => {
@@ -396,14 +399,14 @@ export class APIClient {
 
               resolve();
             } else {
-              console.error('Plugin registration failed:', ack);
+              log.error('Plugin registration failed:', ack);
               handleFailure(new Error(`Plugin registration failed: ${ack.message || 'Unknown error'}`));
             }
           });
         });
         
         this.socket.on('disconnect', (reason: string) => {
-          console.log('Disconnected from plugin server:', reason);
+          log.info('Disconnected from plugin server:', reason);
           this.isRegistered = false;
           if (this.isDestroyed || reason === 'io client disconnect') {
             return;
@@ -412,12 +415,12 @@ export class APIClient {
         });
         
         this.socket.on('error', (error: any) => {
-          console.error('Socket error:', error);
+          log.error('Socket error:', error);
           handleFailure(error);
         });
         
         this.socket.on('connect_error', (error: any) => {
-          console.error('Failed to connect to plugin server:', error);
+          log.error('Failed to connect to plugin server:', error);
           handleFailure(error);
         });
 
@@ -552,7 +555,7 @@ export class APIClient {
     try {
       await this.call('ui.updated', {});
     } catch (err) {
-      console.warn('Failed to notify settings updated:', err);
+      log.warn('Failed to notify settings updated:', err);
     }
   }
 
@@ -566,7 +569,7 @@ export class APIClient {
     try {
       await this.call('ui.actionsUpdated', {});
     } catch (err) {
-      console.warn('Failed to notify actions updated:', err);
+      log.warn('Failed to notify actions updated:', err);
     }
   }
 
@@ -659,7 +662,7 @@ export class APIClient {
           try {
             copy.settings = this.prepareSectionedSchemaWithActionIds(btn.settings as any);
           } catch (e) {
-            console.warn('Failed to prepare button settings schema', e);
+            log.warn('Failed to prepare button settings schema', e);
             copy.settings = btn.settings;
           }
         }

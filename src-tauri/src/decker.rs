@@ -1,4 +1,4 @@
-use log::{error, info, warn};
+use log::{debug, error, info, warn};
 use rmp_serde::{Deserializer, Serializer};
 use serde::ser::SerializeMap;
 use serde::{Deserialize, Serialize};
@@ -216,8 +216,6 @@ pub fn get_devices() -> Vec<USBDevice> {
         }
         Err(e) => {
             error!("Error listing serial ports - {:?}", e);
-            eprintln!("{:?}", e);
-            eprintln!("Error listing serial ports");
         }
     }
 
@@ -272,9 +270,20 @@ pub fn initialize_decker(
     // checking against it would kill the background thread on every attempt,
     // including the very first one. Check whether a connection is actually live instead.
     if SENDER.lock().unwrap().is_some() {
-        eprintln!("Port \"{}\" is already open. Closing it...", port_name);
         warn!("Port \"{}\" is already open. Closing it...", port_name);
         kill_decker_thread();
+    }
+
+    let mut is_decker = false;
+    if let Ok(ports) = available_ports() {
+        for port_info in ports {
+            if port_info.port_name == port_name {
+                is_decker = matches!(
+                    port_info.port_type,
+                    SerialPortType::UsbPort(ref info) if info.vid == 1240 && info.pid == 58918
+                );
+            }
+        }
     }
 
     let port = serialport::new(port_name, baud_rate)
@@ -283,7 +292,6 @@ pub fn initialize_decker(
 
     match port {
         Ok(mut port) => {
-            println!("Connected to \"{}\"", port_name);
             info!("Connected to \"{}\"", port_name);
             if let Err(e) = port.write_data_terminal_ready(true) {
                 // Not all serial endpoints support modem control lines (e.g. PTYs
@@ -292,8 +300,10 @@ pub fn initialize_decker(
             }
 
             let (tx, rx): (mpsc::Sender<String>, mpsc::Receiver<String>) = mpsc::channel(); // Spawn a thread to handle incoming data
+            let connected_port_name = port_name.to_owned();
             thread::spawn(move || {
                 let mut serial_buf: Vec<u8> = vec![0; 100];
+                let mut logged_device_info = false;
                 if let Err(err) = window.emit(
                     "connection-change",
                     Payload {
@@ -309,7 +319,7 @@ pub fn initialize_decker(
                     }
                     match rx.try_recv() {
                         Ok(command) => {
-                            println!("Received: {:?}", command);
+                            debug!("Received: {:?}", command);
                             if command == "disconnect" {
                                 if let Err(e) = port.write_data_terminal_ready(false) {
                                     error!("Failed to set DTR to false: {}", e);
@@ -331,17 +341,15 @@ pub fn initialize_decker(
                                 Ok(serialized_data) => {
                                     match port.write(serialized_data.as_slice()) {
                                         Ok(t) => {
-                                            println!("Sent {} bytes", t);
+                                            debug!("Sent {} bytes", t);
                                         }
                                         Err(e) => {
                                             error!("Failed to write to serial port: {}", e);
-                                            eprintln!("Failed to write to serial port: {}", e);
                                         }
                                     }
                                 }
                                 Err(e) => {
                                     error!("Failed to serialize data: {}", e);
-                                    eprintln!("Failed to serialize data: {}", e);
                                 }
                             }
                         }
@@ -377,6 +385,16 @@ pub fn initialize_decker(
                                             }
                                         }
                                         DataType::Device(device_data) => {
+                                            if is_decker && !logged_device_info {
+                                                warn!(
+                                                    "Device connected on {}: model {}, firmware {}, serial {}",
+                                                    connected_port_name,
+                                                    device_data.device_model,
+                                                    device_data.firmware_version,
+                                                    device_data.serial_number
+                                                );
+                                                logged_device_info = true;
+                                            }
                                             let json_data =
                                                 match serde_json::to_string(&device_data) {
                                                     Ok(json) => json,
@@ -398,8 +416,7 @@ pub fn initialize_decker(
                                     }
                                 }
                                 Err(_error) => {
-                                    // Handle the error case
-                                    // eprintln!("Deserialization failed: {}", error);
+                                    // Malformed frames are expected on a noisy serial line; ignore them.
                                 }
                             };
                         }
@@ -427,11 +444,13 @@ pub fn initialize_decker(
             });
 
             *SENDER.lock().unwrap() = Some(tx);
+            if is_decker {
+                send_decker_command("get-device-info", None);
+            }
 
             Ok(())
         }
         Err(e) => {
-            eprintln!("Failed to open \"{}\". Error: {}", port_name, e);
             error!("Failed to open \"{}\". Error: {}", port_name, e);
             Err(e.into())
         }
@@ -451,9 +470,7 @@ pub fn disconnect_decker() {
             error!("Failed to send disconnect command: {}", e);
         }
     } else {
-        eprintln!(
-            "Sender not initialized. Make sure to initialize it before calling send_decker_command."
-        );
+        error!("Sender not initialized. Make sure to initialize it before calling send_decker_command.");
     }
 }
 
@@ -505,15 +522,13 @@ pub fn send_decker_command(command: &str, options: Option<Options>) {
         r#"{{ "command": "{}", "options": {} }}"#,
         command, options_str
     );
-    println!("Sending: {}", payload);
+    debug!("Sending: {}", payload);
     // Send the payload through the global sender
     if let Some(sender) = sender.as_ref() {
         if let Err(e) = sender.send(payload) {
             error!("Failed to send payload: {}", e);
         }
     } else {
-        eprintln!(
-            "Sender not initialized. Make sure to initialize it before calling send_decker_command."
-        );
+        error!("Sender not initialized. Make sure to initialize it before calling send_decker_command.");
     }
 }

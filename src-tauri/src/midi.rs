@@ -180,7 +180,6 @@ pub mod midi {
                                 conn_out.close();
                                 break;
                             }
-                            // println!("Current slider values: {:?}", decker::decker::slider_values);
                             for i in 1..=5 {
                                 let current_slider = match i {
                                     1 => decker::decker::slider_values.slider1,
@@ -224,7 +223,7 @@ pub mod midi {
                                                 continue;
                                             }
                                         };
-                                        println!("Sending MIDI message: {:?}", message);
+                                        trace!("Sending MIDI message: {:?}", message);
                                         let _ = conn_out.send(&message);
                                     }
                                     *previous_slider = current_slider;
@@ -237,7 +236,7 @@ pub mod midi {
                 });
             }
             Err(e) => {
-                println!("Connection to {} failed: {:?}", midi.name, e);
+                error!("Connection to {} failed: {:?}", midi.name, e);
                 return Err(e);
             }
         }

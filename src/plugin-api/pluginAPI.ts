@@ -11,6 +11,9 @@ import EventBus from '../js/eventBus.js';
 import RGBController from '../ts/RGBController';
 import ConfigStore from '../ts/config';
 import SelectedApps from '../ts/appsToControl';
+import { createLogger } from '../ts/logger.ts';
+
+const log = createLogger('plugin-api');
 
 export class PluginAPI {
   private static instance: PluginAPI | null = null;
@@ -19,12 +22,11 @@ export class PluginAPI {
   
   // --- ACTION helpers ---
   async emitAction(plugin_id: string, action: string, params: any = {}) {
-    console.log('Emitting action', action, params);
+    log.debug('Emitting action', action);
     try {
       await invoke('send_to_plugin', { pluginId: plugin_id, event: 'plugin.action', data: { action, params } });
-      console.log('Emitted action', action);
     } catch (err) {
-      console.error('Failed to emit action', err);
+      log.error('Failed to emit action', err);
     }
   }
   private preferredPort = 3001;
@@ -44,17 +46,17 @@ export class PluginAPI {
   async initialize(): Promise<void> {
     if (this.isInitialized) return;
     
-    console.log('Initializing Plugin API Server...');
-    
+    log.debug('Initializing Plugin API Server...');
+
     try {
       // Start the Rust WebSocket server - it returns the actual port used
       const actualPort = await invoke<number>('start_plugin_server', { port: this.preferredPort });
       this.serverPort = actualPort;
       
       if (actualPort !== this.preferredPort) {
-        console.log(`Plugin API Server started on port ${actualPort} (preferred port ${this.preferredPort} was busy)`);
+        log.info(`Plugin API Server started on port ${actualPort} (preferred port ${this.preferredPort} was busy)`);
       } else {
-        console.log('Plugin API Server started on port', actualPort);
+        log.info('Plugin API Server started on port', actualPort);
       }
       
       // Setup event listeners for plugin events
@@ -72,12 +74,8 @@ export class PluginAPI {
       await this.syncActivePlugins();
       
       this.isInitialized = true;
-      console.log(`Plugin API Server initialized on port ${this.serverPort}`);
-      
-      // Now it's safe to access stores after initialization
-      this.logSliderValues();
     } catch (error) {
-      console.error('Failed to initialize Plugin API Server:', error);
+      log.error('Failed to initialize Plugin API Server:', error);
       throw error;
     }
   }
@@ -90,20 +88,6 @@ export class PluginAPI {
   }
 
   /**
-   * Safely access and log slider values from deckerStore
-   */
-  private logSliderValues() {
-    try {
-      const deckerStore = useDeckerStore();
-      deckerStore.sliders.forEach((value, index) => {
-        console.log(`Slider ${index} value: ${value}%`);
-      });
-    } catch (error) {
-      console.warn('Could not access decker store:', error);
-    }
-  }
-
-  /**
    * Get current slider values
    */
   public getSliders(): number[] {
@@ -111,7 +95,7 @@ export class PluginAPI {
       const deckerStore = useDeckerStore();
       return deckerStore.sliders;
     } catch (error) {
-      console.warn('Could not access decker store:', error);
+      log.warn('Could not access decker store:', error);
       return [];
     }
   }
@@ -122,7 +106,7 @@ export class PluginAPI {
       try {
        await invoke('broadcast_to_plugins', { event: 'plugin.device_update', data });
       } catch (err) {
-        console.error('Failed to emit action', err);
+        log.error('Failed to broadcast device update', err);
       }
       // Handle the slider change event as needed
     });
@@ -132,14 +116,14 @@ export class PluginAPI {
       try {
         const deviceInfo = await this.getDeviceInfo();
         if (data.connected) {
-          console.log('Broadcasting device connected event to plugins', deviceInfo);
+          log.debug('Broadcasting device connected event to plugins');
           await invoke('broadcast_to_plugins', { event: 'plugin.device_connected', data: deviceInfo });
         } else {
-          console.log('Broadcasting device disconnected event to plugins', deviceInfo);
+          log.debug('Broadcasting device disconnected event to plugins');
           await invoke('broadcast_to_plugins', { event: 'plugin.device_disconnected', data: deviceInfo });
         }
       } catch (err) {
-        console.error('Failed to broadcast device connection event', err);
+        log.error('Failed to broadcast device connection event', err);
       }
     });
   }
@@ -164,22 +148,22 @@ export class PluginAPI {
   async setupTauriEventListeners() {
     await Promise.all([
       listen('plugin/api_request', (event) => {
-        console.log('Received API request:', event.payload);
+        log.debug('Received API request');
         this.handleApiRequest(event.payload as ApiRequest & { plugin_id?: string });
       }),
-      listen('plugin/api_response', (event) => {
-        console.log('Received API response:', event.payload);
+      listen('plugin/api_response', () => {
+        log.debug('Received API response');
       }),
-      listen('plugin/api_error', (event) => {
-        console.log('Received API error:', event.payload);
+      listen('plugin/api_error', () => {
+        log.debug('Received API error');
       }),
-      listen('plugin/api_event', (event) => {
-        console.log('Received API event:', event.payload);
+      listen('plugin/api_event', () => {
+        log.debug('Received API event');
       }),
       listen('plugin/lifecycle', (event) => {
         const lifecycleEvent = event.payload as PluginLifecycleEvent;
         usePluginStore().handlePluginLifecycle(lifecycleEvent);
-        console.log('Received lifecycle event:', event.payload);
+        log.debug('Received lifecycle event');
       }),
       listen('plugin/connected', (event) => {
         const plugin = event.payload as {
@@ -192,12 +176,12 @@ export class PluginAPI {
           capabilities?: string[];
         };
         usePluginStore().upsertConnectedPlugin(plugin);
-        console.log('Received connected event:', event.payload);
+        log.debug('Received connected event');
       }),
       listen('plugin/disconnected', (event) => {
         const plugin = event.payload as { id: string; name?: string; error?: string | null };
         usePluginStore().handlePluginDisconnected(plugin);
-        console.log('Received disconnected event:', event.payload);
+        log.debug('Received disconnected event');
       }),
     ]);
   }
@@ -206,7 +190,7 @@ export class PluginAPI {
    * Handle incoming API requests from plugins
    */
   private async handleApiRequest(request: ApiRequest) {
-    console.log(`Handling API request: ${request.method}`);
+    log.debug(`Handling API request: ${request.method}`);
     
     try {
       let response: ApiResponse;
@@ -344,7 +328,7 @@ export class PluginAPI {
       await this.sendApiResponse(response);
 
     } catch (error) {
-      console.error('Error handling API request:', error);
+      log.error('Error handling API request:', error);
       
       const errorResponse: ApiResponse = {
         request_id: request.request_id,
@@ -362,9 +346,8 @@ export class PluginAPI {
   private async sendApiResponse(response: ApiResponse) {
     try {
       await invoke('send_api_response', { response });
-      console.log('API response sent successfully:', response.request_id);
     } catch (error) {
-      console.error('Failed to send API response:', error);
+      log.error('Failed to send API response:', error);
     }
   }
 
@@ -388,16 +371,14 @@ export class PluginAPI {
 
 
   public async getPluginSettings(pluginId: string) {
-    console.log('Getting plugin settings for plugin:', pluginId);
     const settings = await this.pluginRequest(pluginId, 'get_plugin_settings');
-    console.log('Plugin settings received:', settings);
+    log.debug('Plugin settings received from', pluginId);
     return settings.data;
   }
 
   public async getPluginActions(pluginId: string) {
-    console.log('Getting actions for plugin:', pluginId);
     const actions = await this.pluginRequest(pluginId, 'get_actions');
-    console.log('Actions received:', actions);
+    log.debug('Actions received from', pluginId);
     return actions.data;
   }
 
@@ -414,7 +395,7 @@ export class PluginAPI {
         capabilities?: string[];
       }>;
     } catch (e) {
-      console.error('Failed to get connected plugins', e);
+      log.error('Failed to get connected plugins', e);
       return [] as any[];
     }
   }
@@ -428,7 +409,7 @@ export class PluginAPI {
       const connectedPlugins = await this.getConnectedPlugins();
       usePluginStore().setConnectedPlugins(connectedPlugins);
     } catch (error) {
-      console.error('Failed to sync active plugins:', error);
+      log.error('Failed to sync active plugins:', error);
     }
   }
 
