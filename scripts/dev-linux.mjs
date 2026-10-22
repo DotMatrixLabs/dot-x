@@ -6,6 +6,7 @@ const repoRoot = process.cwd();
 const requestedDistroboxName = process.env.DOTX_DISTROBOX_NAME;
 const dryRun = process.argv.includes("--dry-run");
 const checkOnly = process.argv.includes("--check-only");
+const buildMode = process.argv.includes("--build");
 const skipPreflight = process.env.DOTX_SKIP_LINUX_PREFLIGHT === "1";
 
 function readOsRelease() {
@@ -206,7 +207,7 @@ const isKde = (process.env.XDG_CURRENT_DESKTOP || "").toLowerCase().includes("kd
 const shouldUseWebkitWorkarounds = forceWorkarounds || isBazzite || (hasNvidia && isWayland && isKde);
 
 if (!isLinux) {
-  run("yarn", ["tauri", "dev"]);
+  run("yarn", ["tauri", buildMode ? "build" : "dev"]);
 }
 
 if (isBazzite && !inContainer && process.env.DOTX_SKIP_DISTROBOX !== "1") {
@@ -220,14 +221,14 @@ if (isBazzite && !inContainer && process.env.DOTX_SKIP_DISTROBOX !== "1") {
   const exports = shouldUseWebkitWorkarounds
     ? "GDK_BACKEND=x11 WEBKIT_DISABLE_DMABUF_RENDERER=1 WEBKIT_DISABLE_COMPOSITING_MODE=1 "
     : "";
-  const passthroughArgs = checkOnly ? " --check-only" : "";
+  const passthroughArgs = (checkOnly ? " --check-only" : "") + (buildMode ? " --build" : "");
 
   const command = [
     `cd ${shellQuote(repoRoot)}`,
     `${exports}DOTX_LINUX_DEV_INSIDE_DISTROBOX=1 yarn dev:linux${passthroughArgs}`,
   ].join(" && ");
 
-  console.log(`Bazzite host detected; entering Distrobox '${distroboxName}' for Linux dev.`);
+  console.log(`Bazzite host detected; entering Distrobox '${distroboxName}' for Linux ${buildMode ? "build" : "dev"}.`);
   run("distrobox", ["enter", distroboxName, "--", "bash", "-lc", command]);
 }
 
@@ -244,4 +245,15 @@ if (checkOnly) {
   process.exit(0);
 }
 
-run("yarn", ["tauri", "dev"], { env });
+if (!buildMode) {
+  run("yarn", ["tauri", "dev"], { env });
+}
+
+// linuxdeploy's bundled strip predates .relr.dyn sections (Fedora 41+ system libs) and fails on them.
+env.NO_STRIP ||= "1";
+const buildArgs = ["tauri", "build"];
+if (!env.TAURI_SIGNING_PRIVATE_KEY) {
+  console.warn("TAURI_SIGNING_PRIVATE_KEY is not set; building without updater artifacts.");
+  buildArgs.push("--config", JSON.stringify({ bundle: { createUpdaterArtifacts: false } }));
+}
+run("yarn", buildArgs, { env });
