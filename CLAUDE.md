@@ -8,7 +8,7 @@ Desktop companion app for the DotMatrixLabs Decker physical volume mixer. Tauri 
 - `yarn tauri dev` — run the app (Windows, or Linux when you know the environment is already set up).
 - `npx vue-tsc --noEmit` — typecheck the frontend.
 - `cd src-tauri && cargo check` — check the backend.
-- `yarn tauri build` — production build (slow; don't run it just to verify a change).
+- `yarn tauri build` — production build (slow; don't run it just to verify a change). On Linux use `yarn build:linux`, which handles Distrobox, the linuxdeploy strip failure on Fedora, and builds without the updater signing key.
 - `yarn generate-types` — regenerate plugin API types after touching `src/plugin-api/`.
 
 ## Architecture
