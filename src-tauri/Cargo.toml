@@ -1,10 +1,10 @@
 [package]
 name = "dot_x"
-version = "1.2.3"
+version = "2.0.0-1"
 description = "Dot X"
-authors = ["you"]
-license = ""
-repository = ""
+authors = ["Frogbyte AS"]
+license = "GPL-3.0-or-later"
+repository = "https://github.com/Frogbyte-io/dot-x"
 edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -21,7 +21,6 @@ installed = { git = "https://github.com/Frogbyte-io/installed-rs.git", branch = 
 thiserror = "2.0.3"
 tauri-plugin-store = { version = "2.1.0" }
 tauri-plugin-autostart = { version = "2.0.1" }
-volume-control-rs = { path = "../../volume-control-rs" }
 serialport = "=4.3.0" # locked to 4.3.0 due to slow reading of data on higher versions. TODO: investigate
 tracing-subscriber = "0.3.17"
 tracing = "0.1.39"
@@ -31,14 +30,13 @@ tauri-plugin-single-instance = { version = "2" }
 midir = "0.10.0"
 once_cell = "1.18.0"
 sentry = "0.42"
-tauri-plugin-sentry = "0.5"
-log = { version = "^0.4", features = ["max_level_debug", "release_max_level_warn"] }
+tauri-plugin-sentry = { version = "0.5", default-features = false } # drops the default `minidump` feature: a memory dump of the crashed process can contain user data
+log = { version = "^0.4", features = ["max_level_trace", "release_max_level_warn"] }
 socketioxide = "0.16.3"
 axum = "0.7"
 futures-util = "0.3"
 tauri-plugin-log = { version = "2" }
 active-win-pos-rs = "0.11.0"
-cargo-license = "0.7.0"
 lazy_static = "1.4.0"
 tauri-plugin-fs = "2"
 tauri-plugin-cli = "2.0.1"
@@ -79,7 +77,14 @@ tauri-plugin-updater = "2"
 window-vibrancy = "0.5.2"
 window-shadows = "0.2.2"
 
+[target.'cfg(windows)'.dependencies]
+windows-volume-control = { git = "https://github.com/Frogbyte-io/windows-volume-control.git", rev = "2a83be8f2d05b1da1b6119f36cee91fbb4688739" }
+windows-sys = { version = "0.48", features = ["Win32_System_Com"] }
+
 [target.'cfg(target_os = "linux")'.dependencies]
+# Cross-platform fork of windows-volume-control with a PulseAudio backend. Must be
+# checked out next to this repo (see CLAUDE.md).
+volume-control-rs = { path = "../../volume-control-rs" }
 webkit2gtk-nvidia-quirk = "1.3.0"
 # Already in the dependency tree via brightness/tauri-plugin-notification/tauri-plugin-single-instance;
 # depended on directly here too for the dotx-active-window GNOME Shell extension D-Bus client.

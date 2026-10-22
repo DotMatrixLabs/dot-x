@@ -145,11 +145,10 @@ impl PluginServer {
         let (layer, io) = SocketIo::new_layer();
         self.io = Some(io.clone());
 
-        println!("plugin server started on port {}", self.port);
+        info!("plugin server started on port {}", self.port);
 
         // Handle plugin connections
         io.ns("/", {
-            println!("plugin server ns");
             let connections = Arc::clone(&connections);
             let app_handle = app_handle.clone();
             let pending_requests = Arc::clone(&pending_requests);
@@ -182,6 +181,7 @@ impl PluginServer {
                             };
 
                             connections.write().await.insert(plugin_info.id.clone(), connection);
+                            crate::track_plugin_usage_event(&app_handle, &plugin_info.id, &plugin_info.name, false);
 
                             // Emit to frontend
                             let _ = app_handle.emit("plugin/lifecycle", serde_json::json!({
@@ -408,7 +408,7 @@ impl PluginServer {
         if let Some(_connection) = connections.get(plugin_id) {
             if let Some(io) = &self.io {
                 let event_string = event.to_string();
-                println!("Sending event to plugin: {} {} {:?}", plugin_id, event_string, data);
+                debug!("Sending event to plugin: {} {}", plugin_id, event_string);
                 io.to(plugin_id.to_string())
                     .emit(event_string, &data)
                     .await
@@ -454,7 +454,7 @@ impl PluginServer {
                 }
             }
             Err(err) => {
-                println!("Ack error {:?}", err);
+                warn!("Ack error {:?}", err);
                 Err(err.to_string())
             }
         }
@@ -485,7 +485,7 @@ pub fn get_plugin_server() -> Option<Arc<RwLock<PluginServer>>> {
 // Tauri commands
 #[tauri::command]
 pub async fn start_plugin_server(app_handle: AppHandle, port: u16) -> Result<u16, String> {
-    println!("Starting plugin server on port {}", port);
+    info!("Starting plugin server on port {}", port);
 
     // Initialize server if it doesn't exist
     if get_plugin_server().is_none() {
@@ -500,16 +500,16 @@ pub async fn start_plugin_server(app_handle: AppHandle, port: u16) -> Result<u16
         };
 
         if is_running {
-            println!("Plugin server is already running on port {}", current_port);
+            info!("Plugin server is already running on port {}", current_port);
             return Ok(current_port);
         }
 
-        println!("Starting plugin server...");
+        info!("Starting plugin server...");
         let mut server = server_arc.write().await;
         match server.start().await {
             Ok(()) => {
                 let actual_port = server.port;
-                println!("Plugin server started successfully on port {}", actual_port);
+                info!("Plugin server started successfully on port {}", actual_port);
                 Ok(actual_port)
             }
             Err(e) => {

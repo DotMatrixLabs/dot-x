@@ -10,6 +10,7 @@ use tauri::{AppHandle, Emitter, Manager};
 
 use crate::plugin_runtime;
 use crate::plugin_runtime::{
+    check_dotx_version_compat,
     ensure_plugins_dir,
     find_plugin_dir_by_id,
     normalize_manifest_main_path,
@@ -213,20 +214,10 @@ fn validate_marketplace_manifest(manifest_json: &Value, plugin_id: &str) -> Resu
     }
 
     if let Some(constraint_str) = manifest_json.get("dotxVersion").and_then(|v| v.as_str()) {
-        let app_version_str = env!("CARGO_PKG_VERSION");
-        if let Ok(app_version) = semver::Version::parse(app_version_str) {
-            if let Ok(req) = semver::VersionReq::parse(constraint_str) {
-                if !req.matches(&app_version) {
-                    return Err(format!(
-                        "Plugin requires dotxVersion {} but the current app version is {}",
-                        constraint_str, app_version_str
-                    ));
-                }
-            } else {
-                return Err(format!(
-                    "\"dotxVersion\" value \"{}\" is not a valid semver requirement", constraint_str
-                ));
-            }
+        let mut errors = Vec::new();
+        check_dotx_version_compat(constraint_str, &mut errors);
+        if let Some(error) = errors.into_iter().next() {
+            return Err(error);
         }
     }
 
@@ -420,12 +411,14 @@ fn download_text_with_progress(
         .map_err(|e| format!("Downloaded text was not valid UTF-8: {}", e))
 }
 
-fn registry_entry_integrity_hash(plugin_entry: &Value) -> Option<String> {
+fn registry_entry_integrity_hash(plugin_entry: &Value) -> Result<String, String> {
     plugin_entry
         .get("package_integrity_hash")
         .or_else(|| plugin_entry.get("integrity_hash"))
         .and_then(|value| value.as_str())
+        .filter(|value| !value.trim().is_empty())
         .map(|value| value.to_string())
+        .ok_or_else(|| "package_integrity_hash not found in registry".to_string())
 }
 
 fn install_marketplace_zip_plugin(
@@ -441,8 +434,7 @@ fn install_marketplace_zip_plugin(
         .and_then(|u| u.as_str())
         .ok_or_else(|| "package_url not found in registry".to_string())?
         .to_string();
-    let expected_hash = registry_entry_integrity_hash(plugin_entry)
-        .ok_or_else(|| "package_integrity_hash not found in registry".to_string())?;
+    let expected_hash = registry_entry_integrity_hash(plugin_entry)?;
 
     info!("Downloading plugin package from {}", package_url);
     let package_bytes = download_bytes_with_progress(
@@ -491,7 +483,7 @@ fn install_marketplace_manifest_plugin(
         .and_then(|u| u.as_str())
         .ok_or_else(|| "index_url not found in registry".to_string())?
         .to_string();
-    let expected_hash = registry_entry_integrity_hash(plugin_entry);
+    let expected_hash = registry_entry_integrity_hash(plugin_entry)?;
 
     let manifest_text = download_text_with_progress(
         client,
@@ -514,12 +506,10 @@ fn install_marketplace_manifest_plugin(
         emit_progress,
     )?;
 
-    if let Some(expected_hash) = expected_hash {
-        emit_progress("verifying_package", 80);
-        let computed_hash = calculate_sha256_bytes(&entry_bytes);
-        if computed_hash != expected_hash {
-            return Err("Integrity check failed: downloaded package does not match the expected checksum. Please try again.".to_string());
-        }
+    emit_progress("verifying_package", 80);
+    let computed_hash = calculate_sha256_bytes(&entry_bytes);
+    if computed_hash != expected_hash {
+        return Err("Integrity check failed: downloaded package does not match the expected checksum. Please try again.".to_string());
     }
 
     emit_progress("extracting_package", 85);
@@ -957,4 +947,39 @@ pub async fn uninstall_marketplace_plugin(app_handle: AppHandle, plugin_id: Stri
 
     info!("Successfully uninstalled plugin: {}", plugin_id);
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::registry_entry_integrity_hash;
+    use serde_json::json;
+
+    #[test]
+    fn reads_package_integrity_hash() {
+        let entry = json!({ "package_integrity_hash": "abc123" });
+
+        assert_eq!(registry_entry_integrity_hash(&entry), Ok("abc123".to_string()));
+    }
+
+    #[test]
+    fn reads_legacy_integrity_hash() {
+        let entry = json!({ "integrity_hash": "abc123" });
+
+        assert_eq!(registry_entry_integrity_hash(&entry), Ok("abc123".to_string()));
+    }
+
+    #[test]
+    fn rejects_missing_or_empty_integrity_hash() {
+        let expected_error = Err("package_integrity_hash not found in registry".to_string());
+
+        assert_eq!(registry_entry_integrity_hash(&json!({})), expected_error);
+        assert_eq!(
+            registry_entry_integrity_hash(&json!({ "package_integrity_hash": "" })),
+            expected_error
+        );
+        assert_eq!(
+            registry_entry_integrity_hash(&json!({ "package_integrity_hash": 123 })),
+            expected_error
+        );
+    }
 }
