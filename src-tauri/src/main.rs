@@ -427,6 +427,7 @@ fn build_tray(app: &tauri::AppHandle<Wry>) -> tauri::Result<(Menu<Wry>, TrayIcon
                 tauri::async_runtime::spawn(async move {
                     track_analytics_event(&app_handle, "app_exited", None);
                 });
+                audio::stop_volume_sync();
                 std::process::exit(0);
             }
             "hide" => {
@@ -673,6 +674,9 @@ async fn main() {
             audio::get_all_audio_devices,
             audio::get_output_devices,
             audio::get_input_devices,
+            audio::enable_volume_sync,
+            audio::disable_volume_sync,
+            audio::update_volume_sync_mappings,
             plugin_server::start_plugin_server,
             plugin_server::stop_plugin_server,
             plugin_server::send_to_plugin,
@@ -830,6 +834,8 @@ async fn main() {
                     error!("Deno bootstrap failed: {}", e);
                 }
             }
+
+            audio::restore_volume_sync(app.handle());
 
             // Store global handle and auto-start enabled plugins
             APP.set(app.handle().clone()).expect("error setting up app");
