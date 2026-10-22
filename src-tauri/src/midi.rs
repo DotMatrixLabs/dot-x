@@ -249,7 +249,9 @@ pub mod midi {
     mod tests {
         #[cfg(unix)]
         use super::connect_output;
-        use super::{control_change_message, is_virtual_output_port, map_to_range};
+        use super::{control_change_message, map_to_range};
+        #[cfg(unix)]
+        use super::is_virtual_output_port;
         #[cfg(unix)]
         use midir::{MidiInput, MidiOutput};
         #[cfg(unix)]
@@ -290,6 +292,7 @@ pub mod midi {
             assert!(control_change_message(0, 512, &configuration).is_err());
         }
 
+        #[cfg(unix)]
         #[test]
         fn treats_first_port_after_physical_outputs_as_virtual_output() {
             assert!(!is_virtual_output_port(2, 0));
