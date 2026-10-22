@@ -12,8 +12,6 @@ class ChannelSettings {
      * Creates an instance of ChannelSettings.
      */
     constructor() {
-        // lazy init
-        this.init();
     }
 
     private async ensureLoaded() {
