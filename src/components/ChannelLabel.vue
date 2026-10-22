@@ -1,6 +1,6 @@
 <template>
     <div class="rounded-full w-24 h-12 bg-gray-500 dark:bg-gray-400 border-0 bg-opacity-40 dark:bg-opacity-30 dark:ring-opacity-50 hover:bg-gray-400 dark:hover:bg-gray-400 dark:hover:bg-opacity-40 hover:bg-opacity-40 px-0 btn shadow-xl">
-        <div v-if="settings?.selectedLabelType === 'text'" :class="labelTextInputTextSize(settings?.labelText)">
+        <div v-if="settings?.selectedLabelType === 'text'" class="channel-label-text" :class="labelTextInputTextSize(settings?.labelText)">
             {{settings?.labelText}}
         </div>
         <div v-else-if="settings?.selectedLabelType === 'icon'" :key="settings?.labelIcon">
@@ -13,7 +13,7 @@
             <span><i class="fas fa-add fa-xl"></i></span>
         </div>
         <div :key="apps" v-else>
-            <span :class="labelTextInputTextSize(standardChannelName)">{{ standardChannelName }}</span>
+            <span class="channel-label-text" :class="labelTextInputTextSize(standardChannelName)">{{ standardChannelName }}</span>
         </div>
     </div>
 </template>
@@ -116,4 +116,12 @@ export default {
 </script>
 
 <style scoped>
+.channel-label-text {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    max-width: 100%;
+    white-space: normal;
+}
 </style>

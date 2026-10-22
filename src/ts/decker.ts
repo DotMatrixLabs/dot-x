@@ -4,7 +4,7 @@ import { useDeckerStore } from "../store/deckerStore.ts";
 import SystemVolumeController from "./volumeControl.ts";
 import ConfigStore from './config.ts';
 import appsToControl from './appsToControl.ts';
-import { trackEvent } from "@aptabase/tauri";
+import { trackTelemetryEvent } from "./telemetry";
 import EventBus from '../js/eventBus.js';
 import { createLogger } from './logger.ts';
 
@@ -106,7 +106,7 @@ class Decker {
 
         const newDevices:any = await this.getDevices();
         const device = newDevices.find((device:any) => device.port_name === comPort);
-        if(device && (device.pid === 58918 && device.vid === 1240)) trackEvent("decker_connected");
+        if(device && (device.pid === 58918 && device.vid === 1240)) trackTelemetryEvent("decker_connected");
 
         const deckerStore = useDeckerStore();
         this.comPort = comPort;
@@ -206,7 +206,7 @@ class Decker {
         let midiConfiguration = await ConfigStore.get("midiConfiguration");
         if(midiConfiguration?.length === 0) midiConfiguration = [];
         log.debug("Attaching MIDI with configuration", midiConfiguration);
-        trackEvent("midi_attached🔊");
+        trackTelemetryEvent("midi_attached🔊");
         return await invoke('attach_midi_device', { outputName, outputPort, midiSliders, midiConfiguration });
     }
 
