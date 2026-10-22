@@ -13,18 +13,27 @@
             <span class="my-auto">Act when Decker disconnects: <br></span>
             <input type="checkbox" class="toggle toggle-primary mr-2" :checked="actOnDeckerDisconnect" @change="toggleActOnDeckerDisconnect" />
         </div>
-        <div v-if="actOnDeckerDisconnect" v-for="slider in sliderAmount" :key="slider" class="flex flex-row w-full justify-between px-2 mt-2">
-            <span class="shrink-0 pt-1">Slider {{slider}}: </span>
-            <select @change="sliderDisconnectHandle" v-model="selectedValues[slider - 1]"
-                class="select select-bordered select-sm w-2/3 mx-2 truncate">
-                <option class="w-full" v-for="(option, index) in sliderOptions" :value="option" :key="index">
-                    {{ option }}
-                </option>
-            </select>
-        </div>
-        <div data-setting="Inverted sliders" class="flex flex-row w-full justify-between px-2 mt-4 mb-2">
+        <template v-if="actOnDeckerDisconnect">
+            <div v-for="slider in sliderAmount" :key="slider" class="flex flex-row w-full justify-between px-2 mt-2">
+                <span class="shrink-0 pt-1">Slider {{slider}}: </span>
+                <select @change="sliderDisconnectHandle" v-model="selectedValues[slider - 1]"
+                    class="select select-bordered select-sm w-2/3 mx-2 truncate">
+                    <option class="w-full" v-for="(option, index) in sliderOptions" :value="option" :key="index">
+                        {{ option }}
+                    </option>
+                </select>
+            </div>
+        </template>
+        <div data-setting="Inverted sliders" class="flex flex-row w-full justify-between px-2 mt-4">
             <span class="my-auto">Inverted sliders: <br></span>
             <input type="checkbox" class="toggle toggle-primary mr-2" :checked="invertedSliders" @change="toggleInvertedSliders" />
+        </div>
+        <div data-setting="Force Volume Mixer Sync" class="flex flex-row w-full justify-between px-2 mt-4 mb-2">
+            <div class="pr-4">
+                <label class="my-auto" for="volume-sync-enabled">Force Volume Mixer Sync</label>
+                <p class="text-xs opacity-60">Forces Windows volume mixer to sync with Dot X</p>
+            </div>
+            <input id="volume-sync-enabled" type="checkbox" class="toggle toggle-primary mr-2" :checked="volumeSyncEnabled" @change="toggleVolumeSync" />
         </div>
         <div class="divider"><span class="opacity-50">Telemetry</span></div>
         <div data-setting="Crash reports" class="flex flex-row w-full justify-between px-2 mt-2">
@@ -97,6 +106,7 @@ export default {
     computed: {
     ...mapState(useDeckerStore, {
       sliders: 'getSliders',
+      volumeSyncEnabled: 'getVolumeSyncEnabled',
     }),
   },
     methods: {
@@ -187,6 +197,16 @@ export default {
 
         async toggleAnalytics(event) {
             await this.saveTelemetryPreference("analyticsEnabled", event.target.checked);
+        },
+
+        async toggleVolumeSync(event) {
+            const enabled = event.target.checked;
+            try {
+                await useDeckerStore().setVolumeSyncEnabled(enabled);
+                await ConfigStore.set("volumeSyncEnabled", enabled);
+            } catch (error) {
+                log.error("Failed to change volume sync", error);
+            }
         },
 
         async toggleAutostart() {

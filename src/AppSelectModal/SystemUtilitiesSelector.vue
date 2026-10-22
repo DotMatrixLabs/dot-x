@@ -71,6 +71,8 @@
 <script>
 import SelectedApps from "../ts/appsToControl.ts";
 import SystemVolumeController from "../ts/volumeControl.ts";
+import { mapState } from "pinia";
+import { useDeckerStore } from "../store/deckerStore.ts";
 import pluginAPI from "../plugin-api/pluginAPI";
 import PluginSettingsRenderer from "../components/PluginSettingsRenderer.vue";
 import { usePluginStore } from "../store/pluginStore";
@@ -86,13 +88,6 @@ export default {
 
     data() {
         return {
-            utilities: [
-                { title: "output", icon: "fas fa-volume-up fa-lg", id: "output" },
-                { title: "input", icon: "fas fa-lg fa-microphone", id: "input" },
-                { title: "unmapped", icon: "fas fa-lg fa-question-circle", id: "unmapped"},
-                { title: "active window", icon: "fas fa-lg fa-window-maximize", id: "activeWindow"},
-                { title: "screen brightness", icon: "fas fa-lg fa-sun", id: "screen brightness"},
-            ],
             activeUtilities: [],
             sessions: [],
             deviceSelectors: {
@@ -116,6 +111,25 @@ export default {
     },
 
     computed: {
+        ...mapState(useDeckerStore, {
+            deviceType: 'getDeviceType',
+        }),
+        utilities() {
+            const baseUtilities = [
+                { title: "output", icon: "fas fa-volume-up fa-lg", id: "output" },
+                { title: "input", icon: "fas fa-lg fa-microphone", id: "input" },
+                { title: "unmapped", icon: "fas fa-lg fa-question-circle", id: "unmapped"},
+                { title: "active window", icon: "fas fa-lg fa-window-maximize", id: "activeWindow"},
+                { title: "screen brightness", icon: "fas fa-lg fa-sun", id: "screen brightness"},
+            ];
+            
+            // Show device brightness if device is Decker OR if it's already selected
+            if (this.deviceType === "Decker" || this.activeUtilities?.includes("device brightness")) {
+                baseUtilities.push({ title: "device brightness", icon: "fas fa-lg fa-lightbulb", id: "device brightness" });
+            }
+            
+            return baseUtilities;
+        },
         pluginStore() {
             return usePluginStore();
         },

@@ -1,5 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import SelectedApps from './appsToControl';
+import { useDeckerStore } from '../store/deckerStore';
+import { excludeMappedApps } from './mappingUtils';
 import { createLogger } from './logger.ts';
 
 const log = createLogger('volume');
@@ -14,6 +16,9 @@ class SystemVolumeController {
     private lastSetVolumeApp: string;
     private brightnessTimeoutId: NodeJS.Timeout | null = null;
     private latestBrightnessValue: number;
+    private rgbBrightnessTimeoutId: NodeJS.Timeout | null = null;
+    private latestRGBBrightnessValue: number;
+    private lastRGBBrightnessExecutionTime: number;
 
     constructor() {
         this.lastActiveWindowExecutionTime = 0;
@@ -22,6 +27,9 @@ class SystemVolumeController {
         this.lastSetVolumeApp = "";
         this.brightnessTimeoutId = null;
         this.latestBrightnessValue = 0;
+        this.rgbBrightnessTimeoutId = null;
+        this.latestRGBBrightnessValue = 0;
+        this.lastRGBBrightnessExecutionTime = 0;
     }
 
     /**
@@ -86,6 +94,9 @@ class SystemVolumeController {
             if (this.lastSetVolumeApp === name && (currentTime - this.lastSetVolumeExecutionTime < 50) && volume > 0.01) return;
             this.lastSetVolumeExecutionTime = currentTime;
             this.lastSetVolumeApp = name;
+            // set_application_volume records the sync target itself, before applying the
+            // volume. Doing it again from here would let an older overlapping slider update
+            // land after a newer one and pin the session to a stale target.
             await invoke('set_application_volume', { name, volume });
         } catch (error) {
             log.error('Failed to set application volume', error);
@@ -110,14 +121,22 @@ class SystemVolumeController {
             //get all apps and remove the ones that are already mapped
             apps = await this.getAllSessionNames(false);
             const systemFeatures = ['master', 'output', 'input', 'mic'];
-            const mappedApps = await SelectedApps.getMappedApps();
+            // Read the persisted source of truth. The Pinia mirror can lag behind a toggle after
+            // selectedApps.json has already been updated, briefly making a mapped app look free.
+            let mappedApps: string[] | null;
+            try {
+                mappedApps = await SelectedApps.getMappedApps();
+            } catch (error) {
+                log.error("Skipping unmapped channel, mapped apps unavailable", error);
+                return;
+            }
             if(!mappedApps) return;
             //remove system features
             apps = apps.filter((app) => !systemFeatures.includes(app));
             //remove input and output devices
             apps = apps.filter((app) => !app.toLowerCase().startsWith("input: ") && !app.toLowerCase().startsWith("output: "));
             //remove mapped apps
-            apps = apps.filter((app) => !mappedApps.includes(app));
+            apps = excludeMappedApps(apps, mappedApps);
             const channelApps: string[] | null = await SelectedApps.getApps(channel);
             //add back the apps that are mapped to same channel
             if(channelApps) apps = [...apps, ...channelApps];
@@ -158,6 +177,41 @@ class SystemVolumeController {
                 await invoke('set_screen_brightness', { brightness: this.latestBrightnessValue, screens: ["all"] });
             }, 500 - (currentTime - this.lastSetVolumeExecutionTime));
         }
+
+        if (apps.includes("device brightness")) {
+            const currentTime = Date.now();
+            const deckerStore = useDeckerStore();
+        
+            // Store the latest RGB brightness value
+            this.latestRGBBrightnessValue = volume;
+        
+            // If the throttling interval has passed, send the RGB brightness value immediately
+            if (currentTime - this.lastRGBBrightnessExecutionTime >= 100) {
+                this.lastRGBBrightnessExecutionTime = currentTime;
+                await this.setRGBBrightness(this.latestRGBBrightnessValue);
+                await deckerStore.setBrightness(Math.round(volume * 100));
+            }
+        
+            // Clear the previous timeout if it exists
+            if (this.rgbBrightnessTimeoutId) {
+                clearTimeout(this.rgbBrightnessTimeoutId);
+            }
+        
+            // Schedule the last value to be sent after the throttling interval
+            this.rgbBrightnessTimeoutId = setTimeout(async () => {
+                this.lastRGBBrightnessExecutionTime = Date.now();
+                await this.setRGBBrightness(this.latestRGBBrightnessValue);
+                await deckerStore.setBrightness(Math.round(this.latestRGBBrightnessValue * 100));
+            }, 100 - (currentTime - this.lastRGBBrightnessExecutionTime));
+        }
+    }
+
+    private async setRGBBrightness(volume: number): Promise<void> {
+        // Convert volume (0-1) to brightness (0-255)
+        const brightness = parseInt((volume * 255).toString());
+        
+        // Send brightness command directly to device
+        await invoke('send_decker_command', { command: 'rgb-control', options: { brightness } });
     }
 
 
