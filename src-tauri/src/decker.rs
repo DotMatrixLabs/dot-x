@@ -6,7 +6,7 @@ use serde_json;
 use serde_json::Value;
 use serialport::{SerialPortType, available_ports};
 use std::collections::BTreeMap;
-use std::io::{self, Cursor, Read};
+use std::io::{self, Cursor, Read, Write};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::{
     sync::{Mutex, mpsc},
@@ -107,6 +107,9 @@ impl Serialize for SliderData {
         map.end()
     }
 }
+
+const READ_TIMEOUT: Duration = Duration::from_millis(20);
+const WRITE_TIMEOUT: Duration = Duration::from_millis(500);
 
 // Upper bound for buffered bytes that never form a message (no terminator seen).
 const MAX_PENDING_BYTES: usize = 4096;
@@ -344,7 +347,7 @@ pub fn initialize_decker(
     }
 
     let port = serialport::new(port_name, baud_rate)
-        .timeout(Duration::from_millis(20))
+        .timeout(READ_TIMEOUT)
         .open();
 
     match port {
@@ -396,9 +399,14 @@ pub fn initialize_decker(
                             }
                             match serialize_decker_data(&command) {
                                 Ok(serialized_data) => {
-                                    match port.write(serialized_data.as_slice()) {
-                                        Ok(t) => {
-                                            println!("Sent {} bytes", t);
+                                    // The short read-poll timeout also bounds writes, which can
+                                    // stall briefly while the device is still settling after connect.
+                                    let _ = port.set_timeout(WRITE_TIMEOUT);
+                                    let written = port.write_all(serialized_data.as_slice());
+                                    let _ = port.set_timeout(READ_TIMEOUT);
+                                    match written {
+                                        Ok(()) => {
+                                            println!("Sent {} bytes", serialized_data.len());
                                         }
                                         Err(e) => {
                                             error!("Failed to write to serial port: {}", e);
