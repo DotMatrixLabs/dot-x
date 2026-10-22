@@ -61,7 +61,9 @@ export default {
     },
 
     backgroundColorTopBar() {
-      if(this.isLinux || this.isWin10) return "bg-base-400 bg-opacity-20";
+      // Linux has no blur/Mica behind the transparent window, so the bar needs an opaque fill.
+      if(this.isLinux) return "bg-base-200";
+      if(this.isWin10) return "bg-base-400 bg-opacity-20";
       return "bg-black bg-opacity-10";
     },
 
