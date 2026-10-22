@@ -71,9 +71,14 @@
 <script>
 import SelectedApps from "../ts/appsToControl.ts";
 import SystemVolumeController from "../ts/volumeControl.ts";
+import { mapState } from "pinia";
+import { useDeckerStore } from "../store/deckerStore.ts";
 import pluginAPI from "../plugin-api/pluginAPI";
-import EventBus from "../js/eventBus.js";
 import PluginSettingsRenderer from "../components/PluginSettingsRenderer.vue";
+import { usePluginStore } from "../store/pluginStore";
+import { createLogger } from "../ts/logger.ts";
+
+const log = createLogger("system-utilities");
 
 export default {
     components: { PluginSettingsRenderer },
@@ -83,14 +88,6 @@ export default {
 
     data() {
         return {
-            utilities: [
-                { title: "output", icon: "fas fa-volume-up fa-lg", id: "output" },
-                { title: "input", icon: "fas fa-lg fa-microphone", id: "input" },
-                { title: "unmapped", icon: "fas fa-lg fa-question-circle", id: "unmapped"},
-                { title: "active window", icon: "fas fa-lg fa-window-maximize", id: "activeWindow"},
-                { title: "screen brightness", icon: "fas fa-lg fa-sun", id: "screen brightness"},
-            ],
-            pluginButtons: [],
             activeUtilities: [],
             sessions: [],
             deviceSelectors: {
@@ -114,6 +111,31 @@ export default {
     },
 
     computed: {
+        ...mapState(useDeckerStore, {
+            deviceType: 'getDeviceType',
+        }),
+        utilities() {
+            const baseUtilities = [
+                { title: "output", icon: "fas fa-volume-up fa-lg", id: "output" },
+                { title: "input", icon: "fas fa-lg fa-microphone", id: "input" },
+                { title: "unmapped", icon: "fas fa-lg fa-question-circle", id: "unmapped"},
+                { title: "active window", icon: "fas fa-lg fa-window-maximize", id: "activeWindow"},
+                { title: "screen brightness", icon: "fas fa-lg fa-sun", id: "screen brightness"},
+            ];
+            
+            // Show device brightness if device is Decker OR if it's already selected
+            if (this.deviceType === "Decker" || this.activeUtilities?.includes("device brightness")) {
+                baseUtilities.push({ title: "device brightness", icon: "fas fa-lg fa-lightbulb", id: "device brightness" });
+            }
+            
+            return baseUtilities;
+        },
+        pluginStore() {
+            return usePluginStore();
+        },
+        pluginButtons() {
+            return this.pluginStore.getPluginSystemUtilityButtons;
+        },
         mergedUtilities() {
             return [
                 ...this.utilities,
@@ -147,23 +169,7 @@ export default {
 
     methods: {
         async loadPluginButtons() {
-            try {
-                // Load buttons from all connected plugins and flatten
-                const plugins = await pluginAPI.getConnectedPlugins();
-                const all = [];
-                for (const p of (plugins || [])) {
-                    const actions = await pluginAPI.getPluginActions(p.id);
-                    if (actions && actions.buttons && actions.buttons.length) {
-                        console.log('actions.buttons', actions.buttons);
-                        all.push(...actions.buttons.map(b => ({ ...b, pluginId: p.id })));
-                        console.log('all', all);
-                    }
-                }
-                this.pluginButtons = all;
-            } catch (e) {
-                console.error('Failed to load plugin slider actions', e);
-                this.pluginButtons = [];
-            }
+            await this.pluginStore.refreshPluginSystemUtilityButtons();
         },
         getUtilityActiveClass(utility){
             if(utility.isPlugin){
@@ -185,13 +191,20 @@ export default {
                     const currentlySelected = pluginBtn?.selectedByChannel && typeof pluginBtn.selectedByChannel === 'object'
                         ? !!pluginBtn.selectedByChannel[channelKey]
                         : false;
+                    const nextSelected = !currentlySelected;
+                    this.pluginStore.setCachedPluginSystemUtilityButtonSelected(
+                        pluginBtn.pluginId,
+                        pluginBtn.actionId || pluginBtn.id,
+                        this.currentSliderID,
+                        nextSelected
+                    );
                     await pluginAPI.emitAction(
                         pluginBtn.pluginId,
                         pluginBtn.actionId || pluginBtn.id,
-                        { selected: !currentlySelected, channel: this.currentSliderID }
+                        { selected: nextSelected, channel: this.currentSliderID }
                     );
                 } catch (e) {
-                    console.error('Failed to emit plugin action for slider button', e);
+                    log.error('Failed to emit plugin action for slider button', e);
                 }
                 return;
             }
@@ -290,7 +303,7 @@ export default {
                 
                 this.deviceSelectors.output.devices = mergedDevices;
             } catch (error) {
-                console.error("Failed to load output devices:", error);
+                log.error("Failed to load output devices:", error);
             } finally {
                 this.deviceSelectors.output.loading = false;
             }
@@ -331,7 +344,7 @@ export default {
                 
                 this.deviceSelectors.input.devices = mergedDevices;
             } catch (error) {
-                console.error("Failed to load input devices:", error);
+                log.error("Failed to load input devices:", error);
             } finally {
                 this.deviceSelectors.input.loading = false;
             }
@@ -396,22 +409,12 @@ export default {
         this.loadInputDevices();
         this.setupDeviceUpdateInterval();
         this.loadPluginButtons();
-
-        // Listen for plugin action updates to refresh action buttons
-        this._actionsUpdatedHandler = ({ pluginId }) => {
-            // We currently refresh all plugin buttons for simplicity
-            this.loadPluginButtons();
-        };
-        EventBus.on('plugin:actionsUpdated', this._actionsUpdatedHandler);
     },
     
     beforeUnmount() {
         // Clean up interval when component is destroyed
         if (this.deviceUpdateInterval) {
             clearInterval(this.deviceUpdateInterval);
-        }
-        if (this._actionsUpdatedHandler) {
-            EventBus.off('plugin:actionsUpdated', this._actionsUpdatedHandler);
         }
     },
 }

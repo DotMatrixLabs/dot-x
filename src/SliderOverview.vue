@@ -5,10 +5,8 @@
         <div class="flex flex-col justify-center">
           <Slider :midiEnabledGlobal="midiEnabledGlobal" :midiEnabled="midiEnabled[index]" :class="sliders.length === 0 || connectionState === false ? 'opacity-50' : 'opacity-100'" :slider-val="slider" class="h-full w-full" />
           <button @click="$emit('app-click', index)"
-            class="m-auto rounded-full w-24 h-12 mt-12 mx-1">
-            <div class="">
-              <ChannelLabel :key="index" :apps="sliderApps[index]?.apps" :channel="index" />
-            </div>
+            class="mx-auto mt-12 flex h-12 w-24 shrink-0 items-center justify-center rounded-full p-0">
+            <ChannelLabel :apps="mappedApps[index]" :channel="index" />
           </button>
         </div>
       </template>
@@ -47,9 +45,6 @@ export default {
 
   data() {
     return {
-      sliderApps: [
-        { apps: [] },
-      ],
       prevSliderValues: [],
       isWin10: true,
       midiEnabled: [], // Array of booleans, midiEnabled for every slider
@@ -61,6 +56,7 @@ export default {
     ...mapState(useDeckerStore, {
       sliders: 'getSliders',
       connectionState: 'getConnectionState',
+      mappedApps: 'mappedApps',
     }),
   },
 
@@ -73,11 +69,17 @@ export default {
                 SystemVolumeController.setChannelVolume(index, sliderVol/100);
               });
               this.prevSliderValues = this.sliders;
-              if(this.sliders.length !== this.sliderApps.length) {
-                this.getSelectedApps();
-              }
           },
           deep: false
+      },
+      mappedApps: {
+          handler: function (newApps) {
+            Object.keys(newApps).forEach((index) => {
+              this.midiEnabled[index] = newApps[index].some((app) => app.includes('midi'));
+            });
+          },
+          deep: true,
+          immediate: true
       }
   },
 
@@ -86,25 +88,6 @@ export default {
 
     clickTest() {
       invoke('send_decker_command', { command: 'rgb-control', options: { r: 255, g: 255, b: 100 }});
-    },
-
-    async getSelectedApps() {
-      let sliders = useDeckerStore().sliders;
-      // console.log(sliders);
-      if(sliders.length === 0) sliders = [0, 0, 0, 0, 0];
-      sliders.forEach(async (slider, index) => {
-        const selectedApps = await SelectedApps.getApps(index);
-        // console.log( selectedApps );
-        if(!selectedApps) return;
-        if (!this.sliderApps[index]) {
-          this.sliderApps[index] = { apps: selectedApps };
-        } else {
-          this.sliderApps[index].apps = selectedApps;
-        }
-
-        // Set midiEnabled to pass to the Slider component if it's enabled.
-        this.midiEnabled[index] = selectedApps.some((app) => app.includes('midi'));
-      });
     },
 
   },
@@ -118,7 +101,6 @@ export default {
     });
     SystemVolumeController.getAllSessionNames();
     // SystemVolumeController.setChannelVolume('1', 0.5)
-    this.getSelectedApps();
   },
 
 

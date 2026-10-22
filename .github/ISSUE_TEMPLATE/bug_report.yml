@@ -1,0 +1,45 @@
+name: Bug report
+description: Report broken behavior, regressions, crashes, or reliability issues.
+title: "[Bug]: "
+labels:
+  - bug
+  - needs-triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Search existing issues first and keep the report focused on one problem.
+        Feature requests and ideas belong in the [feature request form](https://github.com/Frogbyte-io/dot-x/issues/new?template=feature_request.yml).
+        Attach screenshots, recordings, or files directly to the issue.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Attach a device and start Dot X
+        2. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Dot X version and where the build came from, Windows version, whether a device was attached, plugins installed.
+      placeholder: Dot X 1.2.3-1 installer, Windows 11 24H2, device attached over USB, no plugins.
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or console output
+      description: The app does not write log files; run it from a terminal and paste the output. For plugin issues, paste plugin.log from the plugin's folder under %APPDATA%\com.dot-x.dev\plugins\. Redact API keys, tokens, and passwords.
+      render: shell

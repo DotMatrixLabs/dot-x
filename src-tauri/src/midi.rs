@@ -180,7 +180,6 @@ pub mod midi {
                                 conn_out.close();
                                 break;
                             }
-                            // println!("Current slider values: {:?}", decker::decker::slider_values);
                             for i in 1..=5 {
                                 let current_slider = match i {
                                     1 => decker::decker::slider_values.slider1,
@@ -224,7 +223,7 @@ pub mod midi {
                                                 continue;
                                             }
                                         };
-                                        println!("Sending MIDI message: {:?}", message);
+                                        trace!("Sending MIDI message: {:?}", message);
                                         let _ = conn_out.send(&message);
                                     }
                                     *previous_slider = current_slider;
@@ -237,7 +236,7 @@ pub mod midi {
                 });
             }
             Err(e) => {
-                println!("Connection to {} failed: {:?}", midi.name, e);
+                error!("Connection to {} failed: {:?}", midi.name, e);
                 return Err(e);
             }
         }
@@ -250,7 +249,9 @@ pub mod midi {
     mod tests {
         #[cfg(unix)]
         use super::connect_output;
-        use super::{control_change_message, is_virtual_output_port, map_to_range};
+        use super::{control_change_message, map_to_range};
+        #[cfg(unix)]
+        use super::is_virtual_output_port;
         #[cfg(unix)]
         use midir::{MidiInput, MidiOutput};
         #[cfg(unix)]
@@ -291,6 +292,7 @@ pub mod midi {
             assert!(control_change_message(0, 512, &configuration).is_err());
         }
 
+        #[cfg(unix)]
         #[test]
         fn treats_first_port_after_physical_outputs_as_virtual_output() {
             assert!(!is_virtual_output_port(2, 0));

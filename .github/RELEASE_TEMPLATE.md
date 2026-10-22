@@ -7,7 +7,7 @@
 ### Feature Name
 Brief description of the feature in one or two sentences.
 
-[more](https://yourblog.com/release-x.y.z/feature-name)
+[more](https://dotmatrixlabs.com/changelog)
 
 ## Improvements
 

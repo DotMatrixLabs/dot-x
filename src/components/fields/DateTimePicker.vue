@@ -69,7 +69,6 @@ export default {
         submit() {
             if (!this.date) return;
             const date = new Date(this.date).toISOString().replace('T', ' ').slice(0, 19);;
-            console.log(date)
             this.$emit('apply', date);
         },
 

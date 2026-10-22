@@ -4,15 +4,18 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+import { getDocsPaths, resolveDocsRootOrExit } from './docs-paths.mjs';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Paths - adjusted for plugin-sdk/scripts location
+// Paths
 const DOT_X_FIELDS = path.resolve(__dirname, '../../src/components/fields');
-const DOCS_ROOT = path.resolve(__dirname, '../../../dotmatrixlabs-docs');
+const DOCS_ROOT = resolveDocsRootOrExit();
 const DOCS_VITEPRESS = path.join(DOCS_ROOT, 'docs/.vitepress');
-const DOCS_COMPONENTS_FIELDS = path.join(DOCS_VITEPRESS, 'components/fields');
-const DOCS_COMPONENTS_DEMOS = path.join(DOCS_VITEPRESS, 'components/demos');
+const DOCS_COMPONENTS = getDocsPaths(DOCS_ROOT).components;
+const DOCS_COMPONENTS_FIELDS = path.join(DOCS_COMPONENTS, 'fields');
+const DOCS_COMPONENTS_DEMOS = path.join(DOCS_COMPONENTS, 'demos');
 
 console.log('🔄 Syncing Vue components from dot-x to docs...\n');
 
