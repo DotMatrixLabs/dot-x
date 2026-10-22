@@ -23,7 +23,7 @@ installed = "0.1.0"
 thiserror = "2.0.3"
 tauri-plugin-store = { version = "2.1.0" }
 tauri-plugin-autostart = { version = "2.0.1" }
-windows-volume-control = { git = "https://github.com/Frogbyte-io/windows-volume-control.git", branch = "use-local-language-to-get-process-names" }
+windows-volume-control = { git = "https://github.com/Frogbyte-io/windows-volume-control.git", rev = "2a83be8f2d05b1da1b6119f36cee91fbb4688739" }
 windows-sys = { version = "0.48", features = ["Win32_System_Com"] }
 serialport = "=4.3.0" # locked to 4.3.0 due to slow reading of data on higher versions. TODO: investigate
 tracing-subscriber = "0.3.17"
