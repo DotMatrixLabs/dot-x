@@ -12,7 +12,7 @@
         <div data-setting="Device" class="flex flex-row w-full justify-between px-2">
             <span class="shrink-0 pt-1">Device: </span>
             <select @change="deviceSelected" v-model="currentDevice"
-                class="select select-bordered select-sm w-2/3 mx-2 capitalize truncate">
+                class="select select-bordered select-sm w-2/3 mx-2 truncate">
                 <option class="w-full" v-for="(device, index) in devices" :value="device" :key="index">
                     {{ deviceName(device) }}
                 </option>
