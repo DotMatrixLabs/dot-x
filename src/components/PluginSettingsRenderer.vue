@@ -43,6 +43,9 @@
 <script>
 import pluginAPI from '../plugin-api/pluginAPI';
 import { resolveComponent as resolveUi, componentRegistry } from './fields/registry';
+import { createLogger } from '../ts/logger.ts';
+
+const log = createLogger('plugin-settings');
 
 export default {
   name: 'PluginSettingsRenderer',
@@ -88,7 +91,7 @@ export default {
               await pluginAPI.emitAction(this.pluginId, comp.actionId);
             }
           } catch (e) {
-            console.error('Failed to handle apply event:', e);
+            log.error('Failed to handle apply event:', e);
           }
         }
       };

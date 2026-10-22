@@ -15,6 +15,9 @@ import PluginHeader from './PluginHeader.vue';
 import pluginAPI from '../plugin-api/pluginAPI';
 import PluginSettingsRenderer from '../components/PluginSettingsRenderer.vue';
 import EventBus from '../js/eventBus';
+import { createLogger } from '../ts/logger.ts';
+
+const log = createLogger('plugin-settings');
 
     export default {
         name: "PluginSettings",
@@ -40,10 +43,9 @@ import EventBus from '../js/eventBus';
 
             try {
               const settings = await pluginAPI.getPluginSettings(this.plugin.id);
-              console.log('Settings:', settings);
               this.settings = settings || {};
             } catch (error) {
-              console.error('Failed to load plugin settings', error);
+              log.error('Failed to load plugin settings', error);
               this.settings = {};
             }
           },
