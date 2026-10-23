@@ -13,7 +13,7 @@
           "ddcutil"
         ],
         "files": {
-          "/etc/udev/rules.d/99-dot-x.rules": "extra/99-dot-x.rules"
+          "/etc/udev/rules.d/70-dot-x.rules": "extra/70-dot-x.rules"
         },
         "postInstallScript": "extra/postinst.sh",
         "preRemoveScript": "extra/prerm.sh"
