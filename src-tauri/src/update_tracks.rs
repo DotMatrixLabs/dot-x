@@ -90,7 +90,9 @@ pub async fn check_beta_update(
     pending: State<'_, PendingBetaUpdate>,
 ) -> Result<Option<BetaUpdate>, String> {
     *pending.0.lock().unwrap() = None;
-    let update = find_beta_update(&app).await?;
+    let update = find_beta_update(&app)
+        .await
+        .inspect_err(|error| log::error!("Beta update check failed: {error}"))?;
     let found = update.as_ref().map(|update| BetaUpdate {
         version: update.version.clone(),
         body: update.body.clone(),
