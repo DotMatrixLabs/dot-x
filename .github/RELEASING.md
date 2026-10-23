@@ -7,7 +7,7 @@ Dot X's updater reads `latest.json` from the latest published GitHub Release. Th
 - Make this repository public and publish a stable release containing `latest.json` before shipping a build that uses the GitHub endpoint. Installed apps cannot download release metadata or assets from a private repository without GitHub credentials. Until then both update tracks fail: Stable cannot fetch `latest.json`, and Beta/Nightly gets a 404 from the releases API. Settings > About shows "Update check failed".
 - Add the `TAURI_SIGNING_PRIVATE_KEY` Actions secret. It must match the public updater key in `src-tauri/tauri.conf.json`. Add `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` if the key has a password. Tauri requires an updater signature even when the Windows installer is not Authenticode-signed.
 - Plan a final Anystack-served update for existing installations. Apps already installed with the Anystack endpoint cannot learn the new endpoint until they receive a build containing it. If the current updater private key is unavailable, that migration needs a separate path.
-- Resolve the release-facing legal text before publication. The bundled EULA still names Anystack; #191 and #192 track the broader legal review.
+- Official binaries use GPL-3.0-or-later, matching the app source. The installer displays `src-tauri/licenses/GPL-3.0.txt`. Before publishing a binary, provide its corresponding source and build instructions, including required dependency sources, alongside the installer. #191 tracks the remaining publication gates.
 
 Windows Authenticode signing is deferred to #244. The draft workflow currently produces an unsigned Windows installer with a Tauri-signed updater bundle.
 
