@@ -35,7 +35,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["nsis", "app", "dmg", "deb", "rpm", "appimage"],
     "licenseFile": "licenses/EULA.txt",
     "icon": [
       "icons/32x32.png",
@@ -57,11 +57,11 @@
       "digestAlgorithm": "sha256",
       "timestampUrl": "http://time.certum.pl",
       "nsis": {
-        "installerIcon": "./icons/icon.ico"
-      },
-      "wix": {
-        "bannerPath": "./icons/WixInstallerBanner.bmp",
-        "dialogImagePath": "./icons/WixInstaller.bmp"
+        "installerIcon": "./icons/icon.ico",
+        "installMode": "currentUser",
+        "installerHooks": "./windows/installer-hooks.nsh",
+        "headerImage": "./icons/NSISInstallerBanner.bmp",
+        "sidebarImage": "./icons/NSISInstaller.bmp"
       }
     },
     "createUpdaterArtifacts": "v1Compatible",
