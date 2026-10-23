@@ -1,8 +1,8 @@
 # Dot X
 
 [![Version](https://img.shields.io/badge/version-2.0.0--1-blue.svg)](src-tauri/tauri.conf.json)
-[![Platform](https://img.shields.io/badge/platform-Windows-lightgrey.svg)](https://github.com/your-repo/dot-x)
-[![License](https://img.shields.io/badge/license-Private-red.svg)](https://github.com/your-repo/dot-x)
+[![Platform](https://img.shields.io/badge/platform-Windows-lightgrey.svg)](#installation)
+[![License](https://img.shields.io/badge/license-GPL--3.0--or--later-blue.svg)](LICENSE)
 
 Desktop interface for DotMatrixLabs Decker physical volume mixer built with Tauri (Rust + Vue.js).
 
@@ -20,7 +20,7 @@ Desktop interface for DotMatrixLabs Decker physical volume mixer built with Taur
 ### Prerequisites
 
 - [Node.js](https://nodejs.org/) 22+ and [Yarn](https://yarnpkg.com/)
-- [Rust](https://rustup.rs/) 1.90.0
+- [Rust](https://rustup.rs/) (stable; the repo pins the toolchain in `rust-toolchain.toml`)
 - Windows 10/11
 
 Install the license-report CLI before running `yarn build` or `yarn tauri build`:
@@ -48,12 +48,25 @@ cp .env.example .env
 
 # Install dependencies
 yarn install
-cd src-tauri
-cargo
-
-# Start development server
-yarn tauri dev
 ```
+
+#### Environment variables
+
+Copy `.env.example` to `.env` and fill in what you need. A fresh contributor
+build works with everything left empty: the app skips Sentry and Aptabase
+initialisation and marketplace statistics when their variables are unset, so
+nothing crashes — the features are just quieter.
+
+| Variable | Used by | Purpose |
+| --- | --- | --- |
+| `DOTX_SENTRY_DSN` | Rust backend | DSN for the self-hosted Sentry crash reporter |
+| `DOTX_APTABASE_KEY` | Rust backend | App key for Aptabase usage analytics |
+| `VITE_SUPABASE_URL` | Frontend | Supabase project URL for marketplace statistics |
+| `VITE_SUPABASE_ANON_KEY` | Frontend | Supabase anon key for marketplace statistics |
+| `VITE_STATS_SECRET_KEY` | Frontend | Key for hashing the local slider-distance stat |
+| `VITE_MARKETPLACE_REGISTRY_URL` | Frontend | Plugin marketplace registry index (has a default) |
+
+`.env` is gitignored; never commit it. Forks can set their own values.
 
 ## Usage
 
@@ -115,12 +128,11 @@ yarn fetch-deno                 # bundled Deno runtime, needed by the Rust build
 ### Build Notes
 
 - Initial build takes time (Rust compilation + package downloads)
-- Requires exact Rust version 1.75.0: `rustup install 1.75.0 && rustup override set 1.75.0`
+- The Rust toolchain is pinned to stable via `rust-toolchain.toml`; rustup picks it up automatically
 
 ## Contributing
 
-1. Create a feature branch
-2. Make your changes
-3. Test with actual hardware
-4. Submit for internal review
+See [CONTRIBUTING.md](CONTRIBUTING.md) for how to open issues and pull
+requests, and [SECURITY.md](SECURITY.md) for reporting security problems
+privately.
 
