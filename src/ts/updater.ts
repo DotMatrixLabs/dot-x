@@ -1,15 +1,45 @@
 import { check, type Update } from '@tauri-apps/plugin-updater';
+import { invoke } from '@tauri-apps/api/core';
 import { relaunch } from '@tauri-apps/plugin-process';
 import { isPermissionGranted, requestPermission, sendNotification } from '@tauri-apps/plugin-notification';
 import { platform, version as osVersion } from '@tauri-apps/plugin-os';
 import { useUpdateStore } from '../store/updateStore';
 import { renderMarkdown } from './markdown';
 import { createLogger } from './logger.ts';
+import ConfigStore from './config.ts';
 
 const log = createLogger('updater');
 
+export type UpdateTrack = 'stable' | 'beta';
+
 // The update found by the last check. Installing downloads this one.
-let pendingUpdate: Update | null = null;
+// Beta updates are held by the Rust side (check_beta_update / install_beta_update).
+type PendingUpdate = { track: 'stable'; update: Update } | { track: 'beta' };
+let pendingUpdate: PendingUpdate | null = null;
+// Bumped on every track change so a check that started on the old track is dropped.
+let trackGeneration = 0;
+
+export async function getUpdateTrack(): Promise<UpdateTrack> {
+  return (await ConfigStore.get('updateTrack')) === 'beta' ? 'beta' : 'stable';
+}
+
+export async function setUpdateTrack(track: UpdateTrack) {
+  await ConfigStore.set('updateTrack', track);
+  trackGeneration++;
+  pendingUpdate = null;
+  useUpdateStore().resetAvailability();
+}
+
+async function findUpdate(track: UpdateTrack) {
+  if (track === 'beta') {
+    const found = await invoke<{ version: string; body: string | null } | null>('check_beta_update');
+    if (!found) return null;
+    return { pending: { track }, version: found.version, body: found.body ?? '' };
+  }
+  const update = await check();
+  if (!update) return null;
+  return { pending: { track, update }, version: update.version, body: update.body ?? '' };
+}
 
 function extractDotXHtml(body?: string): string {
   if (!body) return '';
@@ -83,11 +113,12 @@ async function runCheck(): Promise<'available' | 'none' | 'error'> {
     return 'none';
   }
   try {
-    const update = await check();
-    if (!update) return 'none';
-    pendingUpdate = update;
-    const version = update.version;
-    const changelog = update.body ?? '';
+    const generation = trackGeneration;
+    const found = await findUpdate(await getUpdateTrack());
+    if (!found || generation !== trackGeneration) return 'none';
+    pendingUpdate = found.pending;
+    const version = found.version;
+    const changelog = found.body;
     store.setAvailable({ version, body: changelog });
     const html = extractDotXHtml(changelog);
     if (version && html) store.setChangelog(version, html);
@@ -104,13 +135,18 @@ async function runCheck(): Promise<'available' | 'none' | 'error'> {
 
 export async function userInstallUpdate() {
   const store = useUpdateStore();
-  if (!pendingUpdate) {
+  const pending = pendingUpdate;
+  if (!pending) {
     log.error('No update to install, check for updates first');
     return;
   }
   try {
     store.startDownloading();
-    await pendingUpdate.downloadAndInstall();
+    if (pending.track === 'beta') {
+      await invoke('install_beta_update');
+    } else {
+      await pending.update.downloadAndInstall();
+    }
     store.setUpdateReady(true);
   } catch (error) {
     store.stopDownloading();
