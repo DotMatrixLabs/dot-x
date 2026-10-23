@@ -1,0 +1,138 @@
+name: Prepare Dot X release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dot-x-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  windows:
+    name: Build Windows release draft
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Check tag and source branch
+        shell: pwsh
+        run: |
+          git fetch origin v2
+          git merge-base --is-ancestor HEAD origin/v2
+          if ($LASTEXITCODE -ne 0) {
+            throw "Release tag must point to a commit on v2."
+          }
+          $version = (Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
+          if ($env:GITHUB_REF_NAME -ne "v$version") {
+            throw "Tag $env:GITHUB_REF_NAME does not match app version $version."
+          }
+
+      - name: Require updater signing key
+        shell: pwsh
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          if (-not $env:TAURI_SIGNING_PRIVATE_KEY) {
+            throw "Set TAURI_SIGNING_PRIVATE_KEY to the private key matching src-tauri/tauri.conf.json."
+          }
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: yarn
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Typecheck and build frontend
+        run: |
+          yarn typecheck
+          yarn build:web
+
+      - name: Fetch bundled Deno runtime
+        run: yarn fetch-deno
+
+      - name: Test Rust
+        working-directory: src-tauri
+        run: cargo test --locked
+
+      - name: Install license generator
+        run: cargo install cargo-license --version 0.7.0 --locked
+
+      - name: Build signed updater artifacts in a draft release
+        uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tauriScript: yarn tauri
+          args: --bundles nsis
+          tagName: ${{ github.ref_name }}
+          releaseName: Dot X ${{ github.ref_name }}
+          releaseDraft: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          uploadUpdaterJson: true
+          updaterJsonPreferNsis: true
+
+      - name: Check draft updater metadata
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $releaseDir = Join-Path $env:RUNNER_TEMP 'dotx-release'
+          New-Item -ItemType Directory -Path $releaseDir | Out-Null
+          gh release download $env:GITHUB_REF_NAME --pattern latest.json --dir $releaseDir
+          if ($LASTEXITCODE -ne 0) { throw 'Draft release has no latest.json.' }
+
+          $metadata = Get-Content (Join-Path $releaseDir 'latest.json') -Raw | ConvertFrom-Json
+          $version = (Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
+          if ($metadata.version.TrimStart('v') -ne $version) {
+            throw "Updater metadata version $($metadata.version) does not match $version."
+          }
+          $windows = $metadata.platforms.'windows-x86_64'
+          if (-not $windows.url -or -not $windows.signature) {
+            throw 'Updater metadata has no Windows x64 URL or signature.'
+          }
+
+          $config = Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json
+          $publicKeyText = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($config.plugins.updater.pubkey))
+          $signatureText = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($windows.signature))
+          $publicKeyLine = $publicKeyText -split '\r?\n' | Where-Object { $_ -match '^[A-Za-z0-9+/=]{40,}$' } | Select-Object -First 1
+          $signatureLine = $signatureText -split '\r?\n' | Where-Object { $_ -match '^[A-Za-z0-9+/=]{80,}$' } | Select-Object -First 1
+          if (-not $publicKeyLine -or -not $signatureLine) {
+            throw 'Updater public key or signature has an invalid minisign format.'
+          }
+          $publicKeyBytes = [Convert]::FromBase64String($publicKeyLine)
+          $signatureBytes = [Convert]::FromBase64String($signatureLine)
+          if ($publicKeyBytes.Length -lt 10 -or $signatureBytes.Length -lt 10 -or
+              [BitConverter]::ToString($publicKeyBytes, 2, 8) -ne [BitConverter]::ToString($signatureBytes, 2, 8)) {
+            throw 'Updater signature key does not match the public key bundled with Dot X.'
+          }
+
+          $assets = @(gh release view $env:GITHUB_REF_NAME --json assets --jq '.assets[].name')
+          if ($LASTEXITCODE -ne 0) { throw 'Could not list draft release assets.' }
+          $bundleUrl = [uri]$windows.url
+          $bundleName = [uri]::UnescapeDataString([IO.Path]::GetFileName($bundleUrl.AbsolutePath))
+          if ($bundleUrl.Host -ne 'github.com' -or $bundleUrl.AbsolutePath -notlike "*/releases/download/$env:GITHUB_REF_NAME/*") {
+            throw 'Updater bundle URL does not point to this release tag.'
+          }
+          if ($bundleName -notlike '*.nsis.zip' -or $assets -notcontains $bundleName) {
+            throw 'Updater bundle is missing from the draft release.'
+          }
+          if ($assets -notcontains "$bundleName.sig" -or -not ($assets | Where-Object { $_ -like '*setup.exe' })) {
+            throw 'Updater signature or NSIS installer is missing from the draft release.'
+          }

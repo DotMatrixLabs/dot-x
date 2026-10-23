@@ -1,8 +1,8 @@
 # Dot X
 
 [![Version](https://img.shields.io/badge/version-2.0.0--1-blue.svg)](src-tauri/tauri.conf.json)
-[![Platform](https://img.shields.io/badge/platform-Windows-lightgrey.svg)](https://github.com/your-repo/dot-x)
-[![License](https://img.shields.io/badge/license-Private-red.svg)](https://github.com/your-repo/dot-x)
+[![Platform](https://img.shields.io/badge/platform-Windows-lightgrey.svg)](#installation)
+[![License](https://img.shields.io/badge/license-GPL--3.0--or--later-blue.svg)](LICENSE)
 
 Desktop interface for DotMatrixLabs Decker physical volume mixer built with Tauri (Rust + Vue.js).
 
@@ -20,67 +20,8 @@ Desktop interface for DotMatrixLabs Decker physical volume mixer built with Taur
 ### Prerequisites
 
 - [Node.js](https://nodejs.org/) 22+ and [Yarn](https://yarnpkg.com/)
-- [Rust](https://rustup.rs/) 1.90.0
-- Windows 10/11, or Linux (see below)
-
-#### Linux — Ubuntu / Debian
-
-```bash
-sudo apt-get update
-sudo apt-get install -y \
-  build-essential pkg-config curl wget file \
-  libssl-dev \
-  libwebkit2gtk-4.1-dev librsvg2-dev libgtk-3-dev \
-  libxcb-ewmh-dev libxcb-randr0-dev libdbus-1-dev \
-  libpulse-dev libudev-dev libasound2-dev \
-  libayatana-appindicator3-dev
-```
-
-#### Linux — Fedora / RHEL
-
-```bash
-sudo dnf install \
-  webkit2gtk4.1-devel openssl-devel curl wget file \
-  libappindicator-gtk3-devel librsvg2-devel \
-  libxcb-devel alsa-lib-devel pulseaudio-libs-devel \
-  systemd-devel dbus-devel
-sudo dnf groupinstall "Development Tools"
-```
-
-#### Linux — Bazzite / Fedora Atomic (immutable OS)
-
-Bazzite cannot install `-devel` packages natively. Use [Distrobox](https://distrobox.it/) (pre-installed on Bazzite) to build inside a mutable Fedora container that shares your home directory.
-
-**One-time setup:**
-
-```bash
-distrobox create --name fedora-dev --image fedora:41
-distrobox enter fedora-dev
-
-sudo dnf install \
-  webkit2gtk4.1-devel openssl-devel curl wget file \
-  libappindicator-gtk3-devel librsvg2-devel \
-  libxcb-devel alsa-lib-devel pulseaudio-libs-devel \
-  systemd-devel dbus-devel nodejs npm
-sudo dnf groupinstall "Development Tools"
-
-# Install Rust and Yarn inside the container
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-source ~/.cargo/env
-npm install -g yarn
-
-# Allow serial port access to the Decker
-sudo usermod -a -G dialout $USER
-exit && distrobox enter fedora-dev  # re-enter so the group takes effect
-```
-
-**Daily use** — enter the container and build normally:
-
-```bash
-distrobox enter fedora-dev
-cd ~/Code/dot-x
-yarn tauri dev
-```
+- [Rust](https://rustup.rs/) (stable; the repo pins the toolchain in `rust-toolchain.toml`)
+- Windows 10/11, or Linux: see [LINUX-SUPPORT.md](LINUX-SUPPORT.md) for build dependencies, Distrobox on Bazzite, and `yarn build:linux`
 
 Install the license-report CLI before running `yarn build` or `yarn tauri build`:
 
@@ -107,12 +48,25 @@ cp .env.example .env
 
 # Install dependencies
 yarn install
-cd src-tauri
-cargo
-
-# Start development server
-yarn tauri dev
 ```
+
+#### Environment variables
+
+Copy `.env.example` to `.env` and fill in what you need. A fresh contributor
+build works with everything left empty: the app skips Sentry and Aptabase
+initialisation and marketplace statistics when their variables are unset, so
+nothing crashes — the features are just quieter.
+
+| Variable | Used by | Purpose |
+| --- | --- | --- |
+| `DOTX_SENTRY_DSN` | Rust backend | DSN for the self-hosted Sentry crash reporter |
+| `DOTX_APTABASE_KEY` | Rust backend | App key for Aptabase usage analytics |
+| `VITE_SUPABASE_URL` | Frontend | Supabase project URL for marketplace statistics |
+| `VITE_SUPABASE_ANON_KEY` | Frontend | Supabase anon key for marketplace statistics |
+| `VITE_STATS_SECRET_KEY` | Frontend | Key for hashing the local slider-distance stat |
+| `VITE_MARKETPLACE_REGISTRY_URL` | Frontend | Plugin marketplace registry index (has a default) |
+
+`.env` is gitignored; never commit it. Forks can set their own values.
 
 ## Usage
 
@@ -174,11 +128,91 @@ yarn fetch-deno                 # bundled Deno runtime, needed by the Rust build
 ### Build Notes
 
 - Initial build takes time (Rust compilation + package downloads)
-- Requires exact Rust version 1.75.0: `rustup install 1.75.0 && rustup override set 1.75.0`
+- The Rust toolchain is pinned to stable via `rust-toolchain.toml`; rustup picks it up automatically
+
+### Windows installer & auto-updates
+
+The Windows build produces an NSIS installer with `installMode: currentUser`
+(see `src-tauri/tauri.conf.json`). It installs to `%LOCALAPPDATA%\Dot X` and
+registers under `HKCU`, so **installing and auto-updating never require admin
+rights**.
+
+- The MSI (WiX) target is intentionally not built. MSI installs are always
+  per-machine in Tauri, which is why v1.x updates required admin. Don't re-add
+  `msi` to `bundle.targets` unless per-machine installs are wanted again.
+- `installMode: "both"` (a per-user/per-machine choice dialog) was considered
+  and rejected: Tauri implements it with `MULTIUSER_EXECUTIONLEVEL Highest`,
+  which triggers a UAC prompt for admin users even for per-user installs and
+  on every auto-update.
+- **Installer branding** is set via `nsis.headerImage`
+  (`src-tauri/icons/NSISInstallerBanner.bmp`, 150x57) and `nsis.sidebarImage`
+  (`src-tauri/icons/NSISInstaller.bmp`, 164x314). Both are 24-bit BMPs at exact
+  pixel size — NSIS does not scale them, so any redraw must keep those
+  dimensions.
+
+#### Migration from the v1.x MSI install
+
+Existing users are on the per-machine MSI (in `Program Files`, registered under
+`HKLM`). The v2 installer removes it before installing per-user, on both paths:
+a manually downloaded `-setup.exe` and an auto-update (`/P /R /UPDATE`).
+
+Tauri's NSIS template has its own WiX migration, but it runs the bare MSI
+uninstall string (an unexplained "uninstall this product?" Yes/No box that can
+open behind other windows) and, in passive mode, keeps installing when the
+removal fails. So `src-tauri/windows/installer-hooks.nsh` takes over:
+
+- **Detection** is the same as Tauri's: an entry under `HKLM\...\Uninstall`
+  whose `DisplayName` + `Publisher` equals `Dot X` + `dot-x` and whose uninstall
+  string is an `msiexec` call. The hook spells out these values (they are what
+  v1 wrote) because Tauri includes the hooks file before it defines
+  `PRODUCTNAME` and `MANUFACTURER`.
+- **Removal** runs from `.onGUIInit`, before the first page, as
+  `msiexec /x {GUID} /passive /norestart`. The only prompt is UAC. Tauri's own
+  check then finds nothing to do.
+- **If the removal fails** (UAC declined, or the user has no admin rights), the
+  installer explains why and offers Retry/Cancel. Cancel exits without
+  installing anything. v1 stays installed and working, and with `/R` (the
+  updater) it is started again. The v1 updater will offer v2 again on its next
+  check; the user needs an administrator once, either to approve the prompt or
+  to uninstall v1 from Settings > Apps.
+- **Silent installs** (`/S`) skip `.onGUIInit` and all pages, so they cannot
+  migrate. `NSIS_HOOK_PREINSTALL` aborts them while the v1 MSI is still there,
+  instead of installing next to it.
+
+Things to know about the transition:
+
+- **One unavoidable UAC prompt.** Removing a per-machine `Program Files`
+  install requires admin, so the one-time MSI removal triggers a single UAC
+  prompt, mid-update for v1.x clients that auto-update. This is inherent to
+  leaving admin-land. Every update *after* a completed migration is
+  elevation-free.
+- **Do NOT set `plugins.updater.windows.installMode` to `quiet`.** That runs the
+  installer with `/S`, which cannot migrate (see above), so every v1.x
+  auto-update would fail. The default (`passive`) is what the migration relies
+  on.
+- **Autostart needs re-pointing after the move.** The plugin writes an
+  `HKCU\...\Run` entry holding the full path to the binary, and its
+  `is_enabled()` only checks that an entry with our name exists — it never
+  compares the path. Left alone, a migrated user keeps a Run entry aimed at the
+  deleted `Program Files` binary while the settings toggle still reads "on", so
+  the app silently stops launching at login. The app now refreshes that entry on
+  startup whenever autostart is already enabled (see `setup` in
+  `src-tauri/src/main.rs`). Release builds only — in dev this would repoint your
+  autostart entry at `target/debug` on every `tauri dev` run.
+- **Publishing:** v1.x clients have the Anystack endpoint compiled in, so they
+  can only reach v2 through Anystack, even after #245 moves v2's own updates to
+  GitHub Releases. Publish the `-setup.nsis.zip` updater artifact (produced via
+  `createUpdaterArtifacts: v1Compatible`) plus its `.sig` on Anystack for the
+  `windows-x86_64` slot. Sign with the same key as v1. The updater `pubkey` is
+  unchanged, so a different key makes every existing client reject the update.
+- **Follow-up:** `createUpdaterArtifacts` is only set to `v1Compatible` for the
+  sake of v1.x clients. Once they have drained, set it back to `true` (v2
+  clients accept either form) so we stop shipping the legacy `.nsis.zip`
+  wrapper.
 
 ## Contributing
 
-1. Create a feature branch
-2. Make your changes
-3. Test with actual hardware
-4. Submit for internal review
+See [CONTRIBUTING.md](CONTRIBUTING.md) for how to open issues and pull
+requests, and [SECURITY.md](SECURITY.md) for reporting security problems
+privately.
+
