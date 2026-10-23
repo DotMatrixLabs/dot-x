@@ -1,6 +1,6 @@
 # Dot X releases
 
-Dot X's updater reads `latest.json` from the latest published GitHub Release. The release workflow builds a Windows NSIS installer and its Tauri-signed updater bundle from a `v<version>` tag on `v2`. It leaves the release as a draft for review.
+Dot X's updater reads `latest.json` from the latest published GitHub Release. The release workflow builds a Windows NSIS installer and its Tauri-signed updater bundle from a `v<version>` tag on `v2`, then adds a Linux `.deb` and AppImage built on Ubuntu 24.04. It leaves the release as a draft for review.
 
 ## Before the first GitHub-hosted update
 
@@ -15,8 +15,12 @@ Windows Authenticode signing is deferred to #244. The draft workflow currently p
 
 1. Merge the intended changes into `v2` and set the same version in `src-tauri/tauri.conf.json` and `src-tauri/Cargo.toml`.
 2. Tag that `v2` commit as `v<version>` and push the tag. The workflow rejects tags outside `v2` or with a version mismatch.
-3. Review the draft release. Confirm it contains the NSIS installer, `.nsis.zip`, `.nsis.zip.sig`, and `latest.json`. The workflow checks that the Windows x64 metadata refers to the bundle on that tag.
+3. Review the draft release. Confirm it contains the NSIS installer, `.nsis.zip`, `.nsis.zip.sig`, the Linux `.deb`, `.AppImage`, `.AppImage.sig`, and `latest.json`. The workflow checks that the Windows x64 metadata refers to the bundle on that tag and that the `linux-x86_64` entry is signed with the bundled updater key.
 4. Publish the draft after release review. Publishing makes `latest.json` available to the updater.
 5. Exercise an update from an older installed version. Check the resulting app version and that settings and mappings remain intact. Update the website download link and changelog content from `.github/RELEASE_TEMPLATE.md` only after that check passes.
 
 Tags with a prerelease suffix create GitHub prereleases. Stable is the default update track and uses GitHub's latest published stable release. Users can opt into Beta/Nightly in Settings > About. That track checks published releases for the highest semantic version with a `latest.json` asset, including stable releases and GitHub prereleases. Drafts are never offered. Publish prereleases only after reviewing their updater assets and version order.
+
+## Linux
+
+The `linux` job runs after the Windows job, builds with `yarn build:linux`, signs the repacked AppImage (see `LINUX-SUPPORT.md`), uploads the `.deb` and AppImage, and adds a `linux-x86_64` entry to the draft's `latest.json`. The `.deb` is offered as a download only. Linux builds still skip update checks (`linuxUpdatesDisabled()` in `src/ts/updater.ts`); remove that once an AppImage update has been exercised from one published release to the next.
