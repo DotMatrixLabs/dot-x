@@ -143,3 +143,98 @@ jobs:
           if ($assets -notcontains "$bundleName.sig" -or -not ($assets | Where-Object { $_ -like '*setup.exe' })) {
             throw 'Updater signature or NSIS installer is missing from the draft release.'
           }
+
+  linux:
+    name: Add Linux builds to the release draft
+    needs: windows
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+
+      # src-tauri depends on ../../volume-control-rs by path on every platform.
+      - name: Check out volume-control-rs
+        shell: bash
+        run: |
+          git clone --quiet https://github.com/Frogbyte-io/volume-control-rs.git ../volume-control-rs
+          git -C ../volume-control-rs checkout --quiet 29594c46a4c1da9c1075cc8beb283d13f4799aca
+
+      - name: Install Linux build dependencies
+        run: bash scripts/install-linux-deps.sh
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: yarn
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Install license generator
+        run: cargo install cargo-license --version 0.7.0 --locked
+
+      # Builds the .deb and AppImage without updater artifacts (no signing key in this
+      # step) and repacks the AppImage without bundled libwayland; see LINUX-SUPPORT.md.
+      - name: Build Linux bundles
+        run: yarn build:linux
+
+      # The repack changes the AppImage, so it is signed here rather than by tauri build.
+      - name: Sign the AppImage for the updater
+        env:
+          TAURI_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          version=$(jq -r .version src-tauri/tauri.conf.json)
+          out="$RUNNER_TEMP/dotx-linux"
+          mkdir -p "$out"
+          cp src-tauri/target/release/bundle/deb/*.deb "$out/Dot.X_${version}_amd64.deb"
+          cp src-tauri/target/release/bundle/appimage/*.AppImage "$out/Dot.X_${version}_amd64.AppImage"
+          yarn -s tauri signer sign "$out/Dot.X_${version}_amd64.AppImage" < /dev/null
+
+      - name: Upload Linux assets and add them to latest.json
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          version=$(jq -r .version src-tauri/tauri.conf.json)
+          out="$RUNNER_TEMP/dotx-linux"
+          appimage="Dot.X_${version}_amd64.AppImage"
+          gh release upload "$GITHUB_REF_NAME" "$out/Dot.X_${version}_amd64.deb" "$out/$appimage" "$out/$appimage.sig" --clobber
+
+          gh release download "$GITHUB_REF_NAME" --pattern latest.json --dir "$out" --clobber
+          url="https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/${appimage}"
+          jq --arg sig "$(cat "$out/$appimage.sig")" --arg url "$url" \
+            '.platforms["linux-x86_64"] = {signature: $sig, url: $url}' \
+            "$out/latest.json" > "$out/latest.json.new"
+          mv "$out/latest.json.new" "$out/latest.json"
+          gh release upload "$GITHUB_REF_NAME" "$out/latest.json" --clobber
+
+      - name: Check Linux updater metadata
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          check="$RUNNER_TEMP/dotx-linux-check"
+          mkdir -p "$check"
+          gh release download "$GITHUB_REF_NAME" --pattern latest.json --dir "$check"
+          python3 - "$check/latest.json" <<'PY'
+          import base64, json, re, sys
+          meta = json.load(open(sys.argv[1]))
+          config = json.load(open("src-tauri/tauri.conf.json"))
+          for platform in ("windows-x86_64", "linux-x86_64"):
+              if not meta["platforms"].get(platform, {}).get("signature"):
+                  sys.exit(f"latest.json has no {platform} signature")
+          def key_line(b64, minimum):
+              text = base64.b64decode(b64).decode()
+              return next(l for l in text.splitlines() if re.fullmatch(r"[A-Za-z0-9+/=]{%d,}" % minimum, l))
+          public = base64.b64decode(key_line(config["plugins"]["updater"]["pubkey"], 40))
+          signature = base64.b64decode(key_line(meta["platforms"]["linux-x86_64"]["signature"], 80))
+          if public[2:10] != signature[2:10]:
+              sys.exit("Linux updater signature key does not match the public key bundled with Dot X")
+          PY
+          asset=$(basename "$(jq -r '.platforms["linux-x86_64"].url' "$check/latest.json")")
+          gh release view "$GITHUB_REF_NAME" --json assets --jq '.assets[].name' | grep -qxF "$asset" \
+            || { echo "::error::$asset is missing from the draft release"; exit 1; }
