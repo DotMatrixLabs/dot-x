@@ -379,6 +379,7 @@ interface PluginManifest {
   author?: string;      // Author name
   dotxVersion?: string; // Required DotX version (semver range)
   permissions?: string[]; // Requested plugin permissions
+  platforms?: string[]; // Restrict to "windows" | "macos" | "linux" (omit = all platforms)
   packaging?: {
     include?: string[]; // Extra files or folders to include in marketplace <plugin-name>.dotxplugin
   };
@@ -406,6 +407,10 @@ other variable reads as `undefined`, and enumerating `process.env` or
 read its own configuration from the environment must add `env` to
 `manifest.permissions`, which asks the user for approval at install time and
 starts the plugin with the user's full environment.
+
+### Platform Restrictions
+
+If a plugin only supports specific operating systems, list them in `manifest.json` `platforms` (any of `"windows"`, `"macos"`, `"linux"`). Omitting `platforms` (or leaving it empty) means the plugin is offered on every platform. Dot X checks `platforms` against the current OS both when installing from the marketplace and when loading a locally installed plugin; a mismatch is reported the same way as any other manifest validation error.
 
 ## Marketplace Packaging
 

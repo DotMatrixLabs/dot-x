@@ -21,9 +21,23 @@ pub fn schedule_sleep_flag_auto_reset(timeout_ms: u64) {
 pub fn setup_power_monitoring() {
     let pm = Box::new(PowerMonitor::new());
     let rx = pm.event_receiver();
-    if let Err(e) = pm.start_listening() {
-        log::error!("psp: failed to start listener: {e}");
-    } else {
+    // psp's Linux backend can panic (e.g. unwrapping the logind
+    // `/org/freedesktop/login1/session/auto` object) when there is no graphical
+    // logind session — over SSH, in containers, or some headless setups. Power
+    // monitoring is non-essential, so isolate any panic and keep the app running.
+    let listen_result =
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| pm.start_listening()));
+
+    match listen_result {
+        Err(_) => {
+            log::error!(
+                "psp: power monitor initialization panicked; continuing without power monitoring"
+            );
+        }
+        Ok(Err(e)) => {
+            log::error!("psp: failed to start listener: {e}");
+        }
+        Ok(Ok(())) => {
         // Keep monitor alive for the lifetime of the app
         let _leak = Box::leak(pm);
         std::thread::spawn(move || {
@@ -68,5 +82,6 @@ pub fn setup_power_monitoring() {
                 }
             }
         });
+        }
     }
 }

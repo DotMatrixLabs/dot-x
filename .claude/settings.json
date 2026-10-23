@@ -1,0 +1,19 @@
+{
+  "enabledPlugins": {
+    "context7@claude-plugins-official": true
+  },
+  "permissions": {
+    "allow": [
+      "Bash(cargo check:*)",
+      "Bash(cargo clippy:*)",
+      "Bash(cargo fmt:*)",
+      "Bash(cargo tree:*)",
+      "Bash(npx vue-tsc:*)",
+      "Bash(yarn install)",
+      "Bash(yarn dev:linux --check-only)",
+      "Bash(yarn generate-types)",
+      "Bash(pgrep:*)",
+      "Bash(pkg-config:*)"
+    ]
+  }
+}
