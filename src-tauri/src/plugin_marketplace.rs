@@ -229,6 +229,30 @@ fn validate_marketplace_manifest(manifest_json: &Value, plugin_id: &str) -> Resu
         return Err("manifest.json permissions must contain only strings".to_string());
     }
 
+    if let Some(platforms_val) = manifest_json.get("platforms") {
+        let arr = platforms_val
+            .as_array()
+            .ok_or_else(|| "manifest.json \"platforms\" must be an array of strings".to_string())?;
+        let mut platforms: Vec<String> = Vec::new();
+        for entry in arr {
+            let s = entry
+                .as_str()
+                .ok_or_else(|| "manifest.json platforms must contain only strings".to_string())?;
+            let p = s.trim().to_lowercase();
+            if !plugin_runtime::KNOWN_PLATFORMS.contains(&p.as_str()) {
+                return Err(format!("Unknown platform \"{}\" in manifest.json platforms", p));
+            }
+            platforms.push(p);
+        }
+        let current = plugin_runtime::current_os_name();
+        if !platforms.is_empty() && !platforms.iter().any(|p| p == current) {
+            return Err(format!(
+                "Plugin only supports platform(s) [{}] but the current platform is \"{}\"",
+                platforms.join(", "), current
+            ));
+        }
+    }
+
     let main_raw = manifest_json
         .get("main")
         .and_then(|main| main.as_str())

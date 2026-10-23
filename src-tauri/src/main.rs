@@ -16,6 +16,10 @@ use tauri_plugin_notification::NotificationExt;
 use tauri_plugin_store::StoreExt;
 use telemetry::TelemetrySettings;
 use tray_notice::TrayNoticeState;
+#[cfg(windows)]
+mod audio;
+#[cfg(target_os = "linux")]
+#[path = "audio_linux.rs"]
 mod audio;
 mod decker;
 mod midi;
@@ -24,6 +28,10 @@ mod plugin_marketplace;
 mod plugin_server;
 mod plugin_runtime;
 mod telemetry;
+#[cfg(target_os = "linux")]
+mod gnome_active_window;
+#[cfg(target_os = "linux")]
+mod tray_host;
 mod tray_notice;
 mod update_tracks;
 use once_cell::sync::OnceCell;
@@ -144,10 +152,18 @@ fn load_telemetry_settings(app: &AppHandle, settings: &TelemetrySettings) {
 }
 
 // create the error type that represents all errors possible in our program
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug)]
 pub(crate) enum Error {
-    #[error(transparent)]
-    Io(#[from] std::io::Error),
+    Io(std::io::Error),
+    SerialOpen {
+        port_name: String,
+        kind: String,
+        message: String,
+        os_code: Option<i32>,
+    },
+    InstalledApps(String),
+    #[cfg(target_os = "linux")]
+    Unsupported(&'static str),
     SessionNotFound,
     Connection,
     InitError,
@@ -157,10 +173,34 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Error::Io(inner) => write!(f, "IO Error: {}", inner),
+            Error::SerialOpen {
+                port_name,
+                kind,
+                message,
+                os_code,
+            } => write!(
+                f,
+                "Serial open error on {} ({}{}): {}",
+                port_name,
+                kind,
+                os_code
+                    .map(|code| format!(", OS error {}", code))
+                    .unwrap_or_default(),
+                message
+            ),
+            Error::InstalledApps(inner) => write!(f, "Installed apps error: {}", inner),
+            #[cfg(target_os = "linux")]
+            Error::Unsupported(message) => write!(f, "{}", message),
             Error::SessionNotFound => write!(f, "Session not found"),
             Error::Connection => write!(f, "Decker error"),
             Error::InitError => write!(f, "Initialization error"),
         }
+    }
+}
+
+impl From<std::io::Error> for Error {
+    fn from(value: std::io::Error) -> Self {
+        Error::Io(value)
     }
 }
 
@@ -170,7 +210,22 @@ impl serde::Serialize for Error {
     where
         S: serde::ser::Serializer,
     {
-        serializer.serialize_str(self.to_string().as_ref())
+        match self {
+            Error::SerialOpen {
+                port_name,
+                kind,
+                message,
+                os_code,
+            } => serde::Serialize::serialize(&json!({
+                "type": "serial_open_error",
+                "portName": port_name,
+                "kind": kind,
+                "message": message,
+                "osCode": os_code,
+                "permissionDenied": kind == "PermissionDenied",
+            }), serializer),
+            _ => serializer.serialize_str(self.to_string().as_ref()),
+        }
     }
 }
 
@@ -178,6 +233,22 @@ impl serde::Serialize for Error {
 #[derive(serde::Serialize)]
 struct CustomResponse {
     app_list: Vec<String>,
+    apps: Vec<InstalledAppResponse>,
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct InstalledAppResponse {
+    id: String,
+    name: String,
+    version: String,
+    publisher: String,
+    executable: String,
+    executable_name: String,
+    launch_id: String,
+    source_path: String,
+    source: String,
+    aliases: Vec<String>,
 }
 
 #[derive(serde::Serialize)]
@@ -230,6 +301,8 @@ fn get_available_midi_output_port_names() -> Result<MidiPortNames, Error> {
             }
         };
     }
+    #[cfg(unix)]
+    available_ports.push(midi::midi::VIRTUAL_OUTPUT_PORT_NAME.to_string());
 
     let available_ports_response = MidiPortNames {
         names: available_ports,
@@ -239,15 +312,31 @@ fn get_available_midi_output_port_names() -> Result<MidiPortNames, Error> {
 
 #[tauri::command]
 fn get_installed_apps() -> Result<CustomResponse, Error> {
-    let apps = installed::list().expect("list apps");
+    let apps = installed::list().map_err(|error| Error::InstalledApps(error.to_string()))?;
     let mut app_list = Vec::new();
+    let mut installed_apps = Vec::new();
     for app in apps {
         // metadata accessor fns, these are only evaluated when used
         let name = app.name().to_string();
-        app_list.push(name);
+        if name.trim().is_empty() {
+            continue;
+        }
+        app_list.push(name.clone());
+        installed_apps.push(InstalledAppResponse {
+            id: app.id,
+            name,
+            version: app.version,
+            publisher: app.publisher,
+            executable: app.executable,
+            executable_name: app.executable_name,
+            launch_id: app.launch_id,
+            source_path: app.source_path,
+            source: format!("{:?}", app.source),
+            aliases: app.aliases,
+        });
     }
     // Create the Response struct
-    let app_list_response = CustomResponse { app_list: app_list };
+    let app_list_response = CustomResponse { app_list: app_list, apps: installed_apps };
     Ok(app_list_response)
 }
 
@@ -308,6 +397,9 @@ fn attach_midi_device(
 ) -> Result<(), Error> {
     let midi_sliders_vec = value_to_i32_vec(&midi_sliders).unwrap_or_default();
     let midi_configuration_vec = value_to_object_vec(&midi_configuration).unwrap_or_default();
+    unsafe {
+        midi::midi::ENABLED = true;
+    }
     let midi_controller = midi::midi::new(
         "Decker",
         output_port,
@@ -317,11 +409,11 @@ fn attach_midi_device(
     match midi_controller {
         Ok(_midi_controller) => {
             info!("Midi port {}: Port name: {}", output_port, output_name);
-            unsafe {
-                midi::midi::ENABLED = true;
-            }
         }
         Err(error) => {
+            unsafe {
+                midi::midi::ENABLED = false;
+            }
             error!("[attach_midi_device] Dot X Error: {:?}", error);
             return Err(Error::Connection);
         }
@@ -345,10 +437,68 @@ fn get_active_app_name() -> String {
             active_window.app_name.to_string()
         }
         Err(err) => {
-            warn!("Failed to get active window: {:?}", err);
+            #[cfg(target_os = "linux")]
+            if is_gnome_wayland() {
+                if let Some(wm_class) = gnome_active_window::get_gnome_active_window_class() {
+                    trace!("Active window (via dotx-active-window extension): {}", wm_class);
+                    return wm_class;
+                }
+            }
+            warn!(
+                "Failed to get active window: {:?}; {}",
+                err,
+                active_window_failure_context()
+            );
             "Unknown".to_string() // Return a default value if an error occurs
         }
     }
+}
+
+#[cfg(target_os = "linux")]
+fn is_gnome_wayland() -> bool {
+    let wayland_display = std::env::var("WAYLAND_DISPLAY").unwrap_or_default();
+    let current_desktop = std::env::var("XDG_CURRENT_DESKTOP").unwrap_or_default();
+    let desktop_session = std::env::var("DESKTOP_SESSION").unwrap_or_default();
+    let is_gnome = current_desktop.to_lowercase().contains("gnome")
+        || desktop_session.to_lowercase().contains("gnome");
+    !wayland_display.is_empty() && is_gnome
+}
+
+#[cfg(target_os = "linux")]
+fn active_window_failure_context() -> String {
+    let wayland_display = std::env::var("WAYLAND_DISPLAY").unwrap_or_default();
+    let x11_display = std::env::var("DISPLAY").unwrap_or_default();
+    let current_desktop = std::env::var("XDG_CURRENT_DESKTOP").unwrap_or_default();
+    let desktop_session = std::env::var("DESKTOP_SESSION").unwrap_or_default();
+    let has_hyprland = std::env::var_os("HYPRLAND_INSTANCE_SIGNATURE").is_some();
+    let has_kde = std::env::var_os("KDE_FULL_SESSION").is_some()
+        || current_desktop.to_lowercase().contains("kde")
+        || desktop_session.to_lowercase().contains("plasma");
+    let is_gnome = is_gnome_wayland();
+
+    let backend = if !wayland_display.is_empty() && has_kde {
+        "KDE Wayland/KWin"
+    } else if !wayland_display.is_empty() && has_hyprland {
+        "Hyprland Wayland"
+    } else if is_gnome {
+        "GNOME Wayland (dotx-active-window extension not installed/enabled — see gnome-extension/ in the repo root)"
+    } else if !wayland_display.is_empty() {
+        "unknown Wayland compositor"
+    } else if !x11_display.is_empty() {
+        "X11/XCB"
+    } else {
+        "unknown display server"
+    };
+
+    format!(
+        "platform=linux backend={} WAYLAND_DISPLAY={} DISPLAY={} XDG_CURRENT_DESKTOP={} DESKTOP_SESSION={} expected_support='X11/XCB, KDE Wayland, Hyprland Wayland, GNOME Wayland (via dotx-active-window extension)' build_packages='libxcb-ewmh-dev libxcb-randr0-dev libdbus-1-dev pkg-config'",
+        backend, wayland_display, x11_display, current_desktop, desktop_session
+    )
+}
+
+#[cfg(not(target_os = "linux"))]
+fn active_window_failure_context() -> String {
+    format!("platform={}", std::env::consts::OS)
 }
 
 #[tauri::command]
@@ -396,13 +546,21 @@ async fn show_brightness(dev: &BrightnessDevice) -> Result<(), brightness::Error
     Ok(())
 }
 
-#[tauri::command]
+// Runs on Tauri's threadpool instead of the main event loop: opening the serial
+// port (and the up-to-250ms wait for a stale connection to close) must not block
+// the UI thread, or a slow/failing device (e.g. a permission error) freezes the app.
+#[tauri::command(async)]
 fn connect_decker(window: WebviewWindow, port_name: &str, inverted: bool) -> Result<(), Error> {
     info!(
         "Connecting Decker at port: {}, inverted: {}",
         port_name, inverted
     );
-    decker::initialize_decker(window, port_name, inverted)?;
+    decker::initialize_decker(window, port_name, inverted).map_err(|error| Error::SerialOpen {
+        port_name: port_name.to_string(),
+        kind: format!("{:?}", error.kind()),
+        message: error.to_string(),
+        os_code: error.raw_os_error(),
+    })?;
     info!("Decker connected at {}", port_name);
     Ok(())
 }
@@ -470,6 +628,13 @@ fn build_tray(app: &tauri::AppHandle<Wry>) -> tauri::Result<(Menu<Wry>, TrayIcon
         .build(app)?;
 
     Ok((menu, tray))
+}
+
+fn tray_available() -> bool {
+    #[cfg(target_os = "linux")]
+    return tray_host::tray_available();
+    #[cfg(not(target_os = "linux"))]
+    true
 }
 
 fn show_notification(app: &tauri::AppHandle, title: &str, body: &str) -> bool {
@@ -645,31 +810,47 @@ fn ensure_deno_extracted(app: &tauri::AppHandle) -> Result<std::path::PathBuf, S
 
     fs::create_dir_all(&deno_dir).map_err(|e| format!("Failed to create deno dir: {}", e))?;
 
+    // Resolve the bundled Deno archive for the current platform.
     #[cfg(target_os = "windows")]
     let archive_rel = "resources/deno/deno-x86_64-pc-windows-msvc.zip";
-    #[cfg(not(target_os = "windows"))]
-    let archive_rel = "resources/deno/unsupported-platform"; // placeholder
+    #[cfg(target_os = "linux")]
+    let archive_rel = "resources/deno/deno-x86_64-unknown-linux-gnu.zip";
+    #[cfg(not(any(target_os = "windows", target_os = "linux")))]
+    let archive_rel = "";
+
+    if archive_rel.is_empty() {
+        return Err("Bundled Deno is not available for this platform".to_string());
+    }
 
     let archive_path = path_resolver.resolve(archive_rel, tauri::path::BaseDirectory::Resource)
         .map_err(|e| format!("Bundled Deno archive not found at {}: {}", archive_rel, e))?;
 
-    if cfg!(target_os = "windows") {
-        let file = File::open(&archive_path).map_err(|e| format!("Failed to open Deno zip: {}", e))?;
-        let mut zip = zip::ZipArchive::new(file).map_err(|e| format!("Failed to read Deno zip: {}", e))?;
-        for i in 0..zip.len() {
-            let mut zipped_file = zip.by_index(i).map_err(|e| format!("Zip entry error: {}", e))?;
-            let entry_path = match zipped_file.enclosed_name() { Some(p) => p.to_owned(), None => continue };
-            let out_path = deno_dir.join(entry_path);
-            if zipped_file.is_dir() {
-                fs::create_dir_all(&out_path).map_err(|e| format!("Create dir failed: {}", e))?;
-            } else {
-                if let Some(parent) = out_path.parent() { fs::create_dir_all(parent).map_err(|e| format!("Create dir failed: {}", e))?; }
-                let mut outfile = File::create(&out_path).map_err(|e| format!("Create file failed: {}", e))?;
-                std::io::copy(&mut zipped_file, &mut outfile).map_err(|e| format!("Write file failed: {}", e))?;
-            }
+    // The Windows and Linux archives are both plain zips containing the Deno
+    // executable at the root; extract every entry into the data dir.
+    let file = File::open(&archive_path).map_err(|e| format!("Failed to open Deno zip: {}", e))?;
+    let mut zip = zip::ZipArchive::new(file).map_err(|e| format!("Failed to read Deno zip: {}", e))?;
+    for i in 0..zip.len() {
+        let mut zipped_file = zip.by_index(i).map_err(|e| format!("Zip entry error: {}", e))?;
+        let entry_path = match zipped_file.enclosed_name() { Some(p) => p.to_owned(), None => continue };
+        let out_path = deno_dir.join(entry_path);
+        if zipped_file.is_dir() {
+            fs::create_dir_all(&out_path).map_err(|e| format!("Create dir failed: {}", e))?;
+        } else {
+            if let Some(parent) = out_path.parent() { fs::create_dir_all(parent).map_err(|e| format!("Create dir failed: {}", e))?; }
+            let mut outfile = File::create(&out_path).map_err(|e| format!("Create file failed: {}", e))?;
+            std::io::copy(&mut zipped_file, &mut outfile).map_err(|e| format!("Write file failed: {}", e))?;
         }
-    } else {
-        return Err("Bundled Deno not available for this platform".to_string());
+    }
+
+    // On Unix the extracted Deno binary needs its executable bit set before it can be spawned.
+    #[cfg(unix)]
+    if deno_exe_default.exists() {
+        let mut perms = fs::metadata(&deno_exe_default)
+            .map_err(|e| format!("Failed to read Deno permissions: {}", e))?
+            .permissions();
+        perms.set_mode(0o755);
+        fs::set_permissions(&deno_exe_default, perms)
+            .map_err(|e| format!("Failed to set Deno executable bit: {}", e))?;
     }
 
     if deno_exe_default.exists() {
@@ -684,8 +865,32 @@ fn sentry_dsn() -> Option<&'static str> {
     option_env!("DOTX_SENTRY_DSN").filter(|dsn| !dsn.trim().is_empty())
 }
 
+// WebKitGTK's DMA-BUF/GPU renderer can commit a buffer via
+// wp_linux_drm_syncobj_manager_v1 without setting an acquire timeline point
+// first, which NVIDIA's proprietary driver + KWin (and possibly other
+// compositors) reject as a protocol violation, crashing the app ~0.3s after
+// launch under Wayland (X11 has a separate blank-window issue). Delegate
+// detection + the session-appropriate fix to webkit2gtk-nvidia-quirk, unless
+// the user has already set one of its target env vars explicitly.
+#[cfg(target_os = "linux")]
+fn apply_nvidia_wayland_webkit_workaround() {
+    let user_overrode = std::env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER").is_some()
+        || std::env::var_os("__NV_DISABLE_EXPLICIT_SYNC").is_some();
+    if user_overrode {
+        return;
+    }
+    webkit2gtk_nvidia_quirk::apply_workaround_with_options(
+        webkit2gtk_nvidia_quirk::ApplyWorkaroundOptions::default(),
+    );
+}
+
+#[cfg(not(target_os = "linux"))]
+fn apply_nvidia_wayland_webkit_workaround() {}
+
 #[tokio::main]
 async fn main() {
+    apply_nvidia_wayland_webkit_workaround();
+
     let telemetry_settings = TelemetrySettings::new(false, false);
     let sentry_settings = telemetry_settings.clone();
     let client = sentry::init((
@@ -706,7 +911,11 @@ async fn main() {
 
     setup_panic_handler(client.clone());
 
-    tauri::Builder::default()
+    let builder = tauri::Builder::default();
+    #[cfg(debug_assertions)]
+    let builder = builder.plugin(tauri_plugin_mcp_bridge::init());
+
+    builder
         .manage(update_tracks::PendingBetaUpdate::default())
         .invoke_handler(tauri::generate_handler![
             get_installed_apps,
@@ -739,6 +948,7 @@ async fn main() {
             plugin_runtime::stop_plugin,
             plugin_runtime::restart_plugin,
             plugin_runtime::start_enabled_plugins,
+            plugin_runtime::notify_frontend_ready,
             plugin_runtime::get_plugin_logs,
             plugin_runtime::clear_plugin_logs,
             plugin_marketplace::list_installed_plugins,
@@ -809,11 +1019,15 @@ async fn main() {
         }))
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                let app = window.app_handle();
-                if let Some(state) = app.try_state::<TrayNoticeState>() {
-                    show_close_to_tray_notice(app, &state);
+                if tray_available() {
+                    let app = window.app_handle();
+                    if let Some(state) = app.try_state::<TrayNoticeState>() {
+                        show_close_to_tray_notice(app, &state);
+                    }
+                    let _ = window.hide();
+                } else {
+                    let _ = window.minimize();
                 }
-                let _ = window.hide();
                 api.prevent_close();
             }
         })
@@ -821,9 +1035,17 @@ async fn main() {
             load_telemetry_settings(app.handle(), &telemetry_settings);
             app.manage(telemetry_settings.clone());
             app.manage(load_tray_notice_state(app.handle()));
-            {
+            // On Linux, run power-monitor setup off the critical path. psp's logind
+            // D-Bus calls can block for ~25s (until timeout) on sessions where the
+            // logind session object isn't resolvable (SSH, containers, some headless
+            // setups). On Windows psp creates its message window on the calling
+            // thread, so setup has to stay on the main thread.
+            #[cfg(target_os = "linux")]
+            std::thread::spawn(|| {
                 power_monitor::setup_power_monitoring();
-            }
+            });
+            #[cfg(not(target_os = "linux"))]
+            power_monitor::setup_power_monitoring();
             start_aptabase_heartbeat(app.handle().clone());
             let mut props_map = HashMap::new();
             props_map.insert("slider_amount".to_string(), Value::String("5".to_string()));
@@ -868,7 +1090,7 @@ async fn main() {
             // This gets any command line arguments passed to the app
             let matches = app.cli().matches().unwrap_or_default();
             if let Some(hidden) = matches.args.get("hidden") {
-                if hidden.value == Value::Bool(true) {
+                if hidden.value == Value::Bool(true) && tray_available() {
                     let _ = window.hide();
                 } else {
                     let _ = window.show();

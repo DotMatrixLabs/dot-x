@@ -64,6 +64,16 @@ The most common defect in this repo is a change that works on the path you teste
 - Windows 10/11 only, Node 22+, Yarn, Rust stable, plus the `cargo-license` subcommand (`cargo install cargo-license`) which `yarn build` needs. Most features need a device physically attached. Without it you can still exercise UI, settings, and plugins — say exactly that in the PR, and say what you could not test.
 - App logs land in `%LOCALAPPDATA%\com.dot-x.dev\logs\Dot X.log` (release builds keep only `warn` and `error`; the `log` features in `src-tauri/Cargo.toml` compile out lower levels). Crashes go to Sentry. Plugin stdout/stderr is appended to `plugin.log` inside each installed plugin's folder under `%APPDATA%\com.dot-x.dev\plugins\`.
 
+## Linux
+
+Linux support is in progress. `LINUX-SUPPORT.md` has the current state and known gaps; `TEST-MACHINES.md` lists the test machines and how to launch on each.
+
+- `yarn setup:linux` installs build dependencies. `yarn dev:linux` runs the app; prefer it over `yarn tauri dev` on Linux, since it enters the Fedora Distrobox on Bazzite, preflights dependencies, and applies the WebKit/NVIDIA workarounds. `yarn dev:linux --check-only` runs only the preflight.
+- On Linux, build with `yarn build:linux` instead of `yarn tauri build`. It handles Distrobox, the linuxdeploy strip failure on Fedora, and builds without the updater signing key.
+- Linux audio uses `volume-control-rs`, a path dependency that must be checked out next to this repo (`../volume-control-rs`). Cargo resolves path dependencies on every platform, so Windows builds need it too. Do not switch it to a git dependency unless asked.
+- Platform-specific code must be `#[cfg(...)]`-gated. Commands the frontend calls must exist on both platforms; on Linux, an unsupported one returns a clear error or does nothing. When you change one platform, say whether you verified the other.
+- On Bazzite the host is immutable: builds work through the committed `src-tauri/pkgconfig/` and `.cargo/config.toml`, but prefer Distrobox (`yarn dev:linux` handles it).
+
 ## Verifying
 
 - CI (`.github/workflows/ci.yml`) typechecks and builds the frontend, checks the plugin SDK build and its generated types, and runs the Rust unit tests with `cargo test --locked`. Treat CI as a floor, not a test suite; the real proof is the same checks locally plus the running app:

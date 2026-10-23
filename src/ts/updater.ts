@@ -79,6 +79,12 @@ function isUnsupportedWindows(): boolean {
   }
 }
 
+// Linux builds aren't published to the update feed yet, so a check could only fail or
+// offer an artifact that can't install here. Linux users install new releases by hand.
+export function linuxUpdatesDisabled(): boolean {
+  return platform() === 'linux';
+}
+
 async function notifyOnce(version: string) {
   const store = useUpdateStore();
   if (store.hasNotifiedVersion(version)) return;
@@ -108,7 +114,7 @@ export async function performRelaunchIfReady() {
 
 async function runCheck(): Promise<'available' | 'none' | 'error'> {
   const store = useUpdateStore();
-  if (isUnsupportedWindows()) {
+  if (isUnsupportedWindows() || linuxUpdatesDisabled()) {
     store.resetAvailability();
     return 'none';
   }

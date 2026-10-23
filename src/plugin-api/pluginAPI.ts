@@ -61,7 +61,15 @@ export class PluginAPI {
       
       // Setup event listeners for plugin events
       await this.setupTauriEventListeners();
-      
+
+      // Tell the backend our plugin listeners are live so auto-started plugins'
+      // onLoad UI calls aren't emitted before we're listening for them.
+      try {
+        await invoke('notify_frontend_ready');
+      } catch (error) {
+        console.error('Failed to notify backend that frontend is ready:', error);
+      }
+
       // Sync active plugins with backend to handle renderer resets
       await this.syncActivePlugins();
       
@@ -135,44 +143,47 @@ export class PluginAPI {
     };
   }
 
-  // Events from plugins
-  setupTauriEventListeners() {
-    listen('plugin/api_request', (event) => {
-      log.debug('Received API request');
-      this.handleApiRequest(event.payload as ApiRequest & { plugin_id?: string });
-    });
-    listen('plugin/api_response', () => {
-      log.debug('Received API response');
-    });
-    listen('plugin/api_error', () => {
-      log.debug('Received API error');
-    });
-    listen('plugin/api_event', () => {
-      log.debug('Received API event');
-    });
-    listen('plugin/lifecycle', (event) => {
-      const lifecycleEvent = event.payload as PluginLifecycleEvent;
-      usePluginStore().handlePluginLifecycle(lifecycleEvent);
-      log.debug('Received lifecycle event');
-    });
-    listen('plugin/connected', (event) => {
-      const plugin = event.payload as {
-        id: string;
-        name: string;
-        version?: string;
-        connected_at?: string;
-        sdkVersion?: string;
-        hostApiVersion?: string;
-        capabilities?: string[];
-      };
-      usePluginStore().upsertConnectedPlugin(plugin);
-      log.debug('Received connected event');
-    });
-    listen('plugin/disconnected', (event) => {
-      const plugin = event.payload as { id: string; name?: string; error?: string | null };
-      usePluginStore().handlePluginDisconnected(plugin);
-      log.debug('Received disconnected event');
-    });
+  // Events from plugins. Awaits registration so callers can rely on the
+  // listeners being live once this resolves (see notify_frontend_ready).
+  async setupTauriEventListeners() {
+    await Promise.all([
+      listen('plugin/api_request', (event) => {
+        log.debug('Received API request');
+        this.handleApiRequest(event.payload as ApiRequest & { plugin_id?: string });
+      }),
+      listen('plugin/api_response', () => {
+        log.debug('Received API response');
+      }),
+      listen('plugin/api_error', () => {
+        log.debug('Received API error');
+      }),
+      listen('plugin/api_event', () => {
+        log.debug('Received API event');
+      }),
+      listen('plugin/lifecycle', (event) => {
+        const lifecycleEvent = event.payload as PluginLifecycleEvent;
+        usePluginStore().handlePluginLifecycle(lifecycleEvent);
+        log.debug('Received lifecycle event');
+      }),
+      listen('plugin/connected', (event) => {
+        const plugin = event.payload as {
+          id: string;
+          name: string;
+          version?: string;
+          connected_at?: string;
+          sdkVersion?: string;
+          hostApiVersion?: string;
+          capabilities?: string[];
+        };
+        usePluginStore().upsertConnectedPlugin(plugin);
+        log.debug('Received connected event');
+      }),
+      listen('plugin/disconnected', (event) => {
+        const plugin = event.payload as { id: string; name?: string; error?: string | null };
+        usePluginStore().handlePluginDisconnected(plugin);
+        log.debug('Received disconnected event');
+      }),
+    ]);
   }
 
   /**

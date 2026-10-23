@@ -1,15 +1,22 @@
 <template>
     <div class="flex flex-col justify-start items-center h-full w-full overflow-y-auto">
         <StatsPanel v-if="statsModalOpen" :device="currentDevice" :modal-open="statsModalOpen" @close="statsToggled" />
+        <SerialAccessDialog
+            :visible="serialAccessDialogOpen"
+            :device="serialAccessDevice"
+            :port-name="serialAccessPort"
+            @close="serialAccessDialogOpen = false"
+            @retry="retrySerialAccess"
+        />
         <!-- Device Selection -->
         <div data-setting="Device" class="flex flex-row w-full justify-between px-2">
             <span class="shrink-0 pt-1">Device: </span>
             <select @change="deviceSelected" v-model="currentDevice"
-                class="select select-bordered select-sm w-2/3 mx-2 capitalize truncate">
+                class="select select-bordered select-sm w-2/3 mx-2 truncate">
                 <option class="w-full" v-for="(device, index) in devices" :value="device" :key="index">
                     {{ deviceName(device) }}
                 </option>
-                <option v-if="connectionState" class="w-full" value="disconnect">
+                <option v-if="connectionState || currentDevice" class="w-full" value="disconnect">
                     Disconnect
                 </option>
             </select>
@@ -77,6 +84,7 @@ import { toast } from "vue-sonner";
 import Decker from "../ts/decker.ts";
 import ConfigStore from "../ts/config.ts";
 import StatsPanel from "./StatsPanel.vue";
+import SerialAccessDialog from "./SerialAccessDialog.vue";
 import RGBController from "../ts/RGBController";
 import { mapState } from "pinia";
 import { useDeckerStore } from "../store/deckerStore.ts";
@@ -91,6 +99,7 @@ export default {
 
     components: {
         StatsPanel,
+        SerialAccessDialog,
     },
 
     props: {
@@ -113,6 +122,9 @@ export default {
             RGBEffects: ["Off", "Static", "Rainbow", "Candle", "Lightning Storm", "Perimeter"],
             deviceConnected: true,
             statsModalOpen: false,
+            serialAccessDialogOpen: false,
+            serialAccessDevice: null,
+            serialAccessPort: "",
             lastExecutionTime: 0,
             deviceType: "Unknown",
             speed: 10,
@@ -268,6 +280,55 @@ export default {
             ConfigStore.save();
         },
 
+        parseSerialOpenError(error) {
+            if (error && typeof error === "object" && error.type === "serial_open_error") {
+                return error;
+            }
+
+            if (typeof error !== "string") return null;
+
+            try {
+                const parsed = JSON.parse(error);
+                if (parsed?.type === "serial_open_error") return parsed;
+            } catch (_) {
+                return null;
+            }
+
+            return null;
+        },
+
+        isPermissionDenied(error) {
+            const serialError = this.parseSerialOpenError(error);
+            if (serialError) {
+                return serialError.permissionDenied === true || serialError.kind === "PermissionDenied";
+            }
+
+            const msg = String(error);
+            return msg.includes("Permission denied") || msg.includes("Access is denied");
+        },
+
+        showSerialAccessDialog(error) {
+            const serialError = this.parseSerialOpenError(error);
+            this.serialAccessDevice = this.currentDevice;
+            this.serialAccessPort = serialError?.portName || this.currentDevice?.port_name || "";
+            this.serialAccessDialogOpen = true;
+        },
+
+        async retrySerialAccess() {
+            if (!this.currentDevice?.port_name) return;
+
+            try {
+                await Decker.init(this.currentDevice.port_name);
+                this.serialAccessDialogOpen = false;
+            } catch (error) {
+                if (this.isPermissionDenied(error)) {
+                    this.showSerialAccessDialog(error);
+                    toast.error("Still missing serial device access. Replug the device if you already applied the rule.");
+                    return;
+                }
+                toast.error(`Failed to connect to device: ${String(error)}`);
+            }
+        },
 
         async deviceSelected() {
             if(this.currentDevice === "disconnect") {
@@ -286,7 +347,15 @@ export default {
             }
             ConfigStore.set("comPort", this.currentDevice.port_name);
             ConfigStore.save();
-            await Decker.init(this.currentDevice.port_name);
+            try {
+                await Decker.init(this.currentDevice.port_name);
+            } catch (error) {
+                if (this.isPermissionDenied(error)) {
+                    this.showSerialAccessDialog(error);
+                    return;
+                }
+                toast.error(`Failed to connect to device: ${String(error)}`);
+            }
         },
 
 
