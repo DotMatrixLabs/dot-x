@@ -36,6 +36,7 @@
 
 <script>
 
+import { invoke } from '@tauri-apps/api/core'
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { openLink } from "../ts/helpers.ts"
 const appWindow = getCurrentWebviewWindow()
@@ -57,8 +58,12 @@ export default {
   },
 
   methods: {
-    close() {
-      appWindow.hide()
+    async close() {
+      if (await invoke('is_tray_available')) {
+        appWindow.hide()
+      } else {
+        appWindow.minimize()
+      }
     },
     minimize() {
       appWindow.minimize()
