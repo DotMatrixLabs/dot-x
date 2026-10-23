@@ -1,0 +1,4 @@
+Name: soup-3.0
+Description: libsoup 3 (Ubuntu 24.04 naming alias — the installed file is libsoup-3.0.pc)
+Version: 3.0
+Requires: libsoup-3.0

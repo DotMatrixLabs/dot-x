@@ -21,7 +21,7 @@ Desktop interface for DotMatrixLabs Decker physical volume mixer built with Taur
 
 - [Node.js](https://nodejs.org/) 22+ and [Yarn](https://yarnpkg.com/)
 - [Rust](https://rustup.rs/) (stable; the repo pins the toolchain in `rust-toolchain.toml`)
-- Windows 10/11
+- Windows 10/11, or Linux: see [LINUX-SUPPORT.md](LINUX-SUPPORT.md) for build dependencies, Distrobox on Bazzite, and `yarn build:linux`
 
 Install the license-report CLI before running `yarn build` or `yarn tauri build`:
 

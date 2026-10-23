@@ -1,0 +1,23 @@
+{
+  "bundle": {
+    "targets": ["deb", "appimage"],
+    "resources": [
+      "licenses/*",
+      "resources/deno/deno-x86_64-unknown-linux-gnu.zip"
+    ],
+    "linux": {
+      "deb": {
+        "depends": [
+          "libpulse0",
+          "libayatana-appindicator3-1",
+          "ddcutil"
+        ],
+        "files": {
+          "/etc/udev/rules.d/70-dot-x.rules": "extra/70-dot-x.rules"
+        },
+        "postInstallScript": "extra/postinst.sh",
+        "preRemoveScript": "extra/prerm.sh"
+      }
+    }
+  }
+}

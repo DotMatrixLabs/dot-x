@@ -33,6 +33,7 @@ import { trackTelemetryEvent } from "../ts/telemetry";
 import { openLink } from "../ts/helpers.ts";
 
 const openLinkMethod = openLink;
+const VIRTUAL_MIDI_PORT = "Dot X Virtual MIDI";
 
 
 export default {
@@ -71,6 +72,17 @@ export default {
         getMidiDevices() {
             decker.getMidiDevices().then((devices) => {
                 this.devices = devices.names;
+                if (!this.selectedPort || !this.devices.includes(this.selectedPort)) {
+                    this.selectedPort = this.devices.includes(VIRTUAL_MIDI_PORT)
+                        ? VIRTUAL_MIDI_PORT
+                        : this.devices[0] || null;
+
+                    if (this.selectedPort) {
+                        ConfigStore.set("midiOutputPort", this.selectedPort);
+                        ConfigStore.set("midiOutputPortNumber", this.devices.findIndex((device) => device === this.selectedPort));
+                        ConfigStore.save();
+                    }
+                }
             });
         },
 
@@ -103,6 +115,10 @@ export default {
         },
         connectMidiDevice(){
             const outputPort = this.devices.findIndex((device) => device === this.selectedPort);
+            if(outputPort < 0){
+                toast.error("Select a MIDI port before enabling MIDI output.");
+                return;
+            }
             decker.attachMidiDevice(outputPort);
         },
 
