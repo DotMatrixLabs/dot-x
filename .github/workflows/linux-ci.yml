@@ -27,10 +27,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Checkout Rust path dependencies
+      # src-tauri depends on ../../volume-control-rs by path on every platform.
+      - name: Check out volume-control-rs
         shell: bash
         run: |
-          git clone --depth 1 https://github.com/Frogbyte-io/volume-control-rs.git ../volume-control-rs
+          git clone --quiet https://github.com/Frogbyte-io/volume-control-rs.git ../volume-control-rs
+          git -C ../volume-control-rs checkout --quiet 29594c46a4c1da9c1075cc8beb283d13f4799aca
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
