@@ -256,4 +256,7 @@ if (!env.TAURI_SIGNING_PRIVATE_KEY) {
   console.warn("TAURI_SIGNING_PRIVATE_KEY is not set; building without updater artifacts.");
   buildArgs.push("--config", JSON.stringify({ bundle: { createUpdaterArtifacts: false } }));
 }
-run("yarn", buildArgs, { env });
+if (dryRun) run("yarn", buildArgs, { env });
+const build = spawnSync("yarn", buildArgs, { stdio: "inherit", env });
+if (build.status !== 0) process.exit(build.status ?? 1);
+run("node", ["scripts/repack-appimage.mjs"], { env });
