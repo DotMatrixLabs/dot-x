@@ -3,7 +3,8 @@
     <div class="flex flex-col justify-between items-center w-full">
         <div class="flex flex-row w-full justify-between px-2">
             <span class="my-auto">Running version {{ appVersion }}</span>
-            <button @click="checkForUpdates" class="btn btn-xs">{{ buttonLabel }}</button>
+            <span v-if="updatesDisabled" class="my-auto text-xs opacity-70">Install new versions manually on Linux</span>
+            <button v-else @click="checkForUpdates" class="btn btn-xs">{{ buttonLabel }}</button>
         </div>
         <div class="flex flex-row w-full justify-between px-2 mt-4">
             <span class="my-auto">Read the docs</span>
@@ -29,7 +30,7 @@
 
 import { openLink } from "../ts/helpers.ts";
 import { useUpdateStore } from '../store/updateStore';
-import { userCheckForUpdates } from '../ts/updater';
+import { userCheckForUpdates, linuxUpdatesDisabled } from '../ts/updater';
 
 const openLinkMethod = openLink;
 
@@ -39,6 +40,7 @@ export default {
         return {
             store: useUpdateStore(),
             checkingForUpdates: false,
+            updatesDisabled: linuxUpdatesDisabled(),
             labelOverride: null,
             labelResetTimer: null,
         }
