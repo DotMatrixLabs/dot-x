@@ -7,12 +7,15 @@ use tauri::{AppHandle, Emitter, Manager, WebviewWindow, Wry};
 use std::fs;
 use std::fs::File;
 use tauri_plugin_autostart::MacosLauncher;
+#[cfg(not(debug_assertions))]
+use tauri_plugin_autostart::ManagerExt as AutostartManagerExt;
 use midir::{MidiOutput};
 use std::collections::HashMap;
 use std::fmt;
 use tauri_plugin_notification::NotificationExt;
 use tauri_plugin_store::StoreExt;
 use telemetry::TelemetrySettings;
+use tray_notice::TrayNoticeState;
 #[cfg(windows)]
 mod audio;
 #[cfg(target_os = "linux")]
@@ -29,6 +32,8 @@ mod telemetry;
 mod gnome_active_window;
 #[cfg(target_os = "linux")]
 mod tray_host;
+mod tray_notice;
+mod update_tracks;
 use once_cell::sync::OnceCell;
 use tauri::menu::{Menu, MenuBuilder, MenuItemBuilder, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent};
@@ -632,18 +637,57 @@ fn tray_available() -> bool {
     true
 }
 
-#[tauri::command]
-fn is_tray_available() -> bool {
-    tray_available()
-}
-
-fn show_notification(app: &tauri::AppHandle, title: &str, body: &str) {
+fn show_notification(app: &tauri::AppHandle, title: &str, body: &str) -> bool {
     info!(
         "Showing notification || Title: {} | Message: {}",
         title, body
     );
-    if let Err(err) = app.notification().builder().title(title).body(body).show() {
-        error!("Failed to show notification: {err}");
+    match app.notification().builder().title(title).body(body).show() {
+        Ok(()) => true,
+        Err(err) => {
+            error!("Failed to show notification: {err}");
+            false
+        }
+    }
+}
+
+fn load_tray_notice_state(app: &AppHandle) -> TrayNoticeState {
+    let already_shown = match app.store("config.json") {
+        Ok(store) => store
+            .get("closeToTrayNoticeShown")
+            .and_then(|value| value.as_bool())
+            .unwrap_or(false),
+        Err(err) => {
+            warn!("Failed to read close-to-tray notice preference: {err}");
+            false
+        }
+    };
+
+    TrayNoticeState::new(already_shown)
+}
+
+fn show_close_to_tray_notice(app: &AppHandle, state: &TrayNoticeState) {
+    if !state.claim_first_notice() {
+        return;
+    }
+
+    if !show_notification(
+        app,
+        "Dot X is still running",
+        "You can reopen Dot X from the system tray.",
+    ) {
+        state.release_failed_notice();
+        return;
+    }
+
+    match app.store("config.json") {
+        Ok(store) => {
+            store.set("closeToTrayNoticeShown", json!(true));
+            if let Err(err) = store.save() {
+                warn!("Failed to save close-to-tray notice preference: {err}");
+            }
+        }
+        Err(err) => warn!("Failed to store close-to-tray notice preference: {err}"),
     }
 }
 
@@ -872,9 +916,9 @@ async fn main() {
     let builder = builder.plugin(tauri_plugin_mcp_bridge::init());
 
     builder
+        .manage(update_tracks::PendingBetaUpdate::default())
         .invoke_handler(tauri::generate_handler![
             get_installed_apps,
-            is_tray_available,
             audio::get_all_session_names,
             audio::set_application_volume,
             connect_decker,
@@ -917,9 +961,12 @@ async fn main() {
             plugin_marketplace::install_local_plugin,
             consume_pending_dotx_install,
             set_telemetry_preference,
-            track_telemetry_event
+            track_telemetry_event,
+            update_tracks::check_beta_update,
+            update_tracks::install_beta_update
         ])
         .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
@@ -973,6 +1020,10 @@ async fn main() {
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 if tray_available() {
+                    let app = window.app_handle();
+                    if let Some(state) = app.try_state::<TrayNoticeState>() {
+                        show_close_to_tray_notice(app, &state);
+                    }
                     let _ = window.hide();
                 } else {
                     let _ = window.minimize();
@@ -983,6 +1034,7 @@ async fn main() {
         .setup(move |app| {
             load_telemetry_settings(app.handle(), &telemetry_settings);
             app.manage(telemetry_settings.clone());
+            app.manage(load_tray_notice_state(app.handle()));
             // On Linux, run power-monitor setup off the critical path. psp's logind
             // D-Bus calls can block for ~25s (until timeout) on sessions where the
             // logind session object isn't resolvable (SSH, containers, some headless
@@ -1060,6 +1112,28 @@ async fn main() {
                 }
                 Err(e) => {
                     error!("Deno bootstrap failed: {}", e);
+                }
+            }
+
+            // Rewrite the autostart entry so it points at the current executable.
+            // `is_enabled` only checks that a Run entry with our name exists, it never
+            // compares paths, so an install that moved (v1.x per-machine MSI -> v2
+            // per-user NSIS) leaves the toggle reading "on" while pointing at a binary
+            // that is gone. `enable` is idempotent, so re-running it just refreshes the path.
+            //
+            // Release builds only: in dev this would repoint the user's autostart entry at
+            // target/debug on every `tauri dev` run, hijacking it from the installed app.
+            #[cfg(not(debug_assertions))]
+            {
+                let autostart = app.autolaunch();
+                match autostart.is_enabled() {
+                    Ok(true) => {
+                        if let Err(e) = autostart.enable() {
+                            error!("Failed to refresh autostart entry: {}", e);
+                        }
+                    }
+                    Ok(false) => {}
+                    Err(e) => error!("Failed to read autostart state: {}", e),
                 }
             }
 

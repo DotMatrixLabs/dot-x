@@ -304,6 +304,46 @@ pub fn current_os_name() -> &'static str {
   }
 }
 
+/// Environment variables a plugin inherits from Dot X without asking for the
+/// `env` permission. Without that permission the plugin's process environment is
+/// cleared down to this list (see `baseline_plugin_env`), which is what keeps user
+/// secrets out of reach: Deno itself gets unscoped `--allow-env`, because npm
+/// packages such as `debug` (bundled into every SDK plugin via socket.io-client)
+/// enumerate `process.env` on import and Deno only allows that with the unscoped
+/// flag. The runtime-injected `DOTX_PLUGIN_*` variables are set separately. None
+/// of these hold user secrets; anything else requires `env` in manifest.json.
+const BASELINE_ENV_VARS: &[&str] = &[
+  // Read by the SDK logger.
+  "DOTX_PLUGIN_LOG_LEVEL",
+  // Windows system variables. Winsock fails to initialise without SYSTEMROOT, so
+  // the plugin could not reach the plugin server; PATH and PATHEXT let plugins
+  // approved for `run` resolve commands by name.
+  "SYSTEMROOT",
+  "WINDIR",
+  "PATH",
+  "PATHEXT",
+  // Node compatibility. Widely read at import time by npm packages.
+  "NODE_ENV",
+  "NODE_DEBUG",
+  "NODE_OPTIONS",
+  "NODE_PATH",
+  "DEBUG",
+  // Colour and TTY detection (chalk, supports-color and friends).
+  "NO_COLOR",
+  "FORCE_COLOR",
+  "COLORTERM",
+  "TERM",
+  "TERM_PROGRAM",
+  "ANSICON",
+  "CI",
+  // os.tmpdir() and date handling. These leak no more than the plugin's own
+  // directory, which the plugin can already read.
+  "TMPDIR",
+  "TEMP",
+  "TMP",
+  "TZ",
+];
+
 /// Validate all manifest fields, permission values, version format, and
 /// dotxVersion compatibility.  Returns the full parsed manifest or a list
 /// of every problem found (so callers can surface them all at once).
@@ -585,15 +625,36 @@ fn read_permissions_from_manifest(dir: &Path) -> (Vec<String>, Vec<String>) {
   (normalized.into_iter().collect(), warnings)
 }
 
+/// The parent-environment variables a plugin without the `env` permission
+/// inherits: the `BASELINE_ENV_VARS` that are set, looked up through `lookup` so
+/// tests need not touch the real environment.
+fn baseline_plugin_env(lookup: impl Fn(&str) -> Option<String>) -> Vec<(&'static str, String)> {
+  BASELINE_ENV_VARS
+    .iter()
+    .filter_map(|var| lookup(var).map(|value| (*var, value)))
+    .collect()
+}
+
+/// Whether the plugin's approved manifest permissions grant full environment
+/// access. When they do not, `spawn_deno_process` clears the plugin's OS
+/// environment down to `BASELINE_ENV_VARS`, which covers both `Deno.env` and any
+/// child process the plugin spawns via the `run` permission.
+fn manifest_grants_env(permissions: &[String]) -> bool {
+  permissions.iter().any(|p| p == "env" || p == "all")
+}
+
 fn build_deno_permission_args(plugin_dir: &Path, permissions: &[String], port: u16) -> Vec<String> {
   let mut flags: Vec<String> = Vec::new();
   let mut seen: HashSet<String> = HashSet::new();
   let mut net_scopes: HashSet<String> = HashSet::new();
   let mut allow_all_net = false;
-  // Baseline runtime capability, not a manifest permission:
-  // the SDK and Node compatibility layer expect unrestricted environment access.
-  // User-approved plugin permissions are read from manifest.json and applied below.
-  let mut allow_env_all = true;
+  // Baseline runtime capability, not a manifest permission. Deno needs unscoped
+  // --allow-env because npm dependencies enumerate process.env on import. What the
+  // plugin can actually read is limited by clearing its OS environment in
+  // spawn_deno_process unless the manifest asks for "env". User-approved plugin
+  // permissions are read from manifest.json and applied further down.
+  flags.push("--allow-env".to_string());
+  seen.insert("--allow-env".to_string());
   let mut allow_sys_all = false;
   let mut sys_scopes: HashSet<String> = HashSet::new();
   sys_scopes.insert("homedir".to_string());
@@ -640,10 +701,8 @@ fn build_deno_permission_args(plugin_dir: &Path, permissions: &[String], port: u
         allow_all_net = true;
         None
       }
-      "env" => {
-        allow_env_all = true;
-        None
-      }
+      // Handled in spawn_deno_process by not clearing the environment.
+      "env" => None,
       "run" => Some("--allow-run".to_string()),
       "ffi" => Some("--allow-ffi".to_string()),
       "sys" => {
@@ -673,12 +732,6 @@ fn build_deno_permission_args(plugin_dir: &Path, permissions: &[String], port: u
     let scoped = format!("--allow-net={}", joined);
     if seen.insert(scoped.clone()) {
       flags.push(scoped);
-    }
-  }
-
-  if allow_env_all {
-    if seen.insert("--allow-env".to_string()) {
-      flags.push("--allow-env".to_string());
     }
   }
 
@@ -845,6 +898,15 @@ async fn spawn_deno_process(app_handle: &AppHandle, dir: &Path, plugin_id: &str)
 
   for flag in &permission_flags {
     cmd.arg(flag);
+  }
+
+  // Deno gets unscoped --allow-env (see build_deno_permission_args), so the
+  // process environment is the boundary. Without a manifest-approved `env`
+  // permission, clear it down to the baseline so neither Deno.env nor a child
+  // process spawned via `run` can see the user's other variables.
+  if !manifest_grants_env(&manifest_permissions) {
+    cmd.env_clear();
+    cmd.envs(baseline_plugin_env(|var| std::env::var(var).ok()));
   }
 
   cmd.arg(&manifest.main)
@@ -1098,7 +1160,70 @@ pub async fn clear_plugin_logs(plugin_id: String) -> Result<String, String> {
 
 #[cfg(test)]
 mod tests {
-  use super::check_dotx_version_against;
+  use super::{baseline_plugin_env, build_deno_permission_args, check_dotx_version_against, manifest_grants_env};
+  use std::path::Path;
+
+  fn flags_for(permissions: &[&str]) -> Vec<String> {
+    let owned: Vec<String> = permissions.iter().map(|p| p.to_string()).collect();
+    build_deno_permission_args(Path::new("C:\\plugins\\example"), &owned, 9001)
+  }
+
+  fn owned(permissions: &[&str]) -> Vec<String> {
+    permissions.iter().map(|p| p.to_string()).collect()
+  }
+
+  #[test]
+  fn manifest_without_env_or_all_does_not_grant_env() {
+    assert!(!manifest_grants_env(&owned(&[])));
+    assert!(!manifest_grants_env(&owned(&["run", "net"])));
+  }
+
+  #[test]
+  fn manifest_env_permission_grants_env() {
+    assert!(manifest_grants_env(&owned(&["env"])));
+  }
+
+  #[test]
+  fn manifest_all_permission_grants_env() {
+    assert!(manifest_grants_env(&owned(&["all"])));
+  }
+
+  #[test]
+  fn deno_always_gets_unscoped_allow_env() {
+    // npm's `debug` enumerates process.env on import, which Deno only allows with
+    // the unscoped flag; the environment itself is scrubbed at spawn instead.
+    for permissions in [&[][..], &["env"][..], &["run", "net"][..]] {
+      let flags = flags_for(permissions);
+      assert_eq!(flags.iter().filter(|f| *f == "--allow-env").count(), 1, "{:?}", flags);
+      assert!(!flags.iter().any(|f| f.starts_with("--allow-env=")), "{:?}", flags);
+    }
+  }
+
+  #[test]
+  fn baseline_env_drops_variables_outside_the_allowlist() {
+    let env = baseline_plugin_env(|var| match var {
+      "SYSTEMROOT" => Some("C:\\Windows".to_string()),
+      "NODE_ENV" => Some("production".to_string()),
+      "DOTX_TEST_SECRET" | "GITHUB_TOKEN" => Some("secret".to_string()),
+      _ => None,
+    });
+
+    assert_eq!(env, vec![("SYSTEMROOT", "C:\\Windows".to_string()), ("NODE_ENV", "production".to_string())]);
+  }
+
+  #[test]
+  fn baseline_env_keeps_what_deno_needs_to_reach_the_plugin_server() {
+    // Without SYSTEMROOT, Winsock fails to initialise (os error 10106).
+    let env = baseline_plugin_env(|var| Some(var.to_string()));
+    assert!(env.iter().any(|(var, _)| *var == "SYSTEMROOT"), "{:?}", env);
+  }
+
+  #[test]
+  fn all_permission_still_grants_allow_all() {
+    let flags = flags_for(&["all"]);
+
+    assert!(flags.iter().any(|f| f == "--allow-all"), "{:?}", flags);
+  }
 
   fn errors_for(constraint: &str, app_version: &str) -> Vec<String> {
     let mut errors = Vec::new();
