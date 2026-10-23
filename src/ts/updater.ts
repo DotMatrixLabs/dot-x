@@ -52,9 +52,13 @@ function isUnsupportedWindows(): boolean {
 async function notifyOnce(version: string) {
   const store = useUpdateStore();
   if (store.hasNotifiedVersion(version)) return;
-  const granted = (await isPermissionGranted()) || (await requestPermission()) === 'granted';
-  if (granted) {
-    sendNotification({ title: 'Dot X Update', body: 'New version of Dot X is available!' });
+  try {
+    const granted = (await isPermissionGranted()) || (await requestPermission()) === 'granted';
+    if (granted) {
+      sendNotification({ title: 'Dot X Update', body: 'New version of Dot X is available!' });
+    }
+  } catch (error) {
+    log.error('Failed to show update notification', error);
   }
   store.markNotified(version);
 }
