@@ -13,6 +13,7 @@ use std::fmt;
 use tauri_plugin_notification::NotificationExt;
 use tauri_plugin_store::StoreExt;
 use telemetry::TelemetrySettings;
+use tray_notice::TrayNoticeState;
 mod audio;
 mod decker;
 mod midi;
@@ -21,6 +22,7 @@ mod plugin_marketplace;
 mod plugin_server;
 mod plugin_runtime;
 mod telemetry;
+mod tray_notice;
 use once_cell::sync::OnceCell;
 use tauri::menu::{Menu, MenuBuilder, MenuItemBuilder, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent};
@@ -467,13 +469,57 @@ fn build_tray(app: &tauri::AppHandle<Wry>) -> tauri::Result<(Menu<Wry>, TrayIcon
     Ok((menu, tray))
 }
 
-fn show_notification(app: &tauri::AppHandle, title: &str, body: &str) {
+fn show_notification(app: &tauri::AppHandle, title: &str, body: &str) -> bool {
     info!(
         "Showing notification || Title: {} | Message: {}",
         title, body
     );
-    if let Err(err) = app.notification().builder().title(title).body(body).show() {
-        error!("Failed to show notification: {err}");
+    match app.notification().builder().title(title).body(body).show() {
+        Ok(()) => true,
+        Err(err) => {
+            error!("Failed to show notification: {err}");
+            false
+        }
+    }
+}
+
+fn load_tray_notice_state(app: &AppHandle) -> TrayNoticeState {
+    let already_shown = match app.store("config.json") {
+        Ok(store) => store
+            .get("closeToTrayNoticeShown")
+            .and_then(|value| value.as_bool())
+            .unwrap_or(false),
+        Err(err) => {
+            warn!("Failed to read close-to-tray notice preference: {err}");
+            false
+        }
+    };
+
+    TrayNoticeState::new(already_shown)
+}
+
+fn show_close_to_tray_notice(app: &AppHandle, state: &TrayNoticeState) {
+    if !state.claim_first_notice() {
+        return;
+    }
+
+    if !show_notification(
+        app,
+        "Dot X is still running",
+        "You can reopen Dot X from the system tray.",
+    ) {
+        state.release_failed_notice();
+        return;
+    }
+
+    match app.store("config.json") {
+        Ok(store) => {
+            store.set("closeToTrayNoticeShown", json!(true));
+            if let Err(err) = store.save() {
+                warn!("Failed to save close-to-tray notice preference: {err}");
+            }
+        }
+        Err(err) => warn!("Failed to store close-to-tray notice preference: {err}"),
     }
 }
 
@@ -757,6 +803,10 @@ async fn main() {
         }))
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                let app = window.app_handle();
+                if let Some(state) = app.try_state::<TrayNoticeState>() {
+                    show_close_to_tray_notice(app, &state);
+                }
                 let _ = window.hide();
                 api.prevent_close();
             }
@@ -764,6 +814,7 @@ async fn main() {
         .setup(move |app| {
             load_telemetry_settings(app.handle(), &telemetry_settings);
             app.manage(telemetry_settings.clone());
+            app.manage(load_tray_notice_state(app.handle()));
             {
                 power_monitor::setup_power_monitoring();
             }
