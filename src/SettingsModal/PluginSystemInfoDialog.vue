@@ -67,7 +67,7 @@ export default {
 			baselineRuntimeCapabilities: [
 				{
 					key: 'env',
-					label: 'Environment variables for SDK and runtime compatibility.',
+					label: 'A limited set of environment variables for SDK and runtime compatibility, not the full environment.',
 					icon: 'fa-solid fa-terminal',
 				},
 				{
