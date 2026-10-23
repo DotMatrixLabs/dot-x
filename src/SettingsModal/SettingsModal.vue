@@ -144,6 +144,7 @@ const BASE_SETTINGS_INDEX = [
   { label: "Enable MIDI Output", tab: "Midi" },
   { label: "MIDI Port", tab: "Midi" },
   { label: "MIDI documentation", tab: "Midi" },
+  { label: "Update track", tab: "About" },
   { label: "Install plugins", tab: "Plugins" },
   { label: "Uninstall plugins", tab: "Plugins" },
 ];
