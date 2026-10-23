@@ -27,6 +27,8 @@ mod plugin_runtime;
 mod telemetry;
 #[cfg(target_os = "linux")]
 mod gnome_active_window;
+#[cfg(target_os = "linux")]
+mod tray_host;
 use once_cell::sync::OnceCell;
 use tauri::menu::{Menu, MenuBuilder, MenuItemBuilder, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent};
@@ -623,6 +625,18 @@ fn build_tray(app: &tauri::AppHandle<Wry>) -> tauri::Result<(Menu<Wry>, TrayIcon
     Ok((menu, tray))
 }
 
+fn tray_available() -> bool {
+    #[cfg(target_os = "linux")]
+    return tray_host::tray_available();
+    #[cfg(not(target_os = "linux"))]
+    true
+}
+
+#[tauri::command]
+fn is_tray_available() -> bool {
+    tray_available()
+}
+
 fn show_notification(app: &tauri::AppHandle, title: &str, body: &str) {
     info!(
         "Showing notification || Title: {} | Message: {}",
@@ -860,6 +874,7 @@ async fn main() {
     builder
         .invoke_handler(tauri::generate_handler![
             get_installed_apps,
+            is_tray_available,
             audio::get_all_session_names,
             audio::set_application_volume,
             connect_decker,
@@ -957,7 +972,11 @@ async fn main() {
         }))
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                let _ = window.hide();
+                if tray_available() {
+                    let _ = window.hide();
+                } else {
+                    let _ = window.minimize();
+                }
                 api.prevent_close();
             }
         })
@@ -1019,7 +1038,7 @@ async fn main() {
             // This gets any command line arguments passed to the app
             let matches = app.cli().matches().unwrap_or_default();
             if let Some(hidden) = matches.args.get("hidden") {
-                if hidden.value == Value::Bool(true) {
+                if hidden.value == Value::Bool(true) && tray_available() {
                     let _ = window.hide();
                 } else {
                     let _ = window.show();
