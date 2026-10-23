@@ -7,7 +7,7 @@ import os from 'node:os';
 
 // Dynamic paths using environment variables
 function getBuildPath() {
-  return path.resolve(process.cwd(), 'src-tauri', 'target', 'release', 'bundle', 'msi');
+  return path.resolve(process.cwd(), 'src-tauri', 'target', 'release', 'bundle', 'nsis');
 }
 
 function getAppDataPath() {
