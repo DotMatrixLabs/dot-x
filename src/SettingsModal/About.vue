@@ -92,8 +92,8 @@ export default {
             this.checkingForUpdates = true;
             const result = await userCheckForUpdates();
             this.checkingForUpdates = false;
-            if (result === 'none') {
-                this.labelOverride = 'No updates available';
+            if (result === 'none' || result === 'error') {
+                this.labelOverride = result === 'none' ? 'No updates available' : 'Update check failed';
                 if (this.labelResetTimer) clearTimeout(this.labelResetTimer);
                 this.labelResetTimer = setTimeout(() => {
                     this.labelOverride = null;
