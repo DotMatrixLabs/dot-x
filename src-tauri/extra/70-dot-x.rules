@@ -1,6 +1,9 @@
 # Dot X — grant the logged-in seat user access to official Decker hardware
 # without requiring group membership (systemd uaccess via logind ACL).
 #
+# The file must sort before 73-seat-late.rules, which turns the uaccess tag into
+# an ACL; a later file (e.g. 99-) adds the tag too late and grants nothing.
+#
 # DIY/Arduino-compatible devices can use many VID/PID pairs; Dot X surfaces
 # a copyable opt-in rule from the app when such a device needs serial access.
 SUBSYSTEM=="tty", ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="e626", MODE="0660", TAG+="uaccess"

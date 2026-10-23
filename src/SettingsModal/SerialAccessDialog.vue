@@ -52,6 +52,7 @@
 <script>
 import { toast } from "vue-sonner";
 
+// Rule files must sort before 73-seat-late.rules, which applies uaccess; hence the 70- prefix below.
 const DECKER_UDEV_RULE = 'SUBSYSTEM=="tty", ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="e626", MODE="0660", TAG+="uaccess"';
 const DIY_ACM_RULE = 'SUBSYSTEM=="tty", KERNEL=="ttyACM[0-9]*", MODE="0660", TAG+="uaccess"';
 const DIY_USB_RULE = 'SUBSYSTEM=="tty", KERNEL=="ttyUSB[0-9]*", MODE="0660", TAG+="uaccess"';
@@ -80,14 +81,14 @@ export default {
 			return this.portName || "the selected serial device";
 		},
 		deckerCommand() {
-			return `sudo tee /etc/udev/rules.d/99-dot-x-decker.rules >/dev/null <<'EOF'
+			return `sudo tee /etc/udev/rules.d/70-dot-x-decker.rules >/dev/null <<'EOF'
 ${DECKER_UDEV_RULE}
 EOF
 sudo udevadm control --reload-rules
 sudo udevadm trigger --subsystem-match=tty --action=add`;
 		},
 		diyCommand() {
-			return `sudo tee /etc/udev/rules.d/99-dot-x-serial.rules >/dev/null <<'EOF'
+			return `sudo tee /etc/udev/rules.d/70-dot-x-serial.rules >/dev/null <<'EOF'
 ${DIY_ACM_RULE}
 ${DIY_USB_RULE}
 EOF
