@@ -216,3 +216,19 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for how to open issues and pull
 requests, and [SECURITY.md](SECURITY.md) for reporting security problems
 privately.
 
+## License
+
+Dot X source code and official binaries are licensed under the GNU General
+Public License, version 3 or any later version, `GPL-3.0-or-later`. See
+[LICENSE](LICENSE). The installer displays the GPL notice and full license
+text bundled in [GPL-3.0.txt](src-tauri/licenses/GPL-3.0.txt).
+
+The plugin SDK is separately licensed under [MIT](plugin-sdk/LICENSE).
+Bundled third-party components retain their own licenses and notices in
+`src-tauri/licenses/`.
+
+When distributing an official binary release, provide its corresponding
+source and build instructions alongside the installer. The source must match
+that release and include the required dependency sources. Make those available
+before publishing the binary.
+
