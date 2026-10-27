@@ -21,12 +21,6 @@ function readOs(): { os?: string; osVersion?: string } {
   }
 }
 
-function serverMessage(body: unknown): string | null {
-  const data = (body as { data?: { error?: { message?: unknown } } } | null)?.data;
-  const message = data?.error?.message;
-  return typeof message === "string" && message.trim() ? message.trim() : null;
-}
-
 // Posts feedback to the public DotMatrixLabs board. Throws an Error with a
 // user-facing message on any failure so the caller can show it and offer a retry.
 export async function sendFeedback(type: FeedbackType, description: string): Promise<void> {
@@ -56,12 +50,11 @@ export async function sendFeedback(type: FeedbackType, description: string): Pro
 
   if (response.ok) return;
 
-  const body = await response.json().catch(() => null);
   if (response.status === 429) {
     throw new Error("You've sent a lot of feedback in a short time. Wait a minute and try again.");
   }
   if (response.status === 400) {
-    throw new Error(serverMessage(body) ?? "The feedback server rejected this message.");
+    throw new Error("The feedback server couldn't accept this message. Check it isn't empty and try again.");
   }
   if (response.status === 401) {
     throw new Error("Feedback isn't available right now. Please try again later.");
