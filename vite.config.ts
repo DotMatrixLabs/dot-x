@@ -14,7 +14,14 @@ export default defineConfig(async () => ({
     port: 1420,
     strictPort: true,
   },
-  // 3. to make use of `TAURI_DEBUG` and other env variables
-  // https://tauri.app/v1/api/config#buildconfig.beforedevcommand
-  envPrefix: ["VITE_", "TAURI_"],
+  // Only expose Tauri build metadata. TAURI_ also includes updater signing secrets.
+  envPrefix: [
+    "VITE_",
+    "TAURI_DEBUG",
+    "TAURI_ENV_PLATFORM",
+    "TAURI_ENV_ARCH",
+    "TAURI_ENV_FAMILY",
+    "TAURI_ENV_PLATFORM_VERSION",
+    "TAURI_ENV_PLATFORM_TYPE",
+  ],
 }));

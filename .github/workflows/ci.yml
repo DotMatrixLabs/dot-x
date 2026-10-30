@@ -38,6 +38,9 @@ jobs:
       - name: Typecheck
         run: yarn typecheck
 
+      - name: Check debug frontend excludes signing secrets
+        run: yarn test:build-env
+
       - name: Build
         run: yarn build:web
 
