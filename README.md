@@ -54,8 +54,9 @@ yarn install
 
 Copy `.env.example` to `.env` and fill in what you need. A fresh contributor
 build works with everything left empty: the app skips Sentry and Aptabase
-initialisation and marketplace statistics when their variables are unset, so
-nothing crashes — the features are just quieter.
+initialisation and marketplace statistics when their variables are unset, and
+the in-app feedback form says it isn't set up. Nothing crashes; the features
+are just quieter.
 
 | Variable | Used by | Purpose |
 | --- | --- | --- |
@@ -65,6 +66,8 @@ nothing crashes — the features are just quieter.
 | `VITE_SUPABASE_ANON_KEY` | Frontend | Supabase anon key for marketplace statistics |
 | `VITE_STATS_SECRET_KEY` | Frontend | Key for hashing the local slider-distance stat |
 | `VITE_MARKETPLACE_REGISTRY_URL` | Frontend | Plugin marketplace registry index (has a default) |
+| `VITE_VEERIFY_API_URL` | Frontend | Veerify base URL for the in-app feedback form |
+| `VITE_VEERIFY_APP_KEY` | Frontend | Veerify app key (create-feedback only) for the in-app feedback form |
 
 `.env` is gitignored; never commit it. Forks can set their own values.
 
