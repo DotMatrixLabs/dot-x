@@ -51,6 +51,9 @@
 
 <script>
 import { toast } from "vue-sonner";
+import { createLogger } from "../ts/logger";
+
+const log = createLogger("serial-access");
 
 // Rule files must sort before 73-seat-late.rules, which applies uaccess; hence the 70- prefix below.
 const DECKER_UDEV_RULE = 'SUBSYSTEM=="tty", ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="e626", MODE="0660", TAG+="uaccess"';
@@ -102,7 +105,7 @@ sudo udevadm trigger --subsystem-match=tty --action=add`;
 				await navigator.clipboard.writeText(command);
 				toast.success("Command copied");
 			} catch (error) {
-				console.error("Failed to copy serial access command:", error);
+				log.error("Failed to copy serial access command:", error);
 				toast.error("Failed to copy command");
 			}
 		},

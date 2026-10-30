@@ -1047,15 +1047,10 @@ async fn main() {
             #[cfg(not(target_os = "linux"))]
             power_monitor::setup_power_monitoring();
             start_aptabase_heartbeat(app.handle().clone());
-            let mut props_map = HashMap::new();
-            props_map.insert("slider_amount".to_string(), Value::String("5".to_string()));
-
-            // Convert the HashMap to a serde_json::Value and send event on async runtime
-            let props_value = json!(props_map);
             {
                 let app_handle = app.handle().clone();
                 tauri::async_runtime::spawn(async move {
-                    track_analytics_event(&app_handle, "app_started", Some(props_value));
+                    track_analytics_event(&app_handle, "app_started", None);
                 });
             }
             let Some(window) = app.get_webview_window("main") else {

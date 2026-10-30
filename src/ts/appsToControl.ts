@@ -3,6 +3,9 @@ import * as _ from "lodash";
 import ConfigStore from "./config";
 import { useDeckerStore } from "../store/deckerStore";
 import { flattenMappedApps } from "./mappingUtils";
+import { createLogger } from "./logger";
+
+const log = createLogger("mapped-apps");
 
 /**
  * Class representing selected apps.
@@ -81,7 +84,7 @@ class SelectedApps {
         // Wait for the hydration snapshot, so this selection isn't overwritten by it. A failed
         // hydration must not swallow the selection: the store below is the source of truth,
         // and the next call retries hydration and picks this write up.
-        await this.ready().catch((error) => console.error("Failed to load mapped apps", error));
+        await this.ready().catch((error) => log.error("Failed to load mapped apps", error));
 
         const key: string = sliderID.toString();
         const currentApps: string[] = (await this.store.get<string[]>(key)) || [];

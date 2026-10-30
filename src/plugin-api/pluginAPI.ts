@@ -67,7 +67,7 @@ export class PluginAPI {
       try {
         await invoke('notify_frontend_ready');
       } catch (error) {
-        console.error('Failed to notify backend that frontend is ready:', error);
+        log.error('Failed to notify backend that frontend is ready:', error);
       }
 
       // Sync active plugins with backend to handle renderer resets

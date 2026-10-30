@@ -239,7 +239,7 @@ class Decker {
             if(!device) return;
             if(device.port_name === comPort && !deckerStore.connected){
                 this.init(comPort).catch((error) => {
-                    console.log("Retry connecting to Decker failed:", error);
+                    log.error("Retry connecting to Decker failed:", error);
                 });
             }
         }, 1000);
