@@ -1281,7 +1281,7 @@
     "name": "dot_x",
     "version": "2.0.0-1",
     "authors": "Frogbyte AS",
-    "repository": "https://github.com/Frogbyte-io/dot-x",
+    "repository": "https://github.com/DotMatrixLabs/dot-x",
     "license": "GPL-3.0-or-later",
     "license_file": null,
     "description": "Dot X"

@@ -16,7 +16,7 @@
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDU2QzVDQUYzNDVERjJDNzEKUldSeExOOUY4OHJGVm5PNnZHQlZPRWE4WERodmxBYkpYbzluS2V0czlhZjRqWm5QWkRqNUt5b0cK",
       "endpoints": [
-        "https://github.com/Frogbyte-io/dot-x/releases/latest/download/latest.json"
+        "https://github.com/DotMatrixLabs/dot-x/releases/latest/download/latest.json"
       ]
     },
     "cli": {

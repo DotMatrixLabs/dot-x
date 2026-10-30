@@ -40,7 +40,7 @@ which does not go through those hooks.
 
 ```bash
 # Clone the repository
-git clone https://github.com/Frogbyte-io/dot-x.git
+git clone https://github.com/DotMatrixLabs/dot-x.git
 cd dot-x
 
 # Create your local env file
@@ -117,7 +117,7 @@ Recommended VS Code extensions:
 
 ### Checks
 
-CI runs these on every pull request against `main` and `v2`; run them locally
+CI runs these on every pull request against `main`; run them locally
 before pushing:
 
 ```bash

@@ -24,10 +24,10 @@ jobs:
       - name: Check tag and source branch
         shell: pwsh
         run: |
-          git fetch origin v2
-          git merge-base --is-ancestor HEAD origin/v2
+          git fetch origin main
+          git merge-base --is-ancestor HEAD origin/main
           if ($LASTEXITCODE -ne 0) {
-            throw "Release tag must point to a commit on v2."
+            throw "Release tag must point to a commit on main."
           }
           $version = (Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
           if ($env:GITHUB_REF_NAME -ne "v$version") {

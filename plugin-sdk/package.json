@@ -29,13 +29,13 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Frogbyte-io/dot-x.git",
+    "url": "git+https://github.com/DotMatrixLabs/dot-x.git",
     "directory": "plugin-sdk"
   },
   "bugs": {
-    "url": "https://github.com/Frogbyte-io/dot-x/issues"
+    "url": "https://github.com/DotMatrixLabs/dot-x/issues"
   },
-  "homepage": "https://github.com/Frogbyte-io/dot-x/tree/main/plugin-sdk",
+  "homepage": "https://github.com/DotMatrixLabs/dot-x/tree/main/plugin-sdk",
   "publishConfig": {
     "access": "public"
   },

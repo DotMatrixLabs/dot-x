@@ -12,7 +12,7 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License below for more details.
 
-Source code: https://github.com/Frogbyte-io/dot-x
+Source code: https://github.com/DotMatrixLabs/dot-x
 
                     GNU GENERAL PUBLIC LICENSE
                        Version 3, 29 June 2007

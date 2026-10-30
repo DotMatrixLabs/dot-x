@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, State};
 use tauri_plugin_updater::{Update, UpdaterExt};
 
-const RELEASES_API: &str = "https://api.github.com/repos/Frogbyte-io/dot-x/releases?per_page=100";
+const RELEASES_API: &str = "https://api.github.com/repos/DotMatrixLabs/dot-x/releases?per_page=100";
 
 /// The beta update found by the last `check_beta_update`. `install_beta_update` installs this one.
 #[derive(Default)]
@@ -135,7 +135,7 @@ mod tests {
     }
 
     fn manifest(tag: &str) -> String {
-        format!("https://github.com/Frogbyte-io/dot-x/releases/download/{tag}/latest.json")
+        format!("https://github.com/DotMatrixLabs/dot-x/releases/download/{tag}/latest.json")
     }
 
     #[test]
@@ -178,7 +178,7 @@ mod tests {
     #[test]
     fn rejects_manifests_outside_https_github() {
         let releases = vec![
-            release("v3.0.0", false, Some("http://github.com/Frogbyte-io/dot-x/latest.json")),
+            release("v3.0.0", false, Some("http://github.com/DotMatrixLabs/dot-x/latest.json")),
             release("v2.0.0", false, Some("https://evil.example/latest.json")),
             release("v1.0.0", false, Some("https://github.com.evil.example/latest.json")),
         ];

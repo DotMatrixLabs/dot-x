@@ -9,7 +9,7 @@ body:
     attributes:
       value: |
         Search existing issues first and keep the report focused on one problem.
-        Feature requests and ideas belong in the [feature request form](https://github.com/Frogbyte-io/dot-x/issues/new?template=feature_request.yml).
+        Feature requests and ideas belong in the [feature request form](https://github.com/DotMatrixLabs/dot-x/issues/new?template=feature_request.yml).
         Attach screenshots, recordings, or files directly to the issue.
 
   - type: textarea

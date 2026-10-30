@@ -4,5 +4,5 @@
   "description": "Exposes the focused window's app id, title, and PID over D-Bus (org.dotx.ActiveWindow at /org/dotx/ActiveWindow on the org.gnome.Shell bus name) so that sandboxed/non-privileged apps like Dot X can read window focus on GNOME Wayland, where org.gnome.Shell.Eval and the built-in org.gnome.Shell.Introspect interface are both restricted. Read-only: it only ever reads global.display.focus_window, never modifies window state.",
   "version": 1,
   "shell-version": ["45", "46", "47", "48"],
-  "url": "https://github.com/Frogbyte-io/dot-x"
+  "url": "https://github.com/DotMatrixLabs/dot-x"
 }

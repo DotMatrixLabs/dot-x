@@ -122,7 +122,7 @@ $g.CopyFromScreen($r.Left, $r.Top, 0, 0, (New-Object System.Drawing.Size($w, $ht
 $bmp.Save("$env:TEMP\dotx-pr\after.png", [System.Drawing.Imaging.ImageFormat]::Png)
 ```
 
-For a "before" shot, repeat against the previous build (e.g. a worktree on `v2` without your change) with the same window size and the same content on screen. Same framing, same data, only your change differs.
+For a "before" shot, repeat against the previous build (e.g. a worktree on `main` without your change) with the same window size and the same content on screen. Same framing, same data, only your change differs.
 
 **Video** for motion or timing: a short `ffmpeg` gdigrab clip if ffmpeg is available (ask before installing it), using the same window rect as the capture script above:
 
@@ -141,7 +141,7 @@ Keep clips under 15 seconds and under 10 MB (GitHub's upload cap). Trim to the p
   $resp = Invoke-RestMethod -Method Post `
     -Headers @{ Authorization = "Bearer $(gh auth token)"; Accept = "application/json" } `
     -InFile "$env:TEMP\dotx-pr\after.png" -ContentType "image/png" `
-    "https://uploads.github.com/user-attachments/assets?name=after.png&content_type=image/png&repository_id=$((gh api repos/Frogbyte-io/dot-x --jq .id))"
+    "https://uploads.github.com/user-attachments/assets?name=after.png&content_type=image/png&repository_id=$((gh api repos/DotMatrixLabs/dot-x --jq .id))"
   ```
 
   The response JSON contains the attachment URL; embed it in the PR body as `![after](<url>)`.
