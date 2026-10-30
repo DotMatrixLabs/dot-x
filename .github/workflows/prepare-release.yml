@@ -1,0 +1,245 @@
+name: Prepare Dot X release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dot-x-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  windows:
+    name: Build Windows release draft
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Check tag and source branch
+        shell: pwsh
+        run: |
+          git fetch origin v2
+          git merge-base --is-ancestor HEAD origin/v2
+          if ($LASTEXITCODE -ne 0) {
+            throw "Release tag must point to a commit on v2."
+          }
+          $version = (Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
+          if ($env:GITHUB_REF_NAME -ne "v$version") {
+            throw "Tag $env:GITHUB_REF_NAME does not match app version $version."
+          }
+
+      # src-tauri depends on ../../volume-control-rs by path on every platform.
+      - name: Check out volume-control-rs
+        shell: bash
+        run: |
+          git clone --quiet https://github.com/Frogbyte-io/volume-control-rs.git ../volume-control-rs
+          git -C ../volume-control-rs checkout --quiet 29594c46a4c1da9c1075cc8beb283d13f4799aca
+
+      - name: Require updater signing key
+        shell: pwsh
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          if (-not $env:TAURI_SIGNING_PRIVATE_KEY) {
+            throw "Set TAURI_SIGNING_PRIVATE_KEY to the private key matching src-tauri/tauri.conf.json."
+          }
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: yarn
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Typecheck and build frontend
+        run: |
+          yarn typecheck
+          yarn build:web
+
+      - name: Fetch bundled Deno runtime
+        run: yarn fetch-deno
+
+      - name: Test Rust
+        working-directory: src-tauri
+        run: cargo test --locked
+
+      - name: Install license generator
+        run: cargo install cargo-license --version 0.7.0 --locked
+
+      - name: Build signed updater artifacts in a draft release
+        uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          DOTX_SENTRY_DSN: ${{ secrets.DOTX_SENTRY_DSN }}
+          DOTX_APTABASE_KEY: ${{ secrets.DOTX_APTABASE_KEY }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_STATS_SECRET_KEY: ${{ secrets.VITE_STATS_SECRET_KEY }}
+        with:
+          tauriScript: yarn tauri
+          args: --bundles nsis
+          tagName: ${{ github.ref_name }}
+          releaseName: Dot X ${{ github.ref_name }}
+          releaseDraft: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          uploadUpdaterJson: true
+          updaterJsonPreferNsis: true
+
+      - name: Check draft updater metadata
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $releaseDir = Join-Path $env:RUNNER_TEMP 'dotx-release'
+          New-Item -ItemType Directory -Path $releaseDir | Out-Null
+          gh release download $env:GITHUB_REF_NAME --pattern latest.json --dir $releaseDir
+          if ($LASTEXITCODE -ne 0) { throw 'Draft release has no latest.json.' }
+
+          $metadata = Get-Content (Join-Path $releaseDir 'latest.json') -Raw | ConvertFrom-Json
+          $version = (Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
+          if ($metadata.version.TrimStart('v') -ne $version) {
+            throw "Updater metadata version $($metadata.version) does not match $version."
+          }
+          $windows = $metadata.platforms.'windows-x86_64'
+          if (-not $windows.url -or -not $windows.signature) {
+            throw 'Updater metadata has no Windows x64 URL or signature.'
+          }
+
+          $config = Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json
+          $publicKeyText = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($config.plugins.updater.pubkey))
+          $signatureText = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($windows.signature))
+          $publicKeyLine = $publicKeyText -split '\r?\n' | Where-Object { $_ -match '^[A-Za-z0-9+/=]{40,}$' } | Select-Object -First 1
+          $signatureLine = $signatureText -split '\r?\n' | Where-Object { $_ -match '^[A-Za-z0-9+/=]{80,}$' } | Select-Object -First 1
+          if (-not $publicKeyLine -or -not $signatureLine) {
+            throw 'Updater public key or signature has an invalid minisign format.'
+          }
+          $publicKeyBytes = [Convert]::FromBase64String($publicKeyLine)
+          $signatureBytes = [Convert]::FromBase64String($signatureLine)
+          if ($publicKeyBytes.Length -lt 10 -or $signatureBytes.Length -lt 10 -or
+              [BitConverter]::ToString($publicKeyBytes, 2, 8) -ne [BitConverter]::ToString($signatureBytes, 2, 8)) {
+            throw 'Updater signature key does not match the public key bundled with Dot X.'
+          }
+
+          $assets = @(gh release view $env:GITHUB_REF_NAME --json assets --jq '.assets[].name')
+          if ($LASTEXITCODE -ne 0) { throw 'Could not list draft release assets.' }
+          $bundleUrl = [uri]$windows.url
+          $bundleName = [uri]::UnescapeDataString([IO.Path]::GetFileName($bundleUrl.AbsolutePath))
+          if ($bundleUrl.Host -ne 'github.com' -or $bundleUrl.AbsolutePath -notlike "*/releases/download/$env:GITHUB_REF_NAME/*") {
+            throw 'Updater bundle URL does not point to this release tag.'
+          }
+          if ($bundleName -notlike '*.nsis.zip' -or $assets -notcontains $bundleName) {
+            throw 'Updater bundle is missing from the draft release.'
+          }
+          if ($assets -notcontains "$bundleName.sig" -or -not ($assets | Where-Object { $_ -like '*setup.exe' })) {
+            throw 'Updater signature or NSIS installer is missing from the draft release.'
+          }
+
+  linux:
+    name: Add Linux builds to the release draft
+    needs: windows
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+
+      # src-tauri depends on ../../volume-control-rs by path on every platform.
+      - name: Check out volume-control-rs
+        shell: bash
+        run: |
+          git clone --quiet https://github.com/Frogbyte-io/volume-control-rs.git ../volume-control-rs
+          git -C ../volume-control-rs checkout --quiet 29594c46a4c1da9c1075cc8beb283d13f4799aca
+
+      - name: Install Linux build dependencies
+        run: bash scripts/install-linux-deps.sh
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: yarn
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Install license generator
+        run: cargo install cargo-license --version 0.7.0 --locked
+
+      # Builds the .deb and AppImage without updater artifacts (no signing key in this
+      # step) and repacks the AppImage without bundled libwayland; see LINUX-SUPPORT.md.
+      - name: Build Linux bundles
+        run: yarn build:linux
+
+      # The repack changes the AppImage, so it is signed here rather than by tauri build.
+      - name: Sign the AppImage for the updater
+        env:
+          TAURI_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          version=$(jq -r .version src-tauri/tauri.conf.json)
+          out="$RUNNER_TEMP/dotx-linux"
+          mkdir -p "$out"
+          cp src-tauri/target/release/bundle/deb/*.deb "$out/Dot.X_${version}_amd64.deb"
+          cp src-tauri/target/release/bundle/appimage/*.AppImage "$out/Dot.X_${version}_amd64.AppImage"
+          yarn -s tauri signer sign "$out/Dot.X_${version}_amd64.AppImage" < /dev/null
+
+      - name: Upload Linux assets and add them to latest.json
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          version=$(jq -r .version src-tauri/tauri.conf.json)
+          out="$RUNNER_TEMP/dotx-linux"
+          appimage="Dot.X_${version}_amd64.AppImage"
+          gh release upload "$GITHUB_REF_NAME" "$out/Dot.X_${version}_amd64.deb" "$out/$appimage" "$out/$appimage.sig" --clobber
+
+          gh release download "$GITHUB_REF_NAME" --pattern latest.json --dir "$out" --clobber
+          url="https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/${appimage}"
+          jq --arg sig "$(cat "$out/$appimage.sig")" --arg url "$url" \
+            '.platforms["linux-x86_64"] = {signature: $sig, url: $url}' \
+            "$out/latest.json" > "$out/latest.json.new"
+          mv "$out/latest.json.new" "$out/latest.json"
+          gh release upload "$GITHUB_REF_NAME" "$out/latest.json" --clobber
+
+      - name: Check Linux updater metadata
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          check="$RUNNER_TEMP/dotx-linux-check"
+          mkdir -p "$check"
+          gh release download "$GITHUB_REF_NAME" --pattern latest.json --dir "$check"
+          python3 - "$check/latest.json" <<'PY'
+          import base64, json, re, sys
+          meta = json.load(open(sys.argv[1]))
+          config = json.load(open("src-tauri/tauri.conf.json"))
+          for platform in ("windows-x86_64", "linux-x86_64"):
+              if not meta["platforms"].get(platform, {}).get("signature"):
+                  sys.exit(f"latest.json has no {platform} signature")
+          def key_line(b64, minimum):
+              text = base64.b64decode(b64).decode()
+              return next(l for l in text.splitlines() if re.fullmatch(r"[A-Za-z0-9+/=]{%d,}" % minimum, l))
+          public = base64.b64decode(key_line(config["plugins"]["updater"]["pubkey"], 40))
+          signature = base64.b64decode(key_line(meta["platforms"]["linux-x86_64"]["signature"], 80))
+          if public[2:10] != signature[2:10]:
+              sys.exit("Linux updater signature key does not match the public key bundled with Dot X")
+          PY
+          asset=$(basename "$(jq -r '.platforms["linux-x86_64"].url' "$check/latest.json")")
+          gh release view "$GITHUB_REF_NAME" --json assets --jq '.assets[].name' | grep -qxF "$asset" \
+            || { echo "::error::$asset is missing from the draft release"; exit 1; }

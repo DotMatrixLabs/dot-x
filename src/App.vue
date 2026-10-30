@@ -6,6 +6,13 @@
     <WhatsNewModal />
     <TopBar :colorScheme="colorScheme" :class="backgroundColorTopBar" @settings-toggled="settingsToggled" :connection-status="connectionState" />
     <SliderOverview :class="backgroundColor" ref="sliderOverview" :pot-values="potValues" @app-click="appsToggled" />
+
+    <!-- Plugin UI Components -->
+    <Plugin />
+    <Toaster position="bottom-right" :theme="colorScheme" rich-colors />
+
+    <!-- .dotx install modal (shown when a plugin file is opened) -->
+    <DotxInstallModal ref="dotxInstallModal" />
   </div>
 </template>
 
@@ -16,24 +23,31 @@ import WhatsNewModal from "./components/WhatsNewModal.vue";
 import SettingsModal from "./SettingsModal/SettingsModal.vue";
 import AppsModal from "./AppSelectModal/AppsModal.vue";
 import SliderOverview from "./SliderOverview.vue";
-import { useToast } from "vue-toastification";
+import Plugin from "./Plugins/Plugin.vue";
+import DotxInstallModal from "./components/DotxInstallModal.vue";
+import { Toaster, toast } from "vue-sonner";
 import ConfigStore from "./ts/config.ts";
 import Decker from "./ts/decker.ts";
 import RGBController from "./ts/RGBController";
 import { useDeckerStore } from "./store/deckerStore.ts";
-import { version } from '@tauri-apps/api/os';
+import { usePluginStore } from "./store/pluginStore";
+import PluginAPI from "./plugin-api/pluginAPI";
+import { mapState } from "pinia";
+import { version, platform } from '@tauri-apps/plugin-os';
+import { invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
+import { getCurrentWindow } from '@tauri-apps/api/window';
+import { createLogger } from './ts/logger.ts';
 import { initUpdater } from './ts/updater';
 import { useUpdateStore } from './store/updateStore';
 
-import { mapState } from "pinia"; 
-
-const toast = useToast();
+const log = createLogger('app');
 
 import SelectedApps from "./ts/appsToControl.ts";
 import ChannelSettings from "./ts/channelSettings.ts";
 
 export default {
-  components: { TopBar, SettingsModal, SliderOverview, AppsModal, UpdatePrompt, WhatsNewModal },
+  components: { TopBar, SettingsModal, SliderOverview, AppsModal, UpdatePrompt, WhatsNewModal, Plugin, Toaster, DotxInstallModal },
   name: "App",
 
   data() {
@@ -45,6 +59,7 @@ export default {
       currentSliderID: null,
       colorScheme: "dark",
       isWin10: true,
+      isLinux: false,
     };
   },
 
@@ -54,24 +69,15 @@ export default {
     }),
 
     backgroundColor() {
-      if(this.isWin10 && this.colorScheme === "dark") {
-        return "bg-gray-900";
-      } else if (this.isWin10) {
-        return "bg-white";
-      } else {
-        return "bg-transparent";
-      }
+      if(this.isLinux || this.isWin10) return "bg-base-100";
+      return "bg-transparent";
     },
 
-    
     backgroundColorTopBar() {
-      if(this.isWin10 && this.colorScheme === "dark") {
-        return "bg-gray-900 bg-opacity-20";
-      } else if (this.isWin10) {
-        return "bg-white";
-      } else {
-        return "bg-black bg-opacity-10 ";
-      }
+      // Linux has no blur/Mica behind the transparent window, so the bar needs an opaque fill.
+      if(this.isLinux) return "bg-base-200";
+      if(this.isWin10) return "bg-base-400 bg-opacity-20";
+      return "bg-black bg-opacity-10";
     },
 
 
@@ -80,10 +86,7 @@ export default {
   methods: {
 
     async setThemeFromOS() {
-      const osTheme = await version().then((version) => {
-        const winVersion = this.getWindowsVersion(version)
-        this.isWin10 = winVersion === 'Windows 10';
-      });
+      this.isWin10 = this.getWindowsVersion(version()) === 'Windows 10';
     },
 
     getWindowsVersion(kernelVersion) {
@@ -98,11 +101,10 @@ export default {
           return 'Windows 10';
       }
     },
-    // async getTheme() {
-    //   this.currentTheme = await ConfigStore.get("theme") || "dark";
-    //   document.documentElement.setAttribute("data-theme", this.currentTheme);
-    //   return this.currentTheme;
-    // },
+
+    openDotxFile(filePath) {
+      this.$refs.dotxInstallModal.open(filePath);
+    },
 
     settingsToggled() {
       this.settingsModalOpen = !this.settingsModalOpen;
@@ -133,13 +135,38 @@ export default {
 
   },
 
-  mounted() {
-    this.disableContextMenu();
-    // this.getTheme();
+  async mounted() {
     // Not awaited on purpose: everything that reads or writes the mirrored mappings
     // awaits SelectedApps.ready(), so a selection made while this runs isn't lost.
-    SelectedApps.init();
-    ChannelSettings.init();
+    SelectedApps.init().catch((error) => log.error('Failed to load mapped apps', error));
+    ChannelSettings.init().catch((error) => log.error('Failed to load channel settings', error));
+
+    try {
+      if (await ConfigStore.get('allowWindowResizing') === true) {
+        await getCurrentWindow().setResizable(true);
+      }
+    } catch (error) {
+      log.error('Failed to restore window resizing preference', error);
+    }
+
+    await PluginAPI.initialize();
+
+    // Listen for .dotx files opened while the app is already running.
+    listen('dotx-open-file', (event) => {
+      this.openDotxFile(event.payload);
+    });
+
+    // Pick up a .dotx file that was passed when the app was launched fresh.
+    const pendingPath = await invoke('consume_pending_dotx_install').catch(() => null);
+    if (pendingPath) {
+      this.openDotxFile(pendingPath);
+    }
+    const pluginStore = usePluginStore();
+    await pluginStore.loadPersistedPluginState();
+    pluginStore.markEnabledPluginsStarting();
+    void pluginStore.refreshPluginUpdates();
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    this.disableContextMenu();
     this.connectDecker();
     Decker.detectDeviceChanges();
     Decker.initMidi();
@@ -148,6 +175,7 @@ export default {
       ? "dark"
       : "light";
 
+    this.isLinux = (await platform()) === 'linux';
     this.setThemeFromOS();
     // updater bootstrap
     initUpdater();
@@ -160,48 +188,15 @@ export default {
     }
 
     document.documentElement.setAttribute("data-theme", this.colorScheme);
-    console.log(this.colorScheme);
 
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
-      console.log(event.matches ? "dark" : "light");
       this.colorScheme = event.matches ? "dark" : "light";
       document.documentElement.setAttribute("data-theme", this.colorScheme);
     });
   },
+
+  beforeUnmount() {
+    // Plugin UI cleanup is handled automatically
+  },
 };
 </script>
-
-<style>
-
-:root, [data-theme] {
-  background: none !important;
-  background-color: transparent !important;
-}
-
-@media (prefers-color-scheme: light) {
-  .modal-box  {
-    background: rgba(255, 255, 255, 0.9) !important;
-    background-color: none !important;
-    color: black !important;
-    border-radius: 16px;
-    box-shadow: 0 4px 30px rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(9.2px);
-    -webkit-backdrop-filter: blur(9.2px);
-    border: 1px solid rgba(166, 166, 166, 0.3);
-  }
-}
-
-
-@media (prefers-color-scheme: dark) {
-  .modal-box  {
-    background: rgba(23, 23, 23, 0.95) !important;
-    background-color: none !important;
-    border-radius: 16px;
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-    backdrop-filter: blur(9.2px);
-    -webkit-backdrop-filter: blur(9.2px);
-    border: 1px solid rgba(44, 44, 44, 0.3);
-  }
-}
-
-</style>

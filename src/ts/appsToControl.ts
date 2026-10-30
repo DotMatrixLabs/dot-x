@@ -1,4 +1,4 @@
-import { Store } from "tauri-plugin-store-api";
+import { Store } from "@tauri-apps/plugin-store";
 import * as _ from "lodash";
 import ConfigStore from "./config";
 import { useDeckerStore } from "../store/deckerStore";
@@ -8,14 +8,19 @@ import { flattenMappedApps } from "./mappingUtils";
  * Class representing selected apps.
  */
 class SelectedApps {
-    private store: Store;
+    private store!: Store;
     private initPromise: Promise<void> | null = null;
 
     /**
      * Creates an instance of SelectedApps.
      */
     constructor() {
-        this.store = new Store("selectedApps.json");
+    }
+
+    private async ensureLoaded() {
+        if (!this.store) {
+            this.store = await Store.load("selectedApps.json");
+        }
     }
 
     /**
@@ -53,6 +58,7 @@ class SelectedApps {
     }
 
     private async getAllMappings(): Promise<Record<string, string[]>> {
+        await this.ensureLoaded();
         const keys = await this.store.keys();
         const allApps: Record<string, string[]> = {};
         for (const key of keys) {
@@ -70,7 +76,7 @@ class SelectedApps {
      * @param {string | string[]} appNames - The name or array of names of the app(s) or device(s) to toggle.
      */
     async toggleApps(sliderID: string, appNames: string | string[]) {
-        console.log("toggleApps", sliderID, appNames);
+        await this.ensureLoaded();
 
         // Wait for the hydration snapshot, so this selection isn't overwritten by it. A failed
         // hydration must not swallow the selection: the store below is the source of truth,
@@ -98,9 +104,43 @@ class SelectedApps {
      * @returns {Promise<string[] | null>} The apps and devices for the slider, or null if not found.
      */
     async getApps(sliderID: number): Promise<string[] | null> {
+        await this.ensureLoaded();
         const sliderIDString = sliderID?.toString();
         if (!sliderIDString) return null;
-        return await this.store.get(sliderIDString);
+        const result = await this.store.get(sliderIDString);
+        return (result ?? null) as string[] | null;
+    }
+
+    /**
+     * Gets the selected channel targets for a specific slider.
+     * Channel targets can be apps, devices, or system features.
+     * @param {number | string} sliderID - The ID of the slider.
+     * @returns {Promise<string[]>} The channel targets for the slider, or an empty array if not found.
+     */
+    async getChannelTargets(sliderID: number | string): Promise<string[]> {
+        await this.ensureLoaded();
+        const sliderIDString = sliderID?.toString();
+        if (!sliderIDString) return [];
+        const result = await this.store.get(sliderIDString);
+        return Array.isArray(result) ? result as string[] : [];
+    }
+
+    /**
+     * Gets selected channel targets for every stored channel.
+     * Channel targets can be apps, devices, or system features.
+     * @returns {Promise<Record<string, string[]>>} Channel targets keyed by channel ID.
+     */
+    async getAllChannelTargets(): Promise<Record<string, string[]>> {
+        await this.ensureLoaded();
+        const channels: Record<string, string[]> = {};
+        const keys = await this.store.keys();
+
+        for (const key of keys) {
+            const result = await this.store.get(key);
+            channels[key] = Array.isArray(result) ? result as string[] : [];
+        }
+
+        return channels;
     }
 
     /**
@@ -115,6 +155,7 @@ class SelectedApps {
      * Saves the changes to the store.
      */
     async save() {
+        await this.ensureLoaded();
         await this.store.save();
     }
 }

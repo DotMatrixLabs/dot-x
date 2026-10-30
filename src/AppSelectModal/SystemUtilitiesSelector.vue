@@ -1,16 +1,16 @@
 <template>
     <div class="flex flex-col gap-4 w-full h-64 overflow-y-scroll p-2">
-        <div class="grid grid-cols-3 w-1/2 m-auto gap-4">
-            <div class="flex flex-col justify-center items-center" v-for="utility in utilities" :key="utility.id">
-                <button :disabled="(utility.id === 'output' && deviceSelectors.output.devices.length === 0) || (utility.id === 'input' && deviceSelectors.input.devices.length === 0)" @click="setActiveUtility(utility.id)" class="btn btn-circle"
-                    :class="activeUtilities?.includes(utility.id) ? 'btn-primary' : ''">
+        <div class="grid grid-cols-3 w-1/2 m-auto gap-2">
+            <div class="flex flex-col justify-start items-center" v-for="utility in mergedUtilities" :key="utility.id">
+                <button :disabled="(utility.id === 'output' && deviceSelectors.output.devices.length === 0) || (utility.id === 'input' && deviceSelectors.input.devices.length === 0) || (utility.isPlugin && utility.raw?.disabled)" @click="setActiveUtility(utility.id)" class="btn btn-circle"
+                    :class="getUtilityActiveClass(utility)">
                     <i :class="utility.icon"></i>
                 </button>
-                <span class="text-base-content text-xs text-center capitalize my-1"> {{ utility.title }}</span>
+                <span class="text-base-content text-xs text-center capitalize my-1 h-10"> {{ utility.title }}</span>
             </div>
         </div>
 
-        <div v-if="activeUtilities?.includes('output') || activeUtilities?.includes('input')" class="divider label-text">Settings</div>
+        <div v-if="activeUtilities?.includes('output') || activeUtilities?.includes('input')" class="divider font-semibold text-base-content">Settings</div>
 
         <!-- Combined device selector -->
         <div v-show="activeUtilities?.includes(type)" v-for="(selector, type) in deviceSelectors" :key="type" class="w-4/5 m-auto">
@@ -59,6 +59,12 @@
                 </div>
             </div>
         </div>
+
+        <!-- Plugin per-button settings -->
+        <div v-for="btn in selectedPluginButtonsWithSettings" :key="btn.actionId || btn.id" class="w-4/5 m-auto">
+            <div class="divider label-text">{{btn.title}} Settings</div>
+            <PluginSettingsRenderer :sections="btn.settings" :pluginId="btn.pluginId" />
+        </div>
     </div>
 </template>
 
@@ -67,8 +73,15 @@ import SelectedApps from "../ts/appsToControl.ts";
 import SystemVolumeController from "../ts/volumeControl.ts";
 import { mapState } from "pinia";
 import { useDeckerStore } from "../store/deckerStore.ts";
+import pluginAPI from "../plugin-api/pluginAPI";
+import PluginSettingsRenderer from "../components/PluginSettingsRenderer.vue";
+import { usePluginStore } from "../store/pluginStore";
+import { createLogger } from "../ts/logger.ts";
+
+const log = createLogger("system-utilities");
 
 export default {
+    components: { PluginSettingsRenderer },
     props: {
         currentSliderID: Number,
     },
@@ -117,6 +130,28 @@ export default {
             
             return baseUtilities;
         },
+        pluginStore() {
+            return usePluginStore();
+        },
+        pluginButtons() {
+            return this.pluginStore.getPluginSystemUtilityButtons;
+        },
+        mergedUtilities() {
+            return [
+                ...this.utilities,
+                ...(this.pluginButtons || [])
+                    .filter(btn => !btn.hidden)
+                    .map(btn => ({ id: btn.actionId || btn.id, title: btn.title || btn.id, icon: btn.icon || 'fas fa-lg fa-bolt', isPlugin: true, raw: btn }))
+            ];
+        },
+        selectedPluginButtonsWithSettings() {
+            const channelKey = String(this.currentSliderID);
+            return (this.pluginButtons || []).filter((b) => {
+                const selected = b?.selectedByChannel && typeof b.selectedByChannel === 'object' ? !!b.selectedByChannel[channelKey] : false;
+                const hasSettings = b && b.settings && Array.isArray(b.settings.sections) && b.settings.sections.length > 0;
+                return selected && hasSettings;
+            });
+        },
         getDeviceDisplayCount() {
             return (type, selectedDevices) => {
                 let count = selectedDevices.length;                
@@ -133,13 +168,53 @@ export default {
     },
 
     methods: {
+        async loadPluginButtons() {
+            await this.pluginStore.refreshPluginSystemUtilityButtons();
+        },
+        getUtilityActiveClass(utility){
+            if(utility.isPlugin){
+                const btn = utility?.raw || {};
+                const channelKey = String(this.currentSliderID);
+                const selectedForChannel = btn?.selectedByChannel && typeof btn.selectedByChannel === 'object'
+                    ? !!btn.selectedByChannel[channelKey]
+                    : false;
+                return selectedForChannel ? 'btn-primary' : '';
+            }
+            return this.activeUtilities?.includes(utility.id) ? 'btn-primary' : '';
+        },
         async setActiveUtility(utility) {
+            // If this is a plugin button (actionId) fire action to plugin
+            const pluginBtn = (this.pluginButtons || []).find(b => (b.actionId || b.id) === utility);
+            if (pluginBtn) {
+                try {
+                    const channelKey = String(this.currentSliderID);
+                    const currentlySelected = pluginBtn?.selectedByChannel && typeof pluginBtn.selectedByChannel === 'object'
+                        ? !!pluginBtn.selectedByChannel[channelKey]
+                        : false;
+                    const nextSelected = !currentlySelected;
+                    this.pluginStore.setCachedPluginSystemUtilityButtonSelected(
+                        pluginBtn.pluginId,
+                        pluginBtn.actionId || pluginBtn.id,
+                        this.currentSliderID,
+                        nextSelected
+                    );
+                    await pluginAPI.emitAction(
+                        pluginBtn.pluginId,
+                        pluginBtn.actionId || pluginBtn.id,
+                        { selected: nextSelected, channel: this.currentSliderID }
+                    );
+                } catch (e) {
+                    log.error('Failed to emit plugin action for slider button', e);
+                }
+                return;
+            }
+            
+            // default behavior for built-in utilities
             await SelectedApps.toggleApps(this.currentSliderID.toString(), utility);
             await this.getActiveUtilities();
 
-            // If output was just selected, check if we need to auto-select default device
+            // If output/input auto-select logic
             if (utility === 'output') {
-                //if output was deselected, remove all devices toggled, else select default device
                 if(!this.activeUtilities.some(item => item === 'output')){  
                     this.removeDevicesToggledApps('output');
                 } else {
@@ -147,9 +222,7 @@ export default {
                     await this.getActiveUtilities();
                 }
             }
-            // If input was just selected, check if we need to auto-select default device
             else if (utility === 'input') {
-                //if input was deselected, remove all devices toggled, else select default device
                 if(!this.activeUtilities.some(item => item === 'input')){
                     this.removeDevicesToggledApps('input');
                 } else {
@@ -157,8 +230,6 @@ export default {
                     await this.getActiveUtilities();
                 }
             }
-
-
         },
 
         async removeDevicesToggledApps(type){
@@ -232,7 +303,7 @@ export default {
                 
                 this.deviceSelectors.output.devices = mergedDevices;
             } catch (error) {
-                console.error("Failed to load output devices:", error);
+                log.error("Failed to load output devices:", error);
             } finally {
                 this.deviceSelectors.output.loading = false;
             }
@@ -273,7 +344,7 @@ export default {
                 
                 this.deviceSelectors.input.devices = mergedDevices;
             } catch (error) {
-                console.error("Failed to load input devices:", error);
+                log.error("Failed to load input devices:", error);
             } finally {
                 this.deviceSelectors.input.loading = false;
             }
@@ -337,6 +408,7 @@ export default {
         this.loadOutputDevices();
         this.loadInputDevices();
         this.setupDeviceUpdateInterval();
+        this.loadPluginButtons();
     },
     
     beforeUnmount() {
@@ -348,5 +420,9 @@ export default {
 }
 </script>
 
-<style lang="scss" scoped>
+<style scoped>
+.tooltip {
+    --tooltip-color: hsl(var(--b3));
+    --tooltip-text-color: hsl(var(--sc));
+}
 </style>

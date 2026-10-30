@@ -1,7 +1,10 @@
-import { invoke } from '@tauri-apps/api/tauri';
+import { invoke } from '@tauri-apps/api/core';
 import SelectedApps from './appsToControl';
 import { useDeckerStore } from '../store/deckerStore';
 import { excludeMappedApps } from './mappingUtils';
+import { createLogger } from './logger.ts';
+
+const log = createLogger('volume');
 
 /**
  * Class for controlling system volume and audio sessions.
@@ -96,7 +99,7 @@ class SystemVolumeController {
             // land after a newer one and pin the session to a stale target.
             await invoke('set_application_volume', { name, volume });
         } catch (error) {
-            console.log(error);
+            log.error('Failed to set application volume', error);
         }
     }
 
@@ -124,7 +127,7 @@ class SystemVolumeController {
             try {
                 mappedApps = await SelectedApps.getMappedApps();
             } catch (error) {
-                console.error("Skipping unmapped channel, mapped apps unavailable", error);
+                log.error("Skipping unmapped channel, mapped apps unavailable", error);
                 return;
             }
             if(!mappedApps) return;
@@ -148,7 +151,7 @@ class SystemVolumeController {
             try {
                 await this.setVolume(session, volume);
             } catch (e) {
-                console.error(e);
+                log.error('Failed to set channel volume', e);
             }
         }
         if (apps.includes("screen brightness")) {
@@ -222,7 +225,7 @@ class SystemVolumeController {
                 this.lastActiveWindowExecutionResult = appName;
                 return appName;
             } catch (error) {
-                console.error('Failed to get active window app name:', error);
+                log.error('Failed to get active window app name:', error);
                 // Return the last cached result or a default value
                 return this.lastActiveWindowExecutionResult || "Unknown";
             }
@@ -230,35 +233,6 @@ class SystemVolumeController {
             return this.lastActiveWindowExecutionResult;
         }
     }
-
-    /**
-     * Mutes the system audio.
-     */
-    // static async mute(): Promise<void> {
-    //     await invoke('mute');
-    // }
-
-    /**
-     * Unmutes the system audio.
-     */
-    // static async unmute(): Promise<void> {
-    //     await invoke('unmute');
-    // }
 }
 
 export default new SystemVolumeController();
-
-// Example usage:
-// (async () => {
-//     const currentVolume = await SystemVolumeController.getVolume();
-//     console.log('Current system volume:', currentVolume);
-
-//     await SystemVolumeController.setVolume('YourAppName', 50); // Set the volume to 50%
-//     console.log('Volume set for YourAppName to 50%');
-
-//     await SystemVolumeController.mute();
-//     console.log('System muted');
-
-//     await SystemVolumeController.unmute();
-//     console.log('System unmuted');
-// })();

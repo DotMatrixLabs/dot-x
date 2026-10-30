@@ -39,7 +39,7 @@ function savePersisted(state: PersistedState) {
 
 export const useUpdateStore = defineStore('update', {
   state: () => ({
-    currentVersion: tauriConf.package.version as string,
+    currentVersion: tauriConf.version as string,
     availableVersion: null as string | null,
     changelogHtml: '' as string,
     updateAvailable: false as boolean,

@@ -8,7 +8,7 @@
         <ul class="menu rounded-box menu-compact p-2 flex flex-row w-full justify-center gap-2">
           <template v-for="tab in tabs" :key="tab">
             <li v-if="!tab.hide">
-              <a @click="selectTab(tab)" class="w-full text-center" :class="{ active: tab.isActive }">{{ tab.name }}</a>
+              <a @click="selectTab(tab)" class="w-full text-center rounded-md text-base-content hover:bg-base-300 active:bg-accent" :class="{ active: tab.isActive }">{{ tab.name }}</a>
             </li>
           </template>
         </ul>
@@ -28,27 +28,16 @@
 </template>
 
 <script>
-// import BoardManager from "../../js/boardManager.js";
-// import StorageHandler from "../../js/storage.mjs";
-import { useToast } from "vue-toastification";
+
+import { toast } from "vue-sonner";
 
 import _ from "lodash";
-// import LoadingSpinner from "../assets/loadingSpinner.vue";
 
 import Programs from "./Programs.vue"
 import SystemUtilitiesSelector from "./SystemUtilitiesSelector.vue"
 import Midi from "./Midi.vue"
 import config from "../ts/config";
 import Settings from "./Settings.vue";
-
-// import { useMicrophoneStore } from "../store/microphoneStore";
-
-
-const toast = useToast();
-
-
-// const boardManager = new BoardManager();
-// const store = new StorageHandler();
 
 export default {
   components: {
@@ -107,10 +96,6 @@ export default {
     if(this.currentTab.hide) this.selectTab(this.tabs[0]); // If the current tab is hidden, select the first tab (Programs, which can never be hidden, so it's safe to assume it's there)
   },
 
-  // created() {
-  //   const microphone = useMicrophoneStore();
-  //   microphone.getAudioDevices();
-  // },
   computed: {
     currentTab() {
       return this.tabs.find(tab => tab.isActive) || this.tabs[0];
@@ -118,5 +103,3 @@ export default {
   },
 };
 </script>
-
-<style></style>

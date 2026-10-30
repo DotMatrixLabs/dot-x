@@ -1,27 +1,31 @@
 <template>
-    <div class="flex flex-col justify-between items-center h-full w-full overflow-y-auto">
+    <div class="flex flex-col justify-start items-center h-full w-full overflow-y-auto">
         <StatsPanel v-if="statsModalOpen" :device="currentDevice" :modal-open="statsModalOpen" @close="statsToggled" />
+        <SerialAccessDialog
+            :visible="serialAccessDialogOpen"
+            :device="serialAccessDevice"
+            :port-name="serialAccessPort"
+            @close="serialAccessDialogOpen = false"
+            @retry="retrySerialAccess"
+        />
         <!-- Device Selection -->
-        <div class="flex flex-row w-full justify-between px-2">
+        <div data-setting="Device" class="flex flex-row w-full justify-between px-2">
             <span class="shrink-0 pt-1">Device: </span>
             <select @change="deviceSelected" v-model="currentDevice"
-                class="select select-bordered select-sm w-2/3 mx-2 capitalize truncate">
+                class="select select-bordered select-sm w-2/3 mx-2 truncate">
                 <option class="w-full" v-for="(device, index) in devices" :value="device" :key="index">
                     {{ deviceName(device) }}
                 </option>
-                <option v-if="connectionState" class="w-full" value="disconnect">
+                <option v-if="connectionState || currentDevice" class="w-full" value="disconnect">
                     Disconnect
                 </option>
             </select>
-            <!-- <button @click="detectBoard" title="Autodiscover" class="btn btn-circle btn-sm">
-                <i class="fa-solid fa-magnifying-glass"></i>
-            </button> -->
         </div>
 
         <div v-if="deviceType === 'Decker'" :class="connectionState ? '' : 'opacity-40 pointer-events-none'" class="w-full h-full rounded-lg px-2 ">
             <!-- RGB Control -->
             <div>
-                <div class="flex flex-row w-full justify-between mt-4">
+                <div data-setting="RGB Effect" class="flex flex-row w-full justify-between mt-4">
                     <span class="shrink-0 pt-1">RGB Effect: </span>
                     <select @change="rgbEffectChangeHandler" :value="currentRGBEffect"
                         class="select select-bordered select-sm w-2/3 mx-2 capitalize truncate">
@@ -31,24 +35,24 @@
                     </select>
                 </div>
                 <div v-if="currentRGBEffect === 'Static'" class="flex flex-col w-full mt-2">
-                    <div class="mb-4 flex justify-between items-center w-full">
+                    <div data-setting="Static color" class="mb-4 flex justify-between items-center w-full">
                         <span class="shrink-0">Choose static color: </span>
-                        <input @input="colorChange" type="color" class="colorpicker bg-gray-700 rounded-xl px-0.5" :value="selectedColor" />
+                        <input @input="colorChange" type="color" class="colorpicker bg-base-300 rounded-xl px-0.5" :value="selectedColor" />
                     </div>
-                    <div class="flex justify-between items-center w-full">
+                    <div data-setting="Breathing effect" class="flex justify-between items-center w-full">
                         <span class="shrink-0">Breathing effect: </span>
                         <input @change="toggleBreathing" type="checkbox" class="toggle toggle-primary" :checked="breathingEnabled"/>
                     </div>
                 </div>
-                <div v-if="(currentRGBEffect === 'Static' && breathingEnabled) || (currentRGBEffect !== 'Off' && currentRGBEffect !== 'Lightning Storm' && currentRGBEffect !== 'Static')" class="flex flex-row w-full justify-between mt-2">
+                <div data-setting="RGB Speed" v-if="(currentRGBEffect === 'Static' && breathingEnabled) || (currentRGBEffect !== 'Off' && currentRGBEffect !== 'Lightning Storm' && currentRGBEffect !== 'Static')" class="flex flex-row w-full justify-between mt-2">
                     <span class="shrink-0 pt-1">Speed: </span>
-                    <input @change="speedChanged" v-model="speed" type="range" class="bg-gray-700 rounded-xl px-0.5 mr-2" />
+                    <input @change="speedChanged" v-model="speed" type="range" class="range range-xs range-primary w-1/2 m-auto rounded-xl px-0.5 mr-2" />
                 </div>
-                <div class="flex flex-row w-full justify-between mt-2">
+                <div data-setting="Brightness" class="flex flex-row w-full justify-between mt-2">
                     <span class="shrink-0 pt-1">Brightness: </span>
-                    <input @change="brightnessChanged" v-model="brightness" type="range" class="bg-gray-700 rounded-xl px-0.5 mr-2" />
+                    <input @change="brightnessChanged" v-model="brightness" type="range" class="range range-xs range-primary w-1/2 m-auto rounded-xl px-0.5 mr-2 " />
                 </div>
-                <div class="flex justify-between items-center w-full mt-2">
+                <div data-setting="Turn off LEDs on Sleep" class="flex justify-between items-center w-full mt-2">
                     <div class="flex flex-col">
                         <span class="shrink-0 pt-1">Turn off LEDs on Sleep</span>
                         <span class="text-xs opacity-50 pr-4">
@@ -59,15 +63,15 @@
                 </div>
             </div>
 
-            <div class="flex flex-col w-full items-center mt-3">
+            <div data-setting="Device Info" class="flex flex-col w-full items-center mt-3">
                 <span class="shrink-0 pt-1 font-bold">Device Info: </span>
                 <div class="divider mt-0"></div>
                 <div :key="infopoint" v-for="(infopoint, index) in deviceInfoPoints" class="flex text-sm flex-row w-full justify-between my-1">
-                    <span class="text-gray-500">{{infopoint.name}}:</span>
-                    <span :key="currentDevice" class="font-semibold w-1/3 text-center">{{deviceInfo(currentDevice)?.[index] ?? 'N/A'}}</span>
+                    <span class="label-text my-auto">{{infopoint.name}}:</span>
+                    <span :key="currentDevice" class="font-semibold w-1/3 text-left">{{deviceInfo(currentDevice)?.[index] ?? 'N/A'}}</span>
                 </div>
                 <div class=" flex flex-row w-full justify-between my-1">
-                    <span class="text-gray-500">Stats</span>
+                    <span class="label-text my-auto">Stats</span>
                     <button @click="statsToggled" class="font-semibold btn btn-sm w-1/3">See</button>
                 </div>
             </div>
@@ -76,17 +80,18 @@
 </template>
 
 <script>
-import { useToast } from "vue-toastification";
+import { toast } from "vue-sonner";
 import Decker from "../ts/decker.ts";
 import ConfigStore from "../ts/config.ts";
 import StatsPanel from "./StatsPanel.vue";
+import SerialAccessDialog from "./SerialAccessDialog.vue";
 import RGBController from "../ts/RGBController";
 import { mapState } from "pinia";
 import { useDeckerStore } from "../store/deckerStore.ts";
 import EventBus from "../js/eventBus";
+import { createLogger } from "../ts/logger.ts";
 
-const toast = useToast();
-
+const log = createLogger("device-settings");
 
 export default {
     name: "Devices",
@@ -94,6 +99,7 @@ export default {
 
     components: {
         StatsPanel,
+        SerialAccessDialog,
     },
 
     props: {
@@ -116,6 +122,9 @@ export default {
             RGBEffects: ["Off", "Static", "Rainbow", "Candle", "Lightning Storm", "Perimeter"],
             deviceConnected: true,
             statsModalOpen: false,
+            serialAccessDialogOpen: false,
+            serialAccessDevice: null,
+            serialAccessPort: "",
             lastExecutionTime: 0,
             deviceType: "Unknown",
             speed: 10,
@@ -271,6 +280,55 @@ export default {
             ConfigStore.save();
         },
 
+        parseSerialOpenError(error) {
+            if (error && typeof error === "object" && error.type === "serial_open_error") {
+                return error;
+            }
+
+            if (typeof error !== "string") return null;
+
+            try {
+                const parsed = JSON.parse(error);
+                if (parsed?.type === "serial_open_error") return parsed;
+            } catch (_) {
+                return null;
+            }
+
+            return null;
+        },
+
+        isPermissionDenied(error) {
+            const serialError = this.parseSerialOpenError(error);
+            if (serialError) {
+                return serialError.permissionDenied === true || serialError.kind === "PermissionDenied";
+            }
+
+            const msg = String(error);
+            return msg.includes("Permission denied") || msg.includes("Access is denied");
+        },
+
+        showSerialAccessDialog(error) {
+            const serialError = this.parseSerialOpenError(error);
+            this.serialAccessDevice = this.currentDevice;
+            this.serialAccessPort = serialError?.portName || this.currentDevice?.port_name || "";
+            this.serialAccessDialogOpen = true;
+        },
+
+        async retrySerialAccess() {
+            if (!this.currentDevice?.port_name) return;
+
+            try {
+                await Decker.init(this.currentDevice.port_name);
+                this.serialAccessDialogOpen = false;
+            } catch (error) {
+                if (this.isPermissionDenied(error)) {
+                    this.showSerialAccessDialog(error);
+                    toast.error("Still missing serial device access. Replug the device if you already applied the rule.");
+                    return;
+                }
+                toast.error(`Failed to connect to device: ${String(error)}`);
+            }
+        },
 
         async deviceSelected() {
             if(this.currentDevice === "disconnect") {
@@ -289,7 +347,15 @@ export default {
             }
             ConfigStore.set("comPort", this.currentDevice.port_name);
             ConfigStore.save();
-            await Decker.init(this.currentDevice.port_name);
+            try {
+                await Decker.init(this.currentDevice.port_name);
+            } catch (error) {
+                if (this.isPermissionDenied(error)) {
+                    this.showSerialAccessDialog(error);
+                    return;
+                }
+                toast.error(`Failed to connect to device: ${String(error)}`);
+            }
         },
 
 
@@ -322,7 +388,7 @@ export default {
             try {
                 this.deviceData = await Decker.getDeviceInfo();
             } catch (error) {
-                console.error("Failed to get device info:", error);
+                log.error("Failed to get device info:", error);
                 // Optionally display a user-friendly message or handle the error accordingly
             }
         },

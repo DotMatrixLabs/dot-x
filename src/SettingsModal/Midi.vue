@@ -2,11 +2,11 @@
     <div class="flex flex-col items-center h-full w-full gap-4">
 
         <!-- Enable Midi -->
-        <div class="flex flex-row w-full justify-between px-2 mt-4">
+        <div data-setting="Enable MIDI Output" class="flex flex-row w-full justify-between px-2">
             <span class="my-auto">Enable MIDI Output: </span>
             <input type="checkbox" class="toggle toggle-primary mr-2" :checked="midiEnabled" @change="toggleMidi" />
         </div>
-        <div class="flex flex-row w-full justify-between px-2">
+        <div data-setting="MIDI Port" class="flex flex-row w-full justify-between px-2">
             <span class="shrink-0 pt-1">Port: </span>
             <select @change="portSelected" v-model="selectedPort"
                 class="select select-bordered select-sm w-2/3 mx-2 capitalize truncate">
@@ -15,25 +15,25 @@
                 </option>
             </select>
         </div>
-        <div class="flex flex-row w-full justify-between px-2">
+        <div data-setting="MIDI documentation" class="flex flex-row w-full justify-between px-2">
             <span class="shrink-0 pt-1">MIDI documentation: </span>
             <div class="flex justify-evenly items-center">
-                <a href="https://dml.gg/midi" target="_blank" rel="noopener noreferrer">
-                    <button class="btn btn-sm">Docs<i class="fa-solid fa-book fa-lg"></i></button>
-                </a>
+                <button @click="openLink('https://dml.gg/midi')" class="btn btn-sm">Docs<i class="fa-solid fa-book fa-lg"></i></button>
             </div>
         </div>
     </div>
 </template>
 
 <script>
-import { useToast } from "vue-toastification";
+import { toast } from "vue-sonner";
 import Decker from "../ts/decker.ts";
 import ConfigStore from "../ts/config.ts";
 import decker from "../ts/decker.ts";
-import { trackEvent } from "@aptabase/tauri";
+import { trackTelemetryEvent } from "../ts/telemetry";
+import { openLink } from "../ts/helpers.ts";
 
-const toast = useToast();
+const openLinkMethod = openLink;
+const VIRTUAL_MIDI_PORT = "Dot X Virtual MIDI";
 
 
 export default {
@@ -48,6 +48,7 @@ export default {
 
 
     methods: {
+        openLink: openLinkMethod,
         deviceName(device){
             return `${device}`;
         },
@@ -71,6 +72,17 @@ export default {
         getMidiDevices() {
             decker.getMidiDevices().then((devices) => {
                 this.devices = devices.names;
+                if (!this.selectedPort || !this.devices.includes(this.selectedPort)) {
+                    this.selectedPort = this.devices.includes(VIRTUAL_MIDI_PORT)
+                        ? VIRTUAL_MIDI_PORT
+                        : this.devices[0] || null;
+
+                    if (this.selectedPort) {
+                        ConfigStore.set("midiOutputPort", this.selectedPort);
+                        ConfigStore.set("midiOutputPortNumber", this.devices.findIndex((device) => device === this.selectedPort));
+                        ConfigStore.save();
+                    }
+                }
             });
         },
 
@@ -78,7 +90,6 @@ export default {
         async getConnectedDevice() {
             const storedPort = await ConfigStore.get("midiOutputPort");
             this.selectedPort = storedPort;
-            console.log({selectedPortThis: this.selectedPort});
             this.getMidiDevices();
 
         },
@@ -90,20 +101,24 @@ export default {
         async toggleMidi() {
             if(this.midiEnabled){
                 await ConfigStore.set("midiEnabled", false);
-                trackEvent("midi_toggled", { enabled: "false" });
+                trackTelemetryEvent("midi_toggled", { enabled: "false" });
                 this.update();
                 ConfigStore.save();
                 decker.detachMidiDevice();
                 return;
             }
             await ConfigStore.set("midiEnabled", true);
-            trackEvent("midi_toggled", { enabled: "true" });
+            trackTelemetryEvent("midi_toggled", { enabled: "true" });
             ConfigStore.save();
             this.update();
             this.connectMidiDevice();
         },
         connectMidiDevice(){
             const outputPort = this.devices.findIndex((device) => device === this.selectedPort);
+            if(outputPort < 0){
+                toast.error("Select a MIDI port before enabling MIDI output.");
+                return;
+            }
             decker.attachMidiDevice(outputPort);
         },
 

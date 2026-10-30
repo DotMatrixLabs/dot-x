@@ -1,22 +1,23 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { exists, removeFile, relaunch, setAllMappedApps } = vi.hoisted(() => ({
+const { exists, remove, relaunch, setAllMappedApps } = vi.hoisted(() => ({
     exists: vi.fn(),
-    removeFile: vi.fn(),
+    remove: vi.fn(),
     relaunch: vi.fn(),
     setAllMappedApps: vi.fn(),
 }));
 
-vi.mock("@tauri-apps/api/fs", () => ({
+vi.mock("@tauri-apps/plugin-fs", () => ({
     BaseDirectory: { AppData: "AppData" },
     copyFile: vi.fn(),
-    createDir: vi.fn(),
     exists,
-    readBinaryFile: vi.fn(),
+    mkdir: vi.fn(),
     readDir: vi.fn().mockResolvedValue([]),
-    removeFile,
+    readFile: vi.fn(),
+    remove,
 }));
-vi.mock("@tauri-apps/api/process", () => ({ relaunch }));
+vi.mock("@tauri-apps/plugin-process", () => ({ relaunch }));
+vi.mock("@tauri-apps/plugin-shell", () => ({ open: vi.fn() }));
 vi.mock("../store/deckerStore", () => ({
     useDeckerStore: () => ({ setAllMappedApps }),
 }));
@@ -32,7 +33,7 @@ describe("resetChannelSettings", () => {
     it("clears the live mapped-app mirror after deleting persisted selections", async () => {
         await resetChannelSettings();
 
-        expect(removeFile).toHaveBeenCalledWith("selectedApps.json", { dir: "AppData" });
+        expect(remove).toHaveBeenCalledWith("selectedApps.json", { baseDir: "AppData" });
         expect(setAllMappedApps).toHaveBeenCalledWith({});
     });
 });

@@ -1,0 +1,84 @@
+<template>
+  <div class="flex flex-col gap-4 w-full h-full overflow-y-auto px-2 pb-20">
+    <PluginHeader v-if="plugin" :plugin="plugin" />
+
+    <div class="flex flex-col gap-4">
+      <PluginSettingsRenderer v-if="settings && settings.sections" :sections="settings" :pluginId="plugin.id" />
+      <div v-else class="opacity-70 text-sm">No settings available.</div>
+    </div>
+  </div>
+  
+</template>
+
+<script>
+import PluginHeader from './PluginHeader.vue';
+import pluginAPI from '../plugin-api/pluginAPI';
+import PluginSettingsRenderer from '../components/PluginSettingsRenderer.vue';
+import EventBus from '../js/eventBus';
+import { createLogger } from '../ts/logger.ts';
+
+const log = createLogger('plugin-settings');
+
+    export default {
+        name: "PluginSettings",
+        components: { PluginHeader, PluginSettingsRenderer },
+        props: {
+            plugin: {
+                type: Object,
+                required: true,
+            }
+        },
+        data() {
+            return {
+                settings: {},
+            }
+        },
+        methods: {
+
+          async loadSettings() {
+            if (!this.plugin?.id) {
+              this.settings = {};
+              return;
+            }
+
+            try {
+              const settings = await pluginAPI.getPluginSettings(this.plugin.id);
+              this.settings = settings || {};
+            } catch (error) {
+              log.error('Failed to load plugin settings', error);
+              this.settings = {};
+            }
+          },
+            
+        },
+        computed: {
+        },
+        watch: {
+            plugin: {
+                handler() {
+                    this.loadSettings();
+                },
+                immediate: false,
+            }
+        },
+        created() {
+        },
+        mounted() {
+            this.loadSettings();
+            // Refresh this plugin's settings when settings change events are emitted
+            this._settingsUpdatedHandler = ({ pluginId }) => {
+              if (!this.plugin || (pluginId && pluginId !== this.plugin.id)) return;
+              this.loadSettings();
+            };
+            EventBus.on('plugin:settingsUpdated', this._settingsUpdatedHandler);
+        },
+        beforeUnmount() {
+            if (this._settingsUpdatedHandler) {
+              EventBus.off('plugin:settingsUpdated', this._settingsUpdatedHandler);
+            }
+        }
+    }
+</script>
+
+<style scoped>
+</style>

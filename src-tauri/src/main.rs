@@ -1,109 +1,196 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-
-use log::{info, trace, error};
+use log::{error, info, trace, warn};
 use serde_json::{json, Value};
-use tauri::AppHandle;
-use tauri::{ Manager, Window };
-use tauri_plugin_store::{with_store, StoreCollection};
-use tauri::Wry;
-use windows_volume_control::{AudioController, CoinitMode, VolumeMonitor};
-use std::sync::Mutex;
+use tauri::{AppHandle, Emitter, Manager, WebviewWindow, Wry};
+use std::fs;
+use std::fs::File;
 use tauri_plugin_autostart::MacosLauncher;
+#[cfg(not(debug_assertions))]
+use tauri_plugin_autostart::ManagerExt as AutostartManagerExt;
 use midir::{MidiOutput};
 use std::collections::HashMap;
 use std::fmt;
-use std::path::PathBuf;
+use tauri_plugin_notification::NotificationExt;
+use tauri_plugin_store::StoreExt;
+use telemetry::TelemetrySettings;
+use tray_notice::TrayNoticeState;
+#[cfg(windows)]
+mod audio;
+#[cfg(target_os = "linux")]
+#[path = "audio_linux.rs"]
+mod audio;
 mod decker;
 mod midi;
 mod power_monitor;
-use tauri::{CustomMenuItem, SystemTrayMenu, SystemTrayMenuItem, SystemTray, SystemTrayEvent};
-use tauri::api::notification::Notification;
+mod plugin_marketplace;
+mod plugin_server;
+mod plugin_runtime;
+mod telemetry;
+#[cfg(target_os = "linux")]
+mod gnome_active_window;
+#[cfg(target_os = "linux")]
+mod tray_host;
+mod tray_notice;
+mod update_tracks;
+use once_cell::sync::OnceCell;
+use tauri::menu::{Menu, MenuBuilder, MenuItemBuilder, PredefinedMenuItem};
+use tauri::tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent};
+#[cfg(target_os = "windows")]
 use window_vibrancy::{apply_blur, apply_mica};
-use window_shadows::set_shadow;
-use once_cell::sync::{Lazy, OnceCell};
 
 use active_win_pos_rs::get_active_window;
-use tauri_plugin_aptabase::EventTracker;
+use brightness::{Brightness, BrightnessDevice};
+use chrono::Local;
+use futures::TryStreamExt;
+use sentry::{self, Client};
 use std::thread;
 use std::time::Duration;
-use sentry_tauri::sentry::{self, ClientInitGuard};
-use chrono::Local;
-use brightness::Brightness;
-use futures::{TryStreamExt};
-use windows::Win32::System::Com::CoUninitialize;
-
+use tauri_plugin_aptabase::EventTracker;
+use tauri_plugin_cli::CliExt;
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
 
 static APP: OnceCell<tauri::AppHandle> = OnceCell::new();
 
+const PLUGIN_USAGE_RECONNECT_INTERVAL: Duration = Duration::from_secs(60 * 60);
+static PLUGIN_USAGE_LIMITER: OnceCell<std::sync::Mutex<PluginUsageLimiter>> = OnceCell::new();
+
 #[derive(Default)]
-struct VolumeSyncState {
-  monitor: Option<VolumeMonitor>,
-  generation: u64,
-  /// Session names the UI has mapped to a slider, kept here so the polling thread can
-  /// seed a target for sessions the user hasn't moved a slider for yet.
-  mapped_sessions: Vec<String>,
+struct PluginUsageLimiter {
+    last_reported: HashMap<String, std::time::Instant>,
 }
 
-impl VolumeSyncState {
-  fn enable(&mut self, monitor: VolumeMonitor) -> Option<u64> {
-    if self.monitor.is_some() {
-      return None;
+impl PluginUsageLimiter {
+    fn should_report(&mut self, plugin_id: &str, now: std::time::Instant, heartbeat: bool) -> bool {
+        self.last_reported.retain(|_, last| {
+            now.saturating_duration_since(*last) < PLUGIN_USAGE_RECONNECT_INTERVAL
+        });
+        if !heartbeat && self.last_reported.contains_key(plugin_id) {
+            return false;
+        }
+        self.last_reported.insert(plugin_id.to_string(), now);
+        true
     }
-
-    self.generation = self.generation.wrapping_add(1);
-    self.monitor = Some(monitor);
-    Some(self.generation)
-  }
-
-  fn disable(&mut self) {
-    if let Some(monitor) = self.monitor.as_ref() {
-      monitor.stop_polling();
-    }
-    self.monitor = None;
-    self.mapped_sessions.clear();
-  }
-
-  fn is_current_generation(&self, generation: u64) -> bool {
-    self.monitor.is_some() && self.generation == generation
-  }
 }
 
-static VOLUME_SYNC_STATE: Lazy<Mutex<VolumeSyncState>> =
-  Lazy::new(|| Mutex::new(VolumeSyncState::default()));
+static PENDING_DOTX_PATH: std::sync::Mutex<Option<String>> = std::sync::Mutex::new(None);
 
-fn run_for_current_volume_sync_generation<F>(
-  state: &Mutex<VolumeSyncState>,
-  generation: u64,
-  action: F,
-) -> bool
-where
-  F: FnOnce(&VolumeMonitor),
-{
-  let state = state.lock().unwrap();
-  if !state.is_current_generation(generation) {
-    return false;
-  }
+#[tauri::command]
+fn consume_pending_dotx_install() -> Option<String> {
+    PENDING_DOTX_PATH.lock().ok()?.take()
+}
 
-  action(state.monitor.as_ref().unwrap());
-  true
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+enum TelemetryPreference {
+    CrashReportingEnabled,
+    AnalyticsEnabled,
+}
+
+impl TelemetryPreference {
+    fn key(&self) -> &'static str {
+        match self {
+            Self::CrashReportingEnabled => "crashReportingEnabled",
+            Self::AnalyticsEnabled => "analyticsEnabled",
+        }
+    }
+}
+
+#[tauri::command]
+fn set_telemetry_preference(
+    app: AppHandle,
+    settings: tauri::State<'_, TelemetrySettings>,
+    preference: TelemetryPreference,
+    enabled: bool,
+) -> Result<(), String> {
+    let store = app.store("config.json").map_err(|err| err.to_string())?;
+    store.set(preference.key(), json!(enabled));
+    store.save().map_err(|err| err.to_string())?;
+
+    match preference {
+        TelemetryPreference::CrashReportingEnabled => {
+            settings.set_crash_reporting_enabled(enabled);
+        }
+        TelemetryPreference::AnalyticsEnabled => settings.set_analytics_enabled(enabled),
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+fn track_telemetry_event(
+    app: AppHandle,
+    event: String,
+    properties: Option<Value>,
+) {
+    track_analytics_event(&app, &event, properties);
+}
+
+fn load_telemetry_settings(app: &AppHandle, settings: &TelemetrySettings) {
+    match app.store("config.json") {
+        Ok(store) => {
+            let crash_reporting_enabled = store
+                .get("crashReportingEnabled")
+                .and_then(|value| value.as_bool())
+                .unwrap_or(true);
+            let analytics_enabled = store
+                .get("analyticsEnabled")
+                .and_then(|value| value.as_bool())
+                .unwrap_or(true);
+
+            settings.set_crash_reporting_enabled(crash_reporting_enabled);
+            settings.set_analytics_enabled(analytics_enabled);
+        }
+        Err(err) => {
+            warn!("Failed to read telemetry preferences; disabling telemetry: {err}");
+            settings.set_crash_reporting_enabled(false);
+            settings.set_analytics_enabled(false);
+        }
+    }
 }
 
 // create the error type that represents all errors possible in our program
-#[derive(Debug, thiserror::Error)]
-enum Error {
-  #[error(transparent)]
-  Io(#[from] std::io::Error),
-  SessionNotFound,
-  Connection,
-  InitError
+#[derive(Debug)]
+pub(crate) enum Error {
+    Io(std::io::Error),
+    SerialOpen {
+        port_name: String,
+        kind: String,
+        message: String,
+        os_code: Option<i32>,
+    },
+    InstalledApps(String),
+    #[cfg(target_os = "linux")]
+    Unsupported(&'static str),
+    SessionNotFound,
+    Connection,
+    InitError,
 }
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Error::Io(inner) => write!(f, "IO Error: {}", inner),
+            Error::SerialOpen {
+                port_name,
+                kind,
+                message,
+                os_code,
+            } => write!(
+                f,
+                "Serial open error on {} ({}{}): {}",
+                port_name,
+                kind,
+                os_code
+                    .map(|code| format!(", OS error {}", code))
+                    .unwrap_or_default(),
+                message
+            ),
+            Error::InstalledApps(inner) => write!(f, "Installed apps error: {}", inner),
+            #[cfg(target_os = "linux")]
+            Error::Unsupported(message) => write!(f, "{}", message),
             Error::SessionNotFound => write!(f, "Session not found"),
             Error::Connection => write!(f, "Decker error"),
             Error::InitError => write!(f, "Initialization error"),
@@ -111,508 +198,313 @@ impl fmt::Display for Error {
     }
 }
 
+impl From<std::io::Error> for Error {
+    fn from(value: std::io::Error) -> Self {
+        Error::Io(value)
+    }
+}
+
 // we must manually implement serde::Serialize
 impl serde::Serialize for Error {
-  fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-  where
-    S: serde::ser::Serializer,
-  {
-    serializer.serialize_str(self.to_string().as_ref())
-  }
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::ser::Serializer,
+    {
+        match self {
+            Error::SerialOpen {
+                port_name,
+                kind,
+                message,
+                os_code,
+            } => serde::Serialize::serialize(&json!({
+                "type": "serial_open_error",
+                "portName": port_name,
+                "kind": kind,
+                "message": message,
+                "osCode": os_code,
+                "permissionDenied": kind == "PermissionDenied",
+            }), serializer),
+            _ => serializer.serialize_str(self.to_string().as_ref()),
+        }
+    }
 }
 
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 #[derive(serde::Serialize)]
 struct CustomResponse {
-  app_list: Vec<String>,
+    app_list: Vec<String>,
+    apps: Vec<InstalledAppResponse>,
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct InstalledAppResponse {
+    id: String,
+    name: String,
+    version: String,
+    publisher: String,
+    executable: String,
+    executable_name: String,
+    launch_id: String,
+    source_path: String,
+    source: String,
+    aliases: Vec<String>,
+}
+
+#[derive(serde::Serialize)]
+struct ControllerResponse {
+    response: Vec<String>,
+}
+
+#[derive(Clone, serde::Serialize)]
+struct Payload {
+    message: String,
 }
 
 #[derive(serde::Serialize)]
 struct MidiPortNames {
-  names: Vec<String>,
+    names: Vec<String>,
 }
-
 
 #[tauri::command]
 fn get_available_midi_output_port_names() -> Result<MidiPortNames, Error> {
-  let mut available_ports: Vec<String> = Vec::new();
-    
-  // Explicitly handle the error and convert it to Box<dyn Error>
-  let midi_out_result = MidiOutput::new("Decker Output");
-  
-  let midi_out = match midi_out_result {
-      Ok(midi_out) => midi_out,
-      Err(_error) => {
-          // Handle the error here, or return it if you prefer.
-          return Err(Error::InitError);
-      }  };
+    let mut available_ports: Vec<String> = Vec::new();
 
-  let output_ports_result = midi::midi::get_available_output_ports();
-  let output_ports = match output_ports_result {
-      Ok(output_ports) => output_ports,
-      Err(_error) => {
-          // Handle the error here, or return it if you prefer.
-          return Err(Error::InitError);
-      }  
+    // Explicitly handle the error and convert it to Box<dyn Error>
+    let midi_out_result = MidiOutput::new("Decker Output");
+
+    let midi_out = match midi_out_result {
+        Ok(midi_out) => midi_out,
+        Err(_error) => {
+            // Handle the error here, or return it if you prefer.
+            return Err(Error::InitError);
+        }
     };
-  
-  for (_i, p) in output_ports.iter().enumerate() {
-      let port_name_result = midi_out.port_name(p);
-      let _port_name = match port_name_result {
-          Ok(port_name) => available_ports.push(port_name),
-          Err(error) => {
-              // Handle the error here, or return it if you prefer.
-              error!("Dot X Error: {:?}", error);
-              return Err(Error::InitError);
 
-          }  
+    let output_ports_result = midi::midi::get_available_output_ports();
+    let output_ports = match output_ports_result {
+        Ok(output_ports) => output_ports,
+        Err(_error) => {
+            // Handle the error here, or return it if you prefer.
+            return Err(Error::InitError);
+        }
+    };
+
+    for (_i, p) in output_ports.iter().enumerate() {
+        let port_name_result = midi_out.port_name(p);
+        let _port_name = match port_name_result {
+            Ok(port_name) => available_ports.push(port_name),
+            Err(error) => {
+                // Handle the error here, or return it if you prefer.
+                error!("Dot X Error: {:?}", error);
+                return Err(Error::InitError);
+            }
         };
-  }
+    }
+    #[cfg(unix)]
+    available_ports.push(midi::midi::VIRTUAL_OUTPUT_PORT_NAME.to_string());
 
-  let available_ports_response = MidiPortNames { names: available_ports };
-  Ok(available_ports_response)
+    let available_ports_response = MidiPortNames {
+        names: available_ports,
+    };
+    Ok(available_ports_response)
 }
 
 #[tauri::command]
-fn get_installed_apps() -> Result<CustomResponse, Error>{
-    let apps = installed::list().expect("list apps");
-    let mut app_list  = Vec::new();
+fn get_installed_apps() -> Result<CustomResponse, Error> {
+    let apps = installed::list().map_err(|error| Error::InstalledApps(error.to_string()))?;
+    let mut app_list = Vec::new();
+    let mut installed_apps = Vec::new();
     for app in apps {
         // metadata accessor fns, these are only evaluated when used
         let name = app.name().to_string();
-        app_list.push(name);
+        if name.trim().is_empty() {
+            continue;
+        }
+        app_list.push(name.clone());
+        installed_apps.push(InstalledAppResponse {
+            id: app.id,
+            name,
+            version: app.version,
+            publisher: app.publisher,
+            executable: app.executable,
+            executable_name: app.executable_name,
+            launch_id: app.launch_id,
+            source_path: app.source_path,
+            source: format!("{:?}", app.source),
+            aliases: app.aliases,
+        });
     }
     // Create the Response struct
-    let app_list_response = CustomResponse {
-        app_list: app_list,
-    };
+    let app_list_response = CustomResponse { app_list: app_list, apps: installed_apps };
     Ok(app_list_response)
 }
 
-
-
-#[tauri::command]
-fn get_all_session_names() -> Result<Vec<String>, Error> {
-    unsafe {
-        let mut controller = AudioController::init(Some(CoinitMode::ApartmentThreaded));
-        controller.GetSessions();
-        controller.GetDefaultAudioEnpointVolumeControl();
-        controller.GetAllProcessSessions();
-        controller.GetAllAudioDevices();
-
-        // Collect all session names
-        let all_session_names = controller.get_all_session_names();
-
-        Ok(all_session_names)
-    }
-}
-
 fn value_to_i32_vec(value: &Value) -> Option<Vec<i32>> {
-  if let Value::Array(array) = value {
-      let mut i32_vec = Vec::new();
+    if let Value::Array(array) = value {
+        let mut i32_vec = Vec::new();
 
-      for v in array {
-          if let Some(i) = v.as_i64() {
-              i32_vec.push(i as i32);
-          } else {
-              return None;
-          }
-      }
+        for v in array {
+            if let Some(i) = v.as_i64() {
+                i32_vec.push(i as i32);
+            } else {
+                return None;
+            }
+        }
 
-      Some(i32_vec)
-  } else {
-      None 
-  }
+        Some(i32_vec)
+    } else {
+        None
+    }
 }
 
 fn value_to_object_vec(value: &Value) -> Option<Vec<(String, String)>> {
-  let mut object_vec = Vec::new();
+    let mut object_vec = Vec::new();
 
-  if let Value::Array(items) = value {
-    object_vec = items
-        .into_iter()
-        .filter_map(|item| {
-            if let Value::Object(obj) = item {
-                // Extract values from the object
-                let cc_value = obj.get("CCValue").and_then(|v| v.as_str().map(|s| s.to_string())).unwrap_or_else(String::new); // If the value is null, return an empty string
-                let channel = obj.get("channel").and_then(|v| v.as_str().map(|s| s.to_string())).unwrap_or_else(String::new); // If the value is null, return an empty string
-                // Return the tuple
-                Some((channel, cc_value))
-            } else {
-              Some((String::new(), String::new())) // Create an empty tuple for the indexes containing Null
-            }
-        })
-        .collect();
-  } else {
-      error!("Expected a JSON array.");
-  }
-  Some(object_vec)
+    if let Value::Array(items) = value {
+        object_vec = items
+            .into_iter()
+            .filter_map(|item| {
+                if let Value::Object(obj) = item {
+                    // Extract values from the object
+                    let cc_value = obj
+                        .get("CCValue")
+                        .and_then(|v| v.as_str().map(|s| s.to_string()))
+                        .unwrap_or_else(String::new); // If the value is null, return an empty string
+                    let channel = obj
+                        .get("channel")
+                        .and_then(|v| v.as_str().map(|s| s.to_string()))
+                        .unwrap_or_else(String::new); // If the value is null, return an empty string
+                    // Return the tuple
+                    Some((channel, cc_value))
+                } else {
+                    Some((String::new(), String::new())) // Create an empty tuple for the indexes containing Null
+                }
+            })
+            .collect();
+    } else {
+        error!("Expected a JSON array.");
+    }
+    Some(object_vec)
 }
 
 #[tauri::command]
-fn attach_midi_device(output_name: &str, output_port: u32, midi_sliders: Value, midi_configuration: Value) -> Result<(), Error> {
+fn attach_midi_device(
+    output_name: &str,
+    output_port: u32,
+    midi_sliders: Value,
+    midi_configuration: Value,
+) -> Result<(), Error> {
     let midi_sliders_vec = value_to_i32_vec(&midi_sliders).unwrap_or_default();
     let midi_configuration_vec = value_to_object_vec(&midi_configuration).unwrap_or_default();
-    let midi_controller = midi::midi::new("Decker", output_port, midi_sliders_vec, midi_configuration_vec); 
-    match midi_controller {
-      Ok(_midi_controller) => {
-        info!("Midi port {}: Port name: {}", output_port, output_name);
-        unsafe { midi::midi::ENABLED = true; }
-      }
-      Err(error) => {
-        error!("[attach_midi_device] Dot X Error: {:?}", error);
-        return Err(Error::Connection);
-      }
+    unsafe {
+        midi::midi::ENABLED = true;
     }
-  Ok(())
+    let midi_controller = midi::midi::new(
+        "Decker",
+        output_port,
+        midi_sliders_vec,
+        midi_configuration_vec,
+    );
+    match midi_controller {
+        Ok(_midi_controller) => {
+            info!("Midi port {}: Port name: {}", output_port, output_name);
+        }
+        Err(error) => {
+            unsafe {
+                midi::midi::ENABLED = false;
+            }
+            error!("[attach_midi_device] Dot X Error: {:?}", error);
+            return Err(Error::Connection);
+        }
+    }
+    Ok(())
 }
 
 #[tauri::command]
 fn detach_midi_device() -> Result<(), Error> {
-  unsafe { midi::midi::ENABLED = false; }
-  Ok(())
+    unsafe {
+        midi::midi::ENABLED = false;
+    }
+    Ok(())
 }
 
 #[tauri::command]
 fn get_active_app_name() -> String {
     match get_active_window() {
         Ok(active_window) => {
-            println!("Active window: {:?}", active_window);
+            trace!("Active window: {:?}", active_window);
             active_window.app_name.to_string()
         }
         Err(err) => {
-            eprintln!("Failed to get active window: {:?}", err);
+            #[cfg(target_os = "linux")]
+            if is_gnome_wayland() {
+                if let Some(wm_class) = gnome_active_window::get_gnome_active_window_class() {
+                    trace!("Active window (via dotx-active-window extension): {}", wm_class);
+                    return wm_class;
+                }
+            }
+            warn!(
+                "Failed to get active window: {:?}; {}",
+                err,
+                active_window_failure_context()
+            );
             "Unknown".to_string() // Return a default value if an error occurs
         }
     }
 }
 
-#[tauri::command]
-fn set_application_volume(name: &str, volume: f32) -> Result<(), Error> {
-    unsafe {
-        // Update expected volume BEFORE setting it to prevent feedback loop
-        {
-            let state = VOLUME_SYNC_STATE.lock().unwrap();
-            if let Some(monitor) = state.monitor.as_ref() {
-                monitor.mark_setting(name);
-                let _ = monitor.update_expected_volume(name, volume);
-            }
-        }
-
-        let controller = get_initialized_audio_controller();
-
-        // Get the current session by name
-        let current_sessions = controller.get_sessions_by_name(name.to_string());
-        
-        //if multiple sessions are found, change the volume for all of them
-        if !current_sessions.is_empty() {
-          for session in current_sessions {
-            if volume < 0.01 {
-              session.setMute(true);
-              // Also set application volume to 0. This is not actually needed, but it's visually pleasing since the slider is at 0 and makes it easier to see which applications are muted.
-              session.setVolume(0.0); 
-            } else {
-              session.setMute(false);
-              session.setVolume(volume);
-            }
-          }
-        } else {
-          // Handle the case where the session was not found (e.g., return an error)
-          let state = VOLUME_SYNC_STATE.lock().unwrap();
-          if let Some(monitor) = state.monitor.as_ref() {
-              monitor.unmark_setting(name);
-          }
-          return Err(Error::SessionNotFound);
-        }
-
-        {
-            let state = VOLUME_SYNC_STATE.lock().unwrap();
-            if let Some(monitor) = state.monitor.as_ref() {
-                monitor.unmark_setting(name);
-            }
-        }
-    }
-
-    Ok(())
+#[cfg(target_os = "linux")]
+fn is_gnome_wayland() -> bool {
+    let wayland_display = std::env::var("WAYLAND_DISPLAY").unwrap_or_default();
+    let current_desktop = std::env::var("XDG_CURRENT_DESKTOP").unwrap_or_default();
+    let desktop_session = std::env::var("DESKTOP_SESSION").unwrap_or_default();
+    let is_gnome = current_desktop.to_lowercase().contains("gnome")
+        || desktop_session.to_lowercase().contains("gnome");
+    !wayland_display.is_empty() && is_gnome
 }
 
-#[tauri::command]
-fn enable_volume_sync(window: Window) -> Result<(), Error> {
-    let generation = {
-        let mut state = VOLUME_SYNC_STATE.lock().unwrap();
-        if let Some(generation) = state.enable(VolumeMonitor::new()) {
-            generation
-        } else {
-            info!("Volume sync already enabled");
-            return Ok(());
-        }
+#[cfg(target_os = "linux")]
+fn active_window_failure_context() -> String {
+    let wayland_display = std::env::var("WAYLAND_DISPLAY").unwrap_or_default();
+    let x11_display = std::env::var("DISPLAY").unwrap_or_default();
+    let current_desktop = std::env::var("XDG_CURRENT_DESKTOP").unwrap_or_default();
+    let desktop_session = std::env::var("DESKTOP_SESSION").unwrap_or_default();
+    let has_hyprland = std::env::var_os("HYPRLAND_INSTANCE_SIGNATURE").is_some();
+    let has_kde = std::env::var_os("KDE_FULL_SESSION").is_some()
+        || current_desktop.to_lowercase().contains("kde")
+        || desktop_session.to_lowercase().contains("plasma");
+    let is_gnome = is_gnome_wayland();
+
+    let backend = if !wayland_display.is_empty() && has_kde {
+        "KDE Wayland/KWin"
+    } else if !wayland_display.is_empty() && has_hyprland {
+        "Hyprland Wayland"
+    } else if is_gnome {
+        "GNOME Wayland (dotx-active-window extension not installed/enabled — see gnome-extension/ in the repo root)"
+    } else if !wayland_display.is_empty() {
+        "unknown Wayland compositor"
+    } else if !x11_display.is_empty() {
+        "X11/XCB"
+    } else {
+        "unknown display server"
     };
 
-    // Start polling thread for application sessions
-    start_volume_sync_polling(generation);
-
-    info!("Volume sync enabled");
-    //send to aptabase for analytics
-    window.app_handle().track_event("volume_sync_enabled", None);
-
-    Ok(())
+    format!(
+        "platform=linux backend={} WAYLAND_DISPLAY={} DISPLAY={} XDG_CURRENT_DESKTOP={} DESKTOP_SESSION={} expected_support='X11/XCB, KDE Wayland, Hyprland Wayland, GNOME Wayland (via dotx-active-window extension)' build_packages='libxcb-ewmh-dev libxcb-randr0-dev libdbus-1-dev pkg-config'",
+        backend, wayland_display, x11_display, current_desktop, desktop_session
+    )
 }
 
-fn start_volume_sync_polling(generation: u64) {
-    thread::spawn(move || {
-        let mut last_controller_refresh = std::time::Instant::now()
-            .checked_sub(Duration::from_secs(10))
-            .unwrap_or_else(std::time::Instant::now);
-        let mut controller = unsafe { get_initialized_audio_controller() };
-
-        loop {
-            thread::sleep(Duration::from_millis(250));
-
-            unsafe {
-                let state = VOLUME_SYNC_STATE.lock().unwrap();
-                if state.is_current_generation(generation) {
-                    let monitor = state.monitor.as_ref().unwrap();
-                    if !monitor.is_polling_active() {
-                        break;
-                    }
-
-                    // Prefer polling only sessions that need it (application sessions).
-                    let session_names = monitor.get_polling_session_names();
-                    drop(state); // Release lock before getting controller
-
-                    // Refresh controller occasionally to pick up new/ended sessions.
-                    if last_controller_refresh.elapsed() > Duration::from_secs(2) {
-                        refresh_controller_balanced(
-                            &mut controller,
-                            || get_initialized_audio_controller(),
-                            || CoUninitialize(),
-                        );
-                        last_controller_refresh = std::time::Instant::now();
-                        // Newly visible sessions may be mapped without ever having been set.
-                        seed_expected_volumes(&controller, generation);
-                    }
-
-                    // Check each session's volume and restore if needed
-                    for session_name in session_names {
-                        let expected_vol_opt = {
-                            let state = VOLUME_SYNC_STATE.lock().unwrap();
-                            if !state.is_current_generation(generation) {
-                                return;
-                            }
-                            state.monitor.as_ref().and_then(|m| {
-                                if m.should_ignore_restore(&session_name) {
-                                    None
-                                } else {
-                                    m.get_expected_volume(&session_name)
-                                }
-                            })
-                        };
-
-                        if let Some(expected_vol) = expected_vol_opt {
-                            let sessions = controller.get_sessions_by_name(session_name.clone());
-                            if !sessions.is_empty() {
-                                let needs_restore = sessions.iter().any(|s| (s.getVolume() - expected_vol).abs() > 0.001);
-                                if needs_restore {
-                                    run_for_current_volume_sync_generation(
-                                      &VOLUME_SYNC_STATE,
-                                      generation,
-                                      |monitor| {
-                                        monitor.mark_setting(&session_name);
-                                        for session in sessions {
-                                          session.setVolume(expected_vol);
-                                        }
-                                        monitor.unmark_setting(&session_name);
-                                      },
-                                    );
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    break;
-                }
-            }
-        }
-    });
-}
-
-fn refresh_controller_balanced<T, I, U>(controller: &mut T, initialize: I, uninitialize: U)
-where
-    I: FnOnce() -> T,
-    U: FnOnce(),
-{
-    *controller = initialize();
-    // The polling thread keeps its original COM initialization alive. Balance only the
-    // additional initialization performed while rebuilding the controller.
-    uninitialize();
-}
-
-#[tauri::command]
-fn disable_volume_sync() -> Result<(), Error> {
-    unsafe {
-        let mut state = VOLUME_SYNC_STATE.lock().unwrap();
-        if let Some(monitor) = state.monitor.as_mut() {
-            let mut controller = get_initialized_audio_controller();
-            // Stop polling
-            monitor.stop_polling();
-            let _ = monitor.unregister_all_callbacks(&mut controller);
-        }
-
-        // Clear the monitor
-        state.disable();
-
-        info!("Volume sync disabled");
-    }
-
-    Ok(())
-}
-
-#[tauri::command]
-fn update_volume_sync_mappings(session_names: Vec<String>) -> Result<(), Error> {
-    let mut state = VOLUME_SYNC_STATE.lock().unwrap();
-    if let Some(monitor) = state.monitor.as_ref() {
-        monitor.set_mapped_sessions(session_names.clone());
-    }
-    // Remembered so the polling thread can seed targets for these sessions, both for the
-    // ones running right now and for the ones started later.
-    state.mapped_sessions = session_names;
-
-    Ok(())
-}
-
-/// Matches the names the UI mapped against the names the audio sessions actually report.
-/// The UI stores installed-app names, which differ in casing from the session names that
-/// the monitor keys its targets by.
-fn resolve_mapped_session_names(mapped: &[String], session_names: &[String]) -> Vec<String> {
-    let mapped_lowercase: std::collections::HashSet<String> =
-        mapped.iter().map(|name| name.to_lowercase()).collect();
-
-    session_names
-        .iter()
-        .filter(|name| mapped_lowercase.contains(&name.to_lowercase()))
-        .cloned()
-        .collect()
-}
-
-/// Gives the polling loop a target for every mapped session that doesn't have one yet, by
-/// taking the session's current volume as the target. Without this the target map only
-/// fills up when a slider moves, so sync enabled on startup - or an app mapped or launched
-/// while sync is running - restores nothing until the user touches the slider.
-unsafe fn seed_expected_volumes(controller: &AudioController, generation: u64) {
-    let mapped = {
-        let state = VOLUME_SYNC_STATE.lock().unwrap();
-        if !state.is_current_generation(generation) {
-            return;
-        }
-        state.mapped_sessions.clone()
-    };
-
-    if mapped.is_empty() {
-        return;
-    }
-
-    let resolved = resolve_mapped_session_names(&mapped, &controller.get_all_session_names());
-    if resolved.is_empty() {
-        return;
-    }
-
-    let current_volumes: Vec<(String, f32)> = resolved
-        .iter()
-        .filter_map(|name| {
-            controller
-                .get_session_by_name(name.clone())
-                .map(|session| (name.clone(), session.getVolume()))
-        })
-        .collect();
-
-    apply_seeded_expected_volumes(
-        &VOLUME_SYNC_STATE,
-        generation,
-        &mapped,
-        resolved,
-        current_volumes,
-    );
-}
-
-/// Applies one seed pass, but only if the mappings it was built from are still the current
-/// ones. Querying the controller happens without the lock, so a mapping change in that
-/// window would otherwise be overwritten by this stale snapshot - and a change that cleared
-/// the mappings would never be corrected, because later passes return early on the now
-/// empty list and leave the removed sessions being polled and restored.
-/// Skipping is safe: the pass that runs on the next controller refresh sees the new mappings.
-fn apply_seeded_expected_volumes(
-  state: &Mutex<VolumeSyncState>,
-  generation: u64,
-  mapped: &[String],
-  resolved: Vec<String>,
-  current_volumes: Vec<(String, f32)>,
-) -> bool {
-    let state = state.lock().unwrap();
-    if !state.is_current_generation(generation) {
-        return false;
-    }
-
-    if state.mapped_sessions.as_slice() != mapped {
-        return false;
-    }
-
-    let monitor = state.monitor.as_ref().unwrap();
-    // The resolved names are what the monitor keys targets by, so they have to count as
-    // mapped too, otherwise the targets seeded below are filtered out again.
-    let mut allowed = mapped.to_vec();
-    allowed.extend(resolved);
-    monitor.set_mapped_sessions(allowed);
-
-    for (session_name, volume) in current_volumes {
-        if monitor.get_expected_volume(&session_name).is_none() {
-            let _ = monitor.update_expected_volume(&session_name, volume);
-        }
-    }
-
-    true
-}
-
-// Helper function to create and initialize an AudioController
-unsafe fn get_initialized_audio_controller() -> AudioController {
-    let mut controller = AudioController::init(Some(CoinitMode::ApartmentThreaded));
-    controller.GetSessions();
-    controller.GetDefaultAudioEnpointVolumeControl();
-    controller.GetAllProcessSessions();
-    controller.GetAllAudioDevices();
-    controller
-}
-
-#[tauri::command]
-fn get_all_audio_devices() -> Result<Vec<String>, Error> {
-    unsafe {
-        let controller = get_initialized_audio_controller();
-        let all_device_names = controller.get_all_device_names();
-        println!("All device names: {:?}", all_device_names);
-        Ok(all_device_names)
-    }
-}
-
-#[tauri::command]
-fn get_output_devices() -> Result<Vec<String>, Error> {
-    unsafe {
-        let controller = get_initialized_audio_controller();
-        let output_device_names = controller.get_output_device_names();
-        Ok(output_device_names)
-    }
-}
-
-#[tauri::command]
-fn get_input_devices() -> Result<Vec<String>, Error> {
-    unsafe {
-        let controller = get_initialized_audio_controller();
-        let input_device_names = controller.get_input_device_names();
-        Ok(input_device_names)
-    }
+#[cfg(not(target_os = "linux"))]
+fn active_window_failure_context() -> String {
+    format!("platform={}", std::env::consts::OS)
 }
 
 #[tauri::command]
 async fn set_screen_brightness(brightness: f32, screens: Value) -> Result<(), Error> {
-    let _screen_names: Vec<String> = screens.as_array()
+    let _screen_names: Vec<String> = screens
+        .as_array()
         .unwrap_or(&Vec::new())
         .iter()
         .filter_map(|v| v.as_str().map(|s| s.to_string()))
@@ -625,439 +517,651 @@ async fn set_screen_brightness(brightness: f32, screens: Value) -> Result<(), Er
 }
 
 async fn set_brightness(percentage: u32) {
-  println!("Setting brightness to {}%", percentage);
-  if let Err(e) = brightness::brightness_devices()
-      .try_for_each(|mut dev| async move {
-          if let Err(err) = dev.set(percentage).await {
-              eprintln!(
-                  "Failed to set brightness for device {}: {:?}",
-                  dev.device_name().await.unwrap_or_else(|_| "Unknown".to_string()),
-                  err
-              );
-          }
-          Ok(())
-      })
-      .await
-  {
-      eprintln!("Error iterating over brightness devices: {:?}", e);
+    info!("Setting brightness to {}%", percentage);
+    if let Err(e) = brightness::brightness_devices()
+        .try_for_each(|mut dev| async move {
+            if let Err(err) = dev.set(percentage).await {
+                error!(
+                    "Failed to set brightness for device {}: {:?}",
+                    dev.device_name()
+                        .await
+                        .unwrap_or_else(|_| "Unknown".to_string()),
+                    err
+                );
+            }
+            Ok(())
+        })
+        .await
+    {
+        error!("Error iterating over brightness devices: {:?}", e);
     }
 }
 
+async fn show_brightness(dev: &BrightnessDevice) -> Result<(), brightness::Error> {
+    info!(
+        "Brightness of device {} is {}%",
+        dev.device_name().await?,
+        dev.get().await?
+    );
+    Ok(())
+}
 
-#[tauri::command]
-fn connect_decker(window: Window, port_name: &str, inverted: bool) -> Result<(), Error> {
-  println!("Connecting Decker at port: {}, inverted: {}", port_name, inverted);
-  decker::initialize_decker(window, port_name, inverted)?;
-  info!("Decker connected at {}", port_name);
-  Ok(())
+// Runs on Tauri's threadpool instead of the main event loop: opening the serial
+// port (and the up-to-250ms wait for a stale connection to close) must not block
+// the UI thread, or a slow/failing device (e.g. a permission error) freezes the app.
+#[tauri::command(async)]
+fn connect_decker(window: WebviewWindow, port_name: &str, inverted: bool) -> Result<(), Error> {
+    info!(
+        "Connecting Decker at port: {}, inverted: {}",
+        port_name, inverted
+    );
+    decker::initialize_decker(window, port_name, inverted).map_err(|error| Error::SerialOpen {
+        port_name: port_name.to_string(),
+        kind: format!("{:?}", error.kind()),
+        message: error.to_string(),
+        os_code: error.raw_os_error(),
+    })?;
+    info!("Decker connected at {}", port_name);
+    Ok(())
 }
 
 #[tauri::command]
 fn disconnect_decker() -> Result<(), Error> {
-  decker::disconnect_decker();
-  info!("Decker disconnected");
-  Ok(())
+    decker::disconnect_decker();
+    info!("Decker disconnected");
+    Ok(())
 }
 
+fn build_tray(app: &tauri::AppHandle<Wry>) -> tauri::Result<(Menu<Wry>, TrayIcon<Wry>)> {
+    let show = MenuItemBuilder::with_id("show", "Show").build(app)?;
+    let hide = MenuItemBuilder::with_id("hide", "Hide").build(app)?;
+    let quit = MenuItemBuilder::with_id("quit", "Quit").build(app)?;
+    let menu = MenuBuilder::new(app)
+        .items(&[&show, &hide, &PredefinedMenuItem::separator(app)?, &quit])
+        .build()?;
 
+    let tray = TrayIconBuilder::new()
+        .menu(&menu)
+        .icon(app.default_window_icon().unwrap().clone())
+        .on_menu_event(|app, event| match event.id().as_ref() {
+            "quit" => {
+                info!("Quitting Dot X");
+                let app_handle = app.clone();
+                tauri::async_runtime::spawn(async move {
+                    track_analytics_event(&app_handle, "app_exited", None);
+                });
+                audio::stop_volume_sync();
+                std::process::exit(0);
+            }
+            "hide" => {
+                info!("Hiding Dot X");
+                trace!("HIDING!");
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.hide();
+                }
+            }
+            "show" => {
+                info!("Showing Dot X");
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.show();
+                    let _ = window.unminimize();
+                    let _ = window.set_focus();
+                }
+            }
+            _ => {}
+        })
+        .on_tray_icon_event(|tray, event| match event {
+            TrayIconEvent::Click {
+                button: MouseButton::Left,
+                button_state: MouseButtonState::Up,
+                ..
+            } => {
+                let app = tray.app_handle();
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.show();
+                    let _ = window.unminimize();
+                    let _ = window.set_focus();
+                }
+            }
+            _ => {}
+        })
+        .build(app)?;
 
-
-fn build_menu() -> SystemTrayMenu {
-  let menuitem_quit = CustomMenuItem::new("quit".to_string(), "Quit");
-  let menuitem_show = CustomMenuItem::new("show".to_string(), "Show");
-  let menuitem_hide = CustomMenuItem::new("hide".to_string(), "Hide");
-  SystemTrayMenu::new()
-      .add_item(menuitem_show) 
-      .add_item(menuitem_hide)  
-      .add_native_item(SystemTrayMenuItem::Separator)
-      .add_item(menuitem_quit)
+    Ok((menu, tray))
 }
 
-fn show_notification(title: &str, body : &str) {
-  info!("Showing notification || Title: {} | Message: {}", title, body);
-  let context = tauri::generate_context!("tauri.conf.json");
-  Notification::new(&context.config().tauri.bundle.identifier)
-    .title(title)
-    .body(body)
-    .show()
-    .unwrap();
+fn tray_available() -> bool {
+    #[cfg(target_os = "linux")]
+    return tray_host::tray_available();
+    #[cfg(not(target_os = "linux"))]
+    true
 }
 
+fn show_notification(app: &tauri::AppHandle, title: &str, body: &str) -> bool {
+    info!(
+        "Showing notification || Title: {} | Message: {}",
+        title, body
+    );
+    match app.notification().builder().title(title).body(body).show() {
+        Ok(()) => true,
+        Err(err) => {
+            error!("Failed to show notification: {err}");
+            false
+        }
+    }
+}
+
+fn load_tray_notice_state(app: &AppHandle) -> TrayNoticeState {
+    let already_shown = match app.store("config.json") {
+        Ok(store) => store
+            .get("closeToTrayNoticeShown")
+            .and_then(|value| value.as_bool())
+            .unwrap_or(false),
+        Err(err) => {
+            warn!("Failed to read close-to-tray notice preference: {err}");
+            false
+        }
+    };
+
+    TrayNoticeState::new(already_shown)
+}
+
+fn show_close_to_tray_notice(app: &AppHandle, state: &TrayNoticeState) {
+    if !state.claim_first_notice() {
+        return;
+    }
+
+    if !show_notification(
+        app,
+        "Dot X is still running",
+        "You can reopen Dot X from the system tray.",
+    ) {
+        state.release_failed_notice();
+        return;
+    }
+
+    match app.store("config.json") {
+        Ok(store) => {
+            store.set("closeToTrayNoticeShown", json!(true));
+            if let Err(err) = store.save() {
+                warn!("Failed to save close-to-tray notice preference: {err}");
+            }
+        }
+        Err(err) => warn!("Failed to store close-to-tray notice preference: {err}"),
+    }
+}
+
+#[derive(Clone, serde::Serialize)]
+struct InstancePayload {
+    args: Vec<String>,
+    cwd: String,
+}
 
 fn start_aptabase_heartbeat(app: tauri::AppHandle) {
-  thread::spawn(move || {
-    loop {
-      app.track_event("app_heartbeat💓", None);
-      thread::sleep(Duration::from_secs(1 * 60 * 59));//heartbeat every hour (I'm concerned exactly 1 hour will make a new session, so I'm doing 59 minutes - you got a problem with that? That's what I thought.)
-    }
-  });
+    thread::spawn(move || {
+        loop {
+            track_analytics_event(&app, "app_heartbeat💓", None);
+            let app_handle = app.clone();
+            tauri::async_runtime::spawn(async move {
+                if let Ok(plugins) = plugin_server::get_connected_plugins().await {
+                    for plugin in plugins {
+                        track_plugin_usage_event(&app_handle, &plugin.id, &plugin.name, true);
+                    }
+                }
+            });
+            // Roughly hourly. 59 minutes rather than exactly 60 so the interval does not
+            // consistently line up with the analytics session boundary and start a new session.
+            thread::sleep(Duration::from_secs(1 * 60 * 59));
+        }
+    });
 }
 
-fn setup_panic_handler(client: ClientInitGuard) {
+pub(crate) fn track_analytics_event(app: &AppHandle, event: &str, properties: Option<Value>) {
+    if app.state::<TelemetrySettings>().analytics_enabled() {
+        let _ = app.track_event(event, properties);
+    }
+}
+
+pub(crate) fn track_plugin_usage_event(
+    app: &AppHandle,
+    plugin_id: &str,
+    plugin_name: &str,
+    heartbeat: bool,
+) {
+    if !app.state::<TelemetrySettings>().analytics_enabled() {
+        return;
+    }
+    let limiter = PLUGIN_USAGE_LIMITER.get_or_init(Default::default);
+    let should_report = limiter
+        .lock()
+        .unwrap_or_else(|err| err.into_inner())
+        .should_report(plugin_id, std::time::Instant::now(), heartbeat);
+    if !should_report {
+        return;
+    }
+    track_analytics_event(
+        app,
+        "plugin_used",
+        Some(json!({ "plugin_id": plugin_id, "plugin_name": plugin_name })),
+    );
+}
+
+#[cfg(test)]
+mod plugin_usage_tests {
+    use super::PluginUsageLimiter;
+    use std::time::{Duration, Instant};
+
+    #[test]
+    fn repeated_connections_do_not_flood_usage_events() {
+        let mut limiter = PluginUsageLimiter::default();
+        let start = Instant::now();
+
+        assert!(limiter.should_report("streamdeck", start, false));
+        for second in 1..=60 {
+            assert!(!limiter.should_report("streamdeck", start + Duration::from_secs(second), false));
+        }
+        assert!(limiter.should_report("showcase", start, false));
+        assert!(limiter.should_report("streamdeck", start + Duration::from_secs(59 * 60), true));
+        assert!(!limiter.should_report("streamdeck", start + Duration::from_secs(59 * 60 + 1), false));
+        assert!(limiter.should_report("streamdeck", start + Duration::from_secs(119 * 60), false));
+    }
+}
+
+fn setup_panic_handler(client: Client) {
     std::panic::set_hook(Box::new(move |panic_info| {
         let timestamp = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
         let panic_message = format!("[{}] Panic occurred: {}", timestamp, panic_info);
-        
+
         // Log using the log crate
         error!("{}", panic_message);
 
         // Also send to Sentry
-        sentry::capture_message(
-            &panic_message,
-            sentry::Level::Fatal,
-        );
-        
+        sentry::capture_message(&panic_message, sentry::Level::Fatal);
+
         client.flush(Some(std::time::Duration::from_secs(2)));
     }));
 }
 
+fn find_executable_recursive(base: &std::path::Path, name: &str) -> Option<std::path::PathBuf> {
+    if let Ok(mut entries) = fs::read_dir(base) {
+        while let Some(Ok(entry)) = entries.next() {
+            let p = entry.path();
+            if p.is_dir() {
+                if let Some(found) = find_executable_recursive(&p, name) { return Some(found); }
+            } else if let Some(fname) = p.file_name() {
+                if fname.eq_ignore_ascii_case(name) { return Some(p); }
+            }
+        }
+    }
+    None
+}
 
+fn ensure_deno_extracted(app: &tauri::AppHandle) -> Result<std::path::PathBuf, String> {
+    let path_resolver = app.path();
+    let data_dir = path_resolver.app_data_dir().map_err(|e| format!("App data dir not available: {}", e))?;
+    let deno_dir = data_dir.join("deno");
+    let exe_name = if cfg!(target_os = "windows") { "deno.exe" } else { "deno" };
+    let deno_exe_default = deno_dir.join(exe_name);
+    if deno_exe_default.exists() {
+        return Ok(deno_exe_default);
+    }
 
-fn main() {
-    let tray_menu = build_menu();
+    if let Some(found) = find_executable_recursive(&deno_dir, exe_name) { return Ok(found); }
 
-    let client = sentry_tauri::sentry::init((
-        "https://473d7b762855b5baa461a7921a5f95cc@sentry-ingest.frogbyte.io/4",
-        sentry_tauri::sentry::ClientOptions {
-            release: sentry_tauri::sentry::release_name!(),
+    fs::create_dir_all(&deno_dir).map_err(|e| format!("Failed to create deno dir: {}", e))?;
+
+    // Resolve the bundled Deno archive for the current platform.
+    #[cfg(target_os = "windows")]
+    let archive_rel = "resources/deno/deno-x86_64-pc-windows-msvc.zip";
+    #[cfg(target_os = "linux")]
+    let archive_rel = "resources/deno/deno-x86_64-unknown-linux-gnu.zip";
+    #[cfg(not(any(target_os = "windows", target_os = "linux")))]
+    let archive_rel = "";
+
+    if archive_rel.is_empty() {
+        return Err("Bundled Deno is not available for this platform".to_string());
+    }
+
+    let archive_path = path_resolver.resolve(archive_rel, tauri::path::BaseDirectory::Resource)
+        .map_err(|e| format!("Bundled Deno archive not found at {}: {}", archive_rel, e))?;
+
+    // The Windows and Linux archives are both plain zips containing the Deno
+    // executable at the root; extract every entry into the data dir.
+    let file = File::open(&archive_path).map_err(|e| format!("Failed to open Deno zip: {}", e))?;
+    let mut zip = zip::ZipArchive::new(file).map_err(|e| format!("Failed to read Deno zip: {}", e))?;
+    for i in 0..zip.len() {
+        let mut zipped_file = zip.by_index(i).map_err(|e| format!("Zip entry error: {}", e))?;
+        let entry_path = match zipped_file.enclosed_name() { Some(p) => p.to_owned(), None => continue };
+        let out_path = deno_dir.join(entry_path);
+        if zipped_file.is_dir() {
+            fs::create_dir_all(&out_path).map_err(|e| format!("Create dir failed: {}", e))?;
+        } else {
+            if let Some(parent) = out_path.parent() { fs::create_dir_all(parent).map_err(|e| format!("Create dir failed: {}", e))?; }
+            let mut outfile = File::create(&out_path).map_err(|e| format!("Create file failed: {}", e))?;
+            std::io::copy(&mut zipped_file, &mut outfile).map_err(|e| format!("Write file failed: {}", e))?;
+        }
+    }
+
+    // On Unix the extracted Deno binary needs its executable bit set before it can be spawned.
+    #[cfg(unix)]
+    if deno_exe_default.exists() {
+        let mut perms = fs::metadata(&deno_exe_default)
+            .map_err(|e| format!("Failed to read Deno permissions: {}", e))?
+            .permissions();
+        perms.set_mode(0o755);
+        fs::set_permissions(&deno_exe_default, perms)
+            .map_err(|e| format!("Failed to set Deno executable bit: {}", e))?;
+    }
+
+    if deno_exe_default.exists() {
+        return Ok(deno_exe_default);
+    }
+    if let Some(found) = find_executable_recursive(&deno_dir, exe_name) { return Ok(found); }
+
+    Err("Deno executable not found after extraction".to_string())
+}
+
+fn sentry_dsn() -> Option<&'static str> {
+    option_env!("DOTX_SENTRY_DSN").filter(|dsn| !dsn.trim().is_empty())
+}
+
+// WebKitGTK's DMA-BUF/GPU renderer can commit a buffer via
+// wp_linux_drm_syncobj_manager_v1 without setting an acquire timeline point
+// first, which NVIDIA's proprietary driver + KWin (and possibly other
+// compositors) reject as a protocol violation, crashing the app ~0.3s after
+// launch under Wayland (X11 has a separate blank-window issue). Delegate
+// detection + the session-appropriate fix to webkit2gtk-nvidia-quirk, unless
+// the user has already set one of its target env vars explicitly.
+#[cfg(target_os = "linux")]
+fn apply_nvidia_wayland_webkit_workaround() {
+    let user_overrode = std::env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER").is_some()
+        || std::env::var_os("__NV_DISABLE_EXPLICIT_SYNC").is_some();
+    if user_overrode {
+        return;
+    }
+    webkit2gtk_nvidia_quirk::apply_workaround_with_options(
+        webkit2gtk_nvidia_quirk::ApplyWorkaroundOptions::default(),
+    );
+}
+
+#[cfg(not(target_os = "linux"))]
+fn apply_nvidia_wayland_webkit_workaround() {}
+
+#[tokio::main]
+async fn main() {
+    apply_nvidia_wayland_webkit_workaround();
+
+    let telemetry_settings = TelemetrySettings::new(false, false);
+    let sentry_settings = telemetry_settings.clone();
+    let client = sentry::init((
+        sentry_dsn(),
+        sentry::ClientOptions {
+            release: sentry::release_name!(),
             attach_stacktrace: true,
+            before_send: Some(std::sync::Arc::new(move |event| {
+                if sentry_settings.crash_reporting_enabled() {
+                    Some(event)
+                } else {
+                    None
+                }
+            })),
             ..Default::default()
         },
     ));
 
-    // Initialize minidump first
-    let _guard = sentry_tauri::minidump::init(&client);
-    
-    // Then set up panic handler
-    setup_panic_handler(client);
+    setup_panic_handler(client.clone());
 
-    tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![get_installed_apps, get_all_session_names, set_application_volume, connect_decker, decker::get_devices, decker::send_decker_command, get_available_midi_output_port_names, attach_midi_device, detach_midi_device, get_active_app_name, disconnect_decker, set_screen_brightness, get_all_audio_devices, get_output_devices, get_input_devices, enable_volume_sync, disable_volume_sync, update_volume_sync_mappings ])
-        .plugin(tauri_plugin_aptabase::Builder::new("A-EU-7429874879").build()) // 👈 this is where you enter your App Key
-        .plugin(tauri_plugin_log::Builder::default().build())
-        .plugin(sentry_tauri::plugin())
+    let builder = tauri::Builder::default();
+    #[cfg(debug_assertions)]
+    let builder = builder.plugin(tauri_plugin_mcp_bridge::init());
+
+    builder
+        .manage(update_tracks::PendingBetaUpdate::default())
+        .invoke_handler(tauri::generate_handler![
+            get_installed_apps,
+            audio::get_all_session_names,
+            audio::set_application_volume,
+            connect_decker,
+            decker::get_devices,
+            decker::send_decker_command,
+            get_available_midi_output_port_names,
+            attach_midi_device,
+            detach_midi_device,
+            get_active_app_name,
+            disconnect_decker,
+            set_screen_brightness,
+            audio::get_all_audio_devices,
+            audio::get_output_devices,
+            audio::get_input_devices,
+            audio::enable_volume_sync,
+            audio::disable_volume_sync,
+            audio::update_volume_sync_mappings,
+            plugin_server::start_plugin_server,
+            plugin_server::stop_plugin_server,
+            plugin_server::send_to_plugin,
+            plugin_server::send_to_plugin_with_ack,
+            plugin_server::get_connected_plugins,
+            plugin_server::send_api_response,
+            plugin_server::broadcast_to_plugins,
+            plugin_server::get_plugin_server_port,
+            plugin_runtime::start_plugin,
+            plugin_runtime::stop_plugin,
+            plugin_runtime::restart_plugin,
+            plugin_runtime::start_enabled_plugins,
+            plugin_runtime::notify_frontend_ready,
+            plugin_runtime::get_plugin_logs,
+            plugin_runtime::clear_plugin_logs,
+            plugin_marketplace::list_installed_plugins,
+            plugin_marketplace::get_plugins_folder,
+            plugin_marketplace::open_plugins_folder,
+            plugin_marketplace::check_marketplace_plugin_updates,
+            plugin_marketplace::install_marketplace_plugin,
+            plugin_marketplace::uninstall_marketplace_plugin,
+            plugin_marketplace::get_dotx_manifest,
+            plugin_marketplace::install_local_plugin,
+            consume_pending_dotx_install,
+            set_telemetry_preference,
+            track_telemetry_event,
+            update_tracks::check_beta_update,
+            update_tracks::install_beta_update
+        ])
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_os::init())
+        .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_process::init())
+        // Our own modules log everything; dependencies stop at `info`. The
+        // websocket stack under the plugin server emits tens of thousands of
+        // trace lines a minute, which would bury the lines we write and roll the
+        // size-capped log file. Release builds never reach this filter: the
+        // `log` features in Cargo.toml compile out everything below `warn`.
+        .plugin(
+            tauri_plugin_log::Builder::new()
+                .level(log::LevelFilter::Info)
+                .level_for("dot_x", log::LevelFilter::Trace)
+                .build(),
+        )
+        .plugin(tauri_plugin_cli::init())
+        .plugin(tauri_plugin_shell::init())
+        .plugin(
+            tauri_plugin_aptabase::Builder::new(
+                option_env!("DOTX_APTABASE_KEY").unwrap_or("").trim(),
+            )
+            .build(),
+        )
+        .plugin(tauri_plugin_sentry::init(&client))
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_autostart::init(
-          MacosLauncher::LaunchAgent,
-          Some(vec!["--hidden"]),
+            MacosLauncher::LaunchAgent,
+            Some(vec!["--hidden"]),
         ))
-        .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
-          let window = app.get_window("main").unwrap();
-          if window.is_visible().unwrap() == false {
-            window.show().unwrap();
-            show_notification("Dot X", "Dot X is already running");
-          }
-          if window.is_minimized().unwrap() {
-            window.unminimize().unwrap();
-          }
-          window.set_focus().unwrap();
-        }))
-        .system_tray(SystemTray::new().with_menu(tray_menu))
-        .on_system_tray_event(|app, event| match event {
-          SystemTrayEvent::LeftClick {
-            position: _,
-            size: _,
-            ..
-        } => {
-            let window = app.get_window("main").unwrap();
-            window.show().unwrap();
-            if window.is_minimized().unwrap() {
-              window.unminimize().unwrap();
-            }
-            window.set_focus().unwrap();
-        }
-          SystemTrayEvent::MenuItemClick { id, .. } => {
-            match id.as_str() {
-              "quit" => {
-                info!("Quitting Dot X");
-                app.track_event("app_exited", None);
-                app.flush_events_blocking();
+        .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
+            // Check if a .dotxplugin file was passed (skip argv[0] which is the exe path).
+            let dotx_path = argv.iter().skip(1)
+                .find(|arg| arg.to_lowercase().ends_with(".dotxplugin"))
+                .cloned();
 
-                // Best-effort cleanup (stop polling and unregister callbacks) before exiting.
-                unsafe {
-                    let mut state = VOLUME_SYNC_STATE.lock().unwrap();
-                    if let Some(monitor) = state.monitor.as_mut() {
-                        monitor.stop_polling();
-                        let mut controller = get_initialized_audio_controller();
-                        let _ = monitor.unregister_all_callbacks(&mut controller);
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.unminimize();
+                let _ = window.set_focus();
+                if let Some(path) = dotx_path {
+                    let _ = app.emit("dotx-open-file", path);
+                } else {
+                    if matches!(window.is_visible(), Ok(false)) {
+                        show_notification(app, "Dot X", "Dot X is already running");
                     }
-                    state.disable();
                 }
-                std::process::exit(0);
-              }
-              "hide" => {
-                info!("Hiding Dot X");
-                trace!("HIDING!");
-                let window = app.get_window("main").unwrap();
-                window.hide().unwrap();
-              }
-              "show" => {
-                info!("Showing Dot X");
-                let window = app.get_window("main").unwrap();
-                window.show().unwrap();
-                if window.is_minimized().unwrap() {
-                  window.unminimize().unwrap();
-                }
-                window.set_focus().unwrap();
-              }
-              _ => {}
+            } else {
+                error!("Main window not found during single-instance handling");
             }
-          }
-          _ => {}
-        })
-        .on_window_event(|event| {
-            match event.event() {
-                tauri::WindowEvent::CloseRequested { api, .. } => {
-                    event.window().hide().unwrap();
-                    api.prevent_close();
+        }))
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                if tray_available() {
+                    let app = window.app_handle();
+                    if let Some(state) = app.try_state::<TrayNoticeState>() {
+                        show_close_to_tray_notice(app, &state);
+                    }
+                    let _ = window.hide();
+                } else {
+                    let _ = window.minimize();
                 }
-                _ => {}
+                api.prevent_close();
             }
         })
-        .setup(|app| {
-          {
+        .setup(move |app| {
+            load_telemetry_settings(app.handle(), &telemetry_settings);
+            app.manage(telemetry_settings.clone());
+            app.manage(load_tray_notice_state(app.handle()));
+            // On Linux, run power-monitor setup off the critical path. psp's logind
+            // D-Bus calls can block for ~25s (until timeout) on sessions where the
+            // logind session object isn't resolvable (SSH, containers, some headless
+            // setups). On Windows psp creates its message window on the calling
+            // thread, so setup has to stay on the main thread.
+            #[cfg(target_os = "linux")]
+            std::thread::spawn(|| {
+                power_monitor::setup_power_monitoring();
+            });
+            #[cfg(not(target_os = "linux"))]
             power_monitor::setup_power_monitoring();
-          }
-          start_aptabase_heartbeat(app.handle().clone());
-          let mut props_map = HashMap::new();
-          props_map.insert("slider_amount".to_string(), Value::String("5".to_string()));
-      
-          // Convert the HashMap to a serde_json::Value
-          let props_value = json!(props_map);
-          app.track_event("app_started", Some(props_value));
-          app.flush_events_blocking();
-          let window = app.get_window("main").unwrap();
-          #[cfg(any(windows, target_os = "macos"))]
-          set_shadow(&window, true).unwrap();
-          
-          #[cfg(target_os = "macos")]
-          apply_vibrancy(&window, NSVisualEffectMaterial::HudWindow, None, None)
-          .expect("Unsupported platform! 'apply_vibrancy' is only supported on macOS");
-        
-        #[cfg(target_os = "windows")]
-        apply_mica(&window, None)
-        .unwrap_or_else(|_| { let _ = apply_blur(&window, Some((25, 10, 30, 255))); });
+            start_aptabase_heartbeat(app.handle().clone());
+            let mut props_map = HashMap::new();
+            props_map.insert("slider_amount".to_string(), Value::String("5".to_string()));
 
-        // This gets any command line arguments passed to the app
-        match app.get_cli_matches() {
-          // `matches` here is a Struct with { args, subcommand }.
-          // `args` is `HashMap<String, ArgData>` where `ArgData` is a struct with { value, occurrences }.
-          // `subcommand` is `Option<Box<SubcommandMatches>>` where `SubcommandMatches` is a struct with { name, matches }.
-          Ok(matches) => {
-            //if hidden is true, hide the window, else show it
-            if let Some(arg_data) = matches.args.get("hidden") {
-              if arg_data.value == Value::Bool(true) {
-                  window.hide().unwrap();
-              } else {
-                window.show().unwrap();
-              }
+            // Convert the HashMap to a serde_json::Value and send event on async runtime
+            let props_value = json!(props_map);
+            {
+                let app_handle = app.handle().clone();
+                tauri::async_runtime::spawn(async move {
+                    track_analytics_event(&app_handle, "app_started", Some(props_value));
+                });
             }
-          }
-          Err(_) => {}
-        }
+            let Some(window) = app.get_webview_window("main") else {
+                error!("Main window not found during setup");
+                return Ok(());
+            };
+            #[cfg(target_os = "macos")]
+            apply_vibrancy(&window, NSVisualEffectMaterial::HudWindow, None, None)
+                .expect("Unsupported platform! 'apply_vibrancy' is only supported on macOS");
 
-        info!("Starting Dot X with version {:?}", sentry_tauri::sentry::release_name!());
-
-        // Check if volume sync was enabled and restore it
-        let stores = app.state::<StoreCollection<Wry>>();
-        let path = PathBuf::from("config.json");
-        let mut volume_sync_enabled = false;
-        let _ = with_store(app.handle().clone(), stores, path, |store| {
-            if let Some(value) = store.get("volumeSyncEnabled") {
-                volume_sync_enabled = value.as_bool().unwrap_or(false);
+            // Apply Windows window effects
+            #[cfg(target_os = "windows")]
+            {
+                if let Err(err) = apply_mica(&window, None) {
+                    trace!("Mica application failed: {err:?}, falling back to blur");
+                    let _ = apply_blur(&window, Some((25, 10, 30, 255)));
+                }
             }
+
+            let (_menu, _tray) = build_tray(&app.handle())?;
+
+            // Check if a .dotxplugin file was passed at launch (skip argv[0] = exe path).
+            for arg in std::env::args().skip(1) {
+                if arg.to_lowercase().ends_with(".dotxplugin") && std::path::Path::new(&arg).exists() {
+                    if let Ok(mut guard) = PENDING_DOTX_PATH.lock() {
+                        *guard = Some(arg);
+                    }
+                    break;
+                }
+            }
+
+            // This gets any command line arguments passed to the app
+            let matches = app.cli().matches().unwrap_or_default();
+            if let Some(hidden) = matches.args.get("hidden") {
+                if hidden.value == Value::Bool(true) && tray_available() {
+                    let _ = window.hide();
+                } else {
+                    let _ = window.show();
+                }
+            }
+
+            info!("Starting Dot X with version {:?}", sentry::release_name!());
+            if sentry_dsn().is_none() {
+                warn!("DOTX_SENTRY_DSN was not set at build time, crash reporting is disabled");
+            }
+
+            // Ensure bundled Deno is available and export its path
+            match ensure_deno_extracted(&app.handle()) {
+                Ok(p) => {
+                    unsafe {
+                        std::env::set_var("DOTX_DENO_PATH", p.to_string_lossy().to_string());
+                    }
+                    info!("Deno ready at {}", p.display());
+                }
+                Err(e) => {
+                    error!("Deno bootstrap failed: {}", e);
+                }
+            }
+
+            // Rewrite the autostart entry so it points at the current executable.
+            // `is_enabled` only checks that a Run entry with our name exists, it never
+            // compares paths, so an install that moved (v1.x per-machine MSI -> v2
+            // per-user NSIS) leaves the toggle reading "on" while pointing at a binary
+            // that is gone. `enable` is idempotent, so re-running it just refreshes the path.
+            //
+            // Release builds only: in dev this would repoint the user's autostart entry at
+            // target/debug on every `tauri dev` run, hijacking it from the installed app.
+            #[cfg(not(debug_assertions))]
+            {
+                let autostart = app.autolaunch();
+                match autostart.is_enabled() {
+                    Ok(true) => {
+                        if let Err(e) = autostart.enable() {
+                            error!("Failed to refresh autostart entry: {}", e);
+                        }
+                    }
+                    Ok(false) => {}
+                    Err(e) => error!("Failed to read autostart state: {}", e),
+                }
+            }
+
+            audio::restore_volume_sync(app.handle());
+
+            // Store global handle and auto-start enabled plugins
+            APP.set(app.handle().clone()).expect("error setting up app");
+            plugin_runtime::auto_start_enabled_plugins(app.handle().clone());
             Ok(())
-        });
-
-        if volume_sync_enabled {
-            // Enable volume sync on startup
-            let window = app.get_window("main").unwrap();
-            if let Err(e) = enable_volume_sync(window) {
-                error!("Failed to enable volume sync on startup: {:?}", e);
-            }
-        }
-      
-        APP.set(app.handle()).expect("error setting up app");
-          Ok(())
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
 
 fn get_app_handle() -> &'static AppHandle {
-  APP.get().expect("AppHandle not initialized")
+    APP.get().expect("AppHandle not initialized")
 }
 
 fn get_suspend_dim_enabled() -> bool {
-  let app_handle = get_app_handle();
-  let stores = app_handle.state::<StoreCollection<Wry>>();
-  let path = PathBuf::from("config.json");
-
-  let mut result = false;
-  let _ = with_store(app_handle.clone(), stores, path, |store| {
-    if let Some(value) = store.get("suspendDimEnabled") {
-      result = value.as_bool().unwrap_or(false);
+    let app_handle = get_app_handle();
+    match app_handle.store("config.json") {
+        Ok(store) => store
+            .get("suspendDimEnabled")
+            .and_then(|value| value.as_bool())
+            .unwrap_or(false),
+        Err(err) => {
+            error!("Failed to open config store: {err}");
+            false
+        }
     }
-    Ok(())
-  });
-
-  result
 }
-
-#[cfg(test)]
-mod tests {
-  use super::*;
-  use std::sync::{Arc, Barrier, atomic::{AtomicBool, Ordering}};
-
-  #[test]
-  fn controller_refresh_balances_each_additional_com_initialization() {
-    let mut controller = 0;
-    let mut initializations = 1;
-    let mut uninitializations = 0;
-
-    refresh_controller_balanced(
-      &mut controller,
-      || {
-        initializations += 1;
-        1
-      },
-      || uninitializations += 1,
-    );
-
-    assert_eq!(controller, 1);
-    assert_eq!(initializations - uninitializations, 1);
-  }
-
-  #[test]
-  fn disabling_volume_sync_invalidates_the_previous_polling_generation() {
-    let mut state = VolumeSyncState::default();
-    let first_generation = state
-      .enable(VolumeMonitor::new())
-      .expect("first enable should start a polling generation");
-
-    state.disable();
-
-    let second_generation = state
-      .enable(VolumeMonitor::new())
-      .expect("re-enable should start a new polling generation");
-    assert!(!state.is_current_generation(first_generation));
-    assert!(state.is_current_generation(second_generation));
-  }
-
-  #[test]
-  fn mapped_names_resolve_to_the_session_names_targets_are_keyed_by() {
-    let mapped = vec!["Spotify".to_string(), "chrome(2)".to_string(), "unmapped".to_string()];
-    let sessions = vec![
-      "spotify".to_string(),
-      "chrome(2)".to_string(),
-      "Discord".to_string(),
-    ];
-
-    let resolved = resolve_mapped_session_names(&mapped, &sessions);
-
-    assert_eq!(resolved, vec!["spotify".to_string(), "chrome(2)".to_string()]);
-  }
-
-  #[test]
-  fn seeding_applies_when_the_mappings_it_was_built_from_are_unchanged() {
-    let state = Mutex::new(VolumeSyncState::default());
-    let generation = state
-      .lock()
-      .unwrap()
-      .enable(VolumeMonitor::new())
-      .expect("enable should start a polling generation");
-    state.lock().unwrap().mapped_sessions = vec!["Spotify".to_string()];
-
-    let applied = apply_seeded_expected_volumes(
-      &state,
-      generation,
-      &["Spotify".to_string()],
-      vec!["spotify".to_string()],
-      vec![("spotify".to_string(), 0.4)],
-    );
-
-    assert!(applied);
-    let state = state.lock().unwrap();
-    let monitor = state.monitor.as_ref().unwrap();
-    assert_eq!(monitor.get_expected_volume("spotify"), Some(0.4));
-  }
-
-  #[test]
-  fn seeding_is_skipped_when_the_mappings_changed_while_the_controller_was_queried() {
-    let state = Mutex::new(VolumeSyncState::default());
-    let generation = state
-      .lock()
-      .unwrap()
-      .enable(VolumeMonitor::new())
-      .expect("enable should start a polling generation");
-    // The user unmapped everything while this pass was reading the controller.
-    state.lock().unwrap().mapped_sessions = Vec::new();
-
-    let applied = apply_seeded_expected_volumes(
-      &state,
-      generation,
-      &["Spotify".to_string()],
-      vec!["spotify".to_string()],
-      vec![("spotify".to_string(), 0.4)],
-    );
-
-    assert!(!applied);
-    let state = state.lock().unwrap();
-    let monitor = state.monitor.as_ref().unwrap();
-    assert_eq!(monitor.get_expected_volume("spotify"), None);
-  }
-
-  #[test]
-  fn disabling_volume_sync_forgets_the_mapped_sessions() {
-    let mut state = VolumeSyncState::default();
-    state
-      .enable(VolumeMonitor::new())
-      .expect("enable should start a polling generation");
-    state.mapped_sessions = vec!["Spotify".to_string()];
-
-    state.disable();
-
-    assert!(state.mapped_sessions.is_empty());
-  }
-
-  #[test]
-  fn stale_polling_generation_cannot_restore_after_reenable() {
-    let state = Arc::new(Mutex::new(VolumeSyncState::default()));
-    let first_generation = state
-      .lock()
-      .unwrap()
-      .enable(VolumeMonitor::new())
-      .expect("first enable should start a polling generation");
-    let restore_ready = Arc::new(Barrier::new(2));
-    let continue_restore = Arc::new(Barrier::new(2));
-    let restored = Arc::new(AtomicBool::new(false));
-
-    let worker_state = Arc::clone(&state);
-    let worker_ready = Arc::clone(&restore_ready);
-    let worker_continue = Arc::clone(&continue_restore);
-    let worker_restored = Arc::clone(&restored);
-    let worker = thread::spawn(move || {
-      worker_ready.wait();
-      worker_continue.wait();
-      run_for_current_volume_sync_generation(
-        &worker_state,
-        first_generation,
-        |_| worker_restored.store(true, Ordering::SeqCst),
-      )
-    });
-
-    restore_ready.wait();
-    {
-      let mut state = state.lock().unwrap();
-      state.disable();
-      state
-        .enable(VolumeMonitor::new())
-        .expect("re-enable should start a new polling generation");
-    }
-    continue_restore.wait();
-
-    assert!(!worker.join().unwrap());
-    assert!(!restored.load(Ordering::SeqCst));
-  }
-}
-

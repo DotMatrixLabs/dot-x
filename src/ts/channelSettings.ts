@@ -1,4 +1,4 @@
-import { Store } from "tauri-plugin-store-api";
+import { Store } from "@tauri-apps/plugin-store";
 import * as _ from "lodash"; // Make sure to import lodash if you haven't already
 import { useDeckerStore } from "../store/deckerStore";
 
@@ -6,14 +6,18 @@ import { useDeckerStore } from "../store/deckerStore";
  * Class for managing channel settings.
  */
 class ChannelSettings {
-    private store: Store;
+    private store!: Store;
 
     /**
      * Creates an instance of ChannelSettings.
      */
     constructor() {
-        this.store = new Store("channelSettings.json");
-        this.getAllChannelSettings();
+    }
+
+    private async ensureLoaded() {
+        if (!this.store) {
+            this.store = await Store.load("channelSettings.json");
+        }
     }
 
     /**
@@ -22,6 +26,7 @@ class ChannelSettings {
      * @param {any} value - The value to be stored.
      */
     async set(key: string, value: any) {
+        await this.ensureLoaded();
         await this.store.set(key, value);
         await this.save();
     }
@@ -32,6 +37,7 @@ class ChannelSettings {
      * @returns {Promise<any>} The stored value.
      */
     async get(key: string): Promise<any> {
+        await this.ensureLoaded();
         return await this.store.get(key);
     }
 
@@ -39,6 +45,7 @@ class ChannelSettings {
      * Saves changes to the store.
      */
     async save() {
+        await this.ensureLoaded();
         await this.store.save();
     }
 
@@ -52,6 +59,7 @@ class ChannelSettings {
 
 
     async getAllChannelSettings(): Promise<any> {
+        await this.ensureLoaded();
         let settingsObject: { [key: string]: any } = {};
         const keys = await this.store.keys();
         await Promise.all(keys.map(async (key) => {
@@ -63,6 +71,7 @@ class ChannelSettings {
     }
 
     async updateChannelSettings(channelId: number, key: string, value: any): Promise<any> {
+        await this.ensureLoaded();
         //first get the current settings object for the channel
         let currentSettings = await this.getChannelSettings(channelId);
         //merge the current settings with the new settings
@@ -81,6 +90,7 @@ class ChannelSettings {
 
     async getChannelSettings(channelId: number): Promise<any> {
         if(channelId === undefined) return; 
+        await this.ensureLoaded();
         return await this.store.get(channelId.toString());
     }
     
