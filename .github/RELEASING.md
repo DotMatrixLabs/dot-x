@@ -11,6 +11,12 @@ Dot X's updater reads `latest.json` from the latest published GitHub Release. Th
 
 Windows Authenticode signing is deferred to #244. The draft workflow currently produces an unsigned Windows installer with a Tauri-signed updater bundle.
 
+Building and uploading are separate steps. `tools/release-assets.mjs` verifies
+Windows updater signatures before upload, then checks each uploaded asset by
+downloading it and comparing SHA-256 hashes. If GitHub stores an asset but returns
+an error, matching remote bytes count as success. Otherwise the entire replace
+and upload operation is retried, up to four attempts, without rebuilding the app.
+
 ## Prepare a release
 
 1. Merge the intended changes into `main` and set the same version in `src-tauri/tauri.conf.json` and `src-tauri/Cargo.toml`.

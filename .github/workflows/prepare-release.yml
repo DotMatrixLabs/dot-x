@@ -107,7 +107,7 @@ jobs:
       - name: Install license generator
         run: cargo install cargo-license --version 0.7.0 --locked
 
-      - name: Build signed updater artifacts in a draft release
+      - name: Build signed updater artifacts
         uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -121,12 +121,11 @@ jobs:
         with:
           tauriScript: yarn tauri
           args: --bundles nsis
-          tagName: ${{ inputs.release_tag || github.ref_name }}
-          releaseName: Dot X ${{ inputs.release_tag || github.ref_name }}
-          releaseDraft: true
-          prerelease: ${{ inputs.publish_prerelease || contains(github.ref_name, '-') }}
-          uploadUpdaterJson: true
-          updaterJsonPreferNsis: true
+
+      - name: Upload and verify Windows release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node tools/release-assets.mjs windows
 
       - name: Check draft updater metadata
         shell: pwsh
@@ -238,7 +237,7 @@ jobs:
           version=$(jq -r .version src-tauri/tauri.conf.json)
           out="$RUNNER_TEMP/dotx-linux"
           appimage="Dot.X_${version}_amd64.AppImage"
-          gh release upload "$RELEASE_TAG" "$out/Dot.X_${version}_amd64.deb" "$out/$appimage" "$out/$appimage.sig" --clobber
+          node tools/release-assets.mjs upload "$out/Dot.X_${version}_amd64.deb" "$out/$appimage" "$out/$appimage.sig"
 
           gh release download "$RELEASE_TAG" --pattern latest.json --dir "$out" --clobber
           url="https://github.com/${GITHUB_REPOSITORY}/releases/download/${RELEASE_TAG}/${appimage}"
@@ -246,7 +245,7 @@ jobs:
             '.platforms["linux-x86_64"] = {signature: $sig, url: $url}' \
             "$out/latest.json" > "$out/latest.json.new"
           mv "$out/latest.json.new" "$out/latest.json"
-          gh release upload "$RELEASE_TAG" "$out/latest.json" --clobber
+          node tools/release-assets.mjs upload "$out/latest.json"
 
       - name: Check Linux updater metadata
         env:

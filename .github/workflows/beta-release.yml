@@ -34,7 +34,7 @@ jobs:
         with:
           node-version: '22'
       - name: Test beta release selection
-        run: node --test tools/beta-release.test.mjs
+        run: node --test tools/beta-release.test.mjs tools/release-assets.test.mjs
       - name: Select merged PRs and create versioned beta tag
         id: beta
         env:
