@@ -54,8 +54,9 @@ yarn install
 
 Copy `.env.example` to `.env` and fill in what you need. A fresh contributor
 build works with everything left empty: the app skips Sentry and Aptabase
-initialisation and marketplace statistics when their variables are unset, so
-nothing crashes — the features are just quieter.
+initialisation and marketplace statistics when their variables are unset, and
+the in-app feedback form says it isn't set up. Nothing crashes; the features
+are just quieter.
 
 | Variable | Used by | Purpose |
 | --- | --- | --- |
@@ -65,6 +66,8 @@ nothing crashes — the features are just quieter.
 | `VITE_SUPABASE_ANON_KEY` | Frontend | Supabase anon key for marketplace statistics |
 | `VITE_STATS_SECRET_KEY` | Frontend | Key for obfuscating the local slider-distance stat |
 | `VITE_MARKETPLACE_REGISTRY_URL` | Frontend | Plugin marketplace registry index (has a default) |
+| `VITE_VEERIFY_API_URL` | Frontend | Veerify base URL for the in-app feedback form |
+| `VITE_VEERIFY_APP_KEY` | Frontend | Veerify app key (create-feedback only) for the in-app feedback form |
 
 `.env` is gitignored; never commit it. Forks can set their own values.
 
@@ -240,4 +243,20 @@ Things to know about the transition:
 See [CONTRIBUTING.md](CONTRIBUTING.md) for how to open issues and pull
 requests, and [SECURITY.md](SECURITY.md) for reporting security problems
 privately.
+
+## License
+
+Dot X source code and official binaries are licensed under the GNU General
+Public License, version 3 or any later version, `GPL-3.0-or-later`. See
+[LICENSE](LICENSE). The installer displays the GPL notice and full license
+text bundled in [GPL-3.0.txt](src-tauri/licenses/GPL-3.0.txt).
+
+The plugin SDK is separately licensed under [MIT](plugin-sdk/LICENSE).
+Bundled third-party components retain their own licenses and notices in
+`src-tauri/licenses/`.
+
+When distributing an official binary release, provide its corresponding
+source and build instructions alongside the installer. The source must match
+that release and include the required dependency sources. Make those available
+before publishing the binary.
 
