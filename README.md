@@ -64,37 +64,12 @@ are just quieter.
 | `DOTX_APTABASE_KEY` | Rust backend | App key for Aptabase usage analytics |
 | `VITE_SUPABASE_URL` | Frontend | Supabase project URL for marketplace statistics |
 | `VITE_SUPABASE_ANON_KEY` | Frontend | Supabase anon key for marketplace statistics |
-| `VITE_STATS_SECRET_KEY` | Frontend | Key for obfuscating the local slider-distance stat |
+| `VITE_STATS_SECRET_KEY` | Frontend | Key for hashing the local slider-distance stat |
 | `VITE_MARKETPLACE_REGISTRY_URL` | Frontend | Plugin marketplace registry index (has a default) |
 | `VITE_VEERIFY_API_URL` | Frontend | Veerify base URL for the in-app feedback form |
 | `VITE_VEERIFY_APP_KEY` | Frontend | Veerify app key (create-feedback only) for the in-app feedback form |
 
 `.env` is gitignored; never commit it. Forks can set their own values.
-
-#### Release build configuration
-
-For official GitHub Releases, configure repository Actions secrets with the
-same names as the five optional values above: `DOTX_SENTRY_DSN`,
-`DOTX_APTABASE_KEY`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and
-`VITE_STATS_SECRET_KEY`. The release workflow passes them only to the packaging
-step, which rebuilds both the frontend and Rust backend. Unset secrets produce
-the same disabled integrations as an empty local `.env`.
-
-These values are compiled into the distributed app. Environment configuration
-keeps them out of source control; it does not make them secret from someone
-with the installer. Rotate the old Sentry DSN and Aptabase key before the
-public release, then configure their replacements in Actions secrets.
-
-Keep `VITE_STATS_SECRET_KEY` stable between releases. Changing it resets the
-stored slider-distance counters when the app detects a different key.
-
-The marketplace registry uses the public default in `.env.example`. Updater
-signing uses separate `TAURI_SIGNING_PRIVATE_KEY` and
-`TAURI_SIGNING_PRIVATE_KEY_PASSWORD` secrets. Preserve the existing updater
-key so installed v1 clients can verify the transition to v2.
-
-See [the open source readiness checklist](docs/open-source-readiness.md) for
-the remaining publication gates tracked by #191.
 
 ## Usage
 
