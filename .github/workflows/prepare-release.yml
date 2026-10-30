@@ -4,12 +4,26 @@ on:
   push:
     tags:
       - 'v[0-9]*'
+  workflow_call:
+    inputs:
+      release_tag:
+        type: string
+        required: true
+      source_sha:
+        type: string
+        required: true
+      publish_prerelease:
+        type: boolean
+        default: false
 
 permissions:
   contents: write
 
+env:
+  RELEASE_TAG: ${{ inputs.release_tag || github.ref_name }}
+
 concurrency:
-  group: dot-x-release-${{ github.ref }}
+  group: dot-x-release-${{ inputs.release_tag || github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -19,19 +33,33 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          ref: ${{ inputs.release_tag || github.ref }}
           fetch-depth: 0
 
       - name: Check tag and source branch
         shell: pwsh
+        env:
+          BETA_SOURCE_SHA: ${{ inputs.source_sha }}
+          PUBLISH_PRERELEASE: ${{ inputs.publish_prerelease || false }}
         run: |
           git fetch origin main
-          git merge-base --is-ancestor HEAD origin/main
+          $source = 'HEAD'
+          if ($env:PUBLISH_PRERELEASE -eq 'true') {
+            if ($env:BETA_SOURCE_SHA -notmatch '^[a-f0-9]{40}$' -or (git rev-parse HEAD^) -ne $env:BETA_SOURCE_SHA) {
+              throw 'Beta version commit must directly follow its selected main commit.'
+            }
+            $allowed = @('src-tauri/Cargo.toml', 'src-tauri/Cargo.lock', 'src-tauri/tauri.conf.json')
+            $unexpected = @(git diff --name-only HEAD^ HEAD | Where-Object { $_ -notin $allowed })
+            if ($unexpected.Count) { throw 'Beta tag contains changes beyond release version files.' }
+            $source = $env:BETA_SOURCE_SHA
+          }
+          git merge-base --is-ancestor $source origin/main
           if ($LASTEXITCODE -ne 0) {
             throw "Release tag must point to a commit on main."
           }
           $version = (Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
-          if ($env:GITHUB_REF_NAME -ne "v$version") {
-            throw "Tag $env:GITHUB_REF_NAME does not match app version $version."
+          if ($env:RELEASE_TAG -ne "v$version") {
+            throw "Tag $env:RELEASE_TAG does not match app version $version."
           }
 
       # src-tauri depends on ../../volume-control-rs by path on every platform.
@@ -93,10 +121,10 @@ jobs:
         with:
           tauriScript: yarn tauri
           args: --bundles nsis
-          tagName: ${{ github.ref_name }}
-          releaseName: Dot X ${{ github.ref_name }}
+          tagName: ${{ inputs.release_tag || github.ref_name }}
+          releaseName: Dot X ${{ inputs.release_tag || github.ref_name }}
           releaseDraft: true
-          prerelease: ${{ contains(github.ref_name, '-') }}
+          prerelease: ${{ inputs.publish_prerelease || contains(github.ref_name, '-') }}
           uploadUpdaterJson: true
           updaterJsonPreferNsis: true
 
@@ -107,7 +135,7 @@ jobs:
         run: |
           $releaseDir = Join-Path $env:RUNNER_TEMP 'dotx-release'
           New-Item -ItemType Directory -Path $releaseDir | Out-Null
-          gh release download $env:GITHUB_REF_NAME --pattern latest.json --dir $releaseDir
+          gh release download $env:RELEASE_TAG --pattern latest.json --dir $releaseDir
           if ($LASTEXITCODE -ne 0) { throw 'Draft release has no latest.json.' }
 
           $metadata = Get-Content (Join-Path $releaseDir 'latest.json') -Raw | ConvertFrom-Json
@@ -135,11 +163,11 @@ jobs:
             throw 'Updater signature key does not match the public key bundled with Dot X.'
           }
 
-          $assets = @(gh release view $env:GITHUB_REF_NAME --json assets --jq '.assets[].name')
+          $assets = @(gh release view $env:RELEASE_TAG --json assets --jq '.assets[].name')
           if ($LASTEXITCODE -ne 0) { throw 'Could not list draft release assets.' }
           $bundleUrl = [uri]$windows.url
           $bundleName = [uri]::UnescapeDataString([IO.Path]::GetFileName($bundleUrl.AbsolutePath))
-          if ($bundleUrl.Host -ne 'github.com' -or $bundleUrl.AbsolutePath -notlike "*/releases/download/$env:GITHUB_REF_NAME/*") {
+          if ($bundleUrl.Host -ne 'github.com' -or $bundleUrl.AbsolutePath -notlike "*/releases/download/$env:RELEASE_TAG/*") {
             throw 'Updater bundle URL does not point to this release tag.'
           }
           if ($bundleName -notlike '*.nsis.zip' -or $assets -notcontains $bundleName) {
@@ -155,6 +183,8 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.release_tag || github.ref }}
 
       # src-tauri depends on ../../volume-control-rs by path on every platform.
       - name: Check out volume-control-rs
@@ -208,15 +238,15 @@ jobs:
           version=$(jq -r .version src-tauri/tauri.conf.json)
           out="$RUNNER_TEMP/dotx-linux"
           appimage="Dot.X_${version}_amd64.AppImage"
-          gh release upload "$GITHUB_REF_NAME" "$out/Dot.X_${version}_amd64.deb" "$out/$appimage" "$out/$appimage.sig" --clobber
+          gh release upload "$RELEASE_TAG" "$out/Dot.X_${version}_amd64.deb" "$out/$appimage" "$out/$appimage.sig" --clobber
 
-          gh release download "$GITHUB_REF_NAME" --pattern latest.json --dir "$out" --clobber
-          url="https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/${appimage}"
+          gh release download "$RELEASE_TAG" --pattern latest.json --dir "$out" --clobber
+          url="https://github.com/${GITHUB_REPOSITORY}/releases/download/${RELEASE_TAG}/${appimage}"
           jq --arg sig "$(cat "$out/$appimage.sig")" --arg url "$url" \
             '.platforms["linux-x86_64"] = {signature: $sig, url: $url}' \
             "$out/latest.json" > "$out/latest.json.new"
           mv "$out/latest.json.new" "$out/latest.json"
-          gh release upload "$GITHUB_REF_NAME" "$out/latest.json" --clobber
+          gh release upload "$RELEASE_TAG" "$out/latest.json" --clobber
 
       - name: Check Linux updater metadata
         env:
@@ -224,7 +254,7 @@ jobs:
         run: |
           check="$RUNNER_TEMP/dotx-linux-check"
           mkdir -p "$check"
-          gh release download "$GITHUB_REF_NAME" --pattern latest.json --dir "$check"
+          gh release download "$RELEASE_TAG" --pattern latest.json --dir "$check"
           python3 - "$check/latest.json" <<'PY'
           import base64, json, re, sys
           meta = json.load(open(sys.argv[1]))
@@ -241,5 +271,20 @@ jobs:
               sys.exit("Linux updater signature key does not match the public key bundled with Dot X")
           PY
           asset=$(basename "$(jq -r '.platforms["linux-x86_64"].url' "$check/latest.json")")
-          gh release view "$GITHUB_REF_NAME" --json assets --jq '.assets[].name' | grep -qxF "$asset" \
+          gh release view "$RELEASE_TAG" --json assets --jq '.assets[].name' | grep -qxF "$asset" \
             || { echo "::error::$asset is missing from the draft release"; exit 1; }
+
+  publish-beta:
+    name: Publish beta after both platform builds pass
+    if: inputs.publish_prerelease
+    needs: [windows, linux]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Publish as prerelease without changing latest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          BETA_SOURCE_SHA: ${{ inputs.source_sha }}
+        run: |
+          printf 'Automated beta from main commit %s.\n\n<!-- dotx-beta-source:%s -->\n' "$BETA_SOURCE_SHA" "$BETA_SOURCE_SHA" > "$RUNNER_TEMP/beta-notes.md"
+          gh release edit "$RELEASE_TAG" --draft=false --prerelease --latest=false --notes-file "$RUNNER_TEMP/beta-notes.md"

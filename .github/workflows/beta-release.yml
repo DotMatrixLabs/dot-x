@@ -1,0 +1,53 @@
+name: Nightly beta release
+
+on:
+  schedule:
+    - cron: '17 2 * * *'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Build even without newly merged PRs
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: read
+
+concurrency:
+  group: dot-x-beta-release
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    outputs:
+      build: ${{ steps.beta.outputs.build }}
+      tag: ${{ steps.beta.outputs.tag }}
+      source_sha: ${{ steps.beta.outputs.source_sha }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+      - name: Test beta release selection
+        run: node --test tools/beta-release.test.mjs
+      - name: Select merged PRs and create versioned beta tag
+        id: beta
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FORCE_BETA: ${{ inputs.force || false }}
+        run: node tools/beta-release.mjs
+
+  release:
+    needs: prepare
+    if: needs.prepare.outputs.build == 'true'
+    uses: ./.github/workflows/prepare-release.yml
+    with:
+      release_tag: ${{ needs.prepare.outputs.tag }}
+      source_sha: ${{ needs.prepare.outputs.source_sha }}
+      publish_prerelease: true
+    secrets: inherit

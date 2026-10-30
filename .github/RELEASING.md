@@ -21,6 +21,27 @@ Windows Authenticode signing is deferred to #244. The draft workflow currently p
 
 Tags with a prerelease suffix create GitHub prereleases. Stable is the default update track and uses GitHub's latest published stable release. Users can opt into Beta/Nightly in Settings > About. That track checks published releases for the highest semantic version with a `latest.json` asset, including stable releases and GitHub prereleases. Drafts are never offered. Publish prereleases only after reviewing their updater assets and version order.
 
+## Nightly beta releases
+
+The beta-release.yml workflow runs at 02:17 UTC every night. It builds when a PR
+merged into main after the source commit of the last published nightly beta.
+Failed or draft releases do not advance the baseline. Manual runs can enable
+force to build without a newly merged PR.
+
+Each run creates a v<version>-beta.<UTC timestamp>.<attempt> tag with matching
+Tauri, Cargo and lockfile versions. This version commit exists only on the tag;
+main is not bumped. A stable main version produces a beta for the next patch.
+
+Windows and Linux builds must both pass before automatic publication. Releases
+are marked prerelease and explicitly excluded from latest. Only the Beta/Nightly
+update track offers them. The workflow does not publish to Anystack.
+
+Windows installers have no Authenticode signature yet. Updater artifacts still
+use the existing private key/password and match the unchanged public updater key.
+
+While the repo is private, download the installer from GitHub while signed in
+and install manually. Anonymous in-app beta checks cannot access private releases.
+
 ## Linux
 
 The `linux` job runs after the Windows job, builds with `yarn build:linux`, signs the repacked AppImage (see `LINUX-SUPPORT.md`), uploads the `.deb` and AppImage, and adds a `linux-x86_64` entry to the draft's `latest.json`. The `.deb` is offered as a download only. Linux builds still skip update checks (`linuxUpdatesDisabled()` in `src/ts/updater.ts`); remove that once an AppImage update has been exercised from one published release to the next.
