@@ -23,7 +23,7 @@
         </div>
         <div class="flex flex-row w-full justify-between px-2 mt-4">
             <span class="my-auto">Give feedback</span>
-            <button @click="openLink('https://dml.gg/feedback')" class="btn btn-sm">Feedback</button>
+            <button @click="feedbackOpen = true" class="btn btn-sm">Feedback<i class="fa-solid fa-comment fa-lg"></i></button>
         </div>
         <div class="flex flex-row w-full justify-between px-2 mt-4">
             <span class="my-auto">Join our Discord</span>
@@ -34,12 +34,16 @@
                 class="mb-2 text-sm hover:underline opacity-80 text-center first-letter: cursor-pointer">Made by DotMatrixLabs</span>
             <span class="text-center text-xs opacity-50">&copy; Frogbyte AS {{ new Date().getFullYear() }}</span>
         </div>
+        <Teleport to="body">
+            <FeedbackModal :open="feedbackOpen" @close="feedbackOpen = false" />
+        </Teleport>
     </div>
 </template>
 
 <script>
 
 import { openLink } from "../ts/helpers.ts";
+import FeedbackModal from '../components/FeedbackModal.vue';
 import { useUpdateStore } from '../store/updateStore';
 import { getUpdateTrack, setUpdateTrack, userCheckForUpdates, linuxUpdatesDisabled } from '../ts/updater';
 import { createLogger } from '../ts/logger.ts';
@@ -50,6 +54,7 @@ const openLinkMethod = openLink;
 
 export default {
     name: "About",
+    components: { FeedbackModal },
     data() {
         return {
             store: useUpdateStore(),
@@ -59,6 +64,7 @@ export default {
             updateTrack: 'stable',
             labelOverride: null,
             labelResetTimer: null,
+            feedbackOpen: false,
         }
     },
     computed: {
