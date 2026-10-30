@@ -17,6 +17,49 @@ downloading it and comparing SHA-256 hashes. If GitHub stores an asset but retur
 an error, matching remote bytes count as success. Otherwise the entire replace
 and upload operation is retried, up to four attempts, without rebuilding the app.
 
+## 2.0 signing-key migration
+
+2.0.0 embeds only the new public updater key, identifier `58D4FC99E531FDCF`, and
+uses GitHub Releases for subsequent updates. 1.3.0 embeds the previous key,
+identifier `56C5CAF345DF2C71`, and checks Anystack. Publishing on GitHub alone
+does not reach those installed copies.
+
+The new private key and password are stored in the repository's
+`TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` Actions
+secrets. The local migration checkout keeps them in ignored `.env`, with the
+previous credentials in ignored `.env.updater-previous`. Keep both files private.
+Tauri's signing CLI does not load these files automatically. Export the selected
+credentials into the signing process; existing system variables may still hold
+the previous pair. Never use a `VITE_` name for signing credentials.
+
+Prepare two signatures for the same Windows 2.0 updater bundle:
+
+- GitHub's `latest.json` and bundle `.sig` must use the new key. They must match
+  the public key embedded in 2.0, as the release workflow checks.
+- The copy served to 1.x by Anystack must use a separate signature made with the
+  previous key. Signing the package with that key lets 1.x install it; the
+  installed 2.0 still trusts only the new key. Keep this signature separate from
+  GitHub's `.sig`, and retain the signed bridge for users who upgrade later.
+
+Before publishing 2.0 or making the repository public:
+
+1. Exercise a real 1.3.0 MSI installation updating through Anystack to the 2.0
+   NSIS bundle with the previous-key signature. Check installer compatibility,
+   settings, mappings, plugins, startup, and the device connection.
+2. Confirm the installed 2.0 checks GitHub, accepts a subsequent test update
+   signed with the new key, and rejects an update signed only with the previous
+   key. A signature smoke test alone does not prove installation works.
+3. Verify stable and Beta/Nightly release selection and anonymous downloads.
+   Keep publication and repository visibility changes for the coordinated
+   release after these tests. Do not publish a test update as the stable latest.
+4. Finish the historical secret cleanup, including GitHub's retained PR refs and
+   cached commit views. Other contributors must clean or replace their old
+   clones before pushing, or they can restore the removed history.
+
+Nightly beta publishing is disabled while this migration is being tested. Leave
+it disabled until the signing configuration and rollout are ready. These changes
+prepare 2.0; they do not authorize a release or visibility change.
+
 ## Prepare a release
 
 1. Merge the intended changes into `main` and set the same version in `src-tauri/tauri.conf.json` and `src-tauri/Cargo.toml`.
@@ -42,8 +85,8 @@ Windows and Linux builds must both pass before automatic publication. Releases
 are marked prerelease and explicitly excluded from latest. Only the Beta/Nightly
 update track offers them. The workflow does not publish to Anystack.
 
-Windows installers have no Authenticode signature yet. Updater artifacts still
-use the existing private key/password and match the unchanged public updater key.
+Windows installers have no Authenticode signature yet. Updater artifacts use the
+configured signing secrets and must match the public updater key in that build.
 
 While the repo is private, download the installer from GitHub while signed in
 and install manually. Anonymous in-app beta checks cannot access private releases.
