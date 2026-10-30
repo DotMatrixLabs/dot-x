@@ -1774,7 +1774,7 @@ dependencies = [
 
 [[package]]
 name = "dot_x"
-version = "2.0.0-1"
+version = "2.0.0-beta.20261030134907.1"
 dependencies = [
  "active-win-pos-rs",
  "axum",
