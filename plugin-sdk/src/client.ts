@@ -158,7 +158,7 @@ export interface ConnectionConfig {
  */
 export interface DeviceChanges {
   changes: Array<{ index: number; oldValue: number; newValue: number }>;
-  values: Array<{ value: number }>;
+  sliders: number[];
 }
 
 
