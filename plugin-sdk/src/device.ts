@@ -31,10 +31,14 @@ export interface DeviceInfo {
  * @category Device Management
  */
 export interface DeviceChanges {
-  /** Array of changes with index, oldValue, and newValue */
+  /**
+   * One entry per device control with index, oldValue, and newValue (0-100).
+   * Every control is included on each update, so compare `oldValue` and
+   * `newValue` to find the ones that moved.
+   */
   changes: Array<{ index: number; oldValue: number; newValue: number }>;
-  /** Current values of all device controls */
-  values: Array<{ value: number }>;
+  /** Current value (0-100) of every device control, indexed by channel */
+  sliders: number[];
 }
 
 /**

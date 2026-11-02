@@ -126,8 +126,10 @@ export interface DeviceInfo {
 }
 
 export interface DeviceChanges {
+  /** One entry per control (including unchanged ones), values scaled 0-100 */
   changes: Array<{ index: number; oldValue: number; newValue: number }>;
-  values: Array<{ value: number }>;
+  /** Current value (0-100) of every control, indexed by channel */
+  sliders: number[];
 }
 
 export interface RGBState {
