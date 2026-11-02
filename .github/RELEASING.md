@@ -19,7 +19,7 @@ and upload operation is retried, up to four attempts, without rebuilding the app
 
 ## 2.0 signing-key migration
 
-2.0.0 embeds only the new public updater key, identifier `58D4FC99E531FDCF`, and
+2.0.0 embeds only the new public updater key, identifier `85C0179C61673E1`, and
 uses GitHub Releases for subsequent updates. 1.3.0 embeds the previous key,
 identifier `56C5CAF345DF2C71`, and checks Anystack. Publishing on GitHub alone
 does not reach those installed copies.
@@ -57,7 +57,8 @@ Before publishing 2.0 or making the repository public:
    clones before pushing, or they can restore the removed history.
 
 Nightly beta publishing is disabled while this migration is being tested. Leave
-it disabled until the signing configuration and rollout are ready. These changes
+it disabled until the signing configuration and rollout are ready and the stable
+`v2.0.0` tag exists. Otherwise nightly selection starts at `2.0.1-beta.*`. These changes
 prepare 2.0; they do not authorize a release or visibility change.
 
 ## Prepare a release
