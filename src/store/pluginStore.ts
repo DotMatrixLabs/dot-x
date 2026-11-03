@@ -554,6 +554,12 @@ export const usePluginStore = defineStore("pluginStore", {
                 this.clearExpectedDisconnect(pluginId);
                 throw error;
             }
+
+            // The backend removed the plugin from plugins.json on disk (enabled,
+            // approved, updates). Reload, or the cached store writes the stale
+            // lists back on its next save.
+            await PluginStorage.reloadFromDisk();
+            await this.loadPersistedPluginState();
         },
         async getLatestPluginFailureReason(pluginId: string) {
             try {
