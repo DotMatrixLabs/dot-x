@@ -139,9 +139,12 @@ export interface ApiResponse {
 export interface ConnectionConfig {
   /** Plugin server URL. Default: Uses DOTX_PLUGIN_PORT env var or 'http://127.0.0.1:3001' */
   serverUrl?: string;
-  /** Maximum connection retry attempts. Default: 5 */
+  /**
+   * Failed attempts allowed for the first connection before the plugin gives up. Default: 5.
+   * Once registered, the plugin reconnects after any drop (sleep, app restart) without a limit.
+   */
   maxRetries?: number;
-  /** Delay between retry attempts in milliseconds. Default: 2000 */
+  /** Delay before the first reconnect attempt in milliseconds; later attempts back off to at most 5000. Default: 2000 */
   retryDelay?: number;
   /** Connection timeout in milliseconds. Default: 10000 */
   connectionTimeout?: number;
@@ -238,7 +241,6 @@ export class APIClient {
   private isRegistered = false;
   private pluginInfo: PluginInfo;
   private config: Required<ConnectionConfig>;
-  private retryCount = 0;
   // Registry for settings action callbacks (e.g., button clicks, text onChange)
   private actionCallbacks = new Map<string, (value?: any) => void>();
   private isDestroyed = false;
@@ -296,14 +298,22 @@ export class APIClient {
   
   private initializeConnection(): Promise<void> {
     return new Promise((resolve, reject) => {
+      // Set once the first registration succeeds or the first connection gives up.
+      let settled = false;
+      let failedFirstAttempts = 0;
+
       const connect = () => {
         if (this.isDestroyed) return;
-        
+
+        // One socket for the plugin's whole life. Socket.IO reconnects it after any drop
+        // (sleep, an app restart, a ping timeout) and every new connection registers again.
         this.socket = io(this.config.serverUrl, {
           timeout: this.config.connectionTimeout,
           forceNew: true,
           autoConnect: true,
-          reconnection: true
+          reconnection: true,
+          reconnectionDelay: this.config.retryDelay,
+          reconnectionDelayMax: Math.max(this.config.retryDelay, 5000),
         });
         
 
@@ -350,81 +360,66 @@ export class APIClient {
           ack(response);
         });
         
-        const registrationTimeoutId = setTimeout(() => {
-          if (!this.isRegistered) {
-            const errorMsg = this.retryCount >= this.config.maxRetries 
-              ? `Plugin registration failed after ${this.config.maxRetries} attempts. Make sure Dot X is running and the plugin server is started.`
-              : 'Plugin registration timeout - server may not be running';
-            reject(new Error(errorMsg));
-          }
-        }, this.config.registrationTimeout);
-        
-        const handleFailure = (error: any) => {
-          if (this.isDestroyed) return;
-
-          // Clean up listeners on the old socket to prevent memory leaks
-          this.socket.off('connect');
-          this.socket.off('disconnect');
-          this.socket.off('error');
-          this.socket.off('connect_error');
-          
-          if (this.retryCount < this.config.maxRetries) {
-            this.retryCount++;
-            log.warn(`Connection failed (attempt ${this.retryCount}/${this.config.maxRetries}). Retrying in ${this.config.retryDelay}ms...`);
-            log.debug(`Error details: ${error.message || error}`);
-            
-            setTimeout(() => {
-              if (!this.isDestroyed) {
-                this.socket?.disconnect();
-                connect();
-              }
-            }, this.config.retryDelay);
-          } else {
-            clearTimeout(registrationTimeoutId);
-            const errorMessage = this.createDetailedErrorMessage(error);
-            log.error('Max retry attempts reached. Plugin connection failed.');
-            log.error('Error:', errorMessage);
-            reject(new Error(errorMessage));
-          }
+        // The first connection is bounded so a plugin started without Dot X fails clearly.
+        // After that, reconnects have no limit.
+        const giveUp = (error: Error) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(registrationTimeoutId);
+          this.socket.disconnect();
+          reject(error);
         };
-        
+
+        const registrationTimeoutId = setTimeout(() => {
+          giveUp(new Error('Plugin registration timeout - make sure Dot X is running and the plugin server is started.'));
+        }, this.config.registrationTimeout);
+
         this.socket.on('connect', () => {
           log.info('Connected to plugin server');
-          this.retryCount = 0; // Reset retry count on successful connection
-          
           this.socket.emit('register', this.pluginInfo, (ack: any) => {
-            clearTimeout(registrationTimeoutId);
-            if (ack.status === 'success') {
-              this.isRegistered = true;
-
-              resolve();
-            } else {
+            if (ack?.status !== 'success') {
               log.error('Plugin registration failed:', ack);
-              handleFailure(new Error(`Plugin registration failed: ${ack.message || 'Unknown error'}`));
+              giveUp(new Error(`Plugin registration failed: ${ack?.message || 'Unknown error'}`));
+              return;
+            }
+            this.isRegistered = true;
+            if (!settled) {
+              settled = true;
+              clearTimeout(registrationTimeoutId);
+              resolve();
             }
           });
         });
-        
+
         this.socket.on('disconnect', (reason: string) => {
-          log.info('Disconnected from plugin server:', reason);
           this.isRegistered = false;
           if (this.isDestroyed || reason === 'io client disconnect') {
             return;
           }
-          handleFailure(new Error(`Disconnected: ${reason}`));
-        });
-        
-        this.socket.on('error', (error: any) => {
-          log.error('Socket error:', error);
-          handleFailure(error);
-        });
-        
-        this.socket.on('connect_error', (error: any) => {
-          log.error('Failed to connect to plugin server:', error);
-          handleFailure(error);
+          log.info('Disconnected from plugin server:', reason);
+          // Socket.IO reconnects on its own unless the server closed the connection itself.
+          if (reason === 'io server disconnect') {
+            this.socket.connect();
+          }
         });
 
-        // No additional listeners required for the simplified settings API
+        this.socket.on('connect_error', (error: any) => {
+          if (settled) {
+            // Reconnecting after a drop; Socket.IO keeps retrying. Stay quiet so a long
+            // outage doesn't grow plugin.log on every attempt.
+            log.debug(`Reconnect attempt failed: ${error?.message || error}`);
+            return;
+          }
+          failedFirstAttempts++;
+          if (failedFirstAttempts > this.config.maxRetries) {
+            const errorMessage = this.createDetailedErrorMessage(error);
+            log.error('Max retry attempts reached. Plugin connection failed.');
+            giveUp(new Error(errorMessage));
+            return;
+          }
+          log.warn(`Connection failed (attempt ${failedFirstAttempts}/${this.config.maxRetries}). Retrying...`);
+          log.debug(`Error details: ${error?.message || error}`);
+        });
       };
 
       connect();
