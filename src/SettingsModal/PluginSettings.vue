@@ -4,6 +4,7 @@
 
     <div class="flex flex-col gap-4">
       <PluginSettingsRenderer v-if="settings && settings.sections" :sections="settings" :pluginId="plugin.id" />
+      <span v-else-if="loading" class="loading loading-spinner loading-sm opacity-70"></span>
       <div v-else class="opacity-70 text-sm">No settings available.</div>
     </div>
   </div>
@@ -31,6 +32,7 @@ const log = createLogger('plugin-settings');
         data() {
             return {
                 settings: {},
+                loading: true,
             }
         },
         methods: {
@@ -38,15 +40,23 @@ const log = createLogger('plugin-settings');
           async loadSettings() {
             if (!this.plugin?.id) {
               this.settings = {};
+              this.loading = false;
               return;
             }
 
+            const pluginId = this.plugin.id;
+            this.loading = true;
             try {
-              const settings = await pluginAPI.getPluginSettings(this.plugin.id);
+              const settings = await pluginAPI.getPluginSettings(pluginId);
+              // The user may have switched to another plugin while this was in flight.
+              if (this.plugin?.id !== pluginId) return;
               this.settings = settings || {};
             } catch (error) {
+              if (this.plugin?.id !== pluginId) return;
               log.error('Failed to load plugin settings', error);
               this.settings = {};
+            } finally {
+              if (this.plugin?.id === pluginId) this.loading = false;
             }
           },
             
