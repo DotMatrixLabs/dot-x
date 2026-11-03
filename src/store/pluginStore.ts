@@ -12,7 +12,10 @@ import { createLogger } from "../ts/logger.ts";
 
 const log = createLogger("plugin-store");
 
-const UNEXPECTED_PLUGIN_DISCONNECT_GRACE_MS = 1500;
+// How long a dropped plugin socket has to reconnect before we report it. The SDK waits
+// 2 s before reconnecting, so this must comfortably exceed that. Real process exits are
+// reported straight away through the "exited" lifecycle event, not through this timer.
+const UNEXPECTED_PLUGIN_DISCONNECT_GRACE_MS = 6000;
 const PLUGIN_STARTING_TIMEOUT_MS = 10000;
 const pendingUnexpectedDisconnects = new Map<string, ReturnType<typeof setTimeout>>();
 const expectedPluginDisconnects = new Map<string, ReturnType<typeof setTimeout>>();
@@ -60,10 +63,13 @@ function extractPluginFailureReason(rawLogs: string | null): string | null {
         return null;
     }
 
-    const prioritizedLine = [...lines]
+    // Only an error-looking line explains a failure; the last line is often a success message.
+    const reason = [...lines]
         .reverse()
         .find((line) => /(error|exception|panic|uncaught|failed|refused|invalid)/i.test(line));
-    const reason = prioritizedLine || lines[lines.length - 1];
+    if (!reason) {
+        return null;
+    }
     return reason.length > 220 ? `${reason.slice(0, 217)}...` : reason;
 }
 
@@ -593,7 +599,8 @@ export const usePluginStore = defineStore("pluginStore", {
                 }
 
                 const reason = eventError || await this.getLatestPluginFailureReason(pluginId);
-                toast.error(`${pluginName} crashed`, {
+                // The process is still running (an exit would have been reported), so it lost its connection rather than crashed.
+                toast.error(`${pluginName} lost connection to Dot X`, {
                     description: reason || "The plugin disconnected unexpectedly. Check plugin logs for details.",
                 });
             }, UNEXPECTED_PLUGIN_DISCONNECT_GRACE_MS);

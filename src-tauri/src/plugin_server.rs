@@ -424,39 +424,40 @@ impl PluginServer {
 
     
 
-    pub async fn send_to_plugin_with_ack(&self, plugin_id: &str, event: &str, data: Value) -> Result<ApiResponse, String> {
-        // Ensure the plugin is connected and the server is initialized
-        let connections = self.connections.read().await;
-        if !connections.contains_key(plugin_id) {
+    /// The socket to send an acked request to `plugin_id` on, if that plugin is connected.
+    /// Returns a clone so callers can await the ack without holding any lock: a plugin that
+    /// never acks would otherwise stall every other plugin's register and disconnect.
+    async fn ack_target(&self, plugin_id: &str) -> Result<SocketIo, String> {
+        if !self.connections.read().await.contains_key(plugin_id) {
             return Err(format!("Plugin {} not connected", plugin_id));
         }
-        let io = self.io.as_ref().ok_or_else(|| "Socket.IO server not initialized".to_string())?;
+        self.io.clone().ok_or_else(|| "Socket.IO server not initialized".to_string())
+    }
+}
 
-        // Emit and await the acknowledgment using Socket.IO's default timeout
-        let event_string = event.to_string();
-        let payload = data.clone();
-        match io
-            .to(plugin_id.to_string())
-            .emit_with_ack(event_string, &payload)
-            .await
-        {
-            Ok(ack_stream) => {
-                pin_mut!(ack_stream);
-                match ack_stream.next().await {
-                    Some((_sid, Ok(value))) => Ok(ApiResponse {
-                        request_id: "".to_string(),
-                        success: true,
-                        data: Some(value),
-                        error: None,
-                    }),
-                    Some((_sid, Err(e))) => Err(e.to_string()),
-                    None => Err("Ack stream closed".to_string()),
-                }
+/// Emit `event` to `plugin_id` and wait for its ack (Socket.IO's default ack timeout).
+async fn emit_with_ack(io: SocketIo, plugin_id: &str, event: &str, data: Value) -> Result<ApiResponse, String> {
+    match io
+        .to(plugin_id.to_string())
+        .emit_with_ack(event.to_string(), &data)
+        .await
+    {
+        Ok(ack_stream) => {
+            pin_mut!(ack_stream);
+            match ack_stream.next().await {
+                Some((_sid, Ok(value))) => Ok(ApiResponse {
+                    request_id: "".to_string(),
+                    success: true,
+                    data: Some(value),
+                    error: None,
+                }),
+                Some((_sid, Err(e))) => Err(e.to_string()),
+                None => Err("Ack stream closed".to_string()),
             }
-            Err(err) => {
-                warn!("Ack error {:?}", err);
-                Err(err.to_string())
-            }
+        }
+        Err(err) => {
+            warn!("Ack error {:?}", err);
+            Err(err.to_string())
         }
     }
 }
@@ -569,8 +570,9 @@ pub async fn send_to_plugin(plugin_id: String, event: String, data: Value) -> Re
 #[tauri::command]
 pub async fn send_to_plugin_with_ack(plugin_id: String, event: String, data: Value) -> Result<ApiResponse, String> {
     if let Some(server_arc) = get_plugin_server() {
-        let server = server_arc.read().await;
-        server.send_to_plugin_with_ack(&plugin_id, &event, data).await
+        // Release the server lock before waiting on the plugin.
+        let io = server_arc.read().await.ack_target(&plugin_id).await?;
+        emit_with_ack(io, &plugin_id, &event, data).await
     } else {
         Err("Plugin server not initialized".to_string())
     }
