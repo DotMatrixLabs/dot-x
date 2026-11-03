@@ -375,9 +375,32 @@ fn validate_extracted_plugin_dir(plugin_dir: &Path, plugin_id: &str) -> Result<(
     Ok(())
 }
 
+/// File the plugin SDK stores a plugin's settings in (`this.config`), inside
+/// the plugin directory. See `plugin-sdk/src/plugin.ts`.
+fn plugin_settings_file_name(plugin_id: &str) -> String {
+    format!("{}-config.json", plugin_id)
+}
+
+/// Carry the user's settings from the installed plugin into the new version,
+/// so updating or reinstalling a plugin does not reset its configuration.
+/// The user's file wins over a default config shipped in the package.
+fn carry_over_plugin_settings(plugin_dir: &Path, plugin_id: &str, extracted_dir: &Path) -> Result<(), String> {
+    let file_name = plugin_settings_file_name(plugin_id);
+    let existing = plugin_dir.join(&file_name);
+    if !existing.is_file() {
+        return Ok(());
+    }
+
+    fs::copy(&existing, extracted_dir.join(&file_name))
+        .map_err(|e| format!("Failed to keep plugin settings ({}): {}", file_name, e))?;
+    info!("Kept existing settings for plugin {}", plugin_id);
+    Ok(())
+}
+
 fn replace_installed_plugin_dir(plugins_dir: &Path, plugin_id: &str, extracted_dir: &Path) -> Result<(), String> {
     let plugin_dir = plugins_dir.join(plugin_id);
     if plugin_dir.exists() {
+        carry_over_plugin_settings(&plugin_dir, plugin_id, extracted_dir)?;
         info!("Removing existing plugin directory: {}", plugin_dir.display());
         fs::remove_dir_all(&plugin_dir)
             .map_err(|e| format!("Failed to remove existing plugin directory: {}", e))?;
@@ -951,8 +974,60 @@ pub async fn uninstall_marketplace_plugin(app_handle: AppHandle, plugin_id: Stri
 
 #[cfg(test)]
 mod tests {
-    use super::registry_entry_integrity_hash;
+    use super::{registry_entry_integrity_hash, replace_installed_plugin_dir};
     use serde_json::json;
+    use std::fs;
+    use std::path::PathBuf;
+
+    fn scratch_dir(name: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!("dotx-plugin-test-{}-{}", name, std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    #[test]
+    fn update_keeps_user_settings_over_packaged_default() {
+        let root = scratch_dir("keeps-settings");
+        let plugins_dir = root.join("plugins");
+        let installed = plugins_dir.join("my-plugin");
+        fs::create_dir_all(&installed).unwrap();
+        fs::write(installed.join("main.js"), "old").unwrap();
+        fs::write(installed.join("my-plugin-config.json"), "{\"user\":true}").unwrap();
+
+        let extracted = root.join("extracted");
+        fs::create_dir_all(&extracted).unwrap();
+        fs::write(extracted.join("main.js"), "new").unwrap();
+        fs::write(extracted.join("my-plugin-config.json"), "{\"default\":true}").unwrap();
+
+        replace_installed_plugin_dir(&plugins_dir, "my-plugin", &extracted).unwrap();
+
+        assert_eq!(fs::read_to_string(installed.join("main.js")).unwrap(), "new");
+        assert_eq!(fs::read_to_string(installed.join("my-plugin-config.json")).unwrap(), "{\"user\":true}");
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn fresh_install_and_old_files_without_settings() {
+        let root = scratch_dir("fresh");
+        let plugins_dir = root.join("plugins");
+        fs::create_dir_all(&plugins_dir).unwrap();
+
+        let extracted = root.join("extracted");
+        fs::create_dir_all(&extracted).unwrap();
+        fs::write(extracted.join("main.js"), "new").unwrap();
+        replace_installed_plugin_dir(&plugins_dir, "my-plugin", &extracted).unwrap();
+        assert!(!plugins_dir.join("my-plugin").join("my-plugin-config.json").exists());
+
+        // Update: files from the old version other than settings are not carried over.
+        fs::write(plugins_dir.join("my-plugin").join("stale.js"), "old").unwrap();
+        let extracted = root.join("extracted2");
+        fs::create_dir_all(&extracted).unwrap();
+        fs::write(extracted.join("main.js"), "newer").unwrap();
+        replace_installed_plugin_dir(&plugins_dir, "my-plugin", &extracted).unwrap();
+        assert!(!plugins_dir.join("my-plugin").join("stale.js").exists());
+        let _ = fs::remove_dir_all(&root);
+    }
 
     #[test]
     fn reads_package_integrity_hash() {
