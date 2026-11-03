@@ -1,6 +1,6 @@
 [package]
 name = "dot_x"
-version = "2.0.0"
+version = "2.0.0-beta.20261103193231.1"
 description = "Dot X"
 authors = ["Frogbyte AS"]
 license = "GPL-3.0-or-later"
