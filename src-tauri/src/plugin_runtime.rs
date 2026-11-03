@@ -920,7 +920,66 @@ async fn spawn_deno_process(app_handle: &AppHandle, dir: &Path, plugin_id: &str)
     .stderr(std::process::Stdio::piped());
 
   info!("Starting plugin {} with port {}", plugin_id, port_str);
-  cmd.spawn().map_err(|e| format!("Failed to start Deno for {}: {}", plugin_id, e))
+  let child = cmd.spawn().map_err(|e| format!("Failed to start Deno for {}: {}", plugin_id, e))?;
+  #[cfg(target_os = "windows")]
+  plugin_job::adopt(&child, plugin_id);
+  Ok(child)
+}
+
+/// Ties plugin processes to Dot X's lifetime on Windows. Every plugin joins one job object
+/// that kills its members when its last handle closes. Only Dot X holds that handle, so the
+/// plugins (and anything they spawned) die with Dot X even when it crashes or is killed.
+#[cfg(target_os = "windows")]
+mod plugin_job {
+  use log::error;
+  use std::sync::OnceLock;
+  use windows_sys::Win32::Foundation::{CloseHandle, HANDLE};
+  use windows_sys::Win32::System::JobObjects::{
+    AssignProcessToJobObject, CreateJobObjectW, JobObjectExtendedLimitInformation, SetInformationJobObject,
+    JOBOBJECT_EXTENDED_LIMIT_INFORMATION, JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE,
+  };
+
+  static JOB: OnceLock<Option<HANDLE>> = OnceLock::new();
+
+  fn job() -> Option<HANDLE> {
+    *JOB.get_or_init(|| unsafe {
+      let job = CreateJobObjectW(std::ptr::null(), std::ptr::null());
+      if job == 0 {
+        error!("Could not create the plugin job object: {}", std::io::Error::last_os_error());
+        return None;
+      }
+      let mut limits: JOBOBJECT_EXTENDED_LIMIT_INFORMATION = std::mem::zeroed();
+      limits.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+      let set = SetInformationJobObject(
+        job,
+        JobObjectExtendedLimitInformation,
+        &limits as *const _ as *const core::ffi::c_void,
+        std::mem::size_of::<JOBOBJECT_EXTENDED_LIMIT_INFORMATION>() as u32,
+      );
+      if set == 0 {
+        error!("Could not configure the plugin job object: {}", std::io::Error::last_os_error());
+        CloseHandle(job);
+        return None;
+      }
+      Some(job)
+    })
+  }
+
+  /// Puts a freshly spawned plugin in the job. On failure the plugin still runs, but it
+  /// would outlive a crashed Dot X, so the error is logged.
+  pub fn adopt(child: &tokio::process::Child, plugin_id: &str) {
+    let (Some(job), Some(process)) = (job(), child.raw_handle()) else {
+      error!("Plugin {} was not added to the plugin job object; it may outlive Dot X", plugin_id);
+      return;
+    };
+    if unsafe { AssignProcessToJobObject(job, process as HANDLE) } == 0 {
+      error!(
+        "Plugin {} was not added to the plugin job object; it may outlive Dot X: {}",
+        plugin_id,
+        std::io::Error::last_os_error()
+      );
+    }
+  }
 }
 
 async fn start_plugin_internal(app_handle: &AppHandle, plugin_id: &str) -> Result<(), String> {

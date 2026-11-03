@@ -79,7 +79,7 @@ window-shadows = "0.2.2"
 
 [target.'cfg(windows)'.dependencies]
 windows-volume-control = { git = "https://github.com/Frogbyte-io/windows-volume-control.git", rev = "2a83be8f2d05b1da1b6119f36cee91fbb4688739" }
-windows-sys = { version = "0.48", features = ["Win32_System_Com"] }
+windows-sys = { version = "0.48", features = ["Win32_System_Com", "Win32_Foundation", "Win32_Security", "Win32_System_JobObjects", "Win32_System_Threading"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 # Cross-platform fork of windows-volume-control with a PulseAudio backend. Must be
