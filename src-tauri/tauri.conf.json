@@ -1,7 +1,7 @@
 {
   "productName": "Dot X",
   "mainBinaryName": "Dot X",
-  "version": "2.0.0-1",
+  "version": "2.0.0",
   "identifier": "com.dot-x.dev",
   "build": {
     "beforeBuildCommand": "yarn fetch-deno && yarn build",
@@ -14,7 +14,7 @@
       "open": true
     },
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDU2QzVDQUYzNDVERjJDNzEKUldSeExOOUY4OHJGVm5PNnZHQlZPRWE4WERodmxBYkpYbzluS2V0czlhZjRqWm5QWkRqNUt5b0cK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDg1QzAxNzlDNjE2NzNFMQpSV1RoY3hiR2VRRmNDT295eUJ1eXdLL2NTb2xCT2pRR1E4VmZzdTN5OS81bmZGMDJBUWZsSUtWUQo=",
       "endpoints": [
         "https://github.com/DotMatrixLabs/dot-x/releases/latest/download/latest.json"
       ]
