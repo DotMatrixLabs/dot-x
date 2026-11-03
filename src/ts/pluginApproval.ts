@@ -31,6 +31,27 @@ export function normalizePluginPermissions(rawPermissions: unknown): string[] {
   return Array.from(normalized).sort();
 }
 
+const PERMISSION_LABELS: Record<string, { label: string; icon: string }> = {
+  net: { label: "Network access", icon: "fa-solid fa-network-wired" },
+  network: { label: "Network access", icon: "fa-solid fa-network-wired" },
+  env: { label: "Environment variables", icon: "fa-solid fa-terminal" },
+  read: { label: "File system read", icon: "fa-solid fa-folder-open" },
+  write: { label: "File system write", icon: "fa-solid fa-pen-to-square" },
+  run: { label: "Run subprocesses", icon: "fa-solid fa-play" },
+  ffi: { label: "Native library access (FFI)", icon: "fa-solid fa-plug" },
+  sys: { label: "System information", icon: "fa-solid fa-desktop" },
+  hrtime: { label: "High-resolution timers", icon: "fa-solid fa-clock" },
+  all: { label: "Full system access", icon: "fa-solid fa-unlock" },
+};
+
+/** Labels and icons for the permissions a user approves before a plugin can run. */
+export function describePluginPermissions(rawPermissions: unknown) {
+  return normalizePluginPermissions(rawPermissions).map((key) => ({
+    key,
+    ...(PERMISSION_LABELS[key] || { label: key, icon: "fa-solid fa-shield" }),
+  }));
+}
+
 export function hashNormalizedPermissions(permissions: string[]): string {
   const normalizedPermissions = normalizePluginPermissions(permissions);
   const input = normalizedPermissions.join("\n");

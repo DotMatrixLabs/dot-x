@@ -184,6 +184,7 @@ import MarketplaceStats, {
 	resolveMarketplaceLikeState,
 } from '../ts/marketplaceStats';
 import { createLogger } from '../ts/logger.ts';
+import { describePluginPermissions } from '../ts/pluginApproval';
 
 const log = createLogger('plugins');
 
@@ -289,6 +290,12 @@ export default {
 			await this.fetchPlugins();
 			await this.loadEnabledState();
 			await usePluginStore().refreshPluginUpdates();
+
+			// A fresh install should run right away, the same as switching it on.
+			const installed = this.plugins.find((entry) => entry.id === plugin?.id);
+			if (installed && !installed.enabled) {
+				await this.approveAndEnablePlugin(installed);
+			}
 		},
 		async handlePluginUninstalled(plugin) {
 			// Refresh installed plugins list
@@ -414,54 +421,38 @@ export default {
 		},
 		async togglePlugin(plugin, event) {
 			const nextEnabled = Boolean(event?.target?.checked);
-			const pluginStore = usePluginStore();
 			if (nextEnabled) {
-				const approvalTarget = this.buildApprovalTarget(plugin);
-				// Check if permissions have been approved
-				if (!pluginStore.isPluginApproved(approvalTarget)) {
-					const perms = plugin.manifest?.permissions || [];
-					if (perms.length > 0) {
-						const approved = await this.requestPermissionApproval(plugin);
-						if (!approved) {
-							this.setToggleChecked(event, false);
-							return;
-						}
-					}
-					await pluginStore.approvePlugin(approvalTarget);
-				}
-				const started = await pluginStore.enablePluginId(plugin.id);
+				const started = await this.approveAndEnablePlugin(plugin);
 				if (!started) {
 					this.setToggleChecked(event, false);
 				}
 			} else {
-				await pluginStore.disablePluginId(plugin.id);
+				await usePluginStore().disablePluginId(plugin.id);
 			}
+		},
+		/** Ask for any unapproved permissions, then enable and start the plugin. Resolves false if denied or it failed to start. */
+		async approveAndEnablePlugin(plugin) {
+			const pluginStore = usePluginStore();
+			const approvalTarget = this.buildApprovalTarget(plugin);
+			if (!pluginStore.isPluginApproved(approvalTarget)) {
+				const perms = plugin.manifest?.permissions || [];
+				if (perms.length > 0) {
+					const approved = await this.requestPermissionApproval(plugin);
+					if (!approved) {
+						return false;
+					}
+				}
+				await pluginStore.approvePlugin(approvalTarget);
+			}
+			return pluginStore.enablePluginId(plugin.id);
 		},
 		requestPermissionApproval(plugin) {
 			return new Promise((resolve) => {
 				this.permissionDialog.plugin = plugin;
-				this.permissionDialog.permissions = this.buildPermissionLabels(plugin.manifest?.permissions || []);
+				this.permissionDialog.permissions = describePluginPermissions(plugin.manifest?.permissions);
 				this.permissionDialog.resolve = resolve;
 				this.permissionDialog.show = true;
 			});
-		},
-		buildPermissionLabels(permissions) {
-			const map = {
-				net: { label: 'Network access', icon: 'fa-solid fa-network-wired' },
-				network: { label: 'Network access', icon: 'fa-solid fa-network-wired' },
-				env: { label: 'Environment variables', icon: 'fa-solid fa-terminal' },
-				read: { label: 'File system read', icon: 'fa-solid fa-folder-open' },
-				write: { label: 'File system write', icon: 'fa-solid fa-pen-to-square' },
-				run: { label: 'Run subprocesses', icon: 'fa-solid fa-play' },
-				ffi: { label: 'Native library access (FFI)', icon: 'fa-solid fa-plug' },
-				sys: { label: 'System information', icon: 'fa-solid fa-desktop' },
-				hrtime: { label: 'High-resolution timers', icon: 'fa-solid fa-clock' },
-				all: { label: 'Full system access', icon: 'fa-solid fa-unlock' },
-			};
-			return permissions.map((p) => ({
-				key: p,
-				...(map[p.toLowerCase()] || { label: p, icon: 'fa-solid fa-shield' }),
-			}));
 		},
 		approvePermissions() {
 			this.permissionDialog.show = false;

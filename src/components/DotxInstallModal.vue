@@ -51,6 +51,16 @@
           <p class="text-xs text-base-content/50">by {{ manifest.author }}</p>
         </div>
 
+        <div v-if="manifest && installMode === 'install' && permissions.length" class="mb-4">
+          <p class="text-sm label-text mb-2">Installing starts the plugin with access to:</p>
+          <ul class="flex flex-col gap-1">
+            <li v-for="perm in permissions" :key="perm.key" class="flex items-center gap-2 text-sm">
+              <i :class="perm.icon" class="w-4 text-center opacity-60"></i>
+              <span>{{ perm.label }}</span>
+            </li>
+          </ul>
+        </div>
+
         <div v-else-if="loadingManifest" class="flex justify-center py-4">
           <span class="loading loading-spinner loading-md"></span>
         </div>
@@ -75,6 +85,8 @@
 <script lang="ts">
 import { invoke } from '@tauri-apps/api/core';
 import { usePluginStore } from '../store/pluginStore';
+import { describePluginPermissions } from '../ts/pluginApproval';
+import { toast } from 'vue-sonner';
 
 type InstallMode = 'install' | 'update' | 'reinstall';
 
@@ -98,6 +110,10 @@ export default {
     installMode(): InstallMode {
       if (!this.installedPlugin) return 'install';
       return this.installedPlugin.version === this.manifest?.version ? 'reinstall' : 'update';
+    },
+
+    permissions() {
+      return describePluginPermissions(this.manifest?.permissions);
     },
 
     confirmTitle(): string {
@@ -170,18 +186,38 @@ export default {
       if (!this.manifest) return;
       this.phase = 'installing';
 
+      const manifest = this.manifest;
+      const isFreshInstall = this.installMode === 'install';
       try {
-        if (this.manifest.id && this.installedPlugin) {
-          usePluginStore().markExpectedDisconnect(this.manifest.id, 15000);
+        if (manifest.id && this.installedPlugin) {
+          usePluginStore().markExpectedDisconnect(manifest.id, 15000);
         }
         await invoke('install_local_plugin', { filePath: this.filePath });
         this.phase = 'success';
       } catch (e) {
-        if (this.manifest.id && this.installedPlugin) {
-          usePluginStore().clearExpectedDisconnect(this.manifest.id);
+        if (manifest.id && this.installedPlugin) {
+          usePluginStore().clearExpectedDisconnect(manifest.id);
         }
         this.errorMessage = String(e);
         this.phase = 'error';
+        return;
+      }
+
+      // A fresh install runs right away; clicking Install approved the permissions listed above.
+      // Updates keep the plugin's on/off state, and the backend restarts it if it was on.
+      // enablePluginId shows its own toast if the plugin fails to start.
+      if (isFreshInstall && manifest.id) {
+        const pluginStore = usePluginStore();
+        try {
+          await pluginStore.approvePlugin({
+            id: manifest.id,
+            version: manifest.version || '',
+            permissions: manifest.permissions || [],
+          });
+          await pluginStore.enablePluginId(manifest.id);
+        } catch (e) {
+          toast.error(`${manifest.name || manifest.id} was installed but could not be started: ${e}`);
+        }
       }
     },
   },
