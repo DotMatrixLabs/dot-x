@@ -4,6 +4,7 @@ import "./styles.css";
 import "vue-sonner/style.css";
 import VueVirtualScroller from "vue-virtual-scroller";
 import "vue-virtual-scroller/dist/vue-virtual-scroller.css";
+import "./fontawesome-config";
 import "@fortawesome/fontawesome-free/js/all";
 import { createPinia } from 'pinia'
 
