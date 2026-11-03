@@ -80,6 +80,9 @@ jobs:
       - name: Build
         run: yarn build
 
+      - name: Reconnect tests
+        run: yarn test:reconnect
+
       - name: Check generated types are up to date
         working-directory: .
         run: |
