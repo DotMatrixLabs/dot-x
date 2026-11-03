@@ -35,6 +35,12 @@ class PluginStorage {
     await this.store.save();
   }
 
+  /** Re-read plugins.json after the backend changed it on disk. */
+  async reloadFromDisk() {
+    await this.ensureLoaded();
+    await this.store.reload();
+  }
+
   async getEnabledPluginIds(): Promise<string[]> {
     await this.ensureLoaded();
     const value = await this.store.get("enabled");
