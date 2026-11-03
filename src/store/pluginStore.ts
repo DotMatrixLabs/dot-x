@@ -598,10 +598,23 @@ export const usePluginStore = defineStore("pluginStore", {
                     return;
                 }
 
+                // The process is still running (an exit would have been reported), but its
+                // connection did not come back. Plugins built on SDK 1.1.6 or older stop
+                // reconnecting after a few failed attempts, for example after the PC sleeps,
+                // so restart the plugin once before telling the user.
+                try {
+                    await this.restartPluginIntentionally(pluginId);
+                    if (await this.waitForPluginActive(pluginId)) {
+                        log.info(`Restarted ${pluginId} after it lost its connection`);
+                        return;
+                    }
+                } catch (error) {
+                    log.error(`Failed to restart ${pluginId} after it lost its connection:`, error);
+                }
+
                 const reason = eventError || await this.getLatestPluginFailureReason(pluginId);
-                // The process is still running (an exit would have been reported), so it lost its connection rather than crashed.
                 toast.error(`${pluginName} lost connection to Dot X`, {
-                    description: reason || "The plugin disconnected unexpectedly. Check plugin logs for details.",
+                    description: reason || "Restarting the plugin did not reconnect it. Check plugin logs for details.",
                 });
             }, UNEXPECTED_PLUGIN_DISCONNECT_GRACE_MS);
 
