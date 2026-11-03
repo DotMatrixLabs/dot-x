@@ -8,8 +8,9 @@ export function betaVersion(current, timestamp, attempt) {
   if (!match || !/^\d{14}$/.test(timestamp) || !/^[1-9]\d*$/.test(attempt)) {
     throw new Error('Invalid beta version inputs');
   }
-  const [, major, minor, patch, prerelease] = match;
-  return `${major}.${minor}.${prerelease ? patch : Number(patch) + 1}-beta.${timestamp}.${attempt}`;
+  // Nightlies keep main's version: fixes before a release are betas of that release.
+  const [, major, minor, patch] = match;
+  return `${major}.${minor}.${patch}-beta.${timestamp}.${attempt}`;
 }
 
 export function latestBetaSource(releases) {
