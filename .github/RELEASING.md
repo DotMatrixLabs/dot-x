@@ -80,7 +80,8 @@ force to build without a newly merged PR.
 
 Each run creates a v<version>-beta.<UTC timestamp>.<attempt> tag with matching
 Tauri, Cargo and lockfile versions. This version commit exists only on the tag;
-main is not bumped. A stable main version produces a beta for the next patch.
+main is not bumped, and nor is the version: main at 2.0.0 produces 2.0.0 betas
+until someone changes the version on main.
 
 Windows and Linux builds must both pass before automatic publication. Releases
 are marked prerelease and explicitly excluded from latest. Only the Beta/Nightly

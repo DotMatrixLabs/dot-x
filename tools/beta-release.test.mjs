@@ -5,9 +5,9 @@ import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-test('betas target the current prerelease core or the next patch after a stable version', () => {
+test('betas keep the version on main', () => {
   assert.equal(betaVersion('2.0.0-1', '20261030150000', '1'), '2.0.0-beta.20261030150000.1');
-  assert.equal(betaVersion('2.0.0', '20261030150000', '2'), '2.0.1-beta.20261030150000.2');
+  assert.equal(betaVersion('2.0.0', '20261030150000', '2'), '2.0.0-beta.20261030150000.2');
   assert.throws(() => betaVersion('invalid', '20261030150000', '1'));
 });
 
