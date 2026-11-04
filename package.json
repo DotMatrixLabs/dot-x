@@ -13,6 +13,8 @@
     "preview": "vite preview",
     "test": "vitest run --dir src",
     "test:build-env": "node --test tools/vite-env.test.mjs",
+    "test:emulator": "node --test tools/decker-emulator.test.mjs",
+    "emulate-decker": "node tools/decker-emulator.mjs",
     "tauri": "tauri",
     "fetch-deno": "node tools/fetch-deno.mjs",
     "licenses": "npm run rust-licenses && npm run js-licenses",

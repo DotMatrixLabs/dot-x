@@ -10,7 +10,7 @@ Method:
 
 1. Launch via `yarn dev:linux` (Linux/Bazzite) or `yarn tauri dev`, in the background; first build can take minutes. The app is tray-first — no window is not a crash; confirm liveness via process + logs.
 2. Prefer the `tauri` MCP bridge tools (`ipc_execute_command`, `ipc_monitor`, `read_logs`, `webview_screenshot`, `webview_interact`, `manage_window`) over inference from code.
-3. If the flow needs a Decker and none is attached, simulate one: socat PTY pair, `DOTX_EXTRA_SERIAL_PORTS`, msgpack `slider1..slider5` frames (values 0–1023, one complete map per write).
+3. If the flow needs a Decker and none is attached, simulate one with `yarn emulate-decker` (see the `simulate-decker` skill): a virtual serial port, `DOTX_EXTRA_SERIAL_PORTS`, and an emulator that speaks the firmware protocol and logs what the app sends back.
 4. Exercise both the success path and at least one failure/edge input of the change under test. Capture the observable effect (event payloads, log lines, screenshots, system state like `ddcutil getvcp 10` or mixer volume), not just absence of errors.
 5. Clean up: kill the app and any socat processes you started.
 
