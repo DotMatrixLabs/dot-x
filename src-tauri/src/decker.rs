@@ -206,7 +206,6 @@ pub struct USBDevice {
     product: String,
 }
 
-#[cfg(target_os = "linux")]
 fn serial_device(port_name: String, port_type: String) -> USBDevice {
     USBDevice {
         port_name,
@@ -258,7 +257,8 @@ pub fn get_devices() -> Vec<USBDevice> {
         }
     }
 
-    #[cfg(target_os = "linux")]
+    // Virtual ports for testing without hardware (a PTY on Linux, a com0com
+    // pair on Windows); see tools/decker-emulator.mjs.
     if let Ok(extra_ports) = std::env::var("DOTX_EXTRA_SERIAL_PORTS") {
         for port_name in extra_ports
             .split(',')
