@@ -1,44 +1,68 @@
 ---
 name: simulate-decker
-description: Simulate a Decker hardware mixer over a virtual serial port (PTY pair) so device flows can be tested without physical hardware. Use when testing slider/volume/brightness/MIDI paths, decker.rs changes, or any flow that needs a connected device and no real Decker is available.
+description: Simulate a Decker hardware mixer over a virtual serial port with the checked-in emulator, so device flows can be tested without physical hardware. Use when testing slider/volume/brightness/MIDI/RGB paths, decker.rs changes, or any flow that needs a connected device and no real Decker is available.
 ---
 
 # Simulating a Decker
 
-The Decker sends msgpack-encoded frames over serial. You can stand in for the firmware with a PTY pair.
+`tools/decker-emulator.mjs` stands in for the firmware: it sends slider and device-info frames the way a real Decker does (byte-identical, see its tests) and logs every command the app sends back. You give it one end of a virtual serial port pair and the app the other.
 
-## 1. Create the virtual port pair
+## 1. Start the emulator
+
+**Linux:** let it create the PTY pair (uses `socat`, falls back to `python3`):
 
 ```sh
-socat -d -d pty,raw,echo=0 pty,raw,echo=0 2>&1 | grep -o '/dev/pts/[0-9]*'
+yarn emulate-decker --pty
+# app port: /dev/pts/7   <- give this one to the app
 ```
 
-This prints two PTYs: give one to the app, keep the other as the "firmware" side you write to. Keep the `socat` process running for the whole session.
+**Windows:** install [com0com](https://sourceforge.net/projects/com0com/) (signed 3.0.0.0 build; admin) and create a pair, e.g. `setupc install PortName=COM20 PortName=COM21`. Give the app one end and the emulator the other:
+
+```powershell
+yarn emulate-decker --port COM21
+```
+
+Options: `--sliders 0,512,1023,0,0` (start values), `--serial`, `--model`, `--firmware` (device-info answers).
 
 ## 2. Point the app at it
 
-Launch with `DOTX_EXTRA_SERIAL_PORTS=/dev/pts/<app-side>` (comma-separated for multiple). This makes the PTY appear in `get_devices` (Linux only — see `src-tauri/src/decker.rs`). Then either connect through the Settings UI, invoke `connect_decker` via the tauri MCP bridge with `{ "portName": "/dev/pts/<app-side>", "inverted": false }`, or set `comPort` in the app's persisted `config.json` (the same file the Settings UI writes) before launch.
+Launch with `DOTX_EXTRA_SERIAL_PORTS=<app port>` (comma-separated for multiple; works on every platform). The port then shows up in Settings > Device. Either pick it there, invoke `connect_decker` with `{ "portName": "<app port>", "inverted": false }`, or set `comPort` in the app's persisted `config.json` before launch.
 
-Note: PTYs don't support DTR; the app logs a warning and proceeds (a hard failure here was a real bug, fixed 2026-07-02 — don't reintroduce it).
+PTYs don't support DTR; the app logs a warning and proceeds (a hard failure here was a real bug, fixed 2026-07-02, don't reintroduce it).
 
-## 3. Send slider frames
+## 3. Drive it
 
-Each frame is one self-contained msgpack map — no length prefix or delimiter; the reader treats each `port.read()` chunk as one message, so write one whole frame per write. Slider values are `u32` in `0..=1023` under keys `slider1..slider5` (see `SliderData` in `src-tauri/src/decker.rs`). Example with Python:
+Type commands on the emulator's stdin, or pipe a script into it (it exits when the script ends):
 
-```python
-import msgpack, sys, time
-port = open(sys.argv[1], "wb", buffering=0)
-for v in (0, 512, 1023):
-    port.write(msgpack.packb({f"slider{i}": v for i in range(1, 6)}))
-    time.sleep(0.2)
+```
+set 1 512            move slider 1 (channels are 1-5, values 0-1023)
+set 0 256 512 768 1023
+sweep 3 0 1023 2000  move slider 3 over 2 s in firmware-sized steps
+info                 send the device-info frame unprompted
+state                print sliders, device info and the last rgb-control
+wait 500             pause (for scripts)
+quit
 ```
 
-(`pip install msgpack` if missing; a tiny Rust script with `rmp-serde` works too.)
-
-The device-info frame (`firmwareVersion`, `deviceModel`, `serialNumber` — camelCase keys) uses the same encoding if you need to emulate the identification handshake.
+Like the firmware, it resends the current values every second even when nothing moves.
 
 ## 4. Verify the round trip
 
-Watch the effect end-to-end: backend logs the parsed values and emits `slider-change` to the frontend; use `mcp__tauri__ipc_monitor`/`ipc_get_captured` to confirm the event, and check the mapped output (volume via `pactl`/mixer, brightness via `ddcutil getvcp 10`, MIDI via a monitor client). A precedent for a full simulated verification (including known pitfalls) is written up in `LINUX-SUPPORT.md` under the DDC/CI brightness entry.
+The emulator's stdout is the device side of the conversation, one line per message:
 
-Remember: a simulated pass is not a hardware pass — say which one you did.
+```
+tx sliders {"values":[512,0,0,0,0]}
+rx get-device-info {}
+tx device-info {"serialNumber":"EMU-00000-0001","deviceModel":"VM-5SW","firmwareVersion":"0.0.0-emulator"}
+rx rgb-control {"brightness":128}
+```
+
+`tx` is what the app received, `rx` is what the app sent; assert on these for the outbound path (RGB, brightness, device info). For the inbound path, check the app: the backend emits `slider-change` to the frontend (use `mcp__tauri__ipc_monitor`/`ipc_get_captured`), then the mapped output (volume via the mixer or `pactl`, brightness via `ddcutil getvcp 10`, MIDI via a monitor client). A precedent for a full simulated verification (including known pitfalls) is in `LINUX-SUPPORT.md` under the DDC/CI brightness entry.
+
+## Protocol reference
+
+- Device to app: msgpack maps, each followed by `\r\n`. Sliders `{slider1..slider5}` (0-1023) on change and every second; device info `{serialNumber, deviceModel, firmwareVersion}` on `get-device-info`.
+- App to device: msgpack `{command, options}`, no terminator: `get-device-info`, `set-device-info {serialNumber, deviceModel}`, `rgb-control {effect, color, brightness, speed}`.
+- Sources: `decker-firmware/src/sliders.cpp`, `src-tauri/src/decker.rs`.
+
+Remember: a simulated pass is not a hardware pass. Say which one you did.

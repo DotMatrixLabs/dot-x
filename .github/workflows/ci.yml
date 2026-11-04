@@ -41,6 +41,9 @@ jobs:
       - name: Check debug frontend excludes signing secrets
         run: yarn test:build-env
 
+      - name: Decker emulator tests
+        run: yarn test:emulator
+
       - name: Build
         run: yarn build:web
 
