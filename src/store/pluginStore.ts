@@ -23,6 +23,7 @@ const startingPluginTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
 const lifecycleFailureNotifiedAt = new Map<string, number>();
 const pluginSystemUtilityButtonRefreshes = new Map<string, Promise<PluginSystemUtilityButton[]>>();
 let refreshPluginUpdatesPromise: Promise<Record<string, PluginUpdateRecord>> | null = null;
+let followUpPluginUpdatesPromise: Promise<Record<string, PluginUpdateRecord>> | null = null;
 
 function normalizeErrorMessage(error: unknown): string | null {
     if (error instanceof Error) {
@@ -301,11 +302,18 @@ export const usePluginStore = defineStore("pluginStore", {
             this.pluginUpdates = persistedState.pluginUpdates;
             this.lastPluginUpdateCheckAt = persistedState.lastPluginUpdateCheckAt;
         },
-        async refreshPluginUpdates(options: { silent?: boolean } = {}) {
+        async refreshPluginUpdates(options: { silent?: boolean } = {}): Promise<Record<string, PluginUpdateRecord>> {
             const { silent = true } = options;
 
+            // A check already running may have read the installed versions before
+            // the caller's change (say, a plugin update that just finished), so
+            // queue one more check after it rather than reusing its answer.
             if (refreshPluginUpdatesPromise) {
-                return refreshPluginUpdatesPromise;
+                followUpPluginUpdatesPromise ??= refreshPluginUpdatesPromise.then(() => {
+                    followUpPluginUpdatesPromise = null;
+                    return this.refreshPluginUpdates(options);
+                });
+                return followUpPluginUpdatesPromise;
             }
 
             this.checkingForPluginUpdates = true;
