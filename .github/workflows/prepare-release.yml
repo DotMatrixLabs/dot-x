@@ -30,6 +30,8 @@ jobs:
   windows:
     name: Build Windows release draft
     runs-on: windows-latest
+    # Holds the code signing secrets. Its deployment rules only admit main and v* tags.
+    environment: signing
     steps:
       - uses: actions/checkout@v6
         with:
@@ -107,6 +109,38 @@ jobs:
       - name: Install license generator
         run: cargo install cargo-license --version 0.7.0 --locked
 
+      # The code signing certificate lives on a USB token in the signer VM. The runner
+      # joins the tailnet as tag:ci, which may only reach SSH on the signer, and the
+      # signer's key for this runner may only run its signing command.
+      - name: Join the tailnet to reach the signer
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+          ping: signer.tail05afda.ts.net
+
+      - name: Set up Authenticode signing
+        shell: pwsh
+        env:
+          SIGNER_SSH_KEY: ${{ secrets.SIGNER_SSH_KEY }}
+        run: |
+          if (-not $env:SIGNER_SSH_KEY) { throw 'Set SIGNER_SSH_KEY in the signing environment.' }
+          $ssh = New-Item -ItemType Directory -Force "$HOME\.ssh"
+          $key = Join-Path $ssh 'signer'
+          Set-Content -LiteralPath $key -Value ($env:SIGNER_SSH_KEY.Trim() + "`n") -NoNewline
+          icacls $key /inheritance:r /grant:r "${env:USERNAME}:F" | Out-Null
+          Add-Content -LiteralPath (Join-Path $ssh 'known_hosts') 'signer.tail05afda.ts.net ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJJ9xPetVCWOsWgMELMkMRMn05FojRmYo/1mRQKB0ML8'
+          "SIGNER_HOST=svc_signing@signer.tail05afda.ts.net" >> $env:GITHUB_ENV
+
+          # Only release builds sign, so the sign command is passed with --config
+          # instead of living in tauri.conf.json.
+          $config = @{ bundle = @{ windows = @{ signCommand = @{
+            cmd = 'pwsh'
+            args = @('-NoProfile', '-NonInteractive', '-File', "$PWD\tools\sign-windows.ps1", '%1')
+          } } } }
+          $config | ConvertTo-Json -Depth 6 | Set-Content "$env:RUNNER_TEMP\dotx-signing.json"
+
       - name: Build signed updater artifacts
         uses: tauri-apps/tauri-action@v1
         env:
@@ -120,7 +154,7 @@ jobs:
           VITE_STATS_SECRET_KEY: ${{ secrets.VITE_STATS_SECRET_KEY }}
         with:
           tauriScript: yarn tauri
-          args: --bundles nsis
+          args: --bundles nsis --config ${{ runner.temp }}\dotx-signing.json
 
       - name: Upload and verify Windows release assets
         env:
