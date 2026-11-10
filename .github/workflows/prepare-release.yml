@@ -118,7 +118,7 @@ jobs:
           oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           tags: tag:ci
-          ping: signer.tail05afda.ts.net
+          ping: signer.tail5b493.ts.net
 
       - name: Set up Authenticode signing
         shell: pwsh
@@ -130,8 +130,8 @@ jobs:
           $key = Join-Path $ssh 'signer'
           Set-Content -LiteralPath $key -Value ($env:SIGNER_SSH_KEY.Trim() + "`n") -NoNewline
           icacls $key /inheritance:r /grant:r "${env:USERNAME}:F" | Out-Null
-          Add-Content -LiteralPath (Join-Path $ssh 'known_hosts') 'signer.tail05afda.ts.net ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJJ9xPetVCWOsWgMELMkMRMn05FojRmYo/1mRQKB0ML8'
-          "SIGNER_HOST=svc_signing@signer.tail05afda.ts.net" >> $env:GITHUB_ENV
+          Add-Content -LiteralPath (Join-Path $ssh 'known_hosts') 'signer.tail5b493.ts.net ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJJ9xPetVCWOsWgMELMkMRMn05FojRmYo/1mRQKB0ML8'
+          "SIGNER_HOST=svc_signing@signer.tail5b493.ts.net" >> $env:GITHUB_ENV
 
           # Only release builds sign, so the sign command is passed with --config
           # instead of living in tauri.conf.json.
