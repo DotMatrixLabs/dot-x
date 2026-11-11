@@ -3,14 +3,17 @@ import { appendFileSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-export function betaVersion(current, timestamp, attempt) {
+export function betaVersion(current, tags) {
   const match = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([\w.-]+))?$/.exec(current);
-  if (!match || !/^\d{14}$/.test(timestamp) || !/^[1-9]\d*$/.test(attempt)) {
-    throw new Error('Invalid beta version inputs');
-  }
+  if (!match) throw new Error('Invalid beta version inputs');
   // Nightlies keep main's version: fixes before a release are betas of that release.
-  const [, major, minor, patch] = match;
-  return `${major}.${minor}.${patch}-beta.${timestamp}.${attempt}`;
+  const base = match.slice(1, 4).join('.');
+  // Count every pushed tag, not just published releases, so a re-run after a
+  // failed build takes the next number instead of colliding with its tag.
+  const prefix = `v${base}-beta.`;
+  const taken = tags.filter(tag => tag.startsWith(prefix))
+    .map(tag => tag.slice(prefix.length)).filter(n => /^[1-9]\d*$/.test(n)).map(Number);
+  return `${base}-beta.${Math.max(0, ...taken) + 1}`;
 }
 
 export function latestBetaSource(releases) {
@@ -26,7 +29,7 @@ export function mergedPullsInRange(pulls, commits) {
 }
 
 export function setReleaseVersion(root, version) {
-  if (!/^\d+\.\d+\.\d+-beta\.\d{14}\.[1-9]\d*$/.test(version)) {
+  if (!/^\d+\.\d+\.\d+-beta\.[1-9]\d*$/.test(version)) {
     throw new Error('Expected a managed beta version');
   }
   const configPath = join(root, 'src-tauri/tauri.conf.json');
@@ -65,8 +68,9 @@ function prepare() {
     return;
   }
   const current = JSON.parse(readFileSync('src-tauri/tauri.conf.json', 'utf8')).version;
-  const timestamp = new Date().toISOString().replace(/\D/g, '').slice(0, 14);
-  const version = betaVersion(current, timestamp, process.env.GITHUB_RUN_ATTEMPT);
+  const tags = git('ls-remote', '--tags', '--refs', 'origin', 'v*-beta.*').split('\n')
+    .filter(Boolean).map(line => line.split('refs/tags/')[1]);
+  const version = betaVersion(current, tags);
   const tag = `v${version}`;
   setReleaseVersion(process.cwd(), version);
   git('config', 'user.name', 'github-actions[bot]');

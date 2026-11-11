@@ -78,8 +78,10 @@ merged into main after the source commit of the last published nightly beta.
 Failed or draft releases do not advance the baseline. Manual runs can enable
 force to build without a newly merged PR.
 
-Each run creates a v<version>-beta.<UTC timestamp>.<attempt> tag with matching
-Tauri, Cargo and lockfile versions. This version commit exists only on the tag;
+Each run creates a v<version>-beta.<N> tag with matching Tauri, Cargo and
+lockfile versions. N is one more than the highest existing v<version>-beta.<N>
+tag, so it restarts at 1 when main's version changes. A failed run still uses up
+its number. This version commit exists only on the tag;
 main is not bumped, and nor is the version: main at 2.0.0 produces 2.0.0 betas
 until someone changes the version on main.
 

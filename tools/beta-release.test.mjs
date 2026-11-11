@@ -5,10 +5,14 @@ import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-test('betas keep the version on main', () => {
-  assert.equal(betaVersion('2.0.0-1', '20261030150000', '1'), '2.0.0-beta.20261030150000.1');
-  assert.equal(betaVersion('2.0.0', '20261030150000', '2'), '2.0.0-beta.20261030150000.2');
-  assert.throws(() => betaVersion('invalid', '20261030150000', '1'));
+test('betas keep the version on main and count up from its existing beta tags', () => {
+  assert.equal(betaVersion('2.0.0', []), '2.0.0-beta.1');
+  assert.equal(betaVersion('2.0.0-1', ['v2.0.0-beta.1']), '2.0.0-beta.2');
+  assert.equal(betaVersion('2.0.0', [
+    'v2.0.0-beta.9', 'v2.0.0-beta.10', 'v2.0.0-beta.20261111092405.1', 'v2.1.0-beta.40', 'v1.3.0',
+  ]), '2.0.0-beta.11');
+  assert.equal(betaVersion('2.1.0', ['v2.0.0-beta.10']), '2.1.0-beta.1');
+  assert.throws(() => betaVersion('invalid', []));
 });
 
 test('only a published managed beta advances the baseline', () => {
@@ -41,8 +45,9 @@ test('release versions stay aligned without changing dependency versions', () =>
   writeFileSync(join(root, 'src-tauri/tauri.conf.json'), JSON.stringify({ version: '2.0.0-1' }));
   writeFileSync(join(root, 'src-tauri/Cargo.toml'), '[package]\nname = "dot_x"\nversion = "2.0.0-1"\n\n[dependencies]\nserde = "1.0"\n');
   writeFileSync(join(root, 'src-tauri/Cargo.lock'), '[[package]]\nname = "dot_x"\nversion = "2.0.0-1"\n\n[[package]]\nname = "serde"\nversion = "1.0.0"\n');
-  setReleaseVersion(root, '2.0.0-beta.20261030150000.1');
-  assert.equal(JSON.parse(readFileSync(join(root, 'src-tauri/tauri.conf.json'))).version, '2.0.0-beta.20261030150000.1');
-  assert.match(readFileSync(join(root, 'src-tauri/Cargo.toml'), 'utf8'), /version = "2.0.0-beta.20261030150000.1"/);
+  setReleaseVersion(root, '2.0.0-beta.3');
+  assert.throws(() => setReleaseVersion(root, '2.0.0-beta.20261030150000.1'));
+  assert.equal(JSON.parse(readFileSync(join(root, 'src-tauri/tauri.conf.json'))).version, '2.0.0-beta.3');
+  assert.match(readFileSync(join(root, 'src-tauri/Cargo.toml'), 'utf8'), /version = "2.0.0-beta.3"/);
   assert.match(readFileSync(join(root, 'src-tauri/Cargo.lock'), 'utf8'), /name = "serde"\nversion = "1.0.0"/);
 });
