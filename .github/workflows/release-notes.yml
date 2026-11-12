@@ -1,0 +1,33 @@
+name: Copy release notes into latest.json
+
+# Dot X reads its update changelog from latest.json's `notes`, not from the
+# release body. Copy the body over whenever a maintainer publishes or edits a
+# release. Releases published by GITHUB_TOKEN (nightly betas) do not trigger this.
+on:
+  release:
+    types: [published, edited]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-notes-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
+
+jobs:
+  notes:
+    if: ${{ !github.event.release.draft }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - name: Copy the release body into latest.json
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: node tools/release-notes.mjs

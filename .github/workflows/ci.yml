@@ -44,6 +44,9 @@ jobs:
       - name: Decker emulator tests
         run: yarn test:emulator
 
+      - name: Release tooling tests
+        run: yarn test:release
+
       - name: Build
         run: yarn build:web
 

@@ -14,6 +14,7 @@
     "test": "vitest run --dir src",
     "test:build-env": "node --test tools/vite-env.test.mjs",
     "test:emulator": "node --test tools/decker-emulator.test.mjs",
+    "test:release": "node --test tools/beta-release.test.mjs tools/release-assets.test.mjs tools/release-notes.test.mjs",
     "emulate-decker": "node tools/decker-emulator.mjs",
     "tauri": "tauri",
     "fetch-deno": "node tools/fetch-deno.mjs",

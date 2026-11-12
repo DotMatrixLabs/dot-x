@@ -148,6 +148,10 @@ Keep clips under 15 seconds and under 10 MB (GitHub's upload cap). Trim to the p
 
 **Redact.** Plugin settings can hold credentials, and tokens can appear in logs and on screen. Keep them out of frame, out of logs, and out of uploads. The repo is private, but treat every upload like it is public: attachment URLs only render for people with repo access, and they still feel permanent.
 
+## Releases
+
+`.github/RELEASING.md` is the release runbook; read it before touching the release workflows, tags, or signing. One trap worth knowing up front: the changelog Dot X shows in its update prompt comes from the `notes` field of the release's `latest.json`, never from the GitHub release body. `release-notes.yml` copies the body (written from `.github/RELEASE_TEMPLATE.md`, `DOT_X_CONTENT` section) into `notes` when a release is published or edited. If you change how releases or `latest.json` are produced, keep that copy working, and check a published `latest.json` for `notes` rather than trusting the release page.
+
 ## Pull requests
 
 - Never make a PR unless the developer explicitly asks you to do so.
