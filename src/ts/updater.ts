@@ -1,5 +1,6 @@
 import { check, type Update } from '@tauri-apps/plugin-updater';
 import { invoke } from '@tauri-apps/api/core';
+import { getVersion } from '@tauri-apps/api/app';
 import { relaunch } from '@tauri-apps/plugin-process';
 import { isPermissionGranted, requestPermission, sendNotification } from '@tauri-apps/plugin-notification';
 import { platform, version as osVersion } from '@tauri-apps/plugin-os';
@@ -19,8 +20,14 @@ let pendingUpdate: PendingUpdate | null = null;
 // Bumped on every track change so a check that started on the old track is dropped.
 let trackGeneration = 0;
 
+// Testers join the beta by installing a beta build by hand; 1.x has no track setting.
+// Their first run saves Beta, so they stay on it after the stable release until they pick Stable.
 export async function getUpdateTrack(): Promise<UpdateTrack> {
-  return (await ConfigStore.get('updateTrack')) === 'beta' ? 'beta' : 'stable';
+  const saved = await ConfigStore.get('updateTrack');
+  if (saved === 'beta' || saved === 'stable') return saved;
+  if (!(await getVersion()).includes('-')) return 'stable';
+  await ConfigStore.set('updateTrack', 'beta');
+  return 'beta';
 }
 
 export async function setUpdateTrack(track: UpdateTrack) {
