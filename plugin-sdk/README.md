@@ -123,7 +123,7 @@ First, create a `manifest.json` file with your plugin metadata:
   "version": "1.0.0",
   "description": "A description of what my plugin does",
   "author": "Your Name",
-  "dotxVersion": ">=1.0.0",
+  "dotxVersion": ">=2.0.0",
   "permissions": [],
   "main": "main.ts"
 }
@@ -434,7 +434,7 @@ Example:
   "id": "my-plugin",
   "name": "My Awesome Plugin",
   "version": "1.0.0",
-  "dotxVersion": ">=1.0.0",
+  "dotxVersion": ">=2.0.0",
   "permissions": [],
   "main": "main.js",
   "packaging": {
