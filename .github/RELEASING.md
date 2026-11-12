@@ -2,14 +2,9 @@
 
 Dot X's updater reads `latest.json` from the latest published GitHub Release. The release workflow builds a Windows NSIS installer and its Tauri-signed updater bundle from a `v<version>` tag on `main`, then adds a Linux `.deb` and AppImage built on Ubuntu 24.04. It leaves the release as a draft for review.
 
-## Before the first GitHub-hosted update
+## Windows signing
 
-- Make this repository public and publish a stable release containing `latest.json` before shipping a build that uses the GitHub endpoint. Installed apps cannot download release metadata or assets from a private repository without GitHub credentials. Until then both update tracks fail: Stable cannot fetch `latest.json`, and Beta/Nightly gets a 404 from the releases API. Settings > About shows "Update check failed".
-- Add the `TAURI_SIGNING_PRIVATE_KEY` Actions secret. It must match the public updater key in `src-tauri/tauri.conf.json`. Add `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` if the key has a password. Tauri requires an updater signature even when the Windows installer is not Authenticode-signed.
-- Plan a final Anystack-served update for existing installations. Apps already installed with the Anystack endpoint cannot learn the new endpoint until they receive a build containing it. If the current updater private key is unavailable, that migration needs a separate path.
-- Official binaries use GPL-3.0-or-later, matching the app source. The installer displays `src-tauri/licenses/GPL-3.0.txt`. Before publishing a binary, provide its corresponding source and build instructions, including required dependency sources, alongside the installer. #191 tracks the remaining publication gates.
-
-Windows Authenticode signing is deferred to #244. The draft workflow currently produces an unsigned Windows installer with a Tauri-signed updater bundle.
+Windows release builds are Authenticode-signed on the self-hosted signer that the release job reaches over the tailnet (`tools/sign-windows.ps1`). The updater bundle is then signed with the Tauri updater key from the `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` Actions secrets, which must match the public key in `src-tauri/tauri.conf.json`.
 
 Building and uploading are separate steps. `tools/release-assets.mjs` verifies
 Windows updater signatures before upload, then checks each uploaded asset by
@@ -17,49 +12,64 @@ downloading it and comparing SHA-256 hashes. If GitHub stores an asset but retur
 an error, matching remote bytes count as success. Otherwise the entire replace
 and upload operation is retried, up to four attempts, without rebuilding the app.
 
-## 2.0 signing-key migration
+Official binaries use GPL-3.0-or-later, matching the app source. The installer displays `src-tauri/licenses/GPL-3.0.txt`.
 
-2.0.0 embeds only the new public updater key, identifier `85C0179C61673E1`, and
-uses GitHub Releases for subsequent updates. 1.3.0 embeds the previous key,
-identifier `56C5CAF345DF2C71`, and checks Anystack. Publishing on GitHub alone
-does not reach those installed copies.
+## 2.0 rollout
 
-The new private key and password are stored in the repository's
-`TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` Actions
-secrets. The local migration checkout keeps them in ignored `.env`, with the
-previous credentials in ignored `.env.updater-previous`. Keep both files private.
-Tauri's signing CLI does not load these files automatically. Export the selected
-credentials into the signing process; existing system variables may still hold
-the previous pair. Never use a `VITE_` name for signing credentials.
+1.3.0 is a Tauri 1 app installed from an MSI. It checks Anystack and trusts only
+the previous updater key, `56C5CAF345DF2C71`. 2.0 checks GitHub Releases and
+trusts only the new key, `85C0179C61673E1`. Neither version can update the
+other's way, so 2.0 reaches users by two routes:
 
-Prepare two signatures for the same Windows 2.0 updater bundle:
+- **Beta testers** download a 2.0 beta installer from GitHub and run it over
+  1.3.0. The NSIS installer replaces the MSI install and keeps settings, since
+  both use the `com.dot-x.dev` identifier. A beta build saves the Beta track on
+  its first run (`getUpdateTrack()` in `src/ts/updater.ts`), so testers get
+  later betas and then 2.0.0 without touching Settings. Betas never go to
+  Anystack and never need the previous key. It does not matter when a tester
+  joins; they install whatever beta is newest.
+- **Everyone else** gets stable 2.0.0 through Anystack, signed with the previous
+  key. After that update they are on 2.0's Stable track and check GitHub.
 
-- GitHub's `latest.json` and bundle `.sig` must use the new key. They must match
-  the public key embedded in 2.0, as the release workflow checks.
-- The copy served to 1.x by Anystack must use a separate signature made with the
-  previous key. Signing the package with that key lets 1.x install it; the
-  installed 2.0 still trusts only the new key. Keep this signature separate from
-  GitHub's `.sig`, and retain the signed bridge for users who upgrade later.
+In-app updates need anonymous access to GitHub Releases, so the repository must
+be public before testers can update in place. Order:
 
-Before publishing 2.0 or making the repository public:
+1. Make the repository public. Check that `latest.json` and the installer of the
+   newest beta download without signing in.
+2. Send testers the newest beta installer from the Releases page.
+3. When 2.0.0 is ready, tag `v2.0.0`, review the draft, and publish it on GitHub
+   first, so it is GitHub's latest stable release with `latest.json`.
+4. Then sign the same `.nsis.zip` with the previous key (below) and publish it
+   on Anystack. If Anystack shipped first, upgraded users would check GitHub
+   and find only 1.3.0, which has no `latest.json`.
+5. Update a real 1.3.0 install through Anystack. Check the version, settings,
+   mappings, plugins, autostart, and the device connection. Keep the Anystack
+   update published for users who upgrade later.
 
-1. Exercise a real 1.3.0 MSI installation updating through Anystack to the 2.0
-   NSIS bundle with the previous-key signature. Check installer compatibility,
-   settings, mappings, plugins, startup, and the device connection.
-2. Confirm the installed 2.0 checks GitHub, accepts a subsequent test update
-   signed with the new key, and rejects an update signed only with the previous
-   key. A signature smoke test alone does not prove installation works.
-3. Verify stable and Beta/Nightly release selection and anonymous downloads.
-   Keep publication and repository visibility changes for the coordinated
-   release after these tests. Do not publish a test update as the stable latest.
-4. Finish the historical secret cleanup, including GitHub's retained PR refs and
-   cached commit views. Other contributors must clean or replace their old
-   clones before pushing, or they can restore the removed history.
+### Signing the Anystack copy with the previous key
 
-Nightly beta publishing is disabled while this migration is being tested. Leave
-it disabled until the signing configuration and rollout are ready and the stable
-`v2.0.0` tag exists. Otherwise nightly selection starts at `2.0.1-beta.*`. These changes
-prepare 2.0; they do not authorize a release or visibility change.
+The previous key is not in CI and should not be added. Keep the key and its
+password in the password manager. `tauri signer sign` reads
+`TAURI_PRIVATE_KEY` and `TAURI_PRIVATE_KEY_PASSWORD` (not the
+`TAURI_SIGNING_*` names `tauri build` uses) and writes `<file>.sig` next to
+the file, so sign a copy in its own folder to keep GitHub's `.sig` intact:
+
+```powershell
+New-Item -ItemType Directory -Force "$env:TEMPdotx-anystack" | Out-Null
+gh release download v2.0.0 -R DotMatrixLabs/dot-x -p "*.nsis.zip" -D "$env:TEMPdotx-anystack"
+$env:TAURI_PRIVATE_KEY = '<previous key>'; $env:TAURI_PRIVATE_KEY_PASSWORD = '<previous password>'
+yarn tauri signer sign (Get-ChildItem "$env:TEMPdotx-anystack*.nsis.zip").FullName
+Remove-Item Env:TAURI_PRIVATE_KEY, Env:TAURI_PRIVATE_KEY_PASSWORD
+```
+
+Check the result against 1.3.0's public key before uploading:
+
+```powershell
+git show v1.3.0:src-tauri/tauri.conf.json | node --input-type=module -e "const {verifyUpdaterSignature}=await import('./tools/release-assets.mjs');const fs=await import('node:fs');const pub=JSON.parse(fs.readFileSync(0,'utf8')).tauri.updater.pubkey;const z=fs.globSync(process.env.TEMP+'/dotx-anystack/*.nsis.zip')[0];verifyUpdaterSignature(fs.readFileSync(z),fs.readFileSync(z+'.sig','utf8'),pub);console.log('accepted by 1.3.0')"
+```
+
+Do not keep updater keys in Windows environment variables; every process on the
+machine can read them, and `tauri signer sign` silently picks them up.
 
 ## Prepare a release
 
@@ -69,7 +79,7 @@ prepare 2.0; they do not authorize a release or visibility change.
 4. Publish the draft after release review. Publishing makes `latest.json` available to the updater.
 5. Exercise an update from an older installed version. Check the resulting app version and that settings and mappings remain intact. Update the website download link and changelog content from `.github/RELEASE_TEMPLATE.md` only after that check passes.
 
-Tags with a prerelease suffix create GitHub prereleases. Stable is the default update track and uses GitHub's latest published stable release. Users can opt into Beta/Nightly in Settings > About. That track checks published releases for the highest semantic version with a `latest.json` asset, including stable releases and GitHub prereleases. Drafts are never offered. Publish prereleases only after reviewing their updater assets and version order.
+Tags with a prerelease suffix create GitHub prereleases. Stable is the default update track and uses GitHub's latest published stable release. A beta build saves the Beta track on its first run; anyone can switch tracks in Settings > About. The Beta track checks published releases for the highest semantic version with a `latest.json` asset, including stable releases and GitHub prereleases. Drafts are never offered. Publish prereleases only after reviewing their updater assets and version order.
 
 ## Nightly beta releases
 
@@ -89,11 +99,8 @@ Windows and Linux builds must both pass before automatic publication. Releases
 are marked prerelease and explicitly excluded from latest. Only the Beta/Nightly
 update track offers them. The workflow does not publish to Anystack.
 
-Windows installers have no Authenticode signature yet. Updater artifacts use the
-configured signing secrets and must match the public updater key in that build.
-
-While the repo is private, download the installer from GitHub while signed in
-and install manually. Anonymous in-app beta checks cannot access private releases.
+Updater artifacts use the configured signing secrets and must match the public
+updater key in that build.
 
 ## Linux
 
