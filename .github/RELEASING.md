@@ -6,6 +6,8 @@ Dot X's updater reads `latest.json` from the latest published GitHub Release. Th
 
 Windows release builds are Authenticode-signed on the self-hosted signer that the release job reaches over the tailnet (`tools/sign-windows.ps1`). The updater bundle is then signed with the Tauri updater key from the `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` Actions secrets, which must match the public key in `src-tauri/tauri.conf.json`.
 
+The `signing` environment holding these secrets admits only `main` and stable tags (`v1.2.3` patterns, never `-beta` tags). Nightly betas sign from `main`. Two repository rulesets guard those refs: "Protect main" requires a reviewed pull request and blocks force pushes, and "Protect stable release tags" lets only admins create, move or delete stable `v*` tags. Admins bypass both, so a stable release is tagged by an admin. The environment's tag patterns cover versions up to 9.99.99; widen them in Settings > Environments > signing before a 10.0.0 release.
+
 Building and uploading are separate steps. `tools/release-assets.mjs` verifies
 Windows updater signatures before upload, then checks each uploaded asset by
 downloading it and comparing SHA-256 hashes. If GitHub stores an asset but returns

@@ -30,7 +30,8 @@ jobs:
   windows:
     name: Build Windows release draft
     runs-on: windows-latest
-    # Holds the code signing secrets. Its deployment rules only admit main and v* tags.
+    # Holds the code signing secrets. Its deployment rules admit main (which nightly
+    # betas run from) and stable tags like v2.0.0, never prerelease tags.
     environment: signing
     steps:
       - uses: actions/checkout@v6
