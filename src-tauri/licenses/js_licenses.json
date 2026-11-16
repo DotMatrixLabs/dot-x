@@ -19,17 +19,17 @@
         "repository": "https://github.com/electron/get",
         "licenseUrl": "https://github.com/electron/get/raw/master/LICENSE"
     },
-    "@esbuild/linux-x64@0.25.10": {
+    "@esbuild/win32-x64@0.25.10": {
         "licenses": "MIT",
         "repository": "https://github.com/evanw/esbuild",
         "licenseUrl": "https://github.com/evanw/esbuild/raw/master/README.md"
     },
-    "@esbuild/linux-x64@0.25.6": {
+    "@esbuild/win32-x64@0.25.6": {
         "licenses": "MIT",
         "repository": "https://github.com/evanw/esbuild",
         "licenseUrl": "https://github.com/evanw/esbuild/raw/master/README.md"
     },
-    "@esbuild/linux-x64@0.28.2": {
+    "@esbuild/win32-x64@0.28.2": {
         "licenses": "MIT",
         "repository": "https://github.com/evanw/esbuild",
         "licenseUrl": "https://github.com/evanw/esbuild/raw/master/README.md"
@@ -97,11 +97,6 @@
         "repository": "https://github.com/jridgewell/trace-mapping",
         "licenseUrl": "https://github.com/jridgewell/trace-mapping/raw/master/LICENSE"
     },
-    "@napi-rs/lzma-linux-x64-gnu@1.5.1": {
-        "licenses": "MIT",
-        "repository": "https://github.com/Brooooooklyn/lzma",
-        "licenseUrl": "https://github.com/Brooooooklyn/lzma/raw/master/README.md"
-    },
     "@nodelib/fs.scandir@2.1.5": {
         "licenses": "MIT",
         "repository": "https://github.com/nodelib/nodelib/tree/master/packages/fs/fs.scandir",
@@ -117,12 +112,7 @@
         "repository": "https://github.com/nodelib/nodelib/tree/master/packages/fs/fs.walk",
         "licenseUrl": "https://github.com/nodelib/nodelib/tree/master/packages/fs/fs.walk/raw/master/LICENSE"
     },
-    "@parcel/watcher-linux-x64-glibc@2.5.1": {
-        "licenses": "MIT",
-        "repository": "https://github.com/parcel-bundler/watcher",
-        "licenseUrl": "https://github.com/parcel-bundler/watcher/raw/master/LICENSE"
-    },
-    "@parcel/watcher-linux-x64-musl@2.5.1": {
+    "@parcel/watcher-win32-x64@2.5.1": {
         "licenses": "MIT",
         "repository": "https://github.com/parcel-bundler/watcher",
         "licenseUrl": "https://github.com/parcel-bundler/watcher/raw/master/LICENSE"
@@ -137,22 +127,22 @@
         "repository": "https://github.com/rolldown/rolldown",
         "licenseUrl": "https://github.com/rolldown/rolldown/raw/master/LICENSE"
     },
-    "@rollup/rollup-linux-x64-gnu@4.52.4": {
+    "@rollup/rollup-win32-x64-gnu@4.52.4": {
         "licenses": "MIT",
         "repository": "https://github.com/rollup/rollup",
         "licenseUrl": "https://github.com/rollup/rollup/raw/master/README.md"
     },
-    "@rollup/rollup-linux-x64-gnu@4.65.0": {
+    "@rollup/rollup-win32-x64-gnu@4.65.0": {
         "licenses": "MIT",
         "repository": "https://github.com/rollup/rollup",
         "licenseUrl": "https://github.com/rollup/rollup/raw/master/README.md"
     },
-    "@rollup/rollup-linux-x64-musl@4.52.4": {
+    "@rollup/rollup-win32-x64-msvc@4.52.4": {
         "licenses": "MIT",
         "repository": "https://github.com/rollup/rollup",
         "licenseUrl": "https://github.com/rollup/rollup/raw/master/README.md"
     },
-    "@rollup/rollup-linux-x64-musl@4.65.0": {
+    "@rollup/rollup-win32-x64-msvc@4.65.0": {
         "licenses": "MIT",
         "repository": "https://github.com/rollup/rollup",
         "licenseUrl": "https://github.com/rollup/rollup/raw/master/README.md"
@@ -262,30 +252,25 @@
         "repository": "https://github.com/szmarczak/http-timer",
         "licenseUrl": "https://github.com/szmarczak/http-timer/raw/master/LICENSE"
     },
-    "@tauri-apps/api@2.9.0": {
+    "@tauri-apps/api@2.12.4": {
         "licenses": "Apache-2.0 OR MIT",
         "repository": "https://github.com/tauri-apps/tauri",
-        "licenseUrl": "https://github.com/tauri-apps/tauri/raw/master/README.md"
+        "licenseUrl": "https://github.com/tauri-apps/tauri/raw/master/LICENSE.spdx"
     },
     "@tauri-apps/api@2.9.1": {
         "licenses": "Apache-2.0 OR MIT",
         "repository": "https://github.com/tauri-apps/tauri",
         "licenseUrl": "https://github.com/tauri-apps/tauri/raw/master/README.md"
     },
-    "@tauri-apps/cli-linux-x64-gnu@2.9.2": {
+    "@tauri-apps/cli-win32-x64-msvc@2.12.4": {
         "licenses": "Apache-2.0 OR MIT",
         "repository": "https://github.com/tauri-apps/tauri",
         "licenseUrl": "https://github.com/tauri-apps/tauri/raw/master/README.md"
     },
-    "@tauri-apps/cli-linux-x64-musl@2.9.2": {
+    "@tauri-apps/cli@2.12.4": {
         "licenses": "Apache-2.0 OR MIT",
         "repository": "https://github.com/tauri-apps/tauri",
-        "licenseUrl": "https://github.com/tauri-apps/tauri/raw/master/README.md"
-    },
-    "@tauri-apps/cli@2.9.2": {
-        "licenses": "Apache-2.0 OR MIT",
-        "repository": "https://github.com/tauri-apps/tauri",
-        "licenseUrl": "https://github.com/tauri-apps/tauri/raw/master/README.md"
+        "licenseUrl": "https://github.com/tauri-apps/tauri/raw/master/LICENSE-MIT"
     },
     "@tauri-apps/plugin-autostart@2.5.1": {
         "licenses": "MIT OR Apache-2.0",
