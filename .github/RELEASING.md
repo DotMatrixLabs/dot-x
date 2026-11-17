@@ -78,7 +78,7 @@ machine can read them, and `tauri signer sign` silently picks them up.
 1. Merge the intended changes into `main` and set the same version in `src-tauri/tauri.conf.json` and `src-tauri/Cargo.toml`.
 2. Tag that `main` commit as `v<version>` and push the tag. The workflow rejects tags outside `main` or with a version mismatch.
 3. Review the draft release. Confirm it contains the NSIS installer, `.nsis.zip`, `.nsis.zip.sig`, the Linux `.deb`, `.AppImage`, `.AppImage.sig`, and `latest.json`. The workflow checks that the Windows x64 metadata refers to the bundle on that tag and that the `linux-x86_64` entry is signed with the bundled updater key.
-4. Write the release body from `.github/RELEASE_TEMPLATE.md` and publish the draft. Publishing makes `latest.json` available to the updater. Dot X shows the `DOT_X_CONTENT` section as the update changelog, but it reads it from the `notes` field in `latest.json`, not from the release body: `release-notes.yml` copies the body into `notes` on every publish or edit (`tools/release-notes.mjs`). For a stable release that job fails when the `DOT_X_CONTENT` section is missing, empty or still the template example; fix the body and save the release to rerun it. GitHub runs the workflow from the tagged commit, so it only fires for releases tagged after it was added, and never for nightly betas, which the workflow token publishes. For those, run "Copy release notes into latest.json" by hand with the tag.
+4. Write the release body from `.github/RELEASE_TEMPLATE.md` and publish the draft. Publishing makes `latest.json` available to the updater. Dot X shows the `DOT_X_CONTENT` section as the update changelog, but it reads it from the `notes` field in `latest.json`, not from the release body: `release-notes.yml` copies the body into `notes` on every publish or edit (`tools/release-notes.mjs`). For a stable release that job fails when the `DOT_X_CONTENT` section is missing, empty or still the template example; fix the body and save the release to rerun it. GitHub runs the workflow from the tagged commit, so it only fires for releases tagged after it was added, and never for releases the workflow token publishes. Nightly betas copy their own notes (see below); for any other release it missed, run "Copy release notes into latest.json" by hand with the tag.
 5. Exercise an update from an older installed version. Check the resulting app version and that settings and mappings remain intact. Update the website download link and changelog content from `.github/RELEASE_TEMPLATE.md` only after that check passes.
 
 Tags with a prerelease suffix create GitHub prereleases. Stable is the default update track and uses GitHub's latest published stable release. A beta build saves the Beta track on its first run; anyone can switch tracks in Settings > About. The Beta track checks published releases for the highest semantic version with a `latest.json` asset, including stable releases and GitHub prereleases. Drafts are never offered. Publish prereleases only after reviewing their updater assets and version order.
@@ -96,6 +96,16 @@ tag, so it restarts at 1 when main's version changes. A failed run still uses up
 its number. This version commit exists only on the tag;
 main is not bumped, and nor is the version: main at 2.0.0 produces 2.0.0 betas
 until someone changes the version on main.
+
+Each beta writes its own release notes in the `DOT_X_CONTENT` format, listing
+the first-parent commits on main since the last published beta, with the PR
+title for merge commits. The conventional commit type picks the section:
+`feat` goes under New Features, `fix` under Bug Fixes, `perf` and titles
+without a type under Improvements. Other types (`chore`, `docs`, `build`,
+`ci`, `test`, `refactor`) and the `build`, `ci` and `docs` scopes are left
+out, so a title like `fix(build): ...` never reaches users. The publish step
+then copies the notes into `latest.json`. Edit a beta's release body and run
+"Copy release notes into latest.json" by hand to correct its notes.
 
 Windows and Linux builds must both pass before automatic publication. Releases
 are marked prerelease and explicitly excluded from latest. Only the Beta/Nightly

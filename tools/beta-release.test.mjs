@@ -1,6 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { betaVersion, latestBetaSource, mergedPullsInRange, setReleaseVersion } from './beta-release.mjs';
+import {
+  betaNotes, betaVersion, changeTitles, changelogEntry, latestBetaSource, mergedPullsInRange, setReleaseVersion,
+} from './beta-release.mjs';
+import { hasDotXContent } from './release-notes.mjs';
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -50,4 +53,31 @@ test('release versions stay aligned without changing dependency versions', () =>
   assert.equal(JSON.parse(readFileSync(join(root, 'src-tauri/tauri.conf.json'))).version, '2.0.0-beta.3');
   assert.match(readFileSync(join(root, 'src-tauri/Cargo.toml'), 'utf8'), /version = "2.0.0-beta.3"/);
   assert.match(readFileSync(join(root, 'src-tauri/Cargo.lock'), 'utf8'), /name = "serde"\nversion = "1.0.0"/);
+});
+
+test('conventional commit types pick the changelog section', () => {
+  assert.deepEqual(changelogEntry('feat(plugins): start plugins right after install (#263)'),
+    { section: 'New Features', text: 'Start plugins right after install (#263)' });
+  assert.deepEqual(changelogEntry('fix: upgrade tauri so a second dot x launch always exits'),
+    { section: 'Bug Fixes', text: 'Upgrade tauri so a second Dot X launch always exits' });
+  assert.equal(changelogEntry('perf(audio): skip idle sessions').section, 'Improvements');
+  assert.equal(changelogEntry('Add a tray icon').section, 'Improvements');
+  for (const hidden of ['chore: bump vite', 'docs: fix typo', 'fix(build): sign betas', 'feat(ci): cache rust',
+    'refactor: split decker.rs', 'Merge pull request #275 from x/y', '']) {
+    assert.equal(changelogEntry(hidden), null, hidden);
+  }
+});
+
+test('merge commits take their PR title', () => {
+  const pulls = [{ number: 275, title: 'fix(device): reconnect after sleep', merge_commit_sha: 'm' }];
+  assert.deepEqual(changeTitles([{ sha: 'm', subject: 'Merge pull request #275 from x/y' },
+    { sha: 'd', subject: 'feat: direct commit' }], pulls), ['fix(device): reconnect after sleep (#275)', 'feat: direct commit']);
+});
+
+test('beta notes follow the DOT_X_CONTENT format', () => {
+  const notes = betaNotes(['fix: b', 'chore: hidden', 'feat: a', 'fix: c'], 'abc');
+  assert.equal(notes, '<!-- DOT_X_CONTENT_START -->\n## New Features\n\n- A\n\n## Bug Fixes\n\n- B\n- C\n' +
+    '<!-- DOT_X_CONTENT_END -->\n\n---\n\nAutomated beta from main commit abc.\n');
+  assert.equal(hasDotXContent(notes), true);
+  assert.equal(hasDotXContent(betaNotes(['chore: only tooling'], 'abc')), true);
 });

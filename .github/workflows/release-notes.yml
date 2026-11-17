@@ -4,7 +4,8 @@ name: Copy release notes into latest.json
 # release body. Copy the body over whenever a maintainer publishes or edits a
 # release. GitHub runs this file as it exists in the release's tagged commit, so
 # it fires only for releases tagged after it was added, and never for releases
-# published by GITHUB_TOKEN (nightly betas). Run it by hand for any other release.
+# published by GITHUB_TOKEN (nightly betas copy their own notes in
+# prepare-release.yml). Run it by hand for any other release.
 on:
   release:
     types: [published, edited]
