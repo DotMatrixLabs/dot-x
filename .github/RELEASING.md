@@ -97,15 +97,17 @@ its number. This version commit exists only on the tag;
 main is not bumped, and nor is the version: main at 2.0.0 produces 2.0.0 betas
 until someone changes the version on main.
 
-Each beta writes its own release notes in the `DOT_X_CONTENT` format, listing
-the first-parent commits on main since the last published beta, with the PR
-title for merge commits. The conventional commit type picks the section:
-`feat` goes under New Features, `fix` under Bug Fixes, `perf` and titles
-without a type under Improvements. Other types (`chore`, `docs`, `build`,
-`ci`, `test`, `refactor`) and the `build`, `ci` and `docs` scopes are left
-out, so a title like `fix(build): ...` never reaches users. The publish step
-then copies the notes into `latest.json`. Edit a beta's release body and run
-"Copy release notes into latest.json" by hand to correct its notes.
+Each beta writes its own release notes in the `DOT_X_CONTENT` format from the
+PRs merged since the last published beta. Dot X shows only what PR authors
+wrote under `## Changelog` in the PR description (see
+`.github/PULL_REQUEST_TEMPLATE.md`); a PR with that section empty, missing or
+set to "none" stays out of the app. The PR title's prefix picks the heading:
+`feat` goes under New Features, `fix` under Bug Fixes, anything else under
+Improvements. Commits pushed to main without a PR never appear. Below the
+divider, the release lists every merged PR for testers reading GitHub. The
+publish step then copies the notes into `latest.json`. To correct a beta's
+notes, edit its release body and run "Copy release notes into latest.json"
+by hand with its tag.
 
 Windows and Linux builds must both pass before automatic publication. Releases
 are marked prerelease and explicitly excluded from latest. Only the Beta/Nightly

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  betaNotes, betaVersion, changeTitles, changelogEntry, latestBetaSource, mergedPullsInRange, setReleaseVersion,
+  betaNotes, betaVersion, changelogLines, latestBetaSource, mergedPullsInRange, setReleaseVersion,
 } from './beta-release.mjs';
 import { hasDotXContent } from './release-notes.mjs';
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -55,29 +55,30 @@ test('release versions stay aligned without changing dependency versions', () =>
   assert.match(readFileSync(join(root, 'src-tauri/Cargo.lock'), 'utf8'), /name = "serde"\nversion = "1.0.0"/);
 });
 
-test('conventional commit types pick the changelog section', () => {
-  assert.deepEqual(changelogEntry('feat(plugins): start plugins right after install (#263)'),
-    { section: 'New Features', text: 'Start plugins right after install (#263)' });
-  assert.deepEqual(changelogEntry('fix: upgrade tauri so a second dot x launch always exits'),
-    { section: 'Bug Fixes', text: 'Upgrade tauri so a second Dot X launch always exits' });
-  assert.equal(changelogEntry('perf(audio): skip idle sessions').section, 'Improvements');
-  assert.equal(changelogEntry('Add a tray icon').section, 'Improvements');
-  for (const hidden of ['chore: bump vite', 'docs: fix typo', 'fix(build): sign betas', 'feat(ci): cache rust',
-    'refactor: split decker.rs', 'Merge pull request #275 from x/y', '']) {
-    assert.equal(changelogEntry(hidden), null, hidden);
+test('a PR lists the changelog lines its author wrote for users', () => {
+  const body = '<!-- Human input -->\r\n---\r\n## Problem\r\nx\r\n\r\n## Changelog\r\n\r\n' +
+    '<!-- One line for users. -->\r\n- Sliders no longer jump after sleep.\r\nMIDI devices reconnect on their own.\r\n\r\n## Verification\r\ny';
+  assert.deepEqual(changelogLines(body), ['Sliders no longer jump after sleep.', 'MIDI devices reconnect on their own.']);
+  assert.deepEqual(changelogLines('## Changelog\n\nLast section.'), ['Last section.']);
+  assert.deepEqual(changelogLines('## Changelog\n\n### not a heading\n'), ['### not a heading']);
+  for (const hidden of ['## Changelog\n\nNone', '## Changelog\n\n<!-- empty -->\n\n## Why\nx', '## Problem\nx', '', null]) {
+    assert.deepEqual(changelogLines(hidden), [], String(hidden));
   }
 });
 
-test('merge commits take their PR title', () => {
-  const pulls = [{ number: 275, title: 'fix(device): reconnect after sleep', merge_commit_sha: 'm' }];
-  assert.deepEqual(changeTitles([{ sha: 'm', subject: 'Merge pull request #275 from x/y' },
-    { sha: 'd', subject: 'feat: direct commit' }], pulls), ['fix(device): reconnect after sleep (#275)', 'feat: direct commit']);
-});
-
-test('beta notes follow the DOT_X_CONTENT format', () => {
-  const notes = betaNotes(['fix: b', 'chore: hidden', 'feat: a', 'fix: c'], 'abc');
-  assert.equal(notes, '<!-- DOT_X_CONTENT_START -->\n## New Features\n\n- A\n\n## Bug Fixes\n\n- B\n- C\n' +
-    '<!-- DOT_X_CONTENT_END -->\n\n---\n\nAutomated beta from main commit abc.\n');
+test('beta notes show only changelog lines in Dot X and every PR below the divider', () => {
+  const pulls = [
+    { number: 3, title: 'fix(device): reconnect after sleep', body: '## Changelog\n\nSliders work after sleep.' },
+    { number: 2, title: 'feat: add a decker emulator', body: '## Changelog\n\nnone' },
+    { number: 1, title: 'feat(rgb): breathing effect', body: '## Changelog\n\nNew breathing RGB effect.' },
+    { number: 4, title: 'chore: bump serialport', body: '## Changelog\n\nFewer serial errors.' },
+  ];
+  const notes = betaNotes(pulls, 'abc');
+  assert.equal(notes, '<!-- DOT_X_CONTENT_START -->\n## New Features\n\n- New breathing RGB effect.\n\n' +
+    '## Improvements\n\n- Fewer serial errors.\n\n## Bug Fixes\n\n- Sliders work after sleep.\n<!-- DOT_X_CONTENT_END -->\n\n' +
+    '---\n\nAutomated beta from main commit abc.\n\n### Merged pull requests\n\n' +
+    '- fix(device): reconnect after sleep (#3)\n- feat: add a decker emulator (#2)\n' +
+    '- feat(rgb): breathing effect (#1)\n- chore: bump serialport (#4)\n');
   assert.equal(hasDotXContent(notes), true);
-  assert.equal(hasDotXContent(betaNotes(['chore: only tooling'], 'abc')), true);
+  assert.equal(hasDotXContent(betaNotes([], 'abc')), true);
 });

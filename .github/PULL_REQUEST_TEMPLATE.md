@@ -20,6 +20,12 @@ we may close it without merging it, or never review it.
 
 <!-- Explain the problem being solved and why this approach is the right one. -->
 
+## Changelog
+
+<!-- What users will notice, in a line or two of plain language. Dot X shows this
+     in the update prompt of the next beta. Leave it empty if users won't notice
+     the change (tooling, tests, docs, refactors). -->
+
 ## Verification
 
 <!-- What you actually ran: yarn build, cargo test --locked in src-tauri, and hardware
