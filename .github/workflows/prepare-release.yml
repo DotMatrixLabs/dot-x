@@ -15,6 +15,10 @@ on:
       publish_prerelease:
         type: boolean
         default: false
+      notes:
+        description: Release body for a nightly beta, from tools/beta-release.mjs
+        type: string
+        default: ''
 
 permissions:
   contents: write
@@ -314,11 +318,25 @@ jobs:
     needs: [windows, linux]
     runs-on: ubuntu-24.04
     steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.release_tag }}
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
       - name: Publish as prerelease without changing latest
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
           BETA_SOURCE_SHA: ${{ inputs.source_sha }}
+          BETA_NOTES: ${{ inputs.notes }}
         run: |
-          printf 'Automated beta from main commit %s.\n\n<!-- dotx-beta-source:%s -->\n' "$BETA_SOURCE_SHA" "$BETA_SOURCE_SHA" > "$RUNNER_TEMP/beta-notes.md"
+          printf '%s\n<!-- dotx-beta-source:%s -->\n' "$BETA_NOTES" "$BETA_SOURCE_SHA" > "$RUNNER_TEMP/beta-notes.md"
           gh release edit "$RELEASE_TAG" --draft=false --prerelease --latest=false --notes-file "$RUNNER_TEMP/beta-notes.md"
+      # release-notes.yml never runs for releases the workflow token publishes, so copy here.
+      - name: Copy the release notes into latest.json
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: node tools/release-notes.mjs

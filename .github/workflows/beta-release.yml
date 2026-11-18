@@ -25,6 +25,7 @@ jobs:
       build: ${{ steps.beta.outputs.build }}
       tag: ${{ steps.beta.outputs.tag }}
       source_sha: ${{ steps.beta.outputs.source_sha }}
+      notes: ${{ steps.beta.outputs.notes }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -49,5 +50,6 @@ jobs:
     with:
       release_tag: ${{ needs.prepare.outputs.tag }}
       source_sha: ${{ needs.prepare.outputs.source_sha }}
+      notes: ${{ needs.prepare.outputs.notes }}
       publish_prerelease: true
     secrets: inherit

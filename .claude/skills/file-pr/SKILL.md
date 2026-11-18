@@ -25,10 +25,16 @@ Everything below this line was written by AI. Agent: <agent>. Model: <model>.
 
 <brief outcome-focused explanation>
 
+## Changelog
+
+<what users will notice, or nothing>
+
 ## Verification
 
 <focused checks actually run>
 ```
+
+The Changelog section is shown to users in Dot X's update prompt for the next nightly beta, under a heading picked by the title's prefix (`feat:` New Features, `fix:` Bug Fixes, anything else Improvements). Write one plain-language line per change a user would notice, without PR numbers, file names or internal terms: "Sliders no longer jump when Dot X wakes from sleep." Leave it empty for tooling, tests, docs, refactors and developer-only features, and the PR stays out of the app.
 
 Keep the human-input area empty unless the user supplied text. Never place AI-written content above the divider, and never bury the attribution line below the Summary or Test plan — it comes immediately after the divider, first.
 
