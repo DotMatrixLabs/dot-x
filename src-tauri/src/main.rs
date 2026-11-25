@@ -921,6 +921,7 @@ async fn main() {
         .manage(update_tracks::PendingBetaUpdate::default())
         .invoke_handler(tauri::generate_handler![
             get_installed_apps,
+            firmware::bundle::firmware_check,
             audio::get_all_session_names,
             audio::set_application_volume,
             connect_decker,
