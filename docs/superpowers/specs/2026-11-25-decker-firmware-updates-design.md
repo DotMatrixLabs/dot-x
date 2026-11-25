@@ -56,7 +56,7 @@ Consequence of bundling plus automatic flashing: a bad firmware reaches every us
 - Decker and Decker Lite both: ATmega32U4, 16 MHz, 32 KB flash, 4 KB bootloader at the top, so the application area is 28 672 bytes (`0x0000–0x6FFF`), 128-byte pages.
 - Every shipped Decker and Decker Lite has `decker-bootloader` (confirmed by maintainers). No stock Leonardo bootloaders in the field.
 - Decker firmware is `decker-firmware` (current version 0.0.3), Decker Lite firmware is `decker-lite-firmware`: separate codebases, separate `.hex` files. Both are Arduino-framework PlatformIO projects. `decker-firmware` builds against a hand-patched Arduino core (see its README); whoever builds the committed `.hex` must use it.
-- Model strings (in EEPROM, set at manufacturing): Decker reports `VM-5SW` (confirmed from a connected unit, firmware 0.0.3). Decker Lite: `VML-5SW`, proposed and pending maintainer confirmation; the Lite manufacturing step must write this string. `VM-5SW-L` is avoided for Lite because the `decker.rs` test fixture says a real Decker reported it.
+- Model strings (in EEPROM, set at manufacturing): Decker reports `VM-5SW` (confirmed from a connected unit, firmware 0.0.3). Decker Lite: `VML-5SW` (confirmed by maintainers); the Lite manufacturing step must write this string. `VM-5SW-L` is avoided for Lite because the `decker.rs` test fixture says a real Decker reported it.
 - Decker Lite's `get-device-info` reply sends `batchNumber` instead of `serialNumber`. Dot X's `DeviceData` in `decker.rs` requires `serialNumber`, so today it fails to parse Lite device info. This must be fixed (accept `batchNumber` as the serial number when `serialNumber` is absent), or Lite never reaches the firmware check.
 - The Arduino core reboots into the bootloader when the host opens the CDC port at 1200 baud and drops DTR (it sets boot key `0x7777` at `0x0800` and triggers the watchdog; `bootloader.c` checks it).
 - Bootloader and firmware both enumerate as VID/PID `04D8:E626` (1240/58918). They cannot be told apart by ID. The port name may or may not change across the reboot (Windows usually keeps the COM number; Linux may move `ttyACM0` → `ttyACM1`).
@@ -123,10 +123,6 @@ This check only runs for a silent Decker port, so it adds no wakeups to a workin
 - On a real Decker and a real Decker Lite: update, automatic update after a Dot X update, interrupted update (unplug mid-write, then replug and Retry), Later persistence across restart, a newer bundled version re-prompting. Close the installed Dot X first (it holds the port) and restore it after.
 - Linux: the same real-device run on the Linux test device (`/dev/ttyACM0`), since the port name can change across the reboot.
 - The decker emulator stays as it is. Virtual ports cannot re-enumerate, so it cannot stand in for the reboot step.
-
-## Open
-
-- Decker Lite model string: `VML-5SW` proposed; confirm, or use what shipped Lite units already have in EEPROM.
 
 ## Left to the builder
 
