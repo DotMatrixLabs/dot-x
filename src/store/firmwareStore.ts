@@ -5,7 +5,8 @@ import ConfigStore from '../ts/config.ts';
 
 const MODEL_BY_PORT_KEY = 'firmwareModelByPort';
 const COME_BACK_TIMEOUT_MS = 10_000;
-const UNKNOWN_MODEL_ERROR = "Dot X doesn't know which Decker this is. Plug it in normally once, then try again.";
+const UNKNOWN_MODEL_ERROR = "Dot X doesn't know which device this is. Connect it to the PC where it was last updated.";
+const NOT_CONNECTED_ERROR = "Decker isn't connected.";
 const NO_COME_BACK_ERROR = "Decker didn't come back after the update. Unplug it and plug it back in.";
 
 let flashedVersion: string | null = null;
@@ -19,6 +20,7 @@ export const useFirmwareStore = defineStore('firmware', {
     model: null as string | null,
     portName: null as string | null,
     flashing: false as boolean,
+    awaitingRestart: false as boolean,
     percent: 0 as number,
     error: null as string | null,
     inBootloader: false as boolean,
@@ -26,6 +28,7 @@ export const useFirmwareStore = defineStore('firmware', {
   }),
   getters: {
     needsAttention: (state) => state.available !== null || state.inBootloader,
+    busy: (state) => state.flashing || state.awaitingRestart,
   },
   actions: {
     async onDeviceInfo(portName: string, info: { deviceModel: string; firmwareVersion: string }) {
@@ -49,8 +52,8 @@ export const useFirmwareStore = defineStore('firmware', {
         console.error('firmware_check failed', error);
       }
 
-      if (this.flashing && flashedVersion !== null && info.firmwareVersion === flashedVersion) {
-        this.flashing = false;
+      if ((this.flashing || this.awaitingRestart) && flashedVersion !== null && info.firmwareVersion === flashedVersion) {
+        this.awaitingRestart = false;
         this.justUpdated = true;
         confirmFlash?.();
       }
@@ -64,11 +67,15 @@ export const useFirmwareStore = defineStore('firmware', {
     },
 
     async flash() {
-      if (!this.portName || this.flashing) return;
+      if (!this.portName) {
+        this.error = NOT_CONNECTED_ERROR;
+        return;
+      }
       if (!this.model) {
         this.error = UNKNOWN_MODEL_ERROR;
         return;
       }
+      if (this.busy) return;
 
       if (!progressListening) {
         progressListening = true;
@@ -83,24 +90,34 @@ export const useFirmwareStore = defineStore('firmware', {
       this.error = null;
       this.justUpdated = false;
 
+      // Register the waiter before invoking so an early device-info isn't missed.
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const confirmed = new Promise<boolean>((resolve) => {
+        confirmFlash = () => resolve(true);
+        timer = setTimeout(() => resolve(false), COME_BACK_TIMEOUT_MS);
+      });
+      const stopWaiting = () => {
+        clearTimeout(timer);
+        confirmFlash = null;
+      };
+
       try {
         await invoke('firmware_flash', { portName: this.portName, model: this.model });
       } catch (error) {
+        stopWaiting();
         this.error = String(error);
         this.flashing = false;
         return;
       }
 
-      // Rust has told the device to restart. Wait for it to report the new version.
-      let timer: ReturnType<typeof setTimeout> | undefined;
-      const cameBack = await Promise.race([
-        new Promise<boolean>((resolve) => { confirmFlash = () => resolve(true); }),
-        new Promise<boolean>((resolve) => { timer = setTimeout(() => resolve(false), COME_BACK_TIMEOUT_MS); }),
-      ]);
-      clearTimeout(timer);
-      confirmFlash = null;
-      if (!cameBack) this.error = NO_COME_BACK_ERROR;
+      // Rust released the port; detectDeviceChanges can reconnect while we wait.
       this.flashing = false;
+      this.percent = 100;
+      if (!this.justUpdated) this.awaitingRestart = true;
+      const cameBack = await confirmed;
+      stopWaiting();
+      if (!cameBack && this.awaitingRestart) this.error = NO_COME_BACK_ERROR;
+      this.awaitingRestart = false;
     },
   },
 });
