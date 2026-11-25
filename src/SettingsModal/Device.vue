@@ -22,9 +22,9 @@
             </select>
         </div>
 
-        <div v-if="deviceType === 'Decker' || firmware.inBootloader" :class="connectionState || firmware.inBootloader ? '' : 'opacity-40 pointer-events-none'" class="w-full h-full rounded-lg px-2 ">
+        <div v-if="deviceType === 'Decker' || firmware.inBootloader || firmware.busy || firmware.error" class="w-full h-full rounded-lg px-2 ">
             <!-- RGB Control -->
-            <div v-if="!firmware.inBootloader">
+            <div v-if="!firmware.inBootloader" :class="dimClass">
                 <div data-setting="RGB Effect" class="flex flex-row w-full justify-between mt-4">
                     <span class="shrink-0 pt-1">RGB Effect: </span>
                     <select @change="rgbEffectChangeHandler" :value="currentRGBEffect"
@@ -67,7 +67,7 @@
                 <span class="shrink-0 pt-1 font-bold">Device Info: </span>
                 <div class="divider mt-0"></div>
                 <template :key="infopoint" v-for="(infopoint, index) in deviceInfoPoints">
-                    <div class="flex text-sm flex-row w-full justify-between my-1">
+                    <div :class="index === 'firmwareVersion' ? '' : dimClass" class="flex text-sm flex-row w-full justify-between my-1">
                         <span class="label-text my-auto">{{infopoint.name}}:</span>
                         <span v-if="index !== 'firmwareVersion'" :key="currentDevice" class="font-semibold w-1/3 text-left">{{deviceInfo(currentDevice)?.[index] ?? 'N/A'}}</span>
                         <span v-else class="w-1/3 text-left flex items-center gap-2 whitespace-nowrap">
@@ -96,7 +96,7 @@
                     </div>
                     <div v-else-if="index === 'firmwareVersion' && firmware.error" class="w-full text-xs text-error text-left mb-1">{{ firmware.error }}</div>
                 </template>
-                <div class=" flex flex-row w-full justify-between my-1">
+                <div :class="dimClass" class=" flex flex-row w-full justify-between my-1">
                     <span class="label-text my-auto">Stats</span>
                     <button @click="statsToggled" class="font-semibold btn btn-sm w-1/3">See</button>
                 </div>
@@ -171,6 +171,10 @@ export default {
         }),
         deckerStore() {
             return useDeckerStore();
+        },
+        // Controls are dead while disconnected; the firmware row opts out so Retry and progress stay usable.
+        dimClass() {
+            return this.connectionState ? '' : 'opacity-40 pointer-events-none';
         },
         firmware() {
             return useFirmwareStore();
