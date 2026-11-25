@@ -116,6 +116,10 @@ update track offers them. The workflow does not publish to Anystack.
 Updater artifacts use the configured signing secrets and must match the public
 updater key in that build.
 
+## Firmware
+
+The `.hex` files and `firmware.json` live in `src-tauri/firmware/`. Dot X flashes new firmware automatically the first time it connects after a Dot X update. Ship new firmware in a beta first.
+
 ## Linux
 
 The `linux` job runs after the Windows job, builds with `yarn build:linux`, signs the repacked AppImage (see `LINUX-SUPPORT.md`), uploads the `.deb` and AppImage, and adds a `linux-x86_64` entry to the draft's `latest.json`. The `.deb` is offered as a download only. Linux builds still skip update checks (`linuxUpdatesDisabled()` in `src/ts/updater.ts`); remove that once an AppImage update has been exercised from one published release to the next.

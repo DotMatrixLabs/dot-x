@@ -1,9 +1,10 @@
 <template>
   <div class="h-screen w-screen flex flex-col pt-12 bg-transparent rounded-xl">
-    <SettingsModal :modal-open="settingsModalOpen" @close="settingsToggled" />
+    <SettingsModal ref="settingsModal" :modal-open="settingsModalOpen" @close="settingsToggled" />
     <AppsModal :currentSliderID="currentSliderID" :modal-open="appsModalOpen" @close="appsToggled(null)" />
     <UpdatePrompt />
     <WhatsNewModal />
+    <FirmwarePrompt @open-settings="openDeviceSettings" />
     <TopBar :colorScheme="colorScheme" :class="backgroundColorTopBar" @settings-toggled="settingsToggled" :connection-status="connectionState" />
     <SliderOverview :class="backgroundColor" ref="sliderOverview" :pot-values="potValues" @app-click="appsToggled" />
 
@@ -20,6 +21,7 @@
 import TopBar from "./components/TopBar.vue";
 import UpdatePrompt from "./components/UpdatePrompt.vue";
 import WhatsNewModal from "./components/WhatsNewModal.vue";
+import FirmwarePrompt from "./components/FirmwarePrompt.vue";
 import SettingsModal from "./SettingsModal/SettingsModal.vue";
 import AppsModal from "./AppSelectModal/AppsModal.vue";
 import SliderOverview from "./SliderOverview.vue";
@@ -40,6 +42,7 @@ import { getCurrentWindow } from '@tauri-apps/api/window';
 import { createLogger } from './ts/logger.ts';
 import { initUpdater } from './ts/updater';
 import { useUpdateStore } from './store/updateStore';
+import { useFirmwareStore } from './store/firmwareStore';
 
 const log = createLogger('app');
 
@@ -47,7 +50,7 @@ import SelectedApps from "./ts/appsToControl.ts";
 import ChannelSettings from "./ts/channelSettings.ts";
 
 export default {
-  components: { TopBar, SettingsModal, SliderOverview, AppsModal, UpdatePrompt, WhatsNewModal, Plugin, Toaster, DotxInstallModal },
+  components: { TopBar, SettingsModal, SliderOverview, AppsModal, UpdatePrompt, WhatsNewModal, FirmwarePrompt, Plugin, Toaster, DotxInstallModal },
   name: "App",
 
   data() {
@@ -110,6 +113,11 @@ export default {
       this.settingsModalOpen = !this.settingsModalOpen;
     },
 
+    openDeviceSettings() {
+      this.$refs.settingsModal.selectTab('Device');
+      this.settingsModalOpen = true;
+    },
+
     appsToggled(id) {
       this.currentSliderID = id;
       this.appsModalOpen = !this.appsModalOpen;
@@ -136,6 +144,9 @@ export default {
   },
 
   async mounted() {
+    // Before Decker connects, so the first device-info knows whether a Dot X update just happened.
+    useFirmwareStore().initLaunch();
+
     // Not awaited on purpose: everything that reads or writes the mirrored mappings
     // awaits SelectedApps.ready(), so a selection made while this runs isn't lost.
     SelectedApps.init().catch((error) => log.error('Failed to load mapped apps', error));
