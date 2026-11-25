@@ -90,6 +90,14 @@ fn flash(app: &AppHandle, port_name: &str, model: &str) -> Result<(), String> {
     );
 
     crate::decker::kill_decker_thread();
+    // The killed connection thread does not announce itself. Without this the frontend
+    // still thinks it is connected and never runs its reconnect loop after the flash.
+    if let Err(e) = app.emit(
+        "connection-change",
+        serde_json::json!({ "message": "disconnected" }),
+    ) {
+        error!("Failed to emit connection-change event: {e}");
+    }
     let mut port = open_with_retry(port_name)?;
 
     let mut last_stage = None;
