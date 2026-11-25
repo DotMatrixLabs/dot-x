@@ -80,13 +80,13 @@
     assert!(img[4..].iter().all(|b| *b == 0xFF));
 }
 #[test] fn fills_gaps_with_ff() {
-    let img = parse_ihex(":0100800055 2A\n:00000001FF\n".replace(' ', "").as_str()).unwrap();
+    let img = parse_ihex(":01008000552A\n:00000001FF\n").unwrap();
     assert_eq!(img.len(), 2 * PAGE_SIZE);
     assert_eq!(img[0x80], 0x55);
     assert!(img[..0x80].iter().all(|b| *b == 0xFF));
 }
 #[test] fn rejects_bad_checksum() { assert!(parse_ihex(":0400000001020304F3\n:00000001FF\n").is_err()); }
-#[test] fn rejects_data_in_bootloader_area() { assert!(parse_ihex(":01700000AA E5\n:00000001FF\n".replace(' ', "").as_str()).is_err()); }
+#[test] fn rejects_data_in_bootloader_area() { assert!(parse_ihex(":01700000AAE5\n:00000001FF\n").is_err()); }
 #[test] fn rejects_empty_and_missing_eof() {
     assert!(parse_ihex(":00000001FF\n").is_err());
     assert!(parse_ihex(":0400000001020304F2\n").is_err());
@@ -256,7 +256,12 @@ Note: `0.0.0-emulator` parses as semver, but it is a pre-release. Treat any devi
 #[test] fn outbound_gate_blocks_until_first_frame() {
     let mut g = OutboundGate::default(); assert!(!g.allows_send()); g.on_frame(); assert!(g.allows_send());
 }
-#[test] fn refuses_to_connect_while_flashing() { /* set FLASHING via flash::test_set_flashing(true); assert initialize_decker-equivalent guard fn `connect_allowed()` is false; reset */ }
+#[test] fn refuses_to_connect_while_flashing() {
+    crate::firmware::flash::test_set_flashing(true);
+    assert!(!connect_allowed());
+    crate::firmware::flash::test_set_flashing(false);
+    assert!(connect_allowed());
+}
 ```
 
 For the last test, put the guard in `fn connect_allowed() -> bool { !crate::firmware::flash::is_flashing() }` and test that function, with `#[cfg(test)] pub fn test_set_flashing(v: bool)` in `flash.rs`.
@@ -387,8 +392,8 @@ Markup to match the approved mockups:
 No code changes unless something fails here. If it does, fix it in the owning task's files and commit with that task's scope.
 
 - [ ] **Step 1: Prepare.** Close the installed Dot X: kill only the PID whose path is under `Program Files` or the installer location, confirmed with `Get-Process "Dot X" | Select Id, Path`, and say so. Back up `%APPDATA%\com.dot-x.dev` to `%TEMP%`.
-- [ ] **Step 2: Build a test firmware.** Copy `decker-0.0.3.hex` to a scratch `firmware.json` entry with version `0.0.4`, in the dev `src-tauri/firmware/` only. Don't commit it. The device (0.0.3) now sees an update to the same code, which proves the flash path without changing firmware behaviour.
-- [ ] **Step 3: Run the real Decker on Windows.** Click Update. Expected: progress runs to 100%, sliders come back, and the device reports... the same 0.0.3, because the image says 0.0.3. So also expect the "didn't come back" error at 10 s. That's correct behaviour for a mislabelled image and proves the confirm step. Then set the scratch entry back to the real version and confirm no dot shows.
+- [ ] **Step 2: Get a test firmware.** Ask the maintainer for a Decker build of the current firmware with `build_flags = -D VERSION=\"0.0.4\"` (`version.h` honours a predefined `VERSION`). Put it in the dev `src-tauri/firmware/` as `decker-test-0.0.4.hex`, with a scratch `firmware.json` entry for `VM-5SW` at `0.0.4`. Don't commit either.
+- [ ] **Step 3: Run the real Decker on Windows.** Click Update. Expected: progress to 100%, sliders come back, the row shows "Up to date", the device reports 0.0.4, and the dots clear. Then return the device to real firmware: point the scratch entry at the committed `decker-0.0.3.hex` labelled `0.0.5` and update again. Expected: write and verify succeed and sliders come back. The "Decker didn't come back after the update" error at 10 s is also expected, because the device honestly reports 0.0.3, and it proves the confirm step.
 - [ ] **Step 4: Interrupt a flash.** Unplug the Decker at around 40% and plug it back in. Expected: "Update didn't finish" plus Retry and the red dots. Retry completes the flash and the device works.
 - [ ] **Step 5: Run Linux** on the test device (memory `linux-test-device-decker`, `/dev/ttyACM0`): Update completes, including when the port name changes across the reboot.
 - [ ] **Step 6: Run Decker Lite**, if a unit is available. Otherwise say so in the PR as untested.
