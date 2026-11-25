@@ -9,7 +9,6 @@ const UNKNOWN_MODEL_ERROR = "Dot X doesn't know which device this is. Connect it
 const NOT_CONNECTED_ERROR = "Decker isn't connected.";
 const NO_COME_BACK_ERROR = "Decker didn't come back after the update. Unplug it and plug it back in.";
 
-let flashedVersion: string | null = null;
 let confirmFlash: (() => void) | null = null;
 let progressListening = false;
 
@@ -42,19 +41,24 @@ export const useFirmwareStore = defineStore('firmware', {
         await ConfigStore.set(MODEL_BY_PORT_KEY, { ...byPort, [portName]: info.deviceModel });
       }
 
+      let checked = false;
       try {
         this.available = await invoke<string | null>('firmware_check', {
           model: info.deviceModel,
           version: info.firmwareVersion,
         });
+        checked = true;
       } catch (error) {
         this.available = null;
         console.error('firmware_check failed', error);
       }
 
-      if ((this.flashing || this.awaitingRestart) && flashedVersion !== null && info.firmwareVersion === flashedVersion) {
+      // Up to date while a flash is in flight, or just after the wait gave up, means the flash worked.
+      const lateConfirm = this.error === NO_COME_BACK_ERROR;
+      if (checked && this.available === null && (this.busy || lateConfirm)) {
         this.awaitingRestart = false;
         this.justUpdated = true;
+        if (lateConfirm) this.error = null;
         confirmFlash?.();
       }
     },
@@ -84,7 +88,6 @@ export const useFirmwareStore = defineStore('firmware', {
         });
       }
 
-      flashedVersion = this.available;
       this.flashing = true;
       this.percent = 0;
       this.error = null;
@@ -92,9 +95,10 @@ export const useFirmwareStore = defineStore('firmware', {
 
       // Register the waiter before invoking so an early device-info isn't missed.
       let timer: ReturnType<typeof setTimeout> | undefined;
+      let giveUp: () => void = () => {};
       const confirmed = new Promise<boolean>((resolve) => {
         confirmFlash = () => resolve(true);
-        timer = setTimeout(() => resolve(false), COME_BACK_TIMEOUT_MS);
+        giveUp = () => { timer = setTimeout(() => resolve(false), COME_BACK_TIMEOUT_MS); };
       });
       const stopWaiting = () => {
         clearTimeout(timer);
@@ -106,6 +110,7 @@ export const useFirmwareStore = defineStore('firmware', {
       } catch (error) {
         stopWaiting();
         this.error = String(error);
+        this.justUpdated = false;
         this.flashing = false;
         return;
       }
@@ -114,6 +119,7 @@ export const useFirmwareStore = defineStore('firmware', {
       this.flashing = false;
       this.percent = 100;
       if (!this.justUpdated) this.awaitingRestart = true;
+      giveUp();
       const cameBack = await confirmed;
       stopWaiting();
       if (!cameBack && this.awaitingRestart) this.error = NO_COME_BACK_ERROR;
