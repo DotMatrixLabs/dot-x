@@ -22,6 +22,8 @@ mod audio;
 #[path = "audio_linux.rs"]
 mod audio;
 mod decker;
+#[allow(dead_code)]
+mod firmware;
 mod midi;
 mod power_monitor;
 mod plugin_marketplace;
