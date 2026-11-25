@@ -34,7 +34,9 @@ pub fn parse_ihex(text: &str) -> Result<Vec<u8>, String> {
             .collect::<Result<Vec<u8>, _>>()
             .map_err(|_| format!("Line {n}: record contains a bad hex digit."))?;
         if bytes.len() < 5 || bytes.len() != bytes[0] as usize + 5 {
-            return Err(format!("Line {n}: record length does not match its length field."));
+            return Err(format!(
+                "Line {n}: record length does not match its length field."
+            ));
         }
         if bytes.iter().fold(0u8, |sum, b| sum.wrapping_add(*b)) != 0 {
             return Err(format!("Line {n}: checksum is wrong."));
@@ -62,7 +64,11 @@ pub fn parse_ihex(text: &str) -> Result<Vec<u8>, String> {
                     return Err(format!("Line {n}: address record must carry 2 bytes."));
                 }
                 let value = u16::from_be_bytes([data[0], data[1]]) as usize;
-                let new_base = if kind == 0x02 { value << 4 } else { value << 16 };
+                let new_base = if kind == 0x02 {
+                    value << 4
+                } else {
+                    value << 16
+                };
                 if new_base >= APP_SIZE {
                     return Err(format!(
                         "Line {n}: address 0x{new_base:X} is outside the app area."
@@ -86,24 +92,36 @@ pub fn parse_ihex(text: &str) -> Result<Vec<u8>, String> {
 mod tests {
     use super::*;
 
-    #[test] fn parses_and_pads_to_page() {
+    #[test]
+    fn parses_and_pads_to_page() {
         // 4 data bytes at 0x0000, then EOF
         let img = parse_ihex(":0400000001020304F2\n:00000001FF\n").unwrap();
         assert_eq!(img.len(), PAGE_SIZE);
         assert_eq!(&img[..4], &[1, 2, 3, 4]);
         assert!(img[4..].iter().all(|b| *b == 0xFF));
     }
-    #[test] fn fills_gaps_with_ff() {
+    #[test]
+    fn fills_gaps_with_ff() {
         let img = parse_ihex(":01008000552A\n:00000001FF\n").unwrap();
         assert_eq!(img.len(), 2 * PAGE_SIZE);
         assert_eq!(img[0x80], 0x55);
         assert!(img[..0x80].iter().all(|b| *b == 0xFF));
     }
-    #[test] fn rejects_bad_checksum() { assert!(parse_ihex(":0400000001020304F3\n:00000001FF\n").is_err()); }
-    #[test] fn rejects_data_in_bootloader_area() { assert!(parse_ihex(":01700000AAE5\n:00000001FF\n").is_err()); }
-    #[test] fn rejects_empty_and_missing_eof() {
+    #[test]
+    fn rejects_bad_checksum() {
+        assert!(parse_ihex(":0400000001020304F3\n:00000001FF\n").is_err());
+    }
+    #[test]
+    fn rejects_data_in_bootloader_area() {
+        assert!(parse_ihex(":01700000AAE5\n:00000001FF\n").is_err());
+    }
+    #[test]
+    fn rejects_empty_and_missing_eof() {
         assert!(parse_ihex(":00000001FF\n").is_err());
         assert!(parse_ihex(":0400000001020304F2\n").is_err());
     }
-    #[test] fn accepts_crlf_line_endings() { assert!(parse_ihex(":0400000001020304F2\r\n:00000001FF\r\n").is_ok()); }
+    #[test]
+    fn accepts_crlf_line_endings() {
+        assert!(parse_ihex(":0400000001020304F2\r\n:00000001FF\r\n").is_ok());
+    }
 }

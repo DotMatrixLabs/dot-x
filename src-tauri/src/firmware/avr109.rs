@@ -3,7 +3,7 @@
 //! Page 0 holds the reset vector, so it is written last: an interrupted flash
 //! leaves it erased and the device stays in the bootloader for a retry.
 
-use super::hex::PAGE_SIZE;
+use super::hex::{APP_SIZE, PAGE_SIZE};
 use std::io::{self, Read, Write};
 
 #[derive(Clone, Copy, Debug, PartialEq, serde::Serialize)]
@@ -59,7 +59,11 @@ fn write_page<P: Read + Write>(port: &mut P, byte_addr: usize, page: &[u8]) -> R
     let size = page.len() as u16;
     let mut msg = vec![b'B', (size >> 8) as u8, size as u8, b'F'];
     msg.extend_from_slice(page);
-    command(port, &msg, &format!("write page at byte address {byte_addr}"))
+    command(
+        port,
+        &msg,
+        &format!("write page at byte address {byte_addr}"),
+    )
 }
 
 /// Reads back `expected` page by page and compares. The bootloader's address
@@ -97,12 +101,22 @@ pub fn program<P: Read + Write>(
             image.len()
         ));
     }
+    if image.len() > APP_SIZE {
+        return Err(format!(
+            "image length {} exceeds the {APP_SIZE}-byte application area",
+            image.len()
+        ));
+    }
     let pages = image.len() / PAGE_SIZE;
 
     command(port, b"e", "erase")?;
 
     for p in 1..pages {
-        write_page(port, p * PAGE_SIZE, &image[p * PAGE_SIZE..(p + 1) * PAGE_SIZE])?;
+        write_page(
+            port,
+            p * PAGE_SIZE,
+            &image[p * PAGE_SIZE..(p + 1) * PAGE_SIZE],
+        )?;
         progress(Stage::Writing, (p * 100 / pages) as u8);
     }
 
@@ -125,7 +139,6 @@ pub fn program<P: Read + Write>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::firmware::hex::APP_SIZE;
     use std::collections::VecDeque;
 
     struct FakeCaterina {
@@ -195,7 +208,10 @@ mod tests {
                         if self.input.len() < 4 + size {
                             return Ok(());
                         }
-                        if self.fail_after_writes.is_some_and(|n| self.writes.len() >= n) {
+                        if self
+                            .fail_after_writes
+                            .is_some_and(|n| self.writes.len() >= n)
+                        {
                             return Err(io::ErrorKind::BrokenPipe.into());
                         }
                         let data: Vec<u8> = self.input.drain(..4 + size).skip(4).collect();
@@ -297,5 +313,14 @@ mod tests {
         program(&mut f, &test_image(3), &mut |s, p| seen.push((s, p))).unwrap();
         assert_eq!(seen.last(), Some(&(Stage::Done, 100)));
         assert!(seen.iter().any(|(s, _)| *s == Stage::Verifying));
+    }
+
+    #[test]
+    fn rejects_image_larger_than_app_area() {
+        let mut f = FakeCaterina::new();
+        let image = test_image(APP_SIZE / PAGE_SIZE + 1);
+        assert!(program(&mut f, &image, &mut |_, _| {}).is_err());
+        assert!(f.writes.is_empty());
+        assert!(f.flash.iter().all(|b| *b == 0xA5));
     }
 }
