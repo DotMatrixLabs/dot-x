@@ -22,9 +22,9 @@
             </select>
         </div>
 
-        <div v-if="deviceType === 'Decker'" :class="connectionState ? '' : 'opacity-40 pointer-events-none'" class="w-full h-full rounded-lg px-2 ">
+        <div v-if="deviceType === 'Decker' || firmware.inBootloader" :class="connectionState || firmware.inBootloader ? '' : 'opacity-40 pointer-events-none'" class="w-full h-full rounded-lg px-2 ">
             <!-- RGB Control -->
-            <div>
+            <div v-if="!firmware.inBootloader">
                 <div data-setting="RGB Effect" class="flex flex-row w-full justify-between mt-4">
                     <span class="shrink-0 pt-1">RGB Effect: </span>
                     <select @change="rgbEffectChangeHandler" :value="currentRGBEffect"
@@ -66,10 +66,36 @@
             <div data-setting="Device Info" class="flex flex-col w-full items-center mt-3">
                 <span class="shrink-0 pt-1 font-bold">Device Info: </span>
                 <div class="divider mt-0"></div>
-                <div :key="infopoint" v-for="(infopoint, index) in deviceInfoPoints" class="flex text-sm flex-row w-full justify-between my-1">
-                    <span class="label-text my-auto">{{infopoint.name}}:</span>
-                    <span :key="currentDevice" class="font-semibold w-1/3 text-left">{{deviceInfo(currentDevice)?.[index] ?? 'N/A'}}</span>
-                </div>
+                <template :key="infopoint" v-for="(infopoint, index) in deviceInfoPoints">
+                    <div class="flex text-sm flex-row w-full justify-between my-1">
+                        <span class="label-text my-auto">{{infopoint.name}}:</span>
+                        <span v-if="index !== 'firmwareVersion'" :key="currentDevice" class="font-semibold w-1/3 text-left">{{deviceInfo(currentDevice)?.[index] ?? 'N/A'}}</span>
+                        <span v-else class="w-1/3 text-left flex items-center gap-2 whitespace-nowrap">
+                            <span class="font-semibold">{{firmware.inBootloader ? 'N/A' : (deviceInfo(currentDevice)?.[index] ?? 'N/A')}}</span>
+                            <span v-if="firmware.busy" class="flex items-center gap-2 text-xs">
+                                <i class="fas fa-rotate fa-spin"></i> Updating… {{ firmware.percent }}%
+                            </span>
+                            <template v-else-if="firmware.error">
+                                <button @click="firmware.flash()" class="btn btn-xs btn-primary">Retry</button>
+                            </template>
+                            <template v-else-if="firmware.inBootloader">
+                                <span class="text-xs">Update didn't finish</span>
+                                <button @click="firmware.flash()" class="btn btn-xs btn-primary">Retry</button>
+                            </template>
+                            <button v-else-if="firmware.available" @click="firmware.flash()" class="btn btn-xs btn-primary">
+                                <i class="fas fa-arrow-up"></i> Update to {{ firmware.available }}
+                            </button>
+                            <span v-else-if="firmware.justUpdated" class="text-xs text-success">
+                                <i class="fas fa-check"></i> Up to date
+                            </span>
+                        </span>
+                    </div>
+                    <div v-if="index === 'firmwareVersion' && firmware.busy" class="w-full text-xs text-warning text-left mb-1">
+                        <progress class="progress progress-primary w-full" :value="firmware.percent" max="100"></progress>
+                        Don't unplug Decker. Sliders resume when the update finishes.
+                    </div>
+                    <div v-else-if="index === 'firmwareVersion' && firmware.error" class="w-full text-xs text-error text-left mb-1">{{ firmware.error }}</div>
+                </template>
                 <div class=" flex flex-row w-full justify-between my-1">
                     <span class="label-text my-auto">Stats</span>
                     <button @click="statsToggled" class="font-semibold btn btn-sm w-1/3">See</button>
@@ -88,6 +114,7 @@ import SerialAccessDialog from "./SerialAccessDialog.vue";
 import RGBController from "../ts/RGBController";
 import { mapState } from "pinia";
 import { useDeckerStore } from "../store/deckerStore.ts";
+import { useFirmwareStore } from "../store/firmwareStore.ts";
 import EventBus from "../js/eventBus";
 import { createLogger } from "../ts/logger.ts";
 
@@ -144,6 +171,9 @@ export default {
         }),
         deckerStore() {
             return useDeckerStore();
+        },
+        firmware() {
+            return useFirmwareStore();
         },
         brightness: {
             get() {

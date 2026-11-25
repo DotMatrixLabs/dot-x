@@ -73,6 +73,7 @@
                 :class="activeTab === tab ? 'bg-primary text-primary-content hover:bg-primary' : ''"
               >
                 {{ tab }}
+                <span v-if="tab === 'Device' && firmware.needsAttention" class="ml-auto w-2 h-2 rounded-full bg-red-500"></span>
               </button>
               <p v-if="visiblePluginTabs.length > 0" class="label-text text-xs mt-3 ml-1 mb-0.5">Plugins</p>
               <button
@@ -119,6 +120,7 @@ import Plugins from "./Plugins.vue";
 import PluginSettings from "./PluginSettings.vue";
 import { mapState } from "pinia";
 import { usePluginStore } from "../store/pluginStore";
+import { useFirmwareStore } from "../store/firmwareStore";
 import { invoke } from "@tauri-apps/api/core";
 import pluginAPI from "../plugin-api/pluginAPI";
 import { createLogger } from '../ts/logger.ts';
@@ -179,6 +181,9 @@ export default {
   },
 
   computed: {
+    firmware() {
+      return useFirmwareStore();
+    },
     ...mapState(usePluginStore, ['activePlugins', 'startingPlugins', 'connectedPlugins']),
     visiblePluginTabs() {
       const installedById = new Map(
