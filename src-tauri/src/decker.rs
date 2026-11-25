@@ -11,7 +11,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::{
     sync::{Mutex, mpsc},
     thread::{self},
-    time::Duration,
+    time::{Duration, Instant},
 };
 use tauri::Emitter;
 use tauri::WebviewWindow;
@@ -110,6 +110,19 @@ impl Serialize for SliderData {
 
 const READ_TIMEOUT: Duration = Duration::from_millis(20);
 const WRITE_TIMEOUT: Duration = Duration::from_millis(500);
+
+// Decker firmware sends its slider values at least once a second. If nothing arrives
+// for this long the port is open but the device is not talking (seen after a PC boot,
+// where only a replug used to recover it), so close it and let the frontend reconnect.
+const HEARTBEAT_TIMEOUT: Duration = Duration::from_secs(3);
+
+// Set once a silent port is reported, so a device that stays silent across reconnects
+// logs one warning instead of one every few seconds.
+static REPORTED_SILENT: AtomicBool = AtomicBool::new(false);
+
+fn heartbeat_lost(last_received: Instant, now: Instant) -> bool {
+    now.saturating_duration_since(last_received) >= HEARTBEAT_TIMEOUT
+}
 
 // Upper bound for buffered bytes that never form a message (no terminator seen).
 const MAX_PENDING_BYTES: usize = 4096;
@@ -374,6 +387,7 @@ pub fn initialize_decker(
                 let mut serial_buf: Vec<u8> = vec![0; 100];
                 let mut pending: Vec<u8> = Vec::new();
                 let mut logged_device_info = false;
+                let mut last_received = Instant::now();
                 if let Err(err) = window.emit(
                     "connection-change",
                     Payload {
@@ -433,6 +447,10 @@ pub fn initialize_decker(
 
                     match port.read(serial_buf.as_mut_slice()) {
                         Ok(t) => {
+                            if t > 0 {
+                                last_received = Instant::now();
+                                REPORTED_SILENT.store(false, Ordering::Relaxed);
+                            }
                             pending.extend_from_slice(&serial_buf[..t]);
                             for data in drain_messages(&mut pending, inverted) {
                                 if let DataType::Device(ref device_data) = data {
@@ -450,7 +468,31 @@ pub fn initialize_decker(
                                 emit_message(&window, data);
                             }
                         }
-                        Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
+                        Err(ref e) if e.kind() == io::ErrorKind::TimedOut => {
+                            // Other devices may only send on change, so only a Decker has a heartbeat to miss.
+                            if is_decker && heartbeat_lost(last_received, Instant::now()) {
+                                if !REPORTED_SILENT.swap(true, Ordering::Relaxed) {
+                                    warn!(
+                                        "No data from {} for {:?}; closing the port so it can reconnect",
+                                        connected_port_name, HEARTBEAT_TIMEOUT
+                                    );
+                                }
+                                if let Err(e) = port.write_data_terminal_ready(false) {
+                                    error!("Failed to set DTR to false: {}", e);
+                                }
+                                if let Err(err) = window.emit(
+                                    "connection-change",
+                                    Payload {
+                                        message: "disconnected".to_string(),
+                                    },
+                                ) {
+                                    error!("Failed to emit connection-change event: {}", err);
+                                }
+                                std::mem::drop(port);
+                                *SENDER.lock().unwrap() = None;
+                                break;
+                            }
+                        }
                         Err(e) => {
                             if let Err(e) = port.write_data_terminal_ready(false) {
                                 error!("Failed to set DTR to false: {}", e);
@@ -579,6 +621,14 @@ mod tests {
                 DataType::Device(_) => "device",
             })
             .collect()
+    }
+
+    #[test]
+    fn heartbeat_is_lost_only_after_the_timeout() {
+        let start = Instant::now();
+        assert!(!heartbeat_lost(start, start));
+        assert!(!heartbeat_lost(start, start + HEARTBEAT_TIMEOUT - Duration::from_millis(1)));
+        assert!(heartbeat_lost(start, start + HEARTBEAT_TIMEOUT));
     }
 
     #[test]
