@@ -466,6 +466,22 @@ pub fn initialize_decker(
                         *SENDER.lock().unwrap() = None;
                         break;
                     }
+                    // A flash can start after this thread opened the port but outside
+                    // kill_decker_thread's window (or during the bootloader probe).
+                    if !connect_allowed() {
+                        if let Err(err) = window.emit(
+                            "connection-change",
+                            Payload {
+                                message: "disconnected".to_string(),
+                            },
+                        ) {
+                            error!("Failed to emit connection-change event: {}", err);
+                        }
+                        std::mem::drop(port);
+                        *SENDER.lock().unwrap() = None;
+                        info!("Released {} for a firmware update", connected_port_name);
+                        break;
+                    }
                     match rx.try_recv() {
                         Ok(command) => {
                             debug!("Received: {:?}", command);
@@ -561,11 +577,6 @@ pub fn initialize_decker(
                             Err(e) => {
                                 debug!("Bootloader probe on {} failed: {}", connected_port_name, e)
                             }
-                        }
-                        // The probe outlasts kill_decker_thread's window; a flash may now want the port.
-                        if !SHOULD_RUN.load(Ordering::Relaxed) || !connect_allowed() {
-                            *SENDER.lock().unwrap() = None;
-                            break;
                         }
                     }
                     thread::sleep(Duration::from_millis(5));
