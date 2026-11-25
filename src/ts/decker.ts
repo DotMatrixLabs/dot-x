@@ -7,6 +7,7 @@ import appsToControl from './appsToControl.ts';
 import { trackTelemetryEvent } from "./telemetry";
 import EventBus from '../js/eventBus.js';
 import { createLogger } from './logger.ts';
+import { useFirmwareStore } from '../store/firmwareStore.ts';
 
 const log = createLogger('decker');
 
@@ -38,6 +39,15 @@ class Decker {
                 EventBus.emit('connectionChange', {connected: false});
             }
         })
+
+        await listen('device-info', (event: any) => {
+            const info = JSON.parse(event.payload.message);
+            useFirmwareStore().onDeviceInfo(this.comPort, info);
+        });
+
+        await listen('device-in-bootloader', (event: any) => {
+            useFirmwareStore().onBootloader(event.payload.message);
+        });
     }
 
     public retryConnection(){
@@ -233,6 +243,7 @@ class Decker {
 
         setInterval(async () => {
             if(deckerStore.connected) return;
+            if(useFirmwareStore().flashing) return;
             const comPort = await ConfigStore.get("comPort");
             const newDevices:any = await this.getDevices();
             const device = newDevices.find((device:any) => device.port_name === comPort);
