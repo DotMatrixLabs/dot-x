@@ -30,6 +30,7 @@ export const useFirmwareStore = defineStore('firmware', {
     inBootloader: false as boolean,
     justUpdated: false as boolean,
     autoFlashPending: false as boolean,
+    autoFlashed: false as boolean,
     dismissedVersion: null as string | null,
   }),
   getters: {
@@ -38,6 +39,7 @@ export const useFirmwareStore = defineStore('firmware', {
     showPrompt: (state) =>
       state.available !== null
       && !state.autoFlashPending
+      && !state.autoFlashed
       && !state.flashing
       && !state.awaitingRestart
       && state.dismissedVersion !== state.available
@@ -118,7 +120,11 @@ export const useFirmwareStore = defineStore('firmware', {
       // Only the first device-info of the launch may flash on its own.
       const auto = this.autoFlashPending;
       this.autoFlashPending = false;
-      if (auto && this.available !== null && !this.busy) void this.autoFlash(this.available);
+      if (auto && this.available !== null && !this.busy) {
+        // Stays set for the launch: a failed automatic flash shows a toast, not the prompt.
+        this.autoFlashed = true;
+        void this.autoFlash(this.available);
+      }
     },
 
     async onBootloader(portName: string) {
