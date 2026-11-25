@@ -135,6 +135,8 @@ export const useFirmwareStore = defineStore('firmware', {
     },
 
     async flash() {
+      // Checked first and before any await, so a second click can't touch the running flash.
+      if (this.busy) return;
       if (!this.portName) {
         this.error = NOT_CONNECTED_ERROR;
         return;
@@ -142,14 +144,6 @@ export const useFirmwareStore = defineStore('firmware', {
       if (!this.model) {
         this.error = UNKNOWN_MODEL_ERROR;
         return;
-      }
-      if (this.busy) return;
-
-      if (!progressListening) {
-        progressListening = true;
-        await listen<{ stage: string; percent: number }>('firmware-progress', (event) => {
-          this.percent = event.payload.percent;
-        });
       }
 
       this.flashing = true;
@@ -170,6 +164,12 @@ export const useFirmwareStore = defineStore('firmware', {
       };
 
       try {
+        if (!progressListening) {
+          await listen<{ stage: string; percent: number }>('firmware-progress', (event) => {
+            this.percent = event.payload.percent;
+          });
+          progressListening = true;
+        }
         await invoke('firmware_flash', { portName: this.portName, model: this.model });
       } catch (error) {
         stopWaiting();
