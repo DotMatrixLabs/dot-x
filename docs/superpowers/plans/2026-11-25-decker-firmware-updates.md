@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Dot X flashes bundled firmware onto Decker and Decker Lite: automatically right after a Dot X update, otherwise from a prompt, a red dot and an Update button.
+**Goal:** Dot X flashes bundled firmware onto Decker: automatically right after a Dot X update, otherwise from a prompt, a red dot and an Update button.
 
 **Architecture:** A new Rust module `src-tauri/src/firmware/` holds the Intel HEX parser, an AVR109 client written against `Read + Write`, the bundled-firmware manifest, and the flash orchestration (reboot at 1200 baud, find the bootloader, write, verify, exit). `decker.rs` stops talking to a port until it has heard valid firmware frames, reports a silent port that answers as the bootloader, and refuses to connect while a flash runs. A Pinia `firmwareStore` drives the dots, the Device tab row, the prompt and the automatic flash.
 
@@ -16,7 +16,8 @@
 - Application flash `0x0000–0x6FFF` (28 672 bytes), 128-byte pages. Never write outside it; never write EEPROM, fuses or lock bits.
 - Bootloader identifies as `CATERIN` in reply to `S`. Its timeout is 8 s while flash word 0 is not `0xFFFF`.
 - Write page 0 last. Verify everything with `g` reads before `E`.
-- Model strings: Decker `VM-5SW` (and `VM-5SW-L`, seen on a real Decker); Decker Lite `VML-5SW`.
+- Model strings: Decker `VM-5SW` (and `VM-5SW-L`, seen on a real Decker).
+- **Decker only.** Decker Lite (issue #166, model `VML-5SW`, PID `0xE4B5`) is out of scope for this branch and handled in its own thread. Don't add Lite firmware, Lite IDs or `batchNumber` parsing here. Keep `firmware.json` a list, so Lite can be added later.
 - Unparseable device versions (not semver) get no dot, no prompt, no button.
 - No new polling or latency on the slider path. The 3 s silence check runs only on a port that has sent nothing.
 - Every command the frontend calls exists on Windows and Linux. The firmware module needs no `#[cfg]`.
@@ -47,10 +48,10 @@
 - Create `src-tauri/src/firmware/avr109.rs`: AVR109 client plus an in-test fake bootloader.
 - Create `src-tauri/src/firmware/bundle.rs`: `firmware.json` loading and the newer-version check.
 - Create `src-tauri/src/firmware/flash.rs`: `FLASHING` guard, reboot, bootloader discovery, run.
-- Create `src-tauri/firmware/firmware.json`, `src-tauri/firmware/decker-0.0.3.hex`, `src-tauri/firmware/decker-lite-0.0.3.hex`, `src-tauri/firmware/README.md`.
+- Create `src-tauri/firmware/firmware.json`, `src-tauri/firmware/decker-0.0.3.hex`, `src-tauri/firmware/README.md`.
 - Modify `src-tauri/tauri.conf.json`: add `"firmware/*"` to `bundle.resources`.
 - Modify `src-tauri/src/main.rs`: `mod firmware;`, register commands.
-- Modify `src-tauri/src/decker.rs`: Lite `batchNumber`, outbound gate, silence probe, refuse while flashing.
+- Modify `src-tauri/src/decker.rs`: outbound gate, silence probe, refuse while flashing.
 - Create `src/store/firmwareStore.ts`: all firmware state and actions.
 - Modify `src/ts/decker.ts`: global `device-info` and `device-in-bootloader` listeners, and skip reconnect while flashing.
 - Modify `src/components/TopBar.vue`, `src/SettingsModal/SettingsModal.vue`, `src/SettingsModal/Device.vue`: dots and the Firmware row.
@@ -174,7 +175,7 @@ Order: `e`. Then for page 1..n: `A` + `B`, reporting `Writing` with a percent. T
 
 **Files:**
 - Create: `src-tauri/src/firmware/bundle.rs`
-- Create: `src-tauri/firmware/firmware.json`, `src-tauri/firmware/decker-0.0.3.hex`, `src-tauri/firmware/decker-lite-0.0.3.hex`, `src-tauri/firmware/README.md`
+- Create: `src-tauri/firmware/firmware.json`, `src-tauri/firmware/decker-0.0.3.hex`, `src-tauri/firmware/README.md`
 - Modify: `src-tauri/src/firmware/mod.rs`, `src-tauri/src/main.rs` (register `firmware::firmware_check` in `generate_handler!`, line 920), `src-tauri/tauri.conf.json` (`bundle.resources` += `"firmware/*"`)
 
 **Interfaces:**
@@ -206,18 +207,17 @@ fn manifest() -> Vec<BundledFirmware> { vec![
     let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("firmware");
     let m: Vec<BundledFirmware> = serde_json::from_str(&std::fs::read_to_string(dir.join("firmware.json")).unwrap()).unwrap();
     for fw in &m { crate::firmware::hex::parse_ihex(&std::fs::read_to_string(dir.join(&fw.file)).unwrap()).unwrap(); }
-    assert!(for_model(&m, "VM-5SW").is_some() && for_model(&m, "VML-5SW").is_some());
+    assert!(for_model(&m, "VM-5SW").is_some());
 }
 ```
 
 Note: `0.0.0-emulator` parses as semver, but it is a pre-release. Treat any device version with a pre-release tag as unparseable, because the emulator must never be offered a flash.
 
-- [ ] **Step 2: Add the firmware files.** Decker: copy `D:\decker-firmware\.pio\build\decker\firmware.hex` to `src-tauri/firmware/decker-0.0.3.hex`, after confirming `D:\decker-firmware\include\version.h` says `0.0.3` and the build is from the hand-patched core. Ask the maintainer to confirm that build is the one shipped. Decker Lite: no build exists locally and PlatformIO isn't installed. Ask the maintainer for `decker-lite-0.0.3.hex` (built from `decker-lite-firmware`, `version.h` `0.0.3`) instead of installing tools. `firmware.json`:
+- [ ] **Step 2: Add the firmware files.** Decker: copy `D:\decker-firmware\.pio\build\decker\firmware.hex` to `src-tauri/firmware/decker-0.0.3.hex`, after confirming `D:\decker-firmware\include\version.h` says `0.0.3` and the build is from the hand-patched core. Ask the maintainer to confirm that build is the one shipped. `firmware.json`:
 
 ```json
 [
-  { "models": ["VM-5SW", "VM-5SW-L"], "version": "0.0.3", "file": "decker-0.0.3.hex" },
-  { "models": ["VML-5SW"], "version": "0.0.3", "file": "decker-lite-0.0.3.hex" }
+  { "models": ["VM-5SW", "VM-5SW-L"], "version": "0.0.3", "file": "decker-0.0.3.hex" }
 ]
 ```
 
@@ -231,6 +231,8 @@ Note: `0.0.0-emulator` parses as semver, but it is a pre-release. Treat any devi
 ---
 
 ### Task 4: Safe connection in `decker.rs`
+
+(Decker only: skip everything about `batchNumber` and the Lite parse test below; that belongs to the Decker Lite thread.)
 
 **Files:**
 - Modify: `src-tauri/src/decker.rs` (`DeviceData` lines 54-62; `initialize_decker` lines 323-488; tests at 567+)
@@ -396,6 +398,5 @@ No code changes unless something fails here. If it does, fix it in the owning ta
 - [ ] **Step 3: Run the real Decker on Windows.** Click Update. Expected: progress to 100%, sliders come back, the row shows "Up to date", the device reports 0.0.4, and the dots clear. Then return the device to real firmware: point the scratch entry at the committed `decker-0.0.3.hex` labelled `0.0.5` and update again. Expected: write and verify succeed and sliders come back. The "Decker didn't come back after the update" error at 10 s is also expected, because the device honestly reports 0.0.3, and it proves the confirm step.
 - [ ] **Step 4: Interrupt a flash.** Unplug the Decker at around 40% and plug it back in. Expected: "Update didn't finish" plus Retry and the red dots. Retry completes the flash and the device works.
 - [ ] **Step 5: Run Linux** on the test device (memory `linux-test-device-decker`, `/dev/ttyACM0`): Update completes, including when the port name changes across the reboot.
-- [ ] **Step 6: Run Decker Lite**, if a unit is available. Otherwise say so in the PR as untested.
 - [ ] **Step 7: Restore.** Remove the scratch `firmware.json` change, restore the app data backup if anything changed, and restart the installed Dot X.
 - [ ] **Step 8: Run the final checks.** `cargo test --locked` and `yarn build` must both pass.

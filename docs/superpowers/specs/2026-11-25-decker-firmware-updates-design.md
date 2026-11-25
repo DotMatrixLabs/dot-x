@@ -2,6 +2,8 @@
 
 Issue: #130
 
+**Scope update (2026-11-25):** this branch ships firmware updates for Decker only. Decker Lite support, including Lite firmware updates, moves to its own thread and issue #166, because no Lite units exist yet. The Lite notes below stay as input for that work. Lite enumerates as `04D8:E4B5` (issue #166), not `04D8:E626`, so Lite flashing must also search for that ID.
+
 ## Intent
 
 When we fix or improve Decker firmware, users should get it without installing PlatformIO, Arduino IDE, or drivers. Dot X already holds the device's serial port all day, so it is the natural place to deliver firmware. A user who sees "update available" clicks one button, waits about 10 seconds, and the sliders come back on the new firmware.
