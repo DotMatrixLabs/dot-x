@@ -1,3 +1,4 @@
 pub mod avr109;
-pub mod hex;
 pub mod bundle;
+pub mod flash;
+pub mod hex;

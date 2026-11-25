@@ -5,13 +5,13 @@ use serde::{Deserialize, Serialize};
 use serde_json;
 use serde_json::Value;
 use serialport::{SerialPortType, available_ports};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, VecDeque};
 use std::io::{self, Cursor, Read, Write};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::{
     sync::{Mutex, mpsc},
     thread::{self},
-    time::Duration,
+    time::{Duration, Instant},
 };
 use tauri::Emitter;
 use tauri::WebviewWindow;
@@ -106,6 +106,51 @@ impl Serialize for SliderData {
         map.serialize_entry("slider5", &self.slider5)?;
         map.end()
     }
+}
+
+/// How long a Decker port may stay silent before we ask whether it is a bootloader.
+const PROBE_AFTER: Duration = Duration::from_secs(3);
+const PROBE_TIMEOUT: Duration = Duration::from_millis(500);
+/// Commands held back while the gate is closed; the oldest are dropped past this.
+const MAX_QUEUED_COMMANDS: usize = 32;
+
+/// The bootloader shares the Decker's USB ID and treats stray msgpack bytes as flash
+/// or EEPROM writes. Nothing is sent to a Decker port until it has produced a valid
+/// firmware frame; commands issued before that wait here and are flushed in order.
+#[derive(Default)]
+struct OutboundGate {
+    open: bool,
+    queued: VecDeque<String>,
+}
+
+impl OutboundGate {
+    fn allows_send(&self) -> bool {
+        self.open
+    }
+
+    /// Returns the command if it may be written now, otherwise queues it.
+    fn push(&mut self, command: String) -> Option<String> {
+        if self.open {
+            return Some(command);
+        }
+        if self.queued.len() >= MAX_QUEUED_COMMANDS {
+            warn!("Outbound queue full while waiting for the device, dropping the oldest command");
+            self.queued.pop_front();
+        }
+        debug!("Device not heard from yet, queueing: {:?}", command);
+        self.queued.push_back(command);
+        None
+    }
+
+    /// Opens the gate and returns the commands that were waiting, oldest first.
+    fn on_frame(&mut self) -> Vec<String> {
+        self.open = true;
+        self.queued.drain(..).collect()
+    }
+}
+
+fn connect_allowed() -> bool {
+    !crate::firmware::flash::is_flashing()
 }
 
 const READ_TIMEOUT: Duration = Duration::from_millis(20);
@@ -290,6 +335,27 @@ pub fn start_background_thread() {
     SHOULD_RUN.store(true, Ordering::Relaxed);
 }
 
+fn command_payload(command: &str) -> String {
+    format!(r#"{{ "command": "{}", "options": null }}"#, command)
+}
+
+fn write_command(port: &mut Box<dyn serialport::SerialPort>, command: &str) {
+    match serialize_decker_data(command) {
+        Ok(serialized_data) => {
+            // The short read-poll timeout also bounds writes, which can
+            // stall briefly while the device is still settling after connect.
+            let _ = port.set_timeout(WRITE_TIMEOUT);
+            let written = port.write_all(serialized_data.as_slice());
+            let _ = port.set_timeout(READ_TIMEOUT);
+            match written {
+                Ok(()) => debug!("Sent {} bytes", serialized_data.len()),
+                Err(e) => error!("Failed to write to serial port: {}", e),
+            }
+        }
+        Err(e) => error!("Failed to serialize data: {}", e),
+    }
+}
+
 fn emit_message(window: &WebviewWindow, data: DataType) {
     match data {
         DataType::Slider(slider_data) => {
@@ -330,6 +396,12 @@ pub fn initialize_decker(
         return Err(std::io::Error::new(
             std::io::ErrorKind::Other,
             "Computer is sleeping",
+        ));
+    }
+    if !connect_allowed() {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            "Firmware update in progress",
         ));
     }
     let baud_rate: u32 = 115_200;
@@ -374,6 +446,13 @@ pub fn initialize_decker(
                 let mut serial_buf: Vec<u8> = vec![0; 100];
                 let mut pending: Vec<u8> = Vec::new();
                 let mut logged_device_info = false;
+                // Only Decker ports can be a bootloader; other devices keep sending freely.
+                let mut gate = OutboundGate::default();
+                if !is_decker {
+                    gate.on_frame();
+                }
+                let opened_at = Instant::now();
+                let mut probed = !is_decker;
                 if let Err(err) = window.emit(
                     "connection-change",
                     Payload {
@@ -407,25 +486,8 @@ pub fn initialize_decker(
                                 info!("Disconnected");
                                 break;
                             }
-                            match serialize_decker_data(&command) {
-                                Ok(serialized_data) => {
-                                    // The short read-poll timeout also bounds writes, which can
-                                    // stall briefly while the device is still settling after connect.
-                                    let _ = port.set_timeout(WRITE_TIMEOUT);
-                                    let written = port.write_all(serialized_data.as_slice());
-                                    let _ = port.set_timeout(READ_TIMEOUT);
-                                    match written {
-                                        Ok(()) => {
-                                            debug!("Sent {} bytes", serialized_data.len());
-                                        }
-                                        Err(e) => {
-                                            error!("Failed to write to serial port: {}", e);
-                                        }
-                                    }
-                                }
-                                Err(e) => {
-                                    error!("Failed to serialize data: {}", e);
-                                }
+                            if let Some(command) = gate.push(command) {
+                                write_command(&mut port, &command);
                             }
                         }
                         Err(_) => {}
@@ -435,6 +497,12 @@ pub fn initialize_decker(
                         Ok(t) => {
                             pending.extend_from_slice(&serial_buf[..t]);
                             for data in drain_messages(&mut pending, inverted) {
+                                if !gate.allows_send() {
+                                    write_command(&mut port, &command_payload("get-device-info"));
+                                    for queued in gate.on_frame() {
+                                        write_command(&mut port, &queued);
+                                    }
+                                }
                                 if let DataType::Device(ref device_data) = data {
                                     if is_decker && !logged_device_info {
                                         warn!(
@@ -469,15 +537,37 @@ pub fn initialize_decker(
                             break;
                         }
                     }
+                    if !probed && !gate.allows_send() && opened_at.elapsed() >= PROBE_AFTER {
+                        // Silent Decker port: it may be sitting in the bootloader. Probe once;
+                        // the gate stays closed so the port is left idle either way.
+                        probed = true;
+                        let _ = port.clear(serialport::ClearBuffer::Input);
+                        let _ = port.set_timeout(PROBE_TIMEOUT);
+                        let result = crate::firmware::avr109::identify(&mut port);
+                        let _ = port.set_timeout(READ_TIMEOUT);
+                        match result {
+                            Ok(true) => {
+                                warn!("{} is a bootloader, leaving it idle", connected_port_name);
+                                if let Err(err) = window.emit(
+                                    "device-in-bootloader",
+                                    Payload {
+                                        message: connected_port_name.clone(),
+                                    },
+                                ) {
+                                    error!("Failed to emit device-in-bootloader event: {}", err);
+                                }
+                            }
+                            Ok(false) => debug!("{} is not a bootloader", connected_port_name),
+                            Err(e) => {
+                                debug!("Bootloader probe on {} failed: {}", connected_port_name, e)
+                            }
+                        }
+                    }
                     thread::sleep(Duration::from_millis(5));
                 }
             });
 
             *SENDER.lock().unwrap() = Some(tx);
-            if is_decker {
-                send_decker_command("get-device-info", None);
-            }
-
             Ok(())
         }
         Err(e) => {
@@ -579,6 +669,43 @@ mod tests {
                 DataType::Device(_) => "device",
             })
             .collect()
+    }
+
+    #[test]
+    fn outbound_gate_blocks_until_first_frame() {
+        let mut g = OutboundGate::default();
+        assert!(!g.allows_send());
+        g.on_frame();
+        assert!(g.allows_send());
+    }
+
+    #[test]
+    fn outbound_gate_queues_until_first_frame_then_flushes_in_order() {
+        let mut g = OutboundGate::default();
+        assert_eq!(g.push("a".into()), None);
+        assert_eq!(g.push("b".into()), None);
+        assert_eq!(g.on_frame(), ["a", "b"]);
+        assert_eq!(g.push("c".into()), Some("c".to_string()));
+        assert!(g.on_frame().is_empty());
+    }
+
+    #[test]
+    fn outbound_gate_drops_oldest_when_full() {
+        let mut g = OutboundGate::default();
+        for i in 0..MAX_QUEUED_COMMANDS + 2 {
+            g.push(i.to_string());
+        }
+        let flushed = g.on_frame();
+        assert_eq!(flushed.len(), MAX_QUEUED_COMMANDS);
+        assert_eq!(flushed[0], "2");
+    }
+
+    #[test]
+    fn refuses_to_connect_while_flashing() {
+        crate::firmware::flash::test_set_flashing(true);
+        assert!(!connect_allowed());
+        crate::firmware::flash::test_set_flashing(false);
+        assert!(connect_allowed());
     }
 
     #[test]
