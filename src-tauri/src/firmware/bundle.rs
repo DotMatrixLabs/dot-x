@@ -1,5 +1,6 @@
 //! Firmware images shipped inside the installer, listed in `firmware/firmware.json`.
 
+use log::error;
 use semver::Version;
 use serde::Deserialize;
 use tauri::{path::BaseDirectory, AppHandle, Manager};
@@ -62,7 +63,7 @@ pub fn firmware_check(
     model: String,
     version: String,
 ) -> Result<Option<String>, String> {
-    let manifest = load_manifest(&app)?;
+    let manifest = load_manifest(&app).inspect_err(|e| error!("Firmware check failed: {e}"))?;
     Ok(find_update(&manifest, &model, &version).map(|fw| fw.version))
 }
 
