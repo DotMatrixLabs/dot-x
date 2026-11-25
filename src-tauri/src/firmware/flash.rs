@@ -98,17 +98,24 @@ fn flash(app: &AppHandle, port_name: &str, model: &str) -> Result<(), String> {
     ) {
         error!("Failed to emit connection-change event: {e}");
     }
-    let mut port = open_with_retry(port_name)?;
-
     let mut last_stage = None;
-    let mut port = if matches!(identify(&mut port), Ok(true)) {
-        info!("{port_name} is already in the bootloader");
-        port
-    } else {
-        report(app, &mut last_stage, Stage::Rebooting, 0);
-        drop(port);
-        reboot_to_bootloader(port_name)?;
-        find_bootloader(port_name)?
+    let mut port = match open_with_retry(port_name) {
+        Ok(mut port) => {
+            if matches!(identify(&mut port), Ok(true)) {
+                info!("{port_name} is already in the bootloader");
+                port
+            } else {
+                report(app, &mut last_stage, Stage::Rebooting, 0);
+                drop(port);
+                reboot_to_bootloader(port_name)?;
+                find_bootloader(port_name)?
+            }
+        }
+        // A retry from recovery: the bootloader may have enumerated under another name.
+        Err(e) => {
+            info!("{e}; looking for the bootloader on other ports");
+            find_bootloader(port_name)?
+        }
     };
 
     port.set_timeout(PROGRAM_TIMEOUT)
