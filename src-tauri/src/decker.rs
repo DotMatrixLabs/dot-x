@@ -562,6 +562,11 @@ pub fn initialize_decker(
                                 debug!("Bootloader probe on {} failed: {}", connected_port_name, e)
                             }
                         }
+                        // The probe outlasts kill_decker_thread's window; a flash may now want the port.
+                        if !SHOULD_RUN.load(Ordering::Relaxed) || !connect_allowed() {
+                            *SENDER.lock().unwrap() = None;
+                            break;
+                        }
                     }
                     thread::sleep(Duration::from_millis(5));
                 }
@@ -702,6 +707,9 @@ mod tests {
 
     #[test]
     fn refuses_to_connect_while_flashing() {
+        let _lock = crate::firmware::flash::TEST_LOCK
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
         crate::firmware::flash::test_set_flashing(true);
         assert!(!connect_allowed());
         crate::firmware::flash::test_set_flashing(false);

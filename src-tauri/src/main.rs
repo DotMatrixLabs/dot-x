@@ -22,7 +22,6 @@ mod audio;
 #[path = "audio_linux.rs"]
 mod audio;
 mod decker;
-#[allow(dead_code)]
 mod firmware;
 mod midi;
 mod power_monitor;
@@ -922,6 +921,7 @@ async fn main() {
         .invoke_handler(tauri::generate_handler![
             get_installed_apps,
             firmware::bundle::firmware_check,
+            firmware::flash::firmware_flash,
             audio::get_all_session_names,
             audio::set_application_volume,
             connect_decker,
