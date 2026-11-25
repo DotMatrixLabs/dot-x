@@ -12,10 +12,10 @@
                 <select id="update-track" class="select select-bordered select-sm" :value="updateTrack"
                     :disabled="updateBusy" @change="changeUpdateTrack">
                     <option value="stable">Stable</option>
-                    <option value="beta">Beta/Nightly</option>
+                    <option value="beta">Beta</option>
                 </select>
             </div>
-            <p class="w-full px-2 mt-3 text-xs opacity-60">Beta/Nightly includes stable releases and may contain unfinished changes.</p>
+            <p class="w-full px-2 mt-3 text-xs opacity-60">Beta includes stable releases and may contain unfinished changes.</p>
         </template>
         <div class="flex flex-row w-full justify-between px-2 mt-4">
             <span class="my-auto">Read the docs</span>
