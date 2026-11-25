@@ -126,6 +126,9 @@ class Decker {
 
 
         
+        // init runs again on every reconnect; drop the previous connection's listeners first.
+        this.sliderListenerDetatcher?.();
+        this.MIDIListenerDetatcher?.();
         this.sliderListenerDetatcher = await listen('slider-change', (event: any) => {
             deckerStore.setConnected(true);
             // Split event.payload.message on comma and add it to sliders array
@@ -230,17 +233,23 @@ class Decker {
 
     public detectDeviceChanges() {
         const deckerStore = useDeckerStore();
+        // A connect attempt can take longer than the interval while Windows is still booting;
+        // without this guard the attempts pile up and fight over the port.
+        let connecting = false;
 
         setInterval(async () => {
-            if(deckerStore.connected) return;
-            const comPort = await ConfigStore.get("comPort");
-            const newDevices:any = await this.getDevices();
-            const device = newDevices.find((device:any) => device.port_name === comPort);
-            if(!device) return;
-            if(device.port_name === comPort && !deckerStore.connected){
-                this.init(comPort).catch((error) => {
-                    log.error("Retry connecting to Decker failed:", error);
-                });
+            if(deckerStore.connected || connecting) return;
+            connecting = true;
+            try {
+                const comPort = await ConfigStore.get("comPort");
+                const newDevices:any = await this.getDevices();
+                const device = newDevices.find((device:any) => device.port_name === comPort);
+                if(!device || deckerStore.connected) return;
+                await this.init(comPort);
+            } catch (error) {
+                log.error("Retry connecting to Decker failed:", error);
+            } finally {
+                connecting = false;
             }
         }, 1000);
     }
