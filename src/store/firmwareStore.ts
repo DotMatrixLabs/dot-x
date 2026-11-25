@@ -5,6 +5,7 @@ import { platform } from '@tauri-apps/plugin-os';
 import { toast } from 'vue-sonner';
 import ConfigStore from '../ts/config.ts';
 import { useUpdateStore } from './updateStore';
+import { useDeckerStore } from './deckerStore';
 
 const MODEL_BY_PORT_KEY = 'firmwareModelByPort';
 const COME_BACK_TIMEOUT_MS = 10_000;
@@ -134,10 +135,21 @@ export const useFirmwareStore = defineStore('firmware', {
       this.model = byPort[portName] ?? null;
     },
 
+    // Unplugged: the update dots go away until the next device-info or bootloader probe.
+    // A flash disconnects on purpose, so leave its state alone.
+    onDisconnected() {
+      if (this.busy) return;
+      this.available = null;
+      this.inBootloader = false;
+    },
+
     async flash() {
       // Checked first and before any await, so a second click can't touch the running flash.
       if (this.busy) return;
-      if (!this.portName) {
+      // Retrying a failed flash stays allowed: the bootloader may sit on a port Dot X isn't connected to.
+      const retryingFlash = this.error !== null && this.error !== NOT_CONNECTED_ERROR && this.error !== UNKNOWN_MODEL_ERROR;
+      const reachable = useDeckerStore().connected || this.inBootloader || retryingFlash;
+      if (!this.portName || !reachable) {
         this.error = NOT_CONNECTED_ERROR;
         return;
       }

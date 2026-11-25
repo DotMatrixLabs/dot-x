@@ -35,6 +35,7 @@ class Decker {
                 EventBus.emit('connectionChange', {connected: true});
             } else if (event.payload.message === "disconnected"){
                 this.handleSliderDisconnect();
+                useFirmwareStore().onDisconnected();
                 deckerStore.setConnected(false);
                 EventBus.emit('connectionChange', {connected: false});
             }
