@@ -165,8 +165,12 @@ export const useFirmwareStore = defineStore('firmware', {
 
       try {
         if (!progressListening) {
-          await listen<{ stage: string; percent: number }>('firmware-progress', (event) => {
-            this.percent = event.payload.percent;
+          // One bar for the whole update: writing fills 0-80, verifying 80-100.
+          await listen<{ stage: string; percent: number }>('firmware-progress', ({ payload }) => {
+            const { stage, percent } = payload;
+            if (stage === 'writing') this.percent = Math.round(percent * 0.8);
+            else if (stage === 'verifying') this.percent = 80 + Math.round(percent * 0.2);
+            else this.percent = stage === 'done' ? 100 : 0;
           });
           progressListening = true;
         }
