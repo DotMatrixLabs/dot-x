@@ -3,6 +3,7 @@ import Stats from '../ts/stats.ts';
 import eventBus from '../js/eventBus.js';
 import ConfigStore from '../ts/config.ts';
 import { invoke } from "@tauri-apps/api/core";
+import type { DeviceType } from '../ts/deviceModels.ts';
 
 export const useDeckerStore = defineStore('decker', {
   state: () => ({
@@ -10,7 +11,7 @@ export const useDeckerStore = defineStore('decker', {
     prevSliders: [] as number[], //used to detect changes
     connected: false as boolean,
     channelSettings: {} as any,
-    deviceType: 'Unknown' as string,
+    deviceType: 'Unknown' as DeviceType,
     rgbBrightness: 100 as number,
     mappedApps: {} as Record<string, string[]>,
     volumeSyncEnabled: false as boolean,
@@ -59,7 +60,7 @@ export const useDeckerStore = defineStore('decker', {
       this.channelSettings[channelID] = newSettings;
     },
 
-    setDeviceType(type: string) {
+    setDeviceType(type: DeviceType) {
       this.deviceType = type;
     },
 

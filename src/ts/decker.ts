@@ -7,6 +7,7 @@ import appsToControl from './appsToControl.ts';
 import { trackTelemetryEvent } from "./telemetry";
 import EventBus from '../js/eventBus.js';
 import { createLogger } from './logger.ts';
+import { deviceTypeFor } from './deviceModels.ts';
 
 const log = createLogger('decker');
 
@@ -106,9 +107,11 @@ class Decker {
 
         const newDevices:any = await this.getDevices();
         const device = newDevices.find((device:any) => device.port_name === comPort);
-        if(device && (device.pid === 58918 && device.vid === 1240)) trackTelemetryEvent("decker_connected");
+        const deviceType = deviceTypeFor(device);
+        if(deviceType === 'Decker') trackTelemetryEvent("decker_connected");
 
         const deckerStore = useDeckerStore();
+        deckerStore.setDeviceType(deviceType);
         this.comPort = comPort;
 
         log.info("Connecting to Decker...", comPort)
