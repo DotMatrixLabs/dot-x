@@ -9,6 +9,7 @@ import { usePluginStore, type PluginLifecycleEvent } from '../store/pluginStore'
 import { useDeckerStore } from "../store/deckerStore.ts";
 import EventBus from '../js/eventBus.js';
 import RGBController from '../ts/RGBController';
+import { MODEL_BY_TYPE } from '../ts/deviceModels';
 import ConfigStore from '../ts/config';
 import SelectedApps from '../ts/appsToControl';
 import { createLogger } from '../ts/logger.ts';
@@ -135,8 +136,10 @@ export class PluginAPI {
     const deckerStore = useDeckerStore();
     const comPort = await ConfigStore.get('comPort') || 'Unknown';
     
+    const type = deckerStore.deviceType;
     return {
-      name: 'Decker',
+      name: type,
+      model: type === 'Unknown' ? undefined : MODEL_BY_TYPE[type],
       port: comPort,
       state: deckerStore.connected ? 'connected' : 'disconnected',
       connected_at: new Date().toISOString()

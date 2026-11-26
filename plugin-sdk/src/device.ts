@@ -15,8 +15,10 @@ const log = createLogger('dotx-sdk');
  * @category Device Management
  */
 export interface DeviceInfo {
-  /** Device name (e.g., "Decker", "Dot X") */
+  /** Device name: "Decker", "Decker Lite", or "Unknown" for other serial devices */
   name: string;
+  /** Product model for a recognized device ("VM-5SW" for Decker, "VML-5SW" for Decker Lite); absent for unknown devices */
+  model?: string;
   /** Port or connection identifier */
   port: string;
   /** Connection state */

@@ -128,7 +128,10 @@ export interface SettingsSections {
 }
 
 export interface DeviceInfo {
+  /** "Decker", "Decker Lite", or "Unknown" for other serial devices */
   name: string;
+  /** Product model for a recognized device ("VM-5SW", "VML-5SW"); absent for unknown devices */
+  model?: string;
   port: string;
   state: 'connected' | 'disconnected';
   connected_at?: string;
