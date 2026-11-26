@@ -3,6 +3,7 @@ import SelectedApps from './appsToControl';
 import { useDeckerStore } from '../store/deckerStore';
 import { excludeMappedApps } from './mappingUtils';
 import { createLogger } from './logger.ts';
+import { hasLeds } from './deviceModels';
 
 const log = createLogger('volume');
 
@@ -178,7 +179,10 @@ class SystemVolumeController {
             }, 500 - (currentTime - this.lastSetVolumeExecutionTime));
         }
 
-        if (apps.includes("device brightness")) {
+        if (apps.includes("device brightness") && !hasLeds(useDeckerStore().deviceType)) {
+            // Debug, not warn: this runs on every slider tick for a mapping left over from a Decker.
+            log.debug("Skipping device brightness: device has no LEDs");
+        } else if (apps.includes("device brightness")) {
             const currentTime = Date.now();
             const deckerStore = useDeckerStore();
         

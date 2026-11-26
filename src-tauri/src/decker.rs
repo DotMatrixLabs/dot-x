@@ -57,9 +57,36 @@ struct DeviceData {
     firmware_version: String,
     #[serde(rename = "deviceModel")]
     device_model: String,
-    #[serde(rename = "serialNumber")]
-    serial_number: String,
+    #[serde(rename = "serialNumber", default)]
+    serial_number: Option<String>,
+    // Decker Lite reports a batch number instead of a serial number.
+    #[serde(rename = "batchNumber", default)]
+    batch_number: Option<String>,
 }
+
+/// The DotMatrixLabs devices Dot X recognizes by USB VID/PID.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DeviceKind {
+    Decker,
+    DeckerLite,
+}
+
+impl DeviceKind {
+    pub fn from_usb(vid: u16, pid: u16) -> Option<Self> {
+        match (vid, pid) {
+            (0x04D8, 0xE626) => Some(Self::Decker),
+            (0x04D8, 0xE4B5) => Some(Self::DeckerLite),
+            _ => None,
+        }
+    }
+
+    pub fn has_leds(self) -> bool {
+        self != Self::DeckerLite
+    }
+}
+
+// False while a device without LEDs is connected, so LED commands are skipped.
+static CONNECTED_HAS_LEDS: AtomicBool = AtomicBool::new(true);
 
 #[derive(Debug)]
 enum DataType {
@@ -343,17 +370,17 @@ pub fn initialize_decker(
         kill_decker_thread();
     }
 
-    let mut is_decker = false;
+    let mut kind = None;
     if let Ok(ports) = available_ports() {
         for port_info in ports {
             if port_info.port_name == port_name {
-                is_decker = matches!(
-                    port_info.port_type,
-                    SerialPortType::UsbPort(ref info) if info.vid == 1240 && info.pid == 58918
-                );
+                if let SerialPortType::UsbPort(ref info) = port_info.port_type {
+                    kind = DeviceKind::from_usb(info.vid, info.pid);
+                }
             }
         }
     }
+    CONNECTED_HAS_LEDS.store(kind.map_or(true, DeviceKind::has_leds), Ordering::Relaxed);
 
     let port = serialport::new(port_name, baud_rate)
         .timeout(READ_TIMEOUT)
@@ -436,13 +463,21 @@ pub fn initialize_decker(
                             pending.extend_from_slice(&serial_buf[..t]);
                             for data in drain_messages(&mut pending, inverted) {
                                 if let DataType::Device(ref device_data) = data {
-                                    if is_decker && !logged_device_info {
+                                    if kind.is_some() && !logged_device_info {
+                                        let id = match (
+                                            &device_data.serial_number,
+                                            &device_data.batch_number,
+                                        ) {
+                                            (Some(serial), _) => format!("serial {}", serial),
+                                            (None, Some(batch)) => format!("batch {}", batch),
+                                            (None, None) => "no serial or batch".to_string(),
+                                        };
                                         warn!(
-                                            "Device connected on {}: model {}, firmware {}, serial {}",
+                                            "Device connected on {}: model {}, firmware {}, {}",
                                             connected_port_name,
                                             device_data.device_model,
                                             device_data.firmware_version,
-                                            device_data.serial_number
+                                            id
                                         );
                                         logged_device_info = true;
                                     }
@@ -474,7 +509,7 @@ pub fn initialize_decker(
             });
 
             *SENDER.lock().unwrap() = Some(tx);
-            if is_decker {
+            if kind.is_some() {
                 send_decker_command("get-device-info", None);
             }
 
@@ -505,6 +540,10 @@ pub fn disconnect_decker() {
 }
 
 pub fn set_device_brightness(brightness: i32) {
+    if !CONNECTED_HAS_LEDS.load(Ordering::Relaxed) {
+        info!("Skipping LED brightness: device has no LEDs");
+        return;
+    }
     let opts = Options {
         effect: None,
         color: None,
@@ -569,7 +608,8 @@ mod tests {
 
     // Byte layout captured from a real Decker (firmware 0.0.3).
     const SLIDER_FRAME: &[u8] = b"\x85\xa7slider1\xcd\x02\x96\xa7slider2\x00\xa7slider3\x00\xa7slider4\x01\xa7slider5\x31\r\n";
-    const DEVICE_FRAME: &[u8] = b"\x83\xacserialNumber\xa4test\xabdeviceModel\xa8VM-5SW-L\xaffirmwareVersion\xa50.0.3\r\n";
+    const DEVICE_FRAME: &[u8] =
+        b"\x83\xacserialNumber\xa4test\xabdeviceModel\xa8VM-5SW-L\xaffirmwareVersion\xa50.0.3\r\n";
 
     fn kinds(messages: &[DataType]) -> Vec<&'static str> {
         messages
@@ -591,6 +631,8 @@ mod tests {
             DataType::Device(d) => {
                 assert_eq!(d.device_model, "VM-5SW-L");
                 assert_eq!(d.firmware_version, "0.0.3");
+                assert_eq!(d.serial_number.as_deref(), Some("test"));
+                assert_eq!(d.batch_number, None);
             }
             _ => unreachable!(),
         }
@@ -622,5 +664,45 @@ mod tests {
             Some(DataType::Slider(s)) => assert_eq!(s.slider1, 1023 - 0x0296),
             _ => panic!("expected a slider message"),
         }
+    }
+
+    // Decker Lite firmware sends batchNumber instead of serialNumber.
+    const LITE_DEVICE_FRAME: &[u8] =
+        b"\x83\xabbatchNumber\xa4B001\xabdeviceModel\xa7VML-5SW\xaffirmwareVersion\xa50.0.3\r\n";
+
+    fn only_device(frame: &[u8]) -> DeviceData {
+        let mut buf = frame.to_vec();
+        match drain_messages(&mut buf, false).pop() {
+            Some(DataType::Device(d)) => d,
+            _ => panic!("expected a device message"),
+        }
+    }
+
+    #[test]
+    fn decodes_a_lite_device_frame() {
+        let d = only_device(LITE_DEVICE_FRAME);
+        assert_eq!(d.batch_number.as_deref(), Some("B001"));
+        assert_eq!(d.serial_number, None);
+        assert_eq!(d.device_model, "VML-5SW");
+    }
+
+    #[test]
+    fn decodes_device_frame_without_serial_or_batch() {
+        let d = only_device(b"\x82\xabdeviceModel\xa6VM-5SW\xaffirmwareVersion\xa50.0.3\r\n");
+        assert_eq!(d.serial_number, None);
+        assert_eq!(d.batch_number, None);
+        assert_eq!(d.device_model, "VM-5SW");
+    }
+
+    #[test]
+    fn device_kind_from_usb() {
+        assert_eq!(DeviceKind::from_usb(1240, 58918), Some(DeviceKind::Decker));
+        assert_eq!(
+            DeviceKind::from_usb(1240, 58549),
+            Some(DeviceKind::DeckerLite)
+        );
+        assert_eq!(DeviceKind::from_usb(1240, 1), None);
+        assert!(DeviceKind::Decker.has_leds());
+        assert!(!DeviceKind::DeckerLite.has_leds());
     }
 }

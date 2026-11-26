@@ -22,9 +22,9 @@
             </select>
         </div>
 
-        <div v-if="deviceType === 'Decker'" :class="connectionState ? '' : 'opacity-40 pointer-events-none'" class="w-full h-full rounded-lg px-2 ">
-            <!-- RGB Control -->
-            <div>
+        <div v-if="deviceType !== 'Unknown'" :class="connectionState ? '' : 'opacity-40 pointer-events-none'" class="w-full h-full rounded-lg px-2 ">
+            <!-- RGB Control: Decker only, Decker Lite has no LEDs -->
+            <div v-if="deviceType === 'Decker'">
                 <div data-setting="RGB Effect" class="flex flex-row w-full justify-between mt-4">
                     <span class="shrink-0 pt-1">RGB Effect: </span>
                     <select @change="rgbEffectChangeHandler" :value="currentRGBEffect"
@@ -66,7 +66,7 @@
             <div data-setting="Device Info" class="flex flex-col w-full items-center mt-3">
                 <span class="shrink-0 pt-1 font-bold">Device Info: </span>
                 <div class="divider mt-0"></div>
-                <div :key="infopoint" v-for="(infopoint, index) in deviceInfoPoints" class="flex text-sm flex-row w-full justify-between my-1">
+                <div :key="infopoint" v-for="(infopoint, index) in infoPoints" class="flex text-sm flex-row w-full justify-between my-1">
                     <span class="label-text my-auto">{{infopoint.name}}:</span>
                     <span :key="currentDevice" class="font-semibold w-1/3 text-left">{{deviceInfo(currentDevice)?.[index] ?? 'N/A'}}</span>
                 </div>
@@ -90,6 +90,7 @@ import { mapState } from "pinia";
 import { useDeckerStore } from "../store/deckerStore.ts";
 import EventBus from "../js/eventBus";
 import { createLogger } from "../ts/logger.ts";
+import { deviceTypeFor, hasLeds, NAME_BY_MODEL } from "../ts/deviceModels.ts";
 
 const log = createLogger("device-settings");
 
@@ -111,13 +112,6 @@ export default {
             devices: [],
             currentDevice: null,
             comPortInterval: null,
-            deviceInfoPoints: {
-                deviceName: { name: "Device Name", value: "Decker" },
-                model: { name: "Model", value: "VM-5SW" },
-                firmwareVersion: { name: "Firmware", value: "1.0.0" },
-                serialNumber: { name: "Serial Number", value: "123456789" },
-                comPort: { name: "COM Port", value: "COM 2" }
-            },
             currentRGBEffect: "Static", 
             RGBEffects: ["Off", "Static", "Rainbow", "Candle", "Lightning Storm", "Perimeter"],
             deviceConnected: true,
@@ -126,14 +120,10 @@ export default {
             serialAccessDevice: null,
             serialAccessPort: "",
             lastExecutionTime: 0,
-            deviceType: "Unknown",
             speed: 10,
             breathingEnabled: false,
             selectedColor: "#f0f0f0",
             suspendDimEnabled: false,
-            deviceNames: {
-                'VM-5SW': "Decker",
-            },
             deviceData: {},
         }
     },
@@ -141,7 +131,21 @@ export default {
     computed: {
         ...mapState(useDeckerStore, {
             connectionState: 'getConnectionState',
+            deviceType: 'getDeviceType',
         }),
+        // Decker Lite has a batch number where Decker has a serial number.
+        infoPoints() {
+            const id = this.deviceType === 'Decker Lite'
+                ? { batchNumber: { name: "Batch Number" } }
+                : { serialNumber: { name: "Serial Number" } };
+            return {
+                deviceName: { name: "Device Name" },
+                model: { name: "Model" },
+                firmwareVersion: { name: "Firmware" },
+                ...id,
+                comPort: { name: "COM Port" },
+            };
+        },
         deckerStore() {
             return useDeckerStore();
         },
@@ -167,21 +171,22 @@ export default {
             if(!device) return;
 
 
-            if(device.pid === 58918 && device.vid === 1240){
-                return {
-                    model: device?.deviceModel ?? "Unknown",
-                    deviceName: this.deviceNames[device.deviceModel] ?? "Unknown",
-                    firmwareVersion: device?.firmwareVersion,
-                    serialNumber: device?.serialNumber,
-                    comPort: device?.port_name,
-                }
-            } else {
+            const type = deviceTypeFor(device);
+            if(type === 'Unknown') {
                 return {
                     model: "N/A",
                     firmwareVersion: "N/A",
                     serialNumber: "N/A",
                     comPort: device.port_name,
                 }
+            }
+            return {
+                model: device?.deviceModel ?? "Unknown",
+                deviceName: NAME_BY_MODEL[device.deviceModel] ?? type,
+                firmwareVersion: device?.firmwareVersion,
+                serialNumber: device?.serialNumber,
+                batchNumber: device?.batchNumber,
+                comPort: device?.port_name,
             }
         },
 
@@ -202,11 +207,8 @@ export default {
 
         deviceName(device){
             if(!device) return;
-            if(device.pid === 58918 && device.vid === 1240){
-                return `Decker (${device.port_name})`;
-            } else {
-                return `${device.port_name}`;
-            }
+            const type = deviceTypeFor(device);
+            return type === 'Unknown' ? `${device.port_name}` : `${type} (${device.port_name})`;
         },
 
         toggleBreathing(event) {
@@ -222,6 +224,7 @@ export default {
         },
 
         sendCurrentRGBEffect() {
+            if(!hasLeds(this.deviceType)) return; // Decker Lite has no LEDs
             const brightness = parseInt(this.brightness * 2.55);
             if(this.currentRGBEffect === "Static" && this.breathingEnabled) {
                 RGBController.setEffect('static', 0, brightness, this.selectedColor);
@@ -338,13 +341,7 @@ export default {
                 ConfigStore.save();
                 return;
             }
-            if(this.currentDevice.pid === 58918 && this.currentDevice.vid === 1240){
-                this.deviceType = "Decker";
-                this.deckerStore.setDeviceType("Decker");
-            } else {
-                this.deviceType = "Unknown";
-                this.deckerStore.setDeviceType("Unknown");
-            }
+            this.deckerStore.setDeviceType(deviceTypeFor(this.currentDevice));
             ConfigStore.set("comPort", this.currentDevice.port_name);
             ConfigStore.save();
             try {
@@ -373,13 +370,7 @@ export default {
             if(!storedDevice) return;
             const device = this.devices.find((device) => device.port_name === storedDevice);
             if(!device) return;
-            if(device.pid === 58918 && device.vid === 1240){
-                this.deviceType = "Decker";
-                this.deckerStore.setDeviceType("Decker");
-            } else {
-                this.deviceType = "Unknown";
-                this.deckerStore.setDeviceType("Unknown");
-            }
+            this.deckerStore.setDeviceType(deviceTypeFor(device));
             this.currentDevice = device;
         },
         

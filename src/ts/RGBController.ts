@@ -1,7 +1,11 @@
 import Decker from './decker';
 import { createLogger } from './logger.ts';
+import { useDeckerStore } from '../store/deckerStore';
+import { hasLeds } from './deviceModels';
 
 const log = createLogger('rgb');
+
+export const NO_LEDS_ERROR = 'This device has no LEDs';
 
 class RGBController {
     effects: string[];
@@ -21,7 +25,9 @@ class RGBController {
         ]
     }
 
+    // Throws on a device without LEDs (Decker Lite); the plugin API passes the error to the plugin.
     public setEffect(effectName: string, speed: number, brightness: number, color: string) {
+        if (!hasLeds(useDeckerStore().deviceType)) throw new Error(NO_LEDS_ERROR);
         if (!this.effects.includes(effectName)) {
             log.error('Unknown effect: ' + effectName);
             return;

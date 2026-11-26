@@ -16,8 +16,8 @@
 					<div class="rounded-md bg-base-300/60 p-3">
 						<div class="flex items-start justify-between gap-3 mb-2">
 							<div>
-								<p class="text-sm font-medium">Official Decker</p>
-								<p class="text-xs label-text">Grants access only to Frogbyte Decker USB serial devices.</p>
+								<p class="text-sm font-medium">Official Decker and Decker Lite</p>
+								<p class="text-xs label-text">Grants access only to Decker and Decker Lite USB serial devices.</p>
 							</div>
 							<button class="btn btn-xs btn-primary shrink-0" @click="copyCommand(deckerCommand)">
 								Copy
@@ -56,7 +56,11 @@ import { createLogger } from "../ts/logger";
 const log = createLogger("serial-access");
 
 // Rule files must sort before 73-seat-late.rules, which applies uaccess; hence the 70- prefix below.
-const DECKER_UDEV_RULE = 'SUBSYSTEM=="tty", ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="e626", MODE="0660", TAG+="uaccess"';
+// Decker (e626) and Decker Lite (e4b5); keep in sync with src-tauri/extra/70-dot-x.rules.
+const DECKER_UDEV_RULES = [
+	'SUBSYSTEM=="tty", ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="e626", MODE="0660", TAG+="uaccess"',
+	'SUBSYSTEM=="tty", ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="e4b5", MODE="0660", TAG+="uaccess"',
+].join('\n');
 const DIY_ACM_RULE = 'SUBSYSTEM=="tty", KERNEL=="ttyACM[0-9]*", MODE="0660", TAG+="uaccess"';
 const DIY_USB_RULE = 'SUBSYSTEM=="tty", KERNEL=="ttyUSB[0-9]*", MODE="0660", TAG+="uaccess"';
 
@@ -85,7 +89,7 @@ export default {
 		},
 		deckerCommand() {
 			return `sudo tee /etc/udev/rules.d/70-dot-x-decker.rules >/dev/null <<'EOF'
-${DECKER_UDEV_RULE}
+${DECKER_UDEV_RULES}
 EOF
 sudo udevadm control --reload-rules
 sudo udevadm trigger --subsystem-match=tty --action=add`;

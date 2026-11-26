@@ -7,6 +7,9 @@ import type { RGBEffect } from './types';
  * The Decker device features 8 RGB LEDs that can display various lighting effects.
  * This controller provides methods to control the lighting effects, colors, brightness,
  * and animation speed.
+ *
+ * Decker Lite has no LEDs. On it, every call fails with "This device has no LEDs".
+ * Check `device.getConnected()` for `name === 'Decker Lite'` to skip RGB work up front.
  * 
  * @category RGB Control
  * 
