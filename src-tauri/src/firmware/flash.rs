@@ -130,6 +130,22 @@ fn flash(app: &AppHandle, port_name: &str, model: &str) -> Result<(), String> {
     Ok(())
 }
 
+/// Returns the first Decker port that answers as the bootloader, e.g. one left there by an
+/// interrupted update under a different name than the app port. Opens every Decker port, so
+/// call it only while the connection thread holds none of them.
+#[tauri::command(async)]
+pub fn firmware_find_bootloader() -> Option<String> {
+    if is_flashing() {
+        return None;
+    }
+    decker_ports().into_iter().find(|name| {
+        serialport::new(name, BAUD)
+            .timeout(IDENTIFY_TIMEOUT)
+            .open()
+            .is_ok_and(|mut port| matches!(identify(&mut port), Ok(true)))
+    })
+}
+
 /// Emits progress to the frontend; logs only when the stage changes.
 fn report(app: &AppHandle, last_stage: &mut Option<Stage>, stage: Stage, percent: u8) {
     if *last_stage != Some(stage) {
@@ -203,16 +219,27 @@ fn find_bootloader(port_name: &str) -> Result<Box<dyn SerialPort>, String> {
 /// `port_name` plus every port with the Decker's USB ID.
 fn candidate_ports(port_name: &str) -> Vec<String> {
     let mut names = vec![port_name.to_string()];
-    for p in available_ports().unwrap_or_default() {
-        let is_decker = matches!(
-            p.port_type,
-            SerialPortType::UsbPort(ref info) if info.vid == DECKER_VID && info.pid == DECKER_PID
-        );
-        if is_decker && !names.contains(&p.port_name) {
-            names.push(p.port_name);
+    for name in decker_ports() {
+        if !names.contains(&name) {
+            names.push(name);
         }
     }
     names
+}
+
+/// Every port with the Decker's USB ID.
+fn decker_ports() -> Vec<String> {
+    available_ports()
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|p| {
+            matches!(
+                p.port_type,
+                SerialPortType::UsbPort(ref info) if info.vid == DECKER_VID && info.pid == DECKER_PID
+            )
+        })
+        .map(|p| p.port_name)
+        .collect()
 }
 
 #[cfg(test)]

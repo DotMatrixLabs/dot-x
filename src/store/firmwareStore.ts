@@ -132,7 +132,10 @@ export const useFirmwareStore = defineStore('firmware', {
       const byPort: Record<string, string> = (await ConfigStore.get(MODEL_BY_PORT_KEY)) ?? {};
       this.inBootloader = true;
       this.portName = portName;
-      this.model = byPort[portName] ?? null;
+      // The bootloader can sit on a port Dot X never saw device-info from. With only one known
+      // model, that is the one.
+      const models = new Set(Object.values(byPort));
+      this.model = byPort[portName] ?? (models.size === 1 ? [...models][0] : null);
     },
 
     // Unplugged: the update dots go away until the next device-info or bootloader probe.

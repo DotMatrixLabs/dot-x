@@ -922,6 +922,7 @@ async fn main() {
             get_installed_apps,
             firmware::bundle::firmware_check,
             firmware::flash::firmware_flash,
+            firmware::flash::firmware_find_bootloader,
             audio::get_all_session_names,
             audio::set_application_volume,
             connect_decker,

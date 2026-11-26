@@ -10,10 +10,14 @@ import { createLogger } from './logger.ts';
 import { useFirmwareStore } from '../store/firmwareStore.ts';
 
 const log = createLogger('decker');
+const DECKER_VID = 1240;
+const DECKER_PID = 58918;
+const BOOTLOADER_SEARCH_EVERY_MS = 5000;
 
 class Decker {
     private comPort: string = "";
     private initiated: boolean;
+    private lastBootloaderSearch = 0;
     // private debug: boolean;
     public sliders: Array<number> = [];
     sliderListenerDetatcher: any;
@@ -241,20 +245,43 @@ class Decker {
 
     public detectDeviceChanges() {
         const deckerStore = useDeckerStore();
+        const firmware = useFirmwareStore();
 
         setInterval(async () => {
             if(deckerStore.connected) return;
-            if(useFirmwareStore().flashing) return;
+            if(firmware.flashing) return;
             const comPort = await ConfigStore.get("comPort");
             const newDevices:any = await this.getDevices();
             const device = newDevices.find((device:any) => device.port_name === comPort);
-            if(!device) return;
+            if(!device) {
+                await this.findBootloader(newDevices);
+                return;
+            }
             if(device.port_name === comPort && !deckerStore.connected){
                 this.init(comPort).catch((error) => {
                     log.error("Retry connecting to Decker failed:", error);
                 });
             }
         }, 1000);
+    }
+
+    // An interrupted update can leave Decker in its bootloader, which enumerates under another
+    // port name than the saved one. Look for it at most every 5 s while the saved port is gone.
+    private async findBootloader(devices: any[]) {
+        const firmware = useFirmwareStore();
+        if (firmware.busy) return;
+        const deckerPorts = devices
+            .filter((d: any) => d.vid === DECKER_VID && d.pid === DECKER_PID)
+            .map((d: any) => d.port_name);
+        if (firmware.inBootloader && firmware.portName && !deckerPorts.includes(firmware.portName)) {
+            firmware.onDisconnected();
+        }
+        if (firmware.inBootloader || deckerPorts.length === 0) return;
+        if (Date.now() - this.lastBootloaderSearch < BOOTLOADER_SEARCH_EVERY_MS) return;
+        this.lastBootloaderSearch = Date.now();
+        const port = await invoke<string | null>('firmware_find_bootloader');
+        // A flash or connection may have started during the search.
+        if (port && !firmware.busy && !useDeckerStore().connected) await firmware.onBootloader(port);
     }
 
     public async initMidi() {
