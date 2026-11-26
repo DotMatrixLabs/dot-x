@@ -75,13 +75,7 @@
                             <span v-if="firmware.busy" class="flex items-center gap-2 text-xs">
                                 <i class="fas fa-rotate fa-spin"></i> Updating… {{ firmware.percent }}%
                             </span>
-                            <template v-else-if="firmware.error">
-                                <button @click="firmware.flash()" class="btn btn-xs btn-primary">Retry</button>
-                            </template>
-                            <template v-else-if="firmware.inBootloader">
-                                <span class="text-xs">Update didn't finish</span>
-                                <button @click="firmware.flash()" class="btn btn-xs btn-primary">Retry</button>
-                            </template>
+                            <button v-else-if="firmware.error || firmware.inBootloader" @click="firmware.flash()" class="btn btn-xs btn-primary">Retry</button>
                             <button v-else-if="firmware.available" @click="firmware.flash()" class="btn btn-xs btn-primary">
                                 <i class="fas fa-arrow-up"></i> Update to {{ firmware.available }}
                             </button>
@@ -95,6 +89,7 @@
                         Don't unplug Decker. Sliders resume when the update finishes.
                     </div>
                     <div v-else-if="index === 'firmwareVersion' && firmware.error" class="w-full text-xs text-error text-left mb-1">{{ firmware.error }}</div>
+                    <div v-else-if="index === 'firmwareVersion' && firmware.inBootloader" class="w-full text-xs text-warning text-left mb-1">Update didn't finish</div>
                 </template>
                 <div :class="dimClass" class=" flex flex-row w-full justify-between my-1">
                     <span class="label-text my-auto">Stats</span>
