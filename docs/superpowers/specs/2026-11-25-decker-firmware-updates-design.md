@@ -109,6 +109,8 @@ If a port with Decker's VID/PID connects but sends nothing for 3 s, the frontend
 
 This check only runs for a silent Decker port, so it adds no wakeups to a working connection.
 
+The bootloader often enumerates under a different port name than the firmware (COM17 instead of COM16 on Windows, ttyACM1 instead of ttyACM0 on Linux). So while the saved port is missing, Dot X also asks each port with Decker's USB ID whether it is the bootloader (`firmware_find_bootloader`). It asks at most twice per change in the set of Decker ports, so a working Decker on another port isn't opened over and over. The model lookup falls back to the only model Dot X has seen on any port, because the bootloader's port was never the one the model was recorded on. That guess is only safe while Decker is the only model: drop the fallback, or record the model by USB serial, when Decker Lite ships.
+
 ### Frontend
 
 - `deckerStore` gains firmware state: `firmwareUpdate` (bundled version or null), `flashing`, `progress`, `error`, `inBootloader`.
