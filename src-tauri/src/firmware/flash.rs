@@ -113,8 +113,20 @@ fn flash(app: &AppHandle, port_name: &str, model: &str) -> Result<(), String> {
         }
         // A retry from recovery: the bootloader may have enumerated under another name.
         Err(e) => {
-            info!("{e}; looking for the bootloader on other ports");
-            find_bootloader(port_name)?
+            info!("Could not open {port_name} ({e}); looking for the bootloader on other ports");
+            find_bootloader(port_name).map_err(|not_found| {
+                // A port that is still listed but won't open is usually held by another app.
+                // (Windows reports both cases as NoDevice, so the error kind can't tell them apart.)
+                let listed = available_ports()
+                    .unwrap_or_default()
+                    .iter()
+                    .any(|p| p.port_name == port_name);
+                if listed {
+                    format!("Could not open {port_name} ({e}). Close other apps that use Decker and try again.")
+                } else {
+                    not_found
+                }
+            })?
         }
     };
 
@@ -164,7 +176,7 @@ fn identify(port: &mut Box<dyn SerialPort>) -> std::io::Result<bool> {
 }
 
 /// The connection thread may hold the port for a moment after it was told to stop.
-fn open_with_retry(port_name: &str) -> Result<Box<dyn SerialPort>, String> {
+fn open_with_retry(port_name: &str) -> serialport::Result<Box<dyn SerialPort>> {
     let deadline = Instant::now() + OPEN_RETRY_FOR;
     loop {
         match serialport::new(port_name, BAUD)
@@ -172,9 +184,7 @@ fn open_with_retry(port_name: &str) -> Result<Box<dyn SerialPort>, String> {
             .open()
         {
             Ok(port) => return Ok(port),
-            Err(e) if Instant::now() >= deadline => {
-                return Err(format!("Could not open {port_name}: {e}"))
-            }
+            Err(e) if Instant::now() >= deadline => return Err(e),
             Err(_) => thread::sleep(Duration::from_millis(50)),
         }
     }
