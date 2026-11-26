@@ -1,16 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { getApps, getMappedApps } = vi.hoisted(() => ({
+const { getApps, getMappedApps, invoke, deckerStore } = vi.hoisted(() => ({
     getApps: vi.fn(),
     getMappedApps: vi.fn(),
+    invoke: vi.fn(),
+    deckerStore: { volumeSyncEnabled: false, deviceType: "Decker", setBrightness: vi.fn() },
 }));
 
-vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn() }));
+vi.mock("@tauri-apps/api/core", () => ({ invoke }));
 vi.mock("./appsToControl", () => ({
     default: { getApps, getMappedApps },
 }));
 vi.mock("../store/deckerStore", () => ({
-    useDeckerStore: () => ({ volumeSyncEnabled: false }),
+    useDeckerStore: () => deckerStore,
 }));
 
 import SystemVolumeController from "./volumeControl";
@@ -29,5 +31,31 @@ describe("setChannelVolume", () => {
 
         await expect(SystemVolumeController.setChannelVolume(0, 0.5)).resolves.toBeUndefined();
         expect(setVolume).not.toHaveBeenCalled();
+    });
+});
+
+describe("device brightness mapping", () => {
+    beforeEach(() => {
+        vi.restoreAllMocks();
+        invoke.mockReset();
+        vi.useFakeTimers();
+        getApps.mockResolvedValue(["device brightness"]);
+        vi.spyOn(SystemVolumeController, "getAllSessionNames").mockResolvedValue([]);
+    });
+
+    // A Lite user may still have this mapping from a Decker; moving the slider must do nothing.
+    it("sends nothing to a device without LEDs", async () => {
+        deckerStore.deviceType = "Decker Lite";
+
+        await expect(SystemVolumeController.setChannelVolume(0, 0.5)).resolves.toBeUndefined();
+        expect(invoke).not.toHaveBeenCalledWith("send_decker_command", expect.anything());
+    });
+
+    it("sends LED brightness to a Decker", async () => {
+        deckerStore.deviceType = "Decker";
+
+        await SystemVolumeController.setChannelVolume(0, 0.5);
+        await vi.runAllTimersAsync(); // flush the 100 ms throttle
+        expect(invoke).toHaveBeenCalledWith("send_decker_command", { command: "rgb-control", options: { brightness: 127 } });
     });
 });
