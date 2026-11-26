@@ -70,7 +70,7 @@
                     <div :class="index === 'firmwareVersion' ? '' : dimClass" class="flex text-sm flex-row w-full justify-between my-1">
                         <span class="label-text my-auto">{{infopoint.name}}:</span>
                         <span v-if="index !== 'firmwareVersion'" :key="currentDevice" class="font-semibold w-1/3 text-left">{{deviceInfo(currentDevice)?.[index] ?? 'N/A'}}</span>
-                        <span v-else class="w-1/3 text-left flex items-center gap-2 whitespace-nowrap">
+                        <span v-else class="w-1/3 text-left flex flex-wrap items-center gap-x-2 gap-y-1 whitespace-nowrap">
                             <span class="font-semibold">{{firmware.inBootloader ? 'N/A' : (deviceInfo(currentDevice)?.[index] ?? 'N/A')}}</span>
                             <span v-if="firmware.busy" class="flex items-center gap-2 text-xs">
                                 <i class="fas fa-rotate fa-spin"></i> Updating… {{ firmware.percent }}%
