@@ -18,6 +18,8 @@ class Decker {
     private comPort: string = "";
     private initiated: boolean;
     private lastBootloaderSearch = 0;
+    private searchedPorts = '';
+    private searchesLeft = 0;
     // private debug: boolean;
     public sliders: Array<number> = [];
     sliderListenerDetatcher: any;
@@ -266,7 +268,8 @@ class Decker {
     }
 
     // An interrupted update can leave Decker in its bootloader, which enumerates under another
-    // port name than the saved one. Look for it at most every 5 s while the saved port is gone.
+    // port name than the saved one. Look for it while the saved port is gone, but only twice
+    // per change in the Decker ports: a working Decker must not have its port opened over and over.
     private async findBootloader(devices: any[]) {
         const firmware = useFirmwareStore();
         if (firmware.busy) return;
@@ -276,8 +279,16 @@ class Decker {
         if (firmware.inBootloader && firmware.portName && !deckerPorts.includes(firmware.portName)) {
             firmware.onDisconnected();
         }
-        if (firmware.inBootloader || deckerPorts.length === 0) return;
+        const ports = [...deckerPorts].sort().join('|');
+        if (ports !== this.searchedPorts) {
+            this.searchedPorts = ports;
+            // Twice, in case a port that just appeared can't be opened yet.
+            this.searchesLeft = 2;
+            this.lastBootloaderSearch = 0;
+        }
+        if (firmware.inBootloader || deckerPorts.length === 0 || this.searchesLeft === 0) return;
         if (Date.now() - this.lastBootloaderSearch < BOOTLOADER_SEARCH_EVERY_MS) return;
+        this.searchesLeft--;
         this.lastBootloaderSearch = Date.now();
         const port = await invoke<string | null>('firmware_find_bootloader');
         // A flash or connection may have started during the search.
