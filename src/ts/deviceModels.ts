@@ -19,7 +19,8 @@ export function hasLeds(type: DeviceType): boolean {
     return type !== 'Decker Lite';
 }
 
-// Product model per device type, as written to EEPROM at manufacturing.
+// Product model per device type, as given by the maintainers. A unit's EEPROM may report
+// something else (one captured Decker frame says VM-5SW-L), so settings show the reported string.
 export const MODEL_BY_TYPE: Record<Exclude<DeviceType, 'Unknown'>, string> = {
     'Decker': 'VM-5SW',
     'Decker Lite': 'VML-5SW',
