@@ -22,6 +22,7 @@ mod audio;
 #[path = "audio_linux.rs"]
 mod audio;
 mod decker;
+mod firmware;
 mod midi;
 mod power_monitor;
 mod plugin_marketplace;
@@ -919,6 +920,9 @@ async fn main() {
         .manage(update_tracks::PendingBetaUpdate::default())
         .invoke_handler(tauri::generate_handler![
             get_installed_apps,
+            firmware::bundle::firmware_check,
+            firmware::flash::firmware_flash,
+            firmware::flash::firmware_find_bootloader,
             audio::get_all_session_names,
             audio::set_application_volume,
             connect_decker,

@@ -3,6 +3,7 @@
     "targets": ["deb", "appimage"],
     "resources": [
       "licenses/*",
+      "firmware/*",
       "resources/deno/deno-x86_64-unknown-linux-gnu.zip"
     ],
     "linux": {

@@ -21,8 +21,9 @@
           <div v-show="store.downloading" class="loading loading-spinner"></div>
           <span v-if="!store.downloading"><i class="fas fa-xl fa-arrow-right-to-bracket rotate-90 text-green-500"></i></span>
       </button>
-      <button title="Settings" @click="$emit('settings-toggled')" class="mx-8 btn btn-ghost rounded-md p-2">
+      <button title="Settings" @click="$emit('settings-toggled')" class="mx-8 btn btn-ghost rounded-md p-2 relative">
         <i class="fas fa-gear fa-lg text-base-content"></i>
+        <span v-if="firmware.needsAttention" class="absolute top-1.5 right-1 w-2 h-2 rounded-full bg-red-500"></span>
       </button>
       <button title="Minimize" @click="minimize" class="btn btn-ghost cursor-default">
         <i class="fas fa-minus fa-lg text-base-content"></i>
@@ -40,6 +41,7 @@ import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { openLink } from "../ts/helpers.ts"
 const appWindow = getCurrentWebviewWindow()
 import { useUpdateStore } from '../store/updateStore'
+import { useFirmwareStore } from '../store/firmwareStore'
 import { userInstallUpdate, performRelaunchIfReady } from '../ts/updater'
 
 export default {
@@ -53,6 +55,7 @@ export default {
   data() {
     return {
       store: useUpdateStore(),
+      firmware: useFirmwareStore(),
     }
   },
 

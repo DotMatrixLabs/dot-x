@@ -50,6 +50,7 @@
     "longDescription": "Desktop app for DotMatrixLabs products",
     "resources": [
       "licenses/*",
+      "firmware/*",
       "resources/deno/deno-x86_64-pc-windows-msvc.zip"
     ],
     "windows": {
