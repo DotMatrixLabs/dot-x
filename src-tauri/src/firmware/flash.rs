@@ -27,6 +27,9 @@ const OPEN_RETRY_FOR: Duration = Duration::from_secs(1);
 const IDENTIFY_TIMEOUT: Duration = Duration::from_millis(500);
 const BOOTLOADER_SEARCH_FOR: Duration = Duration::from_secs(5);
 const BOOTLOADER_SEARCH_EVERY: Duration = Duration::from_millis(100);
+/// The firmware resets about 120 ms after the 1200-baud touch, and reopening its port
+/// before then cancels the reset.
+const RESET_SETTLE: Duration = Duration::from_millis(500);
 /// The bootloader erases every application page before acking `e` (about 2 s).
 const PROGRAM_TIMEOUT: Duration = Duration::from_secs(5);
 
@@ -202,6 +205,8 @@ fn reboot_to_bootloader(port_name: &str) -> Result<(), String> {
         .map_err(|e| format!("Could not reset {port_name} into update mode: {e}"))?;
     port.write_data_terminal_ready(false)
         .map_err(|e| format!("Could not reset {port_name} into update mode: {e}"))?;
+    drop(port);
+    thread::sleep(RESET_SETTLE);
     Ok(())
 }
 
